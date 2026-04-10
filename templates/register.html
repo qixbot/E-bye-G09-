@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <!-- Left Column -->
+        <div class="auth-left">
+            <div class="top-logos">
+                <img src="{{ url_for('static', filename='mmu-logo.png') }}" alt="MMU" class="mmu-logo-top">
+                <div class="logo-divider"></div>
+                <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-Bye" class="ebye-logo-top">
+            </div>
+            
+            <div class="logo-center">
+                <img src="{{ url_for('static', filename='ebee.png') }}" alt="E-Bye" class="ebee-center">
+            </div>
+        </div>
+        
+        <div class="auth-right">
+            <form method="POST" action="{{ url_for('register') }}">
+                <h2>Create account</h2>
+                <p class="form-sub">Join E-Bye — MMU's second-hand marketplace</p>
+                
+                <div class="form-group">
+                    <label>Student ID</label>
+                    <input type="text" name="student_id" placeholder="e.g., 1211301234" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>MMU Email</label>
+                    <input type="email" name="email" placeholder="name@student.mmu.edu.my" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" name="username" placeholder="Choose a username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="Min. 6 characters" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Confirm password</label>
+                    <input type="password" name="confirm_password" placeholder="Re-enter password" required>
+                </div>
+                
+                <button type="submit" class="btn-login">Create account</button>
+                
+                <p class="switch-link">
+                    Already have an account? <a href="{{ url_for('login') }}">Log in</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

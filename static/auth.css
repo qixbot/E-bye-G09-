@@ -1,0 +1,323 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #f7f6f2 0%, #e6ded3 100%);
+    color: #333333;
+    min-height: 100vh;
+}
+
+/* Auth Page Layout */
+.auth-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+/* Card with floating/suspension effect */
+.auth-card {
+    max-width: 1200px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: white;
+    border-radius: 48px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.3);
+    transform: translateY(0);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.auth-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 40px 70px -15px rgba(0, 0, 0, 0.35);
+}
+
+/* Left Column */
+.auth-left {
+    background: #00381f;
+    padding: 32px 32px 48px 32px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-left::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* Top Logos */
+.top-logos {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 30px;
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 1;
+}
+
+.mmu-logo-top {
+    height: 70px;
+    width: auto;
+}
+
+.ebye-logo-top {
+    height: 80px;
+    width: auto;
+}
+
+.logo-divider {
+    width: 2px;
+    height: 55px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Center E-bee - VISIBLE SHADOW */
+.logo-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+    position: relative;
+    z-index: 1;
+}
+
+.ebee-center {
+    max-width: 220px;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    /*3 layer shadow*/
+    filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.5)) 
+            drop-shadow(0 0 15px rgba(217, 217, 217, 0.3))
+            drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.ebee-center:hover {
+    transform: scale(1.02);
+    filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.6)) 
+            drop-shadow(0 0 20px rgba(0, 0, 0, 0.4));
+}
+
+/* Right Column */
+.auth-right {
+    padding: 48px 56px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.auth-right h2 {
+    font-size: 34px;
+    font-weight: 700;
+    color: #00381f;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+}
+
+.form-sub {
+    color: #6b6b6b;
+    font-size: 15px;
+    margin-bottom: 36px;
+}
+
+.form-group {
+    margin-bottom: 22px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 15px 18px;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 16px;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s;
+    background: white;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #00381f;
+    box-shadow: 0 0 0 3px rgba(0, 56, 31, 0.08);
+}
+
+.form-group input::placeholder {
+    color: #bbb;
+    font-weight: 400;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 16px;
+    background: #00381f;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.2s;
+}
+
+.btn-login:hover {
+    background: #1a5c3a;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(0, 56, 31, 0.2);
+}
+
+.switch-link {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 14px;
+    color: #6b6b6b;
+}
+
+.switch-link a {
+    color: #00381f;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.switch-link a:hover {
+    text-decoration: underline;
+}
+
+/* Toast Messages */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.toast {
+    padding: 12px 24px;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.toast-success {
+    background: #27ae60;
+    color: white;
+}
+
+.toast-error {
+    background: #e74c3c;
+    color: white;
+}
+
+.toast-info {
+    background: #f39c12;
+    color: white;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .auth-card {
+        grid-template-columns: 1fr;
+        border-radius: 32px;
+    }
+    
+    .auth-page {
+        padding: 20px;
+    }
+    
+    .auth-left {
+        padding: 28px 24px 40px 24px;
+    }
+    
+    .logo-center {
+        min-height: 220px;
+    }
+    
+    .ebee-center {
+        max-width: 180px;
+    }
+    
+    .auth-right {
+        padding: 36px 28px;
+    }
+    
+    .auth-right h2 {
+        font-size: 28px;
+    }
+    
+    .top-logos {
+        gap: 20px;
+    }
+    
+    .mmu-logo-top {
+        height: 50px;
+    }
+    
+    .ebye-logo-top {
+        height: 55px;
+    }
+    
+    .logo-divider {
+        height: 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ebee-center {
+        max-width: 140px;
+    }
+    
+    .auth-right {
+        padding: 28px 20px;
+    }
+    
+    .mmu-logo-top {
+        height: 38px;
+    }
+    
+    .ebye-logo-top {
+        height: 42px;
+    }
+}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <!-- Left Column -->
+        <div class="auth-left">
+            <!-- Top Logos: MMU left | E-Bye right (bigger) -->
+            <div class="top-logos">
+                <img src="{{ url_for('static', filename='mmu-logo.png') }}" alt="MMU" class="mmu-logo-top">
+                <div class="logo-divider"></div>
+                <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-Bye" class="ebye-logo-top">
+            </div>
+            
+            <!-- Center E-bee -->
+            <div class="logo-center">
+                <img src="{{ url_for('static', filename='ebee.png') }}" alt="E-Bye" class="ebee-center">
+            </div>
+        </div>
+        
+        <!-- Right Column: Form -->
+        <div class="auth-right">
+            <form method="POST" action="{{ url_for('login') }}">
+                <h2>Welcome back</h2>
+                <p class="form-sub">Login to your E-Bye account</p>
+                
+                <div class="form-group">
+                    <label>Email address</label>
+                    <input type="email" name="email" placeholder="name@student.mmu.edu.my" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="Enter your password" required>
+                </div>
+                
+                <button type="submit" class="btn-login">Log in</button>
+                
+                <p class="switch-link">
+                    Don't have an account? <a href="{{ url_for('register') }}">Create one</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

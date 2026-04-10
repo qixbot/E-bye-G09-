@@ -1,12 +1,19 @@
-body {
-    font-family: sans-serif;
-    text-align: center;
-    margin-top: 100px;
-    background: #f7f7fb;
-    color: #1a1a2e;
+/* General styles for all pages (non-auth) */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-h1 {
-    font-size: 48px;
-    color: #e94560;
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f7f6f2;
+    color: #333333;
 }
+
+/* Utility classes */
+.text-center { text-align: center; }
+.mt-20 { margin-top: 20px; }
+.mb-20 { margin-bottom: 20px; }
+
+/* You can add other global styles here */
