@@ -1,3 +1,4 @@
+import re
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from database import init_db, get_db
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -43,16 +44,41 @@ def register():
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
         
-        # verification
+        # verification and validation
         errors = []
-        if not student_id or len(student_id) < 8:
-            errors.append('Valid Student ID is required')
-        if not email.endswith('@mmu.edu.my') and not email.endswith('@student.mmu.edu.my'):
-            errors.append('Only MMU email addresses are allowed')
+        
+        # Student ID
+        if not student_id or len(student_id) < 5:
+            errors.append('Please enter a valid Student ID')
+        
+        # Email
+        if not email:
+            errors.append('Email is required')
+        elif not (email.endswith('@mmu.edu.my') or email.endswith('@student.mmu.edu.my')):
+            errors.append('Only MMU email addresses are allowed (@student.mmu.edu.my or @mmu.edu.my)')
+        
+        # Username
+        if not username or len(username) < 3:
+            errors.append('Username must be at least 3 characters')
+        
+        # Password - increase complexity requirements
+        if not password:
+            errors.append('Password is required')
+        else:
+            if len(password) < 8:
+                errors.append('Password must be at least 8 characters')
+            if not re.search(r'[A-Z]', password):
+                errors.append('Password must contain at least 1 uppercase letter')
+            if not re.search(r'[a-z]', password):
+                errors.append('Password must contain at least 1 lowercase letter')
+            if not re.search(r'[0-9]', password):
+                errors.append('Password must contain at least 1 number')
+            if not re.search(r'[!@#$%^&*]', password):
+                errors.append('Password must contain at least 1 special character (! @ # $ % ^ & *)')
+        
+        # Confirm password
         if password != confirm_password:
             errors.append('Passwords do not match')
-        if len(password) < 6:
-            errors.append('Password must be at least 6 characters')
         
         if errors:
             for error in errors:
@@ -61,7 +87,7 @@ def register():
         
         db = get_db()
         
-        # check uniqueness
+        # check if student_id or email already exists
         existing = db.execute('SELECT * FROM users WHERE student_id = ? OR email = ?', 
                               (student_id, email)).fetchone()
         if existing:
@@ -76,7 +102,7 @@ def register():
         ''', (student_id, email, username, hashed_password))
         db.commit()
         
-        flash('Account created! Please login.', 'success')
+        flash('Account created successfully! Please login.', 'success')
         return redirect(url_for('login'))
     
     return render_template('register.html')

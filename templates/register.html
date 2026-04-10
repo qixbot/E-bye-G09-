@@ -16,8 +16,9 @@
             </div>
         </div>
         
+        <!-- Right Column: Form -->
         <div class="auth-right">
-            <form method="POST" action="{{ url_for('register') }}">
+            <form method="POST" action="{{ url_for('register') }}" onsubmit="return validateForm()">
                 <h2>Create account</h2>
                 <p class="form-sub">Join E-Bye — MMU's second-hand marketplace</p>
                 
@@ -38,12 +39,20 @@
                 
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="password" name="password" placeholder="Min. 6 characters" required>
+                    <input type="password" name="password" id="password" placeholder="Create a strong password" required onkeyup="checkPasswordStrength()">
+                    <div class="password-requirements" id="password-requirements">
+                        <small id="req-length" class="req-invalid">✗ At least 8 characters</small>
+                        <small id="req-upper" class="req-invalid">✗ At least 1 uppercase letter (A-Z)</small>
+                        <small id="req-lower" class="req-invalid">✗ At least 1 lowercase letter (a-z)</small>
+                        <small id="req-number" class="req-invalid">✗ At least 1 number (0-9)</small>
+                        <small id="req-special" class="req-invalid">✗ At least 1 special character (! @ # $ % ^ & *)</small>
+                    </div>
                 </div>
                 
                 <div class="form-group">
                     <label>Confirm password</label>
-                    <input type="password" name="confirm_password" placeholder="Re-enter password" required>
+                    <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter your password" required onkeyup="checkPasswordMatch()">
+                    <div class="password-match" id="password-match"></div>
                 </div>
                 
                 <button type="submit" class="btn-login">Create account</button>
@@ -55,4 +64,75 @@
         </div>
     </div>
 </div>
+
+<script>
+function checkPasswordStrength() {
+    const password = document.getElementById('password').value;
+    
+    // check each of the requirements
+    const lengthValid = password.length >= 8;
+    const upperValid = /[A-Z]/.test(password);
+    const lowerValid = /[a-z]/.test(password);
+    const numberValid = /[0-9]/.test(password);
+    const specialValid = /[!@#$%^&*]/.test(password);
+    
+    // update display
+    updateRequirement('req-length', lengthValid);
+    updateRequirement('req-upper', upperValid);
+    updateRequirement('req-lower', lowerValid);
+    updateRequirement('req-number', numberValid);
+    updateRequirement('req-special', specialValid);
+    
+    // return whether all requirements are met
+    return lengthValid && upperValid && lowerValid && numberValid && specialValid;
+}
+
+function updateRequirement(id, isValid) {
+    const element = document.getElementById(id);
+    if (isValid) {
+        element.classList.remove('req-invalid');
+        element.classList.add('req-valid');
+        element.innerHTML = element.innerHTML.replace('✗', '✓');
+    } else {
+        element.classList.remove('req-valid');
+        element.classList.add('req-invalid');
+        element.innerHTML = element.innerHTML.replace('✓', '✗');
+    }
+}
+
+function checkPasswordMatch() {
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm_password').value;
+    const matchDiv = document.getElementById('password-match');
+    
+    if (confirm.length === 0) {
+        matchDiv.innerHTML = '';
+        matchDiv.className = 'password-match';
+    } else if (password === confirm) {
+        matchDiv.innerHTML = '✓ Passwords match';
+        matchDiv.className = 'password-match match-valid';
+    } else {
+        matchDiv.innerHTML = '✗ Passwords do not match';
+        matchDiv.className = 'password-match match-invalid';
+    }
+}
+
+function validateForm() {
+    const isStrong = checkPasswordStrength();
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm_password').value;
+    
+    if (!isStrong) {
+        alert('❌ Please meet all password requirements!\n\n- At least 8 characters\n- At least 1 uppercase letter (A-Z)\n- At least 1 lowercase letter (a-z)\n- At least 1 number (0-9)\n- At least 1 special character (! @ # $ % ^ & *)');
+        return false;
+    }
+    
+    if (password !== confirm) {
+        alert('❌ Passwords do not match!');
+        return false;
+    }
+    
+    return true;
+}
+</script>
 {% endblock %}

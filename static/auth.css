@@ -320,4 +320,47 @@ body {
     .ebye-logo-top {
         height: 42px;
     }
+
+/* Password Requirements - Card Style */
+.password-requirements {
+    margin-top: 12px;
+    background: #f8f8f8;
+    border-radius: 16px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.password-requirements small {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    background: transparent !important;
+}
+
+.req-valid {
+    color: #27ae60;
+}
+
+.req-invalid {
+    color: #e74c3c;
+}
+
+.password-match {
+    margin-top: 8px;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.match-valid {
+    color: #27ae60;
+}
+
+.match-invalid {
+    color: #e74c3c;
+}
 }
