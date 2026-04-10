@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2025'
 
-# 初始化数据库
+# initialize the database
 init_db()
 
 @app.route('/')
@@ -43,7 +43,7 @@ def register():
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
         
-        # 验证
+        # verification
         errors = []
         if not student_id or len(student_id) < 8:
             errors.append('Valid Student ID is required')
@@ -61,14 +61,14 @@ def register():
         
         db = get_db()
         
-        # 检查唯一性
+        # check uniqueness
         existing = db.execute('SELECT * FROM users WHERE student_id = ? OR email = ?', 
                               (student_id, email)).fetchone()
         if existing:
             flash('Student ID or Email already registered', 'error')
             return render_template('register.html')
         
-        # 创建用户
+        # create user
         hashed_password = generate_password_hash(password)
         db.execute('''
             INSERT INTO users (student_id, email, username, password)
