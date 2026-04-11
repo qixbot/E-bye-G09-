@@ -103,7 +103,6 @@ body {
     width: 100%;
     height: auto;
     object-fit: contain;
-    /*3 layer shadow*/
     filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.5)) 
             drop-shadow(0 0 15px rgba(217, 217, 217, 0.3))
             drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
@@ -212,60 +211,7 @@ body {
     text-decoration: underline;
 }
 
-/* Toast Messages */
-.toast-container {
-    position: fixed;
-    top: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    pointer-events: none;
-}
-
-.toast {
-    padding: 14px 28px;
-    border-radius: 40px;
-    font-size: 14px;
-    font-weight: 500;
-    animation: slideDown 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-    pointer-events: auto;
-    text-align: center;
-    min-width: 260px;
-    backdrop-filter: blur(8px);
-}
-
-.toast-success {
-    background: rgba(39, 174, 96, 0.95);
-    color: white;
-}
-
-.toast-error {
-    background: rgba(231, 76, 60, 0.95);
-    color: white;
-}
-
-.toast-info {
-    background: rgba(243, 156, 18, 0.95);
-    color: white;
-}
-
-@keyframes slideDown {
-    from {
-        transform: translateX(-100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Password Requirements - Card Style */
+/* Password Requirements */
 .password-requirements {
     margin-top: 16px;
     background: rgba(0, 56, 31, 0.04);
@@ -283,7 +229,7 @@ body {
     align-items: center;
     gap: 10px;
     font-weight: 450;
-    transition:all 0.2s;
+    transition: all 0.2s;
 }
 
 .req-valid {
@@ -294,14 +240,13 @@ body {
     color: #e74c3c;
 }
 
-/* Match password */
 .password-match {
     margin-top: 12px;
     font-size: 13px;
     font-weight: 500;
-    display :flex;
+    display: flex;
     align-items: center;
-    gap: 8px 0 0 0;
+    gap: 8px;
 }
 
 .match-valid {
@@ -310,6 +255,67 @@ body {
 
 .match-invalid {
     color: #e74c3c;
+}
+
+/* ===== FORM ERROR MESSAGES ===== */
+.form-error {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #e74c3c;
+    display: block;
+}
+
+.field-error {
+    border-color: #e74c3c !important;
+}
+
+.field-error:focus {
+    border-color: #e74c3c !important;
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.1) !important;
+}
+
+/* Flash Messages */
+.flash-messages {
+    margin-bottom: 24px;
+}
+
+.flash-message {
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.flash-message.success {
+    background: rgba(39, 174, 96, 0.1);
+    color: #27ae60;
+    border: 1px solid rgba(39, 174, 96, 0.2);
+}
+
+.flash-message.error {
+    background: rgba(231, 76, 60, 0.08);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.15);
+}
+
+/* Remember me checkbox */
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: -8px;
+}
+
+.remember-me input {
+    width: auto;
+    margin: 0;
+}
+
+.remember-me label {
+    font-size: 13px;
+    color: #333;
+    text-transform: none;
+    font-weight: normal;
 }
 
 /* Responsive */
