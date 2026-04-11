@@ -22,7 +22,7 @@ body {
 
 /* Card with floating/suspension effect */
 .auth-card {
-    max-width: 1200px;
+    max-width: 1000px;
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -47,6 +47,8 @@ body {
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    min-height: 620px;
+    justify-content: space-between;
 }
 
 .auth-left::before {
@@ -93,7 +95,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 320px;
+    min-height: 280px;
     position: relative;
     z-index: 1;
 }
@@ -117,11 +119,12 @@ body {
 
 /* Right Column */
 .auth-right {
-    padding: 48px 56px;
+    padding: 48px 44px;
     background: white;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    min-height: 620px;
 }
 
 .auth-right h2 {
