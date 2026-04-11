@@ -215,45 +215,101 @@ body {
 /* Toast Messages */
 .toast-container {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
 }
 
 .toast {
-    padding: 12px 24px;
+    padding: 14px 28px;
     border-radius: 40px;
     font-size: 14px;
     font-weight: 500;
-    margin-bottom: 10px;
-    animation: slideIn 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    animation: slideDown 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    pointer-events: auto;
+    text-align: center;
+    min-width: 260px;
+    backdrop-filter: blur(8px);
 }
 
 .toast-success {
-    background: #27ae60;
+    background: rgba(39, 174, 96, 0.95);
     color: white;
 }
 
 .toast-error {
-    background: #e74c3c;
+    background: rgba(231, 76, 60, 0.95);
     color: white;
 }
 
 .toast-info {
-    background: #f39c12;
+    background: rgba(243, 156, 18, 0.95);
     color: white;
 }
 
-@keyframes slideIn {
+@keyframes slideDown {
     from {
-        transform: translateX(100%);
+        transform: translateX(-100%);
         opacity: 0;
     }
     to {
-        transform: translateX(0);
+        transform: translateY(0);
         opacity: 1;
     }
+}
+
+/* Password Requirements - Card Style */
+.password-requirements {
+    margin-top: 16px;
+    background: rgba(0, 56, 31, 0.04);
+    border-radius: 20px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid rgba(0, 56, 31, 0.1);
+}
+
+.password-requirements small {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 450;
+    transition:all 0.2s;
+}
+
+.req-valid {
+    color: #00c986;
+}
+
+.req-invalid {
+    color: #e74c3c;
+}
+
+/* Match password */
+.password-match {
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    display :flex;
+    align-items: center;
+    gap: 8px 0 0 0;
+}
+
+.match-valid {
+    color: #00c986;
+}
+
+.match-invalid {
+    color: #e74c3c;
 }
 
 /* Responsive */
@@ -320,51 +376,4 @@ body {
     .ebye-logo-top {
         height: 42px;
     }
-
-/* Password Requirements - Card Style */
-.password-requirements {
-    margin-top: 16px;
-    background: rgba(0, 56, 31, 0.3);
-    border-radius: 20px;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    border: 1px solid rgba(0, 56, 31, 0.8);
-}
-
-.password-requirements small {
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 450;
-    transition:all 0.2s;
-}
-
-.req-valid {
-    color: #00c986;
-}
-
-.req-invalid {
-    color: #e74c3c;
-}
-
-/* Match password */
-.password-match {
-    margin-top: 12px;
-    font-size: 13px;
-    font-weight: 500;
-    display :flex;
-    align-items: center;
-    gap: 8px 0 0 0;
-}
-
-.match-valid {
-    color: #00c986;
-}
-
-.match-invalid {
-    color: #e74c3c;
-}
 }
