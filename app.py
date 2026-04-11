@@ -48,14 +48,16 @@ def register():
         errors = []
         
         # Student ID
-        if not student_id or len(student_id) < 5:
-            errors.append('Please enter a valid Student ID')
-        
+        if not student_id or len(student_id) != 10:
+            errors.append('Please enter a valid Student ID (10 characters)')
+        elif not student_id.replace(' ', '').isalnum():
+            errors.append('Student ID must contain only letters and numbers')
+
         # Email
         if not email:
             errors.append('Email is required')
-        elif not (email.endswith('@mmu.edu.my') or email.endswith('@student.mmu.edu.my')):
-            errors.append('Only MMU email addresses are allowed (@student.mmu.edu.my or @mmu.edu.my)')
+        elif not (email.endswith('@student.mmu.edu.my')):
+            errors.append('Only MMU email addresses are allowed (@student.mmu.edu.my)')
         
         # Username
         if not username or len(username) < 3:
