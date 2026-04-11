@@ -20,7 +20,6 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        
         db = get_db()
         user = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
         
@@ -43,6 +42,7 @@ def register():
         username = request.form.get('username')
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
+        gender = request.form.get('gender')
         
         # verification and validation
         errors = []
@@ -96,12 +96,12 @@ def register():
             flash('Student ID or Email already registered', 'error')
             return render_template('register.html')
         
-        # create user
+        # create user with gender field
         hashed_password = generate_password_hash(password)
         db.execute('''
-            INSERT INTO users (student_id, email, username, password)
-            VALUES (?, ?, ?, ?)
-        ''', (student_id, email, username, hashed_password))
+            INSERT INTO users (student_id, email, username, password, gender)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (student_id, email, username, hashed_password, gender))
         db.commit()
         
         flash('Account created successfully! Please login.', 'success')
@@ -120,6 +120,10 @@ def logout():
     session.clear()
     flash('Logged out', 'info')
     return redirect(url_for('login'))
+
+@app.route('/admin/login')
+def admin_login():
+    return render_template('admin_login.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -52,6 +52,17 @@
                 </div>
                 
                 <div class="form-group">
+                <label>Gender</label>
+                <select name="gender" id="gender" class="form-input">
+                     <option value="" disabled selected>Select your gender</option>
+                     <option value="Female">Female</option>
+                     <option value="Male">Male</option>
+                     <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+                <div class="form-error" id="gender-error" style="display: none;"></div>
+                </div>
+
+                <div class="form-group">
                     <label>Password</label>
                     <input type="password" name="password" id="password" placeholder="Create a strong password" required onkeyup="checkPasswordStrength()">
                     <div class="form-error" id="password-error" style="display: none;"></div>
@@ -65,10 +76,9 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Confirm password</label>
-                    <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter your password" required onkeyup="checkPasswordMatch()">
-                    <div class="form-error" id="confirm_password-error" style="display: none;"></div>
-                    <div class="password-match" id="password-match"></div>
+                <label>Confirm password</label>
+                <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter your password" required onkeyup="checkPasswordMatch()">
+                <div class="password-match" id="password-match"></div>
                 </div>
                 
                 <button type="submit" class="btn-login">Create account</button>

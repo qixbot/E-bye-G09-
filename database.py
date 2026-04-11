@@ -16,6 +16,7 @@ def init_db():
             email TEXT UNIQUE NOT NULL,
             username TEXT NOT NULL,
             password TEXT NOT NULL,
+            gender TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
