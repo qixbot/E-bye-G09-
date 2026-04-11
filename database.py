@@ -21,4 +21,4 @@ def init_db():
     ''')
     db.commit()
     db.close()
-    print("Database ready")
+    print("Database ready WITH user table")
