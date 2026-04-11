@@ -1,0 +1,370 @@
+[33mcommit b2b1b82e34a0505d58d13da2fcda7f7d4a373185[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: [1;31mqiqi[m <eileen03072007@gmail.com>
+Date:   Fri Apr 10 22:17:21 2026 +0800
+
+    update
+
+ app.py                  | 44 [32m+++++++++++++++++++[m[31m------[m
+ static/auth.css         | 43 [32m+++++++++++++++++++++++++[m
+ templates/register.html | 86 [32m+++++++++++++++++++++++++++++++++++++++++++++++[m[31m--[m
+ 3 files changed, 161 insertions(+), 12 deletions(-)
+
+[33mcommit 3a41f90c6ed757960d0f9c1f1b5ae9d650c92b48[m
+Author: [1;31mqiqi[m <eileen03072007@gmail.com>
+Date:   Fri Apr 10 21:34:24 2026 +0800
+
+    Update register.html
+
+ templates/register.html | 2 [32m+[m[31m-[m
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+[33mcommit 9f74a286f3ae12c2da4a91a5ad8e6db68c1bbf99[m
+Author: [1;31mqiqi[m <eileen03072007@gmail.com>
+Date:   Fri Apr 10 21:33:23 2026 +0800
+
+    Update app.py
+
+ app.py | 8 [32m++++[m[31m----[m
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+[33mcommit 5a2425a7c2a000725798b2d2f4ac08619143380f[m
+Author: [1;31mqiqi[m <eileen03072007@gmail.com>
+Date:   Fri Apr 10 21:25:08 2026 +0800
+
+    Add E-Bye authentication system with login/register pages, database, and modern UI
+
+ app.py                                             |  109 [32m+[m[31m-[m
+ database.py                                        |   24 [32m+[m
+ ebyte.db                                           |  Bin [31m0[m -> [32m20480[m bytes
+ requirements.txt                                   |    0
+ static/auth.css                                    |  323 [32m+[m
+ static/ebee.png                                    |  Bin [31m0[m -> [32m264683[m bytes
+ static/ebye-logo.png                               |  Bin [31m0[m -> [32m99654[m bytes
+ static/mmu-logo.png                                |  Bin [31m0[m -> [32m94365[m bytes
+ static/style.css                                   |   25 [32m+[m[31m-[m
+ templates/base.html                                |   24 [32m+[m
+ templates/index.html                               |   11 [31m-[m
+ templates/login.html                               |   46 [32m+[m
+ templates/register.html                            |   58 [32m+[m
+ venv/Include/site/python3.11/greenlet/greenlet.h   |  164 [32m+[m
+ venv/Lib/site-packages/_distutils_hack/__init__.py |  222 [32m+[m
+ venv/Lib/site-packages/_distutils_hack/override.py |    1 [32m+[m
+ .../bidict-0.23.1.dist-info/INSTALLER              |    1 [32m+[m
+ .../site-packages/bidict-0.23.1.dist-info/LICENSE  |  376 [32m+[m
+ .../site-packages/bidict-0.23.1.dist-info/METADATA |  260 [32m+[m
+ .../site-packages/bidict-0.23.1.dist-info/RECORD   |   31 [32m+[m
+ .../site-packages/bidict-0.23.1.dist-info/WHEEL    |    5 [32m+[m
+ .../bidict-0.23.1.dist-info/top_level.txt          |    1 [32m+[m
+ venv/Lib/site-packages/bidict/__init__.py          |  103 [32m+[m
+ venv/Lib/site-packages/bidict/_abc.py              |   79 [32m+[m
+ venv/Lib/site-packages/bidict/_base.py             |  556 [32m++[m
+ venv/Lib/site-packages/bidict/_bidict.py           |  194 [32m+[m
+ venv/Lib/site-packages/bidict/_dup.py              |   61 [32m+[m
+ venv/Lib/site-packages/bidict/_exc.py              |   36 [32m+[m
+ venv/Lib/site-packages/bidict/_frozen.py           |   50 [32m+[m
+ venv/Lib/site-packages/bidict/_iter.py             |   51 [32m+[m
+ venv/Lib/site-packages/bidict/_orderedbase.py      |  238 [32m+[m
+ venv/Lib/site-packages/bidict/_orderedbidict.py    |  172 [32m+[m
+ venv/Lib/site-packages/bidict/_typing.py           |   49 [32m+[m
+ venv/Lib/site-packages/bidict/metadata.py          |   14 [32m+[m
+ venv/Lib/site-packages/bidict/py.typed             |    1 [32m+[m
+ .../blinker-1.9.0.dist-info/INSTALLER              |    1 [32m+[m
+ .../blinker-1.9.0.dist-info/LICENSE.txt            |   20 [32m+[m
+ .../site-packages/blinker-1.9.0.dist-info/METADATA |   60 [32m+[m
+ .../site-packages/blinker-1.9.0.dist-info/RECORD   |   12 [32m+[m
+ .../site-packages/blinker-1.9.0.dist-info/WHEEL    |    4 [32m+[m
+ venv/Lib/site-packages/blinker/__init__.py         |   17 [32m+[m
+ venv/Lib/site-packages/blinker/_utilities.py       |   64 [32m+[m
+ venv/Lib/site-packages/blinker/base.py             |  512 [32m++[m
+ venv/Lib/site-packages/blinker/py.typed            |    0
+ .../site-packages/click-8.3.2.dist-info/INSTALLER  |    1 [32m+[m
+ .../site-packages/click-8.3.2.dist-info/METADATA   |   84 [32m+[m
+ .../Lib/site-packages/click-8.3.2.dist-info/RECORD |   40 [32m+[m
+ venv/Lib/site-packages/click-8.3.2.dist-info/WHEEL |    4 [32m+[m
+ .../click-8.3.2.dist-info/licenses/LICENSE.txt     |   28 [32m+[m
+ venv/Lib/site-packages/click/__init__.py           |  123 [32m+[m
+ venv/Lib/site-packages/click/_compat.py            |  622 [32m++[m
+ venv/Lib/site-packages/click/_termui_impl.py       |  852 [32m++[m
+ venv/Lib/site-packages/click/_textwrap.py          |   51 [32m+[m
+ venv/Lib/site-packages/click/_utils.py             |   36 [32m+[m
+ venv/Lib/site-packages/click/_winconsole.py        |  296 [32m+[m
+ venv/Lib/site-packages/click/core.py               | 3437 [32m++++++++[m
+ venv/Lib/site-packages/click/decorators.py         |  551 [32m++[m
+ venv/Lib/site-packages/click/exceptions.py         |  308 [32m+[m
+ venv/Lib/site-packages/click/formatting.py         |  301 [32m+[m
+ venv/Lib/site-packages/click/globals.py            |   67 [32m+[m
+ venv/Lib/site-packages/click/parser.py             |  532 [32m++[m
+ venv/Lib/site-packages/click/py.typed              |    0
+ venv/Lib/site-packages/click/shell_completion.py   |  667 [32m++[m
+ venv/Lib/site-packages/click/termui.py             |  883 [32m++[m
+ venv/Lib/site-packages/click/testing.py            |  574 [32m++[m
+ venv/Lib/site-packages/click/types.py              | 1209 [32m+++[m
+ venv/Lib/site-packages/click/utils.py              |  627 [32m++[m
+ .../colorama-0.4.6.dist-info/INSTALLER             |    1 [32m+[m
+ .../colorama-0.4.6.dist-info/METADATA              |  441 [32m+[m
+ .../site-packages/colorama-0.4.6.dist-info/RECORD  |   31 [32m+[m
+ .../site-packages/colorama-0.4.6.dist-info/WHEEL   |    5 [32m+[m
+ .../colorama-0.4.6.dist-info/licenses/LICENSE.txt  |   27 [32m+[m
+ venv/Lib/site-packages/colorama/__init__.py        |    7 [32m+[m
+ venv/Lib/site-packages/colorama/ansi.py            |  102 [32m+[m
+ venv/Lib/site-packages/colorama/ansitowin32.py     |  277 [32m+[m
+ venv/Lib/site-packages/colorama/initialise.py      |  121 [32m+[m
+ venv/Lib/site-packages/colorama/tests/__init__.py  |    1 [32m+[m
+ venv/Lib/site-packages/colorama/tests/ansi_test.py |   76 [32m+[m
+ .../colorama/tests/ansitowin32_test.py             |  294 [32m+[m
+ .../colorama/tests/initialise_test.py              |  189 [32m+[m
+ .../site-packages/colorama/tests/isatty_test.py    |   57 [32m+[m
+ venv/Lib/site-packages/colorama/tests/utils.py     |   49 [32m+[m
+ .../site-packages/colorama/tests/winterm_test.py   |  131 [32m+[m
+ venv/Lib/site-packages/colorama/win32.py           |  180 [32m+[m
+ venv/Lib/site-packages/colorama/winterm.py         |  195 [32m+[m
+ venv/Lib/site-packages/distutils-precedence.pth    |    1 [32m+[m
+ venv/Lib/site-packages/engineio/__init__.py        |   13 [32m+[m
+ venv/Lib/site-packages/engineio/async_client.py    |  692 [32m++[m
+ .../engineio/async_drivers/__init__.py             |    0
+ .../engineio/async_drivers/_websocket_wsgi.py      |   34 [32m+[m
+ .../engineio/async_drivers/aiohttp.py              |  120 [32m+[m
+ .../site-packages/engineio/async_drivers/asgi.py   |  296 [32m+[m
+ .../engineio/async_drivers/eventlet.py             |   52 [32m+[m
+ .../site-packages/engineio/async_drivers/gevent.py |   83 [32m+[m
+ .../engineio/async_drivers/gevent_uwsgi.py         |  168 [32m+[m
+ .../site-packages/engineio/async_drivers/sanic.py  |  148 [32m+[m
+ .../engineio/async_drivers/threading.py            |   19 [32m+[m
+ .../engineio/async_drivers/tornado.py              |  183 [32m+[m
+ venv/Lib/site-packages/engineio/async_server.py    |  613 [32m++[m
+ venv/Lib/site-packages/engineio/async_socket.py    |  261 [32m+[m
+ venv/Lib/site-packages/engineio/base_client.py     |  169 [32m+[m
+ venv/Lib/site-packages/engineio/base_server.py     |  358 [32m+[m
+ venv/Lib/site-packages/engineio/base_socket.py     |   14 [32m+[m
+ venv/Lib/site-packages/engineio/client.py          |  636 [32m++[m
+ venv/Lib/site-packages/engineio/exceptions.py      |   22 [32m+[m
+ venv/Lib/site-packages/engineio/json.py            |   16 [32m+[m
+ venv/Lib/site-packages/engineio/middleware.py      |   86 [32m+[m
+ venv/Lib/site-packages/engineio/packet.py          |   82 [32m+[m
+ venv/Lib/site-packages/engineio/payload.py         |   46 [32m+[m
+ venv/Lib/site-packages/engineio/server.py          |  504 [32m++[m
+ venv/Lib/site-packages/engineio/socket.py          |  256 [32m+[m
+ venv/Lib/site-packages/engineio/static_files.py    |   60 [32m+[m
+ .../site-packages/flask-3.1.3.dist-info/INSTALLER  |    1 [32m+[m
+ .../site-packages/flask-3.1.3.dist-info/METADATA   |   91 [32m+[m
+ .../Lib/site-packages/flask-3.1.3.dist-info/RECORD |   58 [32m+[m
+ .../site-packages/flask-3.1.3.dist-info/REQUESTED  |    0
+ venv/Lib/site-packages/flask-3.1.3.dist-info/WHEEL |    4 [32m+[m
+ .../flask-3.1.3.dist-info/entry_points.txt         |    3 [32m+[m
+ .../flask-3.1.3.dist-info/licenses/LICENSE.txt     |   28 [32m+[m
+ venv/Lib/site-packages/flask/__init__.py           |   61 [32m+[m
+ venv/Lib/site-packages/flask/__main__.py           |    3 [32m+[m
+ venv/Lib/site-packages/flask/app.py                | 1536 [32m++++[m
+ venv/Lib/site-packages/flask/blueprints.py         |  128 [32m+[m
+ venv/Lib/site-packages/flask/cli.py                | 1135 [32m+++[m
+ venv/Lib/site-packages/flask/config.py             |  367 [32m+[m
+ venv/Lib/site-packages/flask/ctx.py                |  459 [32m++[m
+ venv/Lib/site-packages/flask/debughelpers.py       |  178 [32m+[m
+ venv/Lib/site-packages/flask/globals.py            |   51 [32m+[m
+ venv/Lib/site-packages/flask/helpers.py            |  641 [32m++[m
+ venv/Lib/site-packages/flask/json/__init__.py      |  170 [32m+[m
+ venv/Lib/site-packages/flask/json/provider.py      |  215 [32m+[m
+ venv/Lib/site-packages/flask/json/tag.py           |  327 [32m+[m
+ venv/Lib/site-packages/flask/logging.py            |   79 [32m+[m
+ venv/Lib/site-packages/flask/py.typed              |    0
+ venv/Lib/site-packages/flask/sansio/README.md      |    6 [32m+[m
+ venv/Lib/site-packages/flask/sansio/app.py         |  964 [32m+++[m
+ venv/Lib/site-packages/flask/sansio/blueprints.py  |  632 [32m++[m
+ venv/Lib/site-packages/flask/sansio/scaffold.py    |  792 [32m++[m
+ venv/Lib/site-packages/flask/sessions.py           |  385 [32m+[m
+ venv/Lib/site-packages/flask/signals.py            |   17 [32m+[m
+ venv/Lib/site-packages/flask/templating.py         |  220 [32m+[m
+ venv/Lib/site-packages/flask/testing.py            |  298 [32m+[m
+ venv/Lib/site-packages/flask/typing.py             |   93 [32m+[m
+ venv/Lib/site-packages/flask/views.py              |  191 [32m+[m
+ venv/Lib/site-packages/flask/wrappers.py           |  257 [32m+[m
+ .../flask_socketio-5.6.1.dist-info/INSTALLER       |    1 [32m+[m
+ .../flask_socketio-5.6.1.dist-info/METADATA        |   80 [32m+[m
+ .../flask_socketio-5.6.1.dist-info/RECORD          |   13 [32m+[m
+ .../flask_socketio-5.6.1.dist-info/REQUESTED       |    0
+ .../flask_socketio-5.6.1.dist-info/WHEEL           |    5 [32m+[m
+ .../licenses/LICENSE                               |   20 [32m+[m
+ .../flask_socketio-5.6.1.dist-info/top_level.txt   |    1 [32m+[m
+ venv/Lib/site-packages/flask_socketio/__init__.py  | 1148 [32m+++[m
+ venv/Lib/site-packages/flask_socketio/namespace.py |   54 [32m+[m
+ .../site-packages/flask_socketio/test_client.py    |  244 [32m+[m
+ .../flask_sqlalchemy-3.1.1.dist-info/INSTALLER     |    1 [32m+[m
+ .../flask_sqlalchemy-3.1.1.dist-info/LICENSE.rst   |   28 [32m+[m
+ .../flask_sqlalchemy-3.1.1.dist-info/METADATA      |  109 [32m+[m
+ .../flask_sqlalchemy-3.1.1.dist-info/RECORD        |   27 [32m+[m
+ .../flask_sqlalchemy-3.1.1.dist-info/REQUESTED     |    0
+ .../flask_sqlalchemy-3.1.1.dist-info/WHEEL         |    4 [32m+[m
+ .../Lib/site-packages/flask_sqlalchemy/__init__.py |   26 [32m+[m
+ venv/Lib/site-packages/flask_sqlalchemy/cli.py     |   16 [32m+[m
+ .../site-packages/flask_sqlalchemy/extension.py    | 1008 [32m+++[m
+ venv/Lib/site-packages/flask_sqlalchemy/model.py   |  330 [32m+[m
+ .../site-packages/flask_sqlalchemy/pagination.py   |  364 [32m+[m
+ venv/Lib/site-packages/flask_sqlalchemy/py.typed   |    0
+ venv/Lib/site-packages/flask_sqlalchemy/query.py   |  105 [32m+[m
+ .../flask_sqlalchemy/record_queries.py             |  117 [32m+[m
+ venv/Lib/site-packages/flask_sqlalchemy/session.py |  111 [32m+[m
+ venv/Lib/site-packages/flask_sqlalchemy/table.py   |   39 [32m+[m
+ .../flask_sqlalchemy/track_modifications.py        |   88 [32m+[m
+ .../greenlet-3.4.0.dist-info/INSTALLER             |    1 [32m+[m
+ .../greenlet-3.4.0.dist-info/METADATA              |   98 [32m+[m
+ .../site-packages/greenlet-3.4.0.dist-info/RECORD  |  123 [32m+[m
+ .../site-packages/greenlet-3.4.0.dist-info/WHEEL   |    5 [32m+[m
+ .../greenlet-3.4.0.dist-info/licenses/LICENSE      |   30 [32m+[m
+ .../greenlet-3.4.0.dist-info/licenses/LICENSE.PSF  |   47 [32m+[m
+ .../greenlet-3.4.0.dist-info/top_level.txt         |    1 [32m+[m
+ venv/Lib/site-packages/greenlet/CObjects.cpp       |  160 [32m+[m
+ venv/Lib/site-packages/greenlet/PyGreenlet.cpp     |  841 [32m++[m
+ venv/Lib/site-packages/greenlet/PyGreenlet.hpp     |   35 [32m+[m
+ .../greenlet/PyGreenletUnswitchable.cpp            |  150 [32m+[m
+ venv/Lib/site-packages/greenlet/PyModule.cpp       |  309 [32m+[m
+ .../Lib/site-packages/greenlet/TBrokenGreenlet.cpp |   45 [32m+[m
+ .../Lib/site-packages/greenlet/TExceptionState.cpp |   62 [32m+[m
+ venv/Lib/site-packages/greenlet/TGreenlet.cpp      |  729 [32m++[m
+ venv/Lib/site-packages/greenlet/TGreenlet.hpp      |  849 [32m++[m
+ .../site-packages/greenlet/TGreenletGlobals.cpp    |  113 [32m+[m
+ venv/Lib/site-packages/greenlet/TMainGreenlet.cpp  |  163 [32m+[m
+ venv/Lib/site-packages/greenlet/TPythonState.cpp   |  490 [32m++[m
+ venv/Lib/site-packages/greenlet/TStackState.cpp    |  265 [32m+[m
+ venv/Lib/site-packages/greenlet/TThreadState.hpp   |  627 [32m++[m
+ .../site-packages/greenlet/TThreadStateCreator.hpp |  105 [32m+[m
+ .../site-packages/greenlet/TThreadStateDestroy.cpp |  217 [32m+[m
+ venv/Lib/site-packages/greenlet/TUserGreenlet.cpp  |  674 [32m++[m
+ venv/Lib/site-packages/greenlet/__init__.py        |   62 [32m+[m
+ .../greenlet/_greenlet.cp311-win_amd64.pyd         |  Bin [31m0[m -> [32m72704[m bytes
+ venv/Lib/site-packages/greenlet/greenlet.cpp       |  343 [32m+[m
+ venv/Lib/site-packages/greenlet/greenlet.h         |  164 [32m+[m
+ .../site-packages/greenlet/greenlet_allocator.hpp  |   76 [32m+[m
+ .../greenlet/greenlet_compiler_compat.hpp          |   98 [32m+[m
+ .../greenlet/greenlet_cpython_compat.hpp           |  117 [32m+[m
+ .../site-packages/greenlet/greenlet_exceptions.hpp |  171 [32m+[m
+ .../site-packages/greenlet/greenlet_internal.hpp   |  109 [32m+[m
+ .../greenlet/greenlet_msvc_compat.hpp              |  100 [32m+[m
+ venv/Lib/site-packages/greenlet/greenlet_refs.hpp  | 1172 [32m+++[m
+ .../site-packages/greenlet/greenlet_slp_switch.hpp |  103 [32m+[m
+ .../greenlet/greenlet_thread_support.hpp           |   31 [32m+[m
+ .../site-packages/greenlet/platform/__init__.py    |    0
+ .../greenlet/platform/setup_switch_x64_masm.cmd    |    2 [32m+[m
+ .../greenlet/platform/switch_aarch64_gcc.h         |  124 [32m+[m
+ .../greenlet/platform/switch_alpha_unix.h          |   30 [32m+[m
+ .../greenlet/platform/switch_amd64_unix.h          |   87 [32m+[m
+ .../greenlet/platform/switch_arm32_gcc.h           |   79 [32m+[m
+ .../greenlet/platform/switch_arm32_ios.h           |   67 [32m+[m
+ .../greenlet/platform/switch_arm64_masm.asm        |   53 [32m+[m
+ .../greenlet/platform/switch_arm64_masm.obj        |  Bin [31m0[m -> [32m746[m bytes
+ .../greenlet/platform/switch_arm64_msvc.h          |   17 [32m+[m
+ .../greenlet/platform/switch_csky_gcc.h            |   48 [32m+[m
+ .../greenlet/platform/switch_loongarch64_linux.h   |   31 [32m+[m
+ .../greenlet/platform/switch_m68k_gcc.h            |   38 [32m+[m
+ .../greenlet/platform/switch_mips_unix.h           |   65 [32m+[m
+ .../greenlet/platform/switch_ppc64_aix.h           |  103 [32m+[m
+ .../greenlet/platform/switch_ppc64_linux.h         |  105 [32m+[m
+ .../greenlet/platform/switch_ppc_aix.h             |   87 [32m+[m
+ .../greenlet/platform/switch_ppc_linux.h           |   84 [32m+[m
+ .../greenlet/platform/switch_ppc_macosx.h          |   82 [32m+[m
+ .../greenlet/platform/switch_ppc_unix.h            |   82 [32m+[m
+ .../greenlet/platform/switch_riscv_unix.h          |   41 [32m+[m
+ .../greenlet/platform/switch_s390_unix.h           |   87 [32m+[m
+ .../greenlet/platform/switch_sh_gcc.h              |   36 [32m+[m
+ .../greenlet/platform/switch_sparc_sun_gcc.h       |   92 [32m+[m
+ .../greenlet/platform/switch_x32_unix.h            |   63 [32m+[m
+ .../greenlet/platform/switch_x64_masm.asm          |  111 [32m+[m
+ .../greenlet/platform/switch_x64_masm.obj          |  Bin [31m0[m -> [32m1078[m bytes
+ .../greenlet/platform/switch_x64_msvc.h            |   60 [32m+[m
+ .../greenlet/platform/switch_x86_msvc.h            |  326 [32m+[m
+ .../greenlet/platform/switch_x86_unix.h            |  105 [32m+[m
+ .../site-packages/greenlet/slp_platformselect.h    |   77 [32m+[m
+ venv/Lib/site-packages/greenlet/tests/__init__.py  |  248 [32m+[m
+ .../site-packages/greenlet/tests/_test_extension.c |  261 [32m+[m
+ .../tests/_test_extension.cp311-win_amd64.pyd      |  Bin [31m0[m -> [32m14336[m bytes
+ .../tests/_test_extension_cpp.cp311-win_amd64.pyd  |  Bin [31m0[m -> [32m15872[m bytes
+ .../greenlet/tests/_test_extension_cpp.cpp         |  230 [32m+[m
+ .../greenlet/tests/fail_clearing_run_switches.py   |   47 [32m+[m
+ .../greenlet/tests/fail_cpp_exception.py           |   33 [32m+[m
+ .../tests/fail_initialstub_already_started.py      |   78 [32m+[m
+ .../greenlet/tests/fail_slp_switch.py              |   29 [32m+[m
+ .../greenlet/tests/fail_switch_three_greenlets.py  |   44 [32m+[m
+ .../greenlet/tests/fail_switch_three_greenlets2.py |   55 [32m+[m
+ .../greenlet/tests/fail_switch_two_greenlets.py    |   41 [32m+[m
+ venv/Lib/site-packages/greenlet/tests/leakcheck.py |  334 [32m+[m
+ .../greenlet/tests/test_contextvars.py             |  282 [32m+[m
+ venv/Lib/site-packages/greenlet/tests/test_cpp.py  |   91 [32m+[m
+ .../greenlet/tests/test_extension_interface.py     |  141 [32m+[m
+ venv/Lib/site-packages/greenlet/tests/test_gc.py   |   86 [32m+[m
+ .../site-packages/greenlet/tests/test_generator.py |   59 [32m+[m
+ .../greenlet/tests/test_generator_nested.py        |  168 [32m+[m
+ .../site-packages/greenlet/tests/test_greenlet.py  | 1426 [32m++++[m
+ .../greenlet/tests/test_greenlet_trash.py          |  195 [32m+[m
+ .../greenlet/tests/test_interpreter_shutdown.py    |  822 [32m++[m
+ .../Lib/site-packages/greenlet/tests/test_leaks.py |  478 [32m++[m
+ .../greenlet/tests/test_stack_saved.py             |   19 [32m+[m
+ .../Lib/site-packages/greenlet/tests/test_throw.py |  128 [32m+[m
+ .../site-packages/greenlet/tests/test_tracing.py   |  298 [32m+[m
+ .../site-packages/greenlet/tests/test_version.py   |   46 [32m+[m
+ .../site-packages/greenlet/tests/test_weakref.py   |   35 [32m+[m
+ .../site-packages/h11-0.16.0.dist-info/INSTALLER   |    1 [32m+[m
+ .../site-packages/h11-0.16.0.dist-info/METADATA    |  202 [32m+[m
+ venv/Lib/site-packages/h11-0.16.0.dist-info/RECORD |   29 [32m+[m
+ venv/Lib/site-packages/h11-0.16.0.dist-info/WHEEL  |    5 [32m+[m
+ .../h11-0.16.0.dist-info/licenses/LICENSE.txt      |   22 [32m+[m
+ .../h11-0.16.0.dist-info/top_level.txt             |    1 [32m+[m
+ venv/Lib/site-packages/h11/__init__.py             |   62 [32m+[m
+ venv/Lib/site-packages/h11/_abnf.py                |  132 [32m+[m
+ venv/Lib/site-packages/h11/_connection.py          |  659 [32m++[m
+ venv/Lib/site-packages/h11/_events.py              |  369 [32m+[m
+ venv/Lib/site-packages/h11/_headers.py             |  282 [32m+[m
+ venv/Lib/site-packages/h11/_readers.py             |  250 [32m+[m
+ venv/Lib/site-packages/h11/_receivebuffer.py       |  153 [32m+[m
+ venv/Lib/site-packages/h11/_state.py               |  365 [32m+[m
+ venv/Lib/site-packages/h11/_util.py                |  135 [32m+[m
+ venv/Lib/site-packages/h11/_version.py             |   16 [32m+[m
+ venv/Lib/site-packages/h11/_writers.py             |  145 [32m+[m
+ venv/Lib/site-packages/h11/py.typed                |    1 [32m+[m
+ .../itsdangerous-2.2.0.dist-info/INSTALLER         |    1 [32m+[m
+ .../itsdangerous-2.2.0.dist-info/LICENSE.txt       |   28 [32m+[m
+ .../itsdangerous-2.2.0.dist-info/METADATA          |   60 [32m+[m
+ .../itsdangerous-2.2.0.dist-info/RECORD            |   22 [32m+[m
+ .../itsdangerous-2.2.0.dist-info/WHEEL             |    4 [32m+[m
+ venv/Lib/site-packages/itsdangerous/__init__.py    |   38 [32m+[m
+ venv/Lib/site-packages/itsdangerous/_json.py       |   18 [32m+[m
+ venv/Lib/site-packages/itsdangerous/encoding.py    |   54 [32m+[m
+ venv/Lib/site-packages/itsdangerous/exc.py         |  106 [32m+[m
+ venv/Lib/site-packages/itsdangerous/py.typed       |    0
+ venv/Lib/site-packages/itsdangerous/serializer.py  |  406 [32m+[m
+ venv/Lib/site-packages/itsdangerous/signer.py      |  266 [32m+[m
+ venv/Lib/site-packages/itsdangerous/timed.py       |  228 [32m+[m
+ venv/Lib/site-packages/itsdangerous/url_safe.py    |   83 [32m+[m
+ .../site-packages/jinja2-3.1.6.dist-info/INSTALLER |    1 [32m+[m
+ .../site-packages/jinja2-3.1.6.dist-info/METADATA  |   84 [32m+[m
+ .../site-packages/jinja2-3.1.6.dist-info/RECORD    |   57 [32m+[m
+ .../Lib/site-packages/jinja2-3.1.6.dist-info/WHEEL |    4 [32m+[m
+ .../jinja2-3.1.6.dist-info/entry_points.txt        |    3 [32m+[m
+ .../jinja2-3.1.6.dist-info/licenses/LICENSE.txt    |   28 [32m+[m
+ venv/Lib/site-packages/jinja2/__init__.py          |   38 [32m+[m
+ venv/Lib/site-packages/jinja2/_identifier.py       |    6 [32m+[m
+ venv/Lib/site-packages/jinja2/async_utils.py       |   99 [32m+[m
+ venv/Lib/site-packages/jinja2/bccache.py           |  408 [32m+[m
+ venv/Lib/site-packages/jinja2/compiler.py          | 1998 [32m+++++[m
+ venv/Lib/site-packages/jinja2/constants.py         |   20 [32m+[m
+ venv/Lib/site-packages/jinja2/debug.py             |  191 [32m+[m
+ venv/Lib/site-packages/jinja2/defaults.py          |   48 [32m+[m
+ venv/Lib/site-packages/jinja2/environment.py       | 1672 [32m++++[m
+ venv/Lib/site-packages/jinja2/exceptions.py        |  166 [32m+[m
+ venv/Lib/site-packages/jinja2/ext.py               |  870 [32m++[m
+ venv/Lib/site-packages/jinja2/filters.py           | 1873 [32m+++++[m
+ venv/Lib/site-packages/jinja2/idtracking.py        |  318 [32m+[m
+ venv/Lib/site-packages/jinja2/lexer.py             |  868 [32m++[m
+ venv/Lib/site-packages/jinja2/loaders.py           |  693 [32m++[m
+ venv/Lib/site-packages/jinja2/meta.py              |  112 [32m+[m
+ venv/Lib/site-packages/jinja2/nativetypes.py       |  130 [32m+[m
+ venv/Lib/site-packages/jinja2/nodes.py             | 1206 [32m+++[m
+ venv/Lib/site-packages/jinja2/optimizer.py         |   48 [32m+[m
+ venv/Lib/site-packages/jinja2/parser.py            | 1049 [32m+++[m
+ venv/Lib/site-packages/jinja2/py.typed             |    0
+ venv/Lib/site-packages/jinja2/runtime.py           | 1062 [32m+++[m
+ venv/Lib/site-packages/jinja2/sandbox.py           |  436 [32m+[m
+ venv/Lib/site-packages/jinja2/tests.py             |  256 [32m+[m
+ venv/Lib/site-packages/jinja2/utils.py             |  766 [32m++[m
+ venv/Lib/site-packages/jinja2/visitor.py           |   92 [32m+[m
+ .../markupsafe-3.0.3.dist-info/INSTALLER           |    1 [32m+[m
+ .../markupsafe-3.0.3.dist-info/METADATA            |   74 [32m+[m
+ .../markupsafe-3.0.3.dist-info/REC
