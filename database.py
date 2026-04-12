@@ -17,6 +17,10 @@ def init_db():
             username TEXT NOT NULL,
             password TEXT NOT NULL,
             gender TEXT,
+            contact TEXT,
+            active_hours TEXT,
+            avatar TEXT,
+            is_admin INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
