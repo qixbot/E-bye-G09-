@@ -1,0 +1,449 @@
+/* Profile page*/
+.profile-page{
+    min-height: 100vh;
+    background: #f7f6f2;
+    padding: 40px;
+}
+
+.profile-container{
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 32px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    overflow: hidden;
+}
+
+/* Profile Header */
+.profile-header{
+    background: #00381f;
+    padding: 40px 48px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    position: relative;
+}
+
+.profile-avatar{
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 600;
+    color: white;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.profile-info{
+    flex:1;
+}
+
+.profile-info h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.profile-email {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.profile-stats {
+    display: flex;
+    gap: 32px;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.edit-profile-btn {
+    position: absolute;
+    top: 40px;
+    right: 48px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ;
+}
+
+.edit-profile-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Flash Messages inside profile */
+.flash-messages {
+    margin: 20px 48px 0 48px;
+}
+
+/* Edit Profile Form */
+.edit-profile-form, .change-password-form {
+    background: #e6ded3;
+    padding: 32px 48px;
+    border-bottom: 1px solid #d4d6d5;
+}
+
+.edit-profile-form h3, .change-password-form h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #00381f;
+    margin-bottom: 20px;
+}
+
+.form-row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.edit-profile-form .form-group label,
+.change-password-form .form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.edit-profile-form .form-group input,
+.edit-profile-form.form-group select,
+.change-password-form .form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #d4d6d5;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family:'Inter', sans-serif;
+    background: white;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btn-save {
+    padding: 12px 28px;
+    background: #00381f;
+    color: white;
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.btn-cancel {
+    padding: 12px 28px;
+    background: transparent;
+    border: 1px solid #d4d6d5;
+    border-radius: 40px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* Tabs */
+.profile-tabs {
+    display: flex;
+    border-bottom: 2px solid #e8e8e8;
+    padding: 0 48px;
+}
+
+.tab-btn {
+    padding: 16px 24px;
+    background: none;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    color: #6b6b6b;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+}
+
+.tab-btn.active {
+    color: #00381f;
+    border-bottom: 2px solid #00381f;
+}
+
+/* Tab Content*/
+.tab-content {
+    display: none;
+    padding: 32px 48px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Products Grid */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.product-card {
+    background: white;
+    border: 1px solid #e8e8e8;
+    border-radius: 20px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.product-img {
+    height: 140px;
+    background: #f7f6f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+}
+
+.product-info {
+    padding: 16px;
+}
+
+.product-info h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.price {
+    font-size: 18px;
+    font-weight: 700;
+    color: #00381f;
+    margin-bottom: 8px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.badge.for-sale {
+    background: rgba(0, 56, 31, 0.1);
+    color: #00381f;
+}
+
+.badge.sold {
+    background: rgba(107, 107, 107, 0.1);
+    color: #6b6b6b;
+}
+
+.badge.completed {
+    background: rgba(39, 174, 96, 0.1);
+    color: #27ae60;
+}
+
+.badge.ongoing {
+    background: rgba(245, 166, 35, 0.1);
+    color: #f5a623;
+}
+
+.card-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.action-edit, .action-delete {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.action-edit {
+    background: rgba(0, 56, 31, 0.08);
+    color: #00381f;
+}
+
+.action-delete {
+    background: rgba(231, 76, 60, 0.08);
+    color: #e74c3c;
+}
+
+/* Filter Chips */
+.listings-header {
+    margin-bottom: 24px;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.filter-chip {
+    padding: 8px 20px;
+    background: #f7f6f2;
+    border: 1px solid #e8e8e8;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-chip.active {
+    background: #00381f;
+    color: white;
+    border-color: #00381f;
+}
+
+/* Purchases List */
+.purchases-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.purchase-card {
+    background: white;
+    border: 1px solid #e8e8e8;
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.purchase-img {
+    width: 70px;
+    height: 70px;
+    background: #f7f6f2;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.purchase-info {
+    flex: 1;
+}
+
+.purchase-info h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.purchase-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: #00381f;
+    margin-bottom: 4px;
+}
+
+.purchase-seller, .purchase-date {
+    font-size: 12px;
+    color: #6b6b6b;
+}
+
+.btn-review {
+    padding: 10px 24px;
+    background: #00381f;
+    color: white;
+    border: none;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    flex-shrink: 0;
+    text-decoration: none;
+}
+
+.btn-review.disabled {
+    background: #d4d6d5;
+    cursor: not-allowed;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px;
+    color: #999;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .profile-page {
+        padding: 20px;
+    }
+    
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 32px 24px;
+    }
+    
+    .edit-profile-btn {
+        position: static;
+        margin-top: 16px;
+    }
+    
+    .profile-tabs {
+        padding: 0 24px;
+    }
+    
+    .tab-content {
+        padding: 24px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .purchase-card {
+        flex-direction: column;
+        text-align: center;
+    }
+}
