@@ -121,9 +121,30 @@ def logout():
     flash('Logged out', 'info')
     return redirect(url_for('login'))
 
-@app.route('/admin/login')
+
+@app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        # 这里先做简单验证，后续可以改成数据库验证
+        # 临时管理员账号
+        if email == 'admin@student.mmu.edu.my' and password == 'Admin@2025':
+            session['admin_logged_in'] = True
+            flash('Welcome, Administrator!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid admin credentials', 'error')
+    
     return render_template('admin_login.html')
+
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    if not session.get('admin_logged_in'):
+        flash('Please login as admin first', 'error')
+        return redirect(url_for('admin_login'))
+    return render_template('admin_dashboard.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
