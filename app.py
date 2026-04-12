@@ -146,5 +146,30 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
     return render_template('admin_dashboard.html')
 
+# --- Xingru's Homepage Route ---
+@app.route('/home')
+def home():
+    # Dummy data for the categories
+    categories = [
+        {"name": "All Items", "icon": "fa-layer-group", "active": True},
+        {"name": "Textbooks", "icon": "fa-book"},
+        {"name": "Gadgets", "icon": "fa-laptop"},
+        {"name": "Dorm Items", "icon": "fa-bed"},
+        {"name": "Fashion", "icon": "fa-tshirt"},
+        {"name": "Stationery", "icon": "fa-pen"},
+        {"name": "Sports", "icon": "fa-basketball-ball"},
+        {"name": "Others", "icon": "fa-box"}
+    ]
+    
+    # Dummy data for the listings
+    latest_listings = [
+        {"id": 1, "condition": "Good", "image": "default.jpg"},
+        {"id": 2, "condition": "Good", "image": "default.jpg"},
+        {"id": 3, "condition": "Fair", "image": "default.jpg"},
+        {"id": 4, "condition": "Like New", "image": "default.jpg"}
+    ]
+
+    return render_template('index.html', categories=categories, listings=latest_listings)
+
 if __name__ == '__main__':
     app.run(debug=True)
