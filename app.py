@@ -109,12 +109,6 @@ def register():
     
     return render_template('register.html')
 
-@app.route('/home')
-def home():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    return render_template('home.html', username=session.get('username'))
-
 @app.route('/logout')
 def logout():
     session.clear()
@@ -146,10 +140,14 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
     return render_template('admin_dashboard.html')
 
-# --- Xingru's Homepage Route ---
+# --- Xingru's Homepage---
 @app.route('/home')
 def home():
-    # Dummy data for the categories
+    # 1. Eileen's Homepage Authentication Check
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # 2. Xingru's Dummy data for the categories
     categories = [
         {"name": "All Items", "icon": "fa-layer-group", "active": True},
         {"name": "Textbooks", "icon": "fa-book"},
@@ -161,7 +159,7 @@ def home():
         {"name": "Others", "icon": "fa-box"}
     ]
     
-    # Dummy data for the listings
+    # 3. Xingru's Dummy data for the listings
     latest_listings = [
         {"id": 1, "condition": "Good", "image": "default.jpg"},
         {"id": 2, "condition": "Good", "image": "default.jpg"},
@@ -169,7 +167,8 @@ def home():
         {"id": 4, "condition": "Like New", "image": "default.jpg"}
     ]
 
-    return render_template('index.html', categories=categories, listings=latest_listings)
+    # 4. Render Xingru's index.html, AND pass Eileen's username variable
+    return render_template('index.html', categories=categories, listings=latest_listings, username=session.get('username'))
 
 if __name__ == '__main__':
     app.run(debug=True)
