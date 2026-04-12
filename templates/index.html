@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-bye | Your Campus Marketplace</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <nav class="top-nav">
+        <div class="logo"><strong>E</strong>-bye</div>
+        <div class="search-bar">
+            <i class="fa fa-search"></i>
+            <input type="text" placeholder="Search textbooks, dorm items, gadgets...">
+        </div>
+        <div class="nav-actions">
+            <a href="#" class="meetup-link"><i class="fa fa-map-marker-alt"></i> Meetup Spots</a>
+            <button class="btn-primary">+ List Item</button>
+            <div class="profile-avatar">A</div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <h1>Your Campus <br><span class="highlight">Marketplace</span> 🎓</h1>
+            <p>Buy & sell second-hand items safely within the MMU community. No strangers, only fellow students.</p>
+            <div class="stats">
+                <div><strong>248</strong><br>Listings</div>
+                <div><strong>1.2k</strong><br>Students</div>
+                <div><strong>RM 50k</strong><br>Saved</div>
+            </div>
+        </div>
+        <div class="hero-image">
+            <i class="fa fa-shopping-cart fa-5x"></i>
+        </div>
+    </header>
+
+    <section class="categories-section">
+        <h2>Browse Categories</h2>
+        <div class="category-pills">
+            {% for cat in categories %}
+            <button class="pill {% if cat.active %}active{% endif %}">
+                <i class="fa {{ cat.icon }}"></i> {{ cat.name }}
+            </button>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="listings-section">
+        <div class="section-header">
+            <h2>Latest Listings</h2>
+            <a href="#" class="see-all">See All &rarr;</a>
+        </div>
+        <div class="listing-grid">
+            {% for item in listings %}
+            <div class="product-card">
+                <div class="condition-tag">{{ item.condition }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <nav class="bottom-nav">
+        <a href="#" class="active"><i class="fa fa-home"></i><br>Home</a>
+        <a href="#"><i class="fa fa-search"></i><br>Search</a>
+        <div class="fab-wrapper">
+            <button class="fab">+</button>
+        </div>
+        <a href="#"><i class="fa fa-user"></i><br>Profile</a>
+        <a href="#"><i class="fa fa-map-marker-alt"></i><br>Meetup</a>
+    </nav>
+
+</body>
+</html>
