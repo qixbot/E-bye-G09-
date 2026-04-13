@@ -10,6 +10,28 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    <!-- Navigation bar - Xingru -->
+    {% block navbar %}
+    <nav class="top-navbar">
+        <a href="{{ url_for('home') }}" class="nav-site">
+            <img src="{{ url_for('static', filename='logo.jpg') }}" alt="E-bye Logo" class="site-logo">
+            <span class="site-name">E-bye</span>
+        </a>
+        
+        <form action="#" method="GET" class="nav-search">
+            <span class="search-icon">🔍</span>
+            <input type="text" name="query" placeholder="Search textbooks, dorm items, gadgets..." class="search-input">
+        </form>
+        
+        <div class="nav-profile">
+            <a href="#" style="text-decoration: none;">
+                <div class="nav-avatar">{{ current_user.username[0].upper() }}</div>
+            </a>
+        </div>
+    </nav>
+    {% endblock %}
+    <!-- Navigation bar end -->
+
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="toast-container">
