@@ -17,4 +17,86 @@ body {
 .mt-20 { margin-top: 20px; }
 .mb-20 { margin-bottom: 20px; }
 
+/* --- Navigation bar - Xingru --- */
+.top-navbar {
+    display: flex;
+    justify-content: space-between; 
+    align-items: center;            
+    background-color: #00381f;      
+    padding: 15px 40px;             
+    height: 90px;                   
+    box-sizing: border-box;         
+}
+
+.nav-site {
+    display: flex;
+    align-items: center;
+    text-decoration: none;          
+    gap: 15px;                      
+}
+
+.site-logo {
+    height: 50px;                   
+    width: auto;
+}
+
+.site-name {
+    color: #ffffff;                 
+    font-family: 'Helvetica', Arial, sans-serif;
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* --- Middle: Search Box Container --- */
+.nav-search {
+    display: flex;
+    align-items: center;
+    background-color: #f8f8fb;      /* Slightly off-white like your image */
+    border: 2px solid #e2e2ec;      /* Soft border for default state */
+    border-radius: 50px;            
+    width: 45%;                     
+    max-width: 600px;
+    height: 45px;
+    padding: 0 15px;
+    transition: all 0.3s ease;      /* Makes the glow effect smooth */
+}
+
+/* The "Light Up" Glow Effect when clicking inside */
+.nav-search:focus-within {
+    border-color: #4CAF50;          /* A nice bright green border */
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.4); /* The glowing edges */
+    background-color: #ffffff;      /* Turns pure white when typing */
+}
+
+/* --- Search Icon --- */
+.search-icon {
+    font-size: 18px;
+    margin-right: 12px;
+    color: #888;                    /* Dims the emoji slightly */
+}
+
+/* --- Search Input Field --- */
+.search-input {
+    flex-grow: 1;                   
+    border: none;                   
+    outline: none;                  /* Removes the default browser blue outline */
+    font-size: 16px;
+    background: transparent;
+    color: #333333;
+}
+
+.profile-pic {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;             
+    object-fit: cover;              
+    border: 2px solid #ffffff;      
+    transition: transform 0.2s ease;
+}
+
+.profile-pic:hover {
+    transform: scale(1.1);
+}
+
 /* You can add other global styles here */
