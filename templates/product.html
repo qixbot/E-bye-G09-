@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="product-page-wrapper">
+    <div class="product-grid-container">
+        
+        <div class="product-image-section">
+            <div class="main-image-box">
+                <div class="image-placeholder">📚</div>
+            </div>
+            
+            <div class="thumbnail-gallery">
+                <div class="thumbnail active">
+                    <div class="thumb-placeholder">📚</div>
+                </div>
+                <div class="thumbnail">
+                    <div class="thumb-placeholder">📖</div>
+                </div>
+                <div class="thumbnail">
+                    <div class="thumb-placeholder">🏷️</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="product-info-section">
+            
+            <div class="product-badges">
+                <span class="badge condition-badge">Good Condition</span>
+                <span class="badge trust-badge">✓ Trusted</span>
+            </div>
+
+            <h1 class="detail-title">Data Structures & Algorithms Textbook</h1>
+            <div class="detail-price-row">
+                <span class="current-price">RM 35</span>
+                <span class="original-price">RM 120</span>
+            </div>
+
+            <div class="seller-profile-card">
+                <div class="seller-avatar">A</div>
+                <div class="seller-details">
+                    <div class="seller-name-row">
+                        <span class="seller-name">Ahmad Faris</span>
+                        <span class="badge trust-badge small">✓ Trusted</span>
+                    </div>
+                    <div class="seller-rating">
+                        ⭐⭐⭐⭐⭐ 4.9 • 23 sales
+                    </div>
+                    <div class="seller-meta">
+                        @farisahmad • Joined Jan 2024
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h3 class="section-heading">DESCRIPTION</h3>
+                <p class="description-text">
+                    Used for one semester only. Minimal highlighting. All pages intact. Perfect for FCI students taking DS subject. Original price RM120 at MMU bookstore.
+                </p>
+            </div>
+
+            <div class="detail-section">
+                <h3 class="section-heading">ACCEPTED PAYMENTS</h3>
+                <div class="payment-methods">
+                    <span class="payment-pill">💵 Cash</span>
+                    <span class="payment-pill">📱 Touch 'n Go</span>
+                    <span class="payment-pill">🏦 Bank Transfer</span>
+                </div>
+            </div>
+
+            <div class="product-actions">
+                <button class="btn-buy">🛒 Buy Now — Set Meetup</button>
+                <button class="btn-offer">💬 Make an Offer</button>
+                <a href="{{ url_for('home') }}" class="btn-back">← Back to Browse</a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

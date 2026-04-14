@@ -146,5 +146,9 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
     return render_template('admin_dashboard.html')
 
+@app.route('/product')
+def product_detail():
+    return render_template('product.html')
+
 if __name__ == '__main__':
     app.run(debug=True)
