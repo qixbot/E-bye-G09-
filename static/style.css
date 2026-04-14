@@ -432,19 +432,16 @@ body {
     font-size: 0.9rem;
 }
 
-/* Empty State Styling */
+/* Empty State Styling - Updated to be subtle */
 .empty-products-state {
     text-align: center;
-    padding: 60px 20px;
-    background-color: #f8f9fa;
-    border: 2px dashed #cccccc;
-    border-radius: 12px;
-    margin-top: 10px;
+    margin-top: 40px; 
+    margin-bottom: 20px;
 }
 
 .empty-products-state p {
-    font-size: 1.2rem;
-    color: #666666;
+    font-size: 0.95rem; /* Shrunk down to match the search link */
+    color: #777777;
     line-height: 1.6;
     margin: 0;
 }
