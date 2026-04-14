@@ -201,6 +201,7 @@ body {
     cursor: pointer;
     margin-top: 12px;
     transition: all 0.2s;
+
 }
 
 .btn-login:hover {
@@ -329,17 +330,25 @@ body {
     border: 1px solid rgba(231, 76, 60, 0.15);
 }
 
+/* Remember Me and Forgot Password */
+.form-options{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+}
+
 .remember-me {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: -4px;
+    margin-top: 4px;
     margin-bottom: 6px;
 }
 
 .remember-me input {
     width: auto;
-    margin: 0;
+    margin: 50px;
 }
 
 .remember-me label {
@@ -347,6 +356,18 @@ body {
     color: #6b6b6b;
     text-transform: none;
     font-weight: normal;
+}
+
+.forgot-link {
+    font-size: 13px;
+    color: #6b6b6b;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.forgot-link:hover {
+    color: #00381f;
+    text-decoration: underline;
 }
 
 /* Responsive */

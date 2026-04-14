@@ -128,8 +128,8 @@ def admin_login():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        # 这里先做简单验证，后续可以改成数据库验证
-        # 临时管理员账号
+        # here do simple validation, afterthat will be changed to database validation
+        # temporary admin account
         if email == 'admin@student.mmu.edu.my' and password == 'Admin@2025':
             session['admin_logged_in'] = True
             flash('Welcome, Administrator!', 'success')
@@ -145,6 +145,69 @@ def admin_dashboard():
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
     return render_template('admin_dashboard.html')
+
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')  # 修正: get 不是 grt
+        
+        # validate email
+        if not email:
+            flash('Email is required', 'error')
+            return render_template('forgot_password.html')
+        
+        if not email.endswith('@student.mmu.edu.my'):
+            flash('Only @student.mmu.edu.my emails are allowed', 'error')
+            return render_template('forgot_password.html')
+        
+        # validate password
+        if not password:
+            flash('Password is required', 'error')
+            return render_template('forgot_password.html')
+        
+        if len(password) < 8:
+            flash('Password must be at least 8 characters', 'error')
+            return render_template('forgot_password.html')
+        
+        if not re.search(r'[A-Z]', password):
+            flash('Password must contain at least 1 uppercase letter', 'error')
+            return render_template('forgot_password.html')
+        
+        if not re.search(r'[a-z]', password):
+            flash('Password must contain at least 1 lowercase letter', 'error')
+            return render_template('forgot_password.html')
+        
+        if not re.search(r'[0-9]', password):
+            flash('Password must contain at least 1 number', 'error')
+            return render_template('forgot_password.html')
+        
+        if not re.search(r'[!@#$%^&*]', password):
+            flash('Password must contain at least 1 special character', 'error')
+            return render_template('forgot_password.html')
+        
+        if password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return render_template('forgot_password.html')
+        
+        db = get_db()
+        user = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+        
+        if not user:
+            flash('No account found with this email address', 'error')
+            return render_template('forgot_password.html')
+        
+        # update password
+        hashed_password = generate_password_hash(password)
+        db.execute('UPDATE users SET password = ? WHERE id = ?', (hashed_password, user['id']))
+        db.commit()
+        
+        flash('Password reset successfully! Please login with your new password.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
