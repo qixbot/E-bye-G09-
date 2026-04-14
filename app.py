@@ -144,7 +144,77 @@ def admin_dashboard():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
-    return render_template('admin_dashboard.html')
+
+    db = get_db()
+    total_users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    db.close()
+    
+    return render_template("admin_dashboard.html", total_users=total_users)
+
+@app.route('/admin/users')
+def admin_users():
+    
+    if not session.get('admin_logged_in'):
+        flash('Please login as admin first', 'error')
+        return redirect(url_for('admin_login'))
+    
+    db = get_db()
+    users = db.execute("SELECT * FROM users").fetchall()
+    db.close()
+    return render_template("admin_users.html", users=users)
+
+@app.route('/admin/products')
+def admin_products():
+    if not session.get('admin_logged_in'):
+        flash('Please login as admin first', 'error')
+        return redirect(url_for('admin_login'))
+    
+    return render_template("admin_products.html")
+
+@app.route('/admin/user/<int:user_id>/freeze', methods=['POST'])
+def freeze_user(user_id):
+    # Administrator Permission Verification
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    reason = request.form.get('reason', 'No reason provided')
+    db = get_db()
+    
+    # 1.Add a "freeze tag" to the user
+    db.execute("UPDATE users SET is_frozen = 1 WHERE id = ?", (user_id,))
+    
+   # 2.Send a "Freeze Notice" to the user
+    db.execute(
+        "INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)",
+        (user_id, f"Your account has been frozen. Reason: {reason}")
+    )
+    
+    db.commit()
+    db.close()
+    flash(f"User {user_id} has been frozen, notification sent.", "success")
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/block', methods=['POST'])
+def block_user(user_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    reason = request.form.get('reason', 'No reason provided')
+    db = get_db()
+    
+    # 1.Add a "permanent ban mark" to the user
+    db.execute("UPDATE users SET is_blocked = 1 WHERE id = ?", (user_id,))
+    
+    # 2.Send a "Ban Notice" to this user
+    db.execute(
+        "INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)",
+        (user_id, f"Your account has been PERMANENTLY blocked. Reason: {reason}")
+    )
+    
+    db.commit()
+    db.close()
+    flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
+    return redirect(url_for('admin_users'))
 
 if __name__ == '__main__':
     app.run(debug=True)

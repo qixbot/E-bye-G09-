@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>User Management</h1>
+    <hr>
+
+    <div class="mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">Back to Dashboard</a>
+    </div>
+
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Student ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Is Admin</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.student_id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ '✅ Admin' if user.is_admin == 1 else '👤 User' }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('freeze_user', user_id=user.id) }}" style="display:inline;">
+                        <input type="text" name="reason" placeholder="Freeze reason" required style="width:150px;">
+                        <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Confirm freeze this user?')">Freeze</button>
+                    </form>
+                    
+                    <form method="POST" action="{{ url_for('block_user', user_id=user.id) }}" style="display:inline;">
+                        <input type="text" name="reason" placeholder="Block reason" required style="width:150px;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Confirm PERMANENT block? This cannot be undone!')">Block</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
