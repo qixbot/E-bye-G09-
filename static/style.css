@@ -239,6 +239,7 @@ body {
     flex-wrap: wrap; /* Allows pills to wrap onto the next line if needed */
     gap: 12px;
     margin-top: 15px;
+    padding: 4px;
 }
 
 /* Base Category Pill Style */
