@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Admin Dashboard</h1>
+    <hr>
+    <p class="lead">Welcome to E-Bye Admin Control Panel</p>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Registered Users</h5>
+                    <p class="card-text display-4">{{ total_users }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Products</h5>
+                    <p class="card-text display-4">0</p>
+                    <small>Coming soon (product system)</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Notifications</h5>
+                    <p class="card-text display-4">0</p>
+                    <small>Coming soon (notification system)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5">
+        <h3>Quick Actions</h3>
+        <div class="d-flex gap-3 mt-3">
+            <a href="{{ url_for('admin_users') }}" class="btn btn-lg btn-outline-dark">Manage Users</a>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-lg btn-outline-dark">Manage Products</a>
+            <a href="{{ url_for('admin_login') }}?logout=1" class="btn btn-lg btn-danger">Logout</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
