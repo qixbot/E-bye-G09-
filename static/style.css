@@ -52,21 +52,21 @@ body {
 .nav-search {
     display: flex;
     align-items: center;
-    background-color: #f8f8fb;      /* Slightly off-white like your image */
-    border: 2px solid #e2e2ec;      /* Soft border for default state */
+    background-color: #f8f8fb;
+    border: 2px solid #e2e2ec;
     border-radius: 50px;            
     width: 45%;                     
     max-width: 600px;
     height: 45px;
     padding: 0 15px;
-    transition: all 0.3s ease;      /* Makes the glow effect smooth */
+    transition: all 0.3s ease;    
 }
 
 /* The "Light Up" Glow Effect when clicking inside */
 .nav-search:focus-within {
-    border-color: #4CAF50;          /* A nice bright green border */
-    box-shadow: 0 0 10px rgb(169, 255, 170); /* The glowing edges */
-    background-color: #ffffff;      /* Turns pure white when typing */
+    border-color: #4CAF50;
+    box-shadow: 0 0 10px rgb(169, 255, 170);
+    background-color: #ffffff;
 }
 
 /* --- Search Icon --- */
@@ -142,6 +142,7 @@ body {
 
 .hero-title {
     font-size: 3rem;
+    font-family: 'Helvetica', Arial, sans-serif;
     font-weight: bold;
     color: #ffffff;
     margin-bottom: 15px;
@@ -150,6 +151,7 @@ body {
 
 .hero-motto {
     font-size: 1.2rem;
+    font-family: 'Inter', sans-serif;
     color: #ffffff; /* Slightly softer black for readability */
     line-height: 1.6;
 }
@@ -186,5 +188,110 @@ body {
         width: 50%; /* Shrinks the image to half size */
         flex: auto;
     }
+}
+
+/* =========================================
+   HOMEPAGE: CATEGORIES SECTION
+   ========================================= */
+
+.categories-section {
+    max-width: 1200px; /* Same width as your banner */
+    margin: 40px auto; /* Centers the section with top/bottom space */
+    padding: 0 30px; /* Aligns with banner content */
+}
+
+/* Header with Title and View All Button */
+.categories-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline; /* Aligns text with bottom of title */
+    margin-bottom: 10px;
+}
+
+.categories-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333333;
+    margin: 0;
+}
+
+/* View All Categories Button (text button) */
+.view-all-btn {
+    background: none;
+    border: none;
+    color: #ee4d2d; /* Shopee Orange for the action button */
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+}
+
+.view-all-btn:hover {
+    text-decoration: underline;
+}
+
+.arrow-icon {
+    font-size: 0.8rem;
+    transition: transform 0.3s; /* Smooth animation for the arrow */
+}
+
+/* Categories Flex Containers (for pills) */
+.categories-container {
+    display: flex;
+    flex-wrap: wrap; /* Important: Allows pills to wrap on smaller screens */
+    gap: 12px;
+    margin-top: 15px;
+}
+
+/* Base Category Pill Style */
+.category-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 50px;
+    color: #333333;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.2s; /* Smooth hover effect */
+}
+
+.category-pill span {
+    font-size: 1rem;
+}
+
+/* Hover State */
+.category-pill:hover {
+    background-color: #f8f8f8;
+    border-color: #cccccc;
+    transform: translateY(-2px); /* Tiny lift effect */
+}
+
+/* "Active" / Selected State (Like "All Items" in your picture) */
+.category-pill.active {
+    background-color: #fef1f0; /* Shopee red tint */
+    border-color: #ee4d2d; /* Shopee red border */
+    color: #ee4d2d;
+    font-weight: 500;
+}
+
+/* More Categories Container (Hidden state) */
+.more-categories {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.4s ease-out; /* Smooth slide-down animation */
+}
+
+/* Expanded State for 'more-categories' (managed by JavaScript) */
+.more-categories.show-more {
+    opacity: 1;
+    max-height: 500px; /* Arbitrary large height to allow content to fit */
+    margin-top: 15px;
 }
 /* You can add other global styles here */
