@@ -106,4 +106,90 @@ body {
     text-transform: uppercase; 
 }
 
+/* =========================================
+   HOMEPAGE STYLES
+   ========================================= */
+
+/* How to edit the whole page background: 
+   Right now it is white (#ffffff). 
+   To make it an image later, delete 'background-color' and use:
+   background-image: url('../static/your-bg-image.jpg'); 
+   background-size: cover; 
+*/
+.homepage-wrapper {
+    background-color: #ffffff; 
+    min-height: 100vh;
+    padding: 30px;
+}
+
+/* Hero Banner Container
+   How to edit the banner background:
+   Change the background-color below, or add a background-image just like the wrapper above.
+*/
+.hero-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #ffffff; /* Same as navbar for now */
+    border-radius: 12px;
+    padding: 40px 60px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* Soft shadow so it stands out from the white page */
+    border: 1px solid #eaeaea; 
+    max-width: 1200px;
+    margin: 0 auto; /* Centers the banner on large screens */
+}
+
+/* Left Side: Text */
+.hero-text {
+    flex: 1; /* Takes up available space */
+    padding-right: 40px;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #000000; /* Black text */
+    margin-bottom: 15px;
+    margin-top: 0;
+}
+
+.hero-motto {
+    font-size: 1.2rem;
+    color: #333333; /* Slightly softer black for readability */
+    line-height: 1.6;
+}
+
+/* Right Side: Graphic */
+.hero-graphic {
+    flex: 0 1 400px; /* Base width for the image container */
+    display: flex;
+    justify-content: center;
+}
+
+.hero-img {
+    width: 100%;
+    max-width: 350px;
+    height: auto;
+    object-fit: contain;
+}
+
+/* --- MOBILE VIEW RESPONSIVENESS --- */
+@media (max-width: 768px) {
+    .hero-banner {
+        flex-direction: column; /* Stacks the text and image vertically */
+        padding: 30px 20px;
+    }
+
+    .hero-text {
+        padding-right: 0;
+        margin-bottom: 20px;
+    }
+
+    /* Shrinks the image and pushes it to the bottom right */
+    .hero-graphic {
+        align-self: flex-end; /* Pushes the container to the right */
+        width: 50%; /* Shrinks the image to half size */
+        flex: auto;
+    }
+}
 /* You can add other global styles here */
