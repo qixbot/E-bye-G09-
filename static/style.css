@@ -142,8 +142,7 @@ body {
     transition: all 0.2s;
 }
 
-.nav-item:hover, 
-.nav-item.active {
+.nav-item:hover {
     color: #ee4d2d; 
     background-color: #fef1f0; 
 }
