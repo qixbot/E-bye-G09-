@@ -54,6 +54,56 @@
 
     </section>
 
+    <section class="latest-products-section">
+        
+        <div class="section-header">
+            <h3 class="section-title">Latest Products</h3>
+            <a href="#" class="view-all-link">View all &rarr;</a>
+        </div>
+
+        {% if latest_products %}
+            
+            <div class="product-grid">
+                
+                {% for product in latest_products %}
+                <a href="#" class="product-card">
+                    <div class="product-image-container">
+                        <span class="condition-badge">{{ product.condition }}</span>
+                        
+                        {% if product.image_2 %}
+                            <img src="{{ url_for('static', filename='uploads/' ~ product.image_1) }}" class="product-img primary-img" alt="{{ product.name }}">
+                            <img src="{{ url_for('static', filename='uploads/' ~ product.image_2) }}" class="product-img hover-img" alt="{{ product.name }}">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='uploads/' ~ product.image_1) }}" class="product-img" alt="{{ product.name }}">
+                        {% endif %}
+                        
+                    </div>
+                    <div class="product-info">
+                        <h4 class="product-name">{{ product.name }}</h4>
+                        <div class="product-price">RM {{ product.price }}</div>
+                        <div class="product-seller">
+                            <span class="seller-icon">👤</span> {{ product.seller_name }}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+            
+            <div class="empty-products-state">
+                <p>Oh no, nothing is posted yet! 🛒<br>Check back soon for great deals.</p>
+            </div>
+
+        {% endif %}
+
+        <div class="bottom-search-link">
+            <a href="#">Go to search page to see all products</a>
+        </div>
+
+    </section>
+
 </div>
 
 <script>

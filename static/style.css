@@ -287,4 +287,187 @@ body {
     max-height: 500px; 
     margin-top: 12px; /* Adds a little gap between the top and bottom rows when expanded */
 }
+
+/* =========================================
+   HOMEPAGE: LATEST PRODUCTS SECTION
+   ========================================= */
+
+.latest-products-section {
+    max-width: 1200px; 
+    margin: 40px auto; 
+    padding: 0;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333333;
+    margin: 0;
+}
+
+.view-all-link {
+    color: #ee4d2d;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.view-all-link:hover {
+    text-decoration: underline;
+}
+
+/* Product Grid */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 20px; 
+}
+
+/* Individual Product Card */
+.product-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card:hover {
+    transform: translateY(-4px); 
+    box-shadow: 0 8px 16px rgba(0,0,0,0.08); 
+}
+
+/* Image Container & Slide Effect */
+.product-image-container {
+    position: relative;
+    width: 100%;
+    padding-top: 100%; 
+    background-color: #f8f9fa;
+    overflow: hidden; 
+}
+
+.product-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; 
+    transition: transform 0.4s ease-in-out; 
+}
+
+.hover-img {
+    left: 100%; 
+}
+
+.product-card:hover .primary-img {
+    transform: translateX(-100%);
+}
+.product-card:hover .hover-img {
+    transform: translateX(-100%);
+}
+
+/* Condition Badge */
+.condition-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.65);
+    color: #ffffff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 10; 
+}
+
+/* Card Text Area */
+.product-info {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.product-name {
+    font-size: 1rem;
+    color: #333333;
+    margin: 0;
+    font-weight: 400;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 2.8em; 
+}
+
+.product-price {
+    font-size: 1.15rem;
+    color: #ee4d2d;
+    font-weight: 600;
+}
+
+.product-seller {
+    font-size: 0.85rem;
+    color: #777777;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+}
+
+.seller-icon {
+    font-size: 0.9rem;
+}
+
+/* Empty State Styling */
+.empty-products-state {
+    text-align: center;
+    padding: 60px 20px;
+    background-color: #f8f9fa;
+    border: 2px dashed #cccccc;
+    border-radius: 12px;
+    margin-top: 10px;
+}
+
+.empty-products-state p {
+    font-size: 1.2rem;
+    color: #666666;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Bottom Search Text */
+.bottom-search-link {
+    text-align: center;
+    margin-top: 40px;
+    margin-bottom: 20px;
+}
+
+.bottom-search-link a {
+    color: #777777;
+    text-decoration: none;
+    font-size: 0.95rem;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 2px;
+    transition: all 0.2s;
+}
+
+.bottom-search-link a:hover {
+    color: #ee4d2d;
+    border-bottom: 1px solid #ee4d2d;
+}
+
 /* You can add other global styles here */
