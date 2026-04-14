@@ -65,7 +65,7 @@ body {
 /* The "Light Up" Glow Effect when clicking inside */
 .nav-search:focus-within {
     border-color: #4CAF50;          /* A nice bright green border */
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.4); /* The glowing edges */
+    box-shadow: 0 0 10px rgb(169, 255, 170); /* The glowing edges */
     background-color: #ffffff;      /* Turns pure white when typing */
 }
 
@@ -110,12 +110,6 @@ body {
    HOMEPAGE STYLES
    ========================================= */
 
-/* How to edit the whole page background: 
-   Right now it is white (#ffffff). 
-   To make it an image later, delete 'background-color' and use:
-   background-image: url('../static/your-bg-image.jpg'); 
-   background-size: cover; 
-*/
 .homepage-wrapper {
     background-color: #ffffff; 
     min-height: 100vh;
@@ -130,32 +124,33 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #ffffff; /* Same as navbar for now */
+    background-color: #00381f; /* Same as navbar for now */
     border-radius: 12px;
     padding: 40px 60px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* Soft shadow so it stands out from the white page */
-    border: 1px solid #eaeaea; 
+    border: 1px solid #00381f; 
     max-width: 1200px;
     margin: 0 auto; /* Centers the banner on large screens */
 }
 
 /* Left Side: Text */
 .hero-text {
-    flex: 1; /* Takes up available space */
+    flex: 1;
     padding-right: 40px;
+    color: #ffffff;
 }
 
 .hero-title {
     font-size: 3rem;
     font-weight: bold;
-    color: #000000; /* Black text */
+    color: #ffffff;
     margin-bottom: 15px;
     margin-top: 0;
 }
 
 .hero-motto {
     font-size: 1.2rem;
-    color: #333333; /* Slightly softer black for readability */
+    color: #ffffff; /* Slightly softer black for readability */
     line-height: 1.6;
 }
 
