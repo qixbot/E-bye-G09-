@@ -17,7 +17,9 @@ body {
 .mt-20 { margin-top: 20px; }
 .mb-20 { margin-bottom: 20px; }
 
-/* --- Navigation bar - Xingru --- */
+/* =========================================
+   TOP NAVIGATION BAR - XINGRU
+   ========================================= */
 .top-navbar {
     display: flex;
     justify-content: space-between; 
@@ -25,7 +27,10 @@ body {
     background-color: #00381f;      
     padding: 15px 40px;             
     height: 90px;                   
-    box-sizing: border-box;         
+    box-sizing: border-box;    
+    position: sticky;
+    top: 0;
+    z-index: 1000;     
 }
 
 .nav-site {
@@ -73,14 +78,14 @@ body {
 .search-icon {
     font-size: 18px;
     margin-right: 12px;
-    color: #888;                    /* Dims the emoji slightly */
+    color: #888;
 }
 
 /* --- Search Input Field --- */
 .search-input {
     flex-grow: 1;                   
     border: none;                   
-    outline: none;                  /* Removes the default browser blue outline */
+    outline: none;
     font-size: 16px;
     background: transparent;
     color: #333333;
@@ -107,6 +112,95 @@ body {
 }
 
 /* =========================================
+   BOTTOM NAVIGATION BAR
+   ========================================= */
+
+.bottom-nav-spacer {
+    height: 80px;
+    width: 100%;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #ffffff;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 65px;
+    z-index: 1000; 
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #777777;
+    flex: 1;
+    transition: color 0.2s;
+}
+
+.nav-item:hover, 
+.nav-item.active {
+    color: #ee4d2d; 
+}
+
+.nav-icon {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+}
+
+.nav-text {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* =========================================
+   THE ELEVATED POST BUTTON
+   ========================================= */
+
+.post-btn-wrapper {
+    position: relative;
+    top: -20px; 
+}
+
+.post-btn {
+    background-color: #ff4d4f; 
+    color: #ffffff;
+    width: 60px;
+    height: 60px;
+    border-radius: 16px; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 12px rgba(255, 77, 79, 0.3);
+    transition: transform 0.2s;
+}
+
+.post-btn:hover {
+    transform: translateY(-4px); 
+}
+
+.post-btn .plus-icon {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: -2px;
+    line-height: 1;
+    color: #ffffff;
+}
+
+.post-btn .nav-text {
+    color: #ffffff;
+}
+
+/* =========================================
    HOMEPAGE STYLES
    ========================================= */
 
@@ -116,10 +210,7 @@ body {
     padding: 30px;
 }
 
-/* Hero Banner Container
-   How to edit the banner background:
-   Change the background-color below, or add a background-image just like the wrapper above.
-*/
+/* Hero Banner Container */
 .hero-banner {
     display: flex;
     justify-content: space-between;

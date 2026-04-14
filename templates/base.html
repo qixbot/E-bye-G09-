@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <!-- Navigation bar - Xingru -->
+    <!-- TOP Navigation bar - Xingru -->
     {% block navbar %}
     <nav class="top-navbar">
         <a href="{{ url_for('home') }}" class="nav-site">
@@ -36,7 +36,7 @@
         </div>
     </nav>
     {% endblock %}
-    <!-- Navigation bar end -->
+    <!-- TOP Navigation bar end -->
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -49,5 +49,41 @@
     {% endwith %}
     
     {% block content %}{% endblock %}
+
+    <!-- BOTTOM Navigation bar - Xingru -->
+    {% block bottom_nav %}
+
+    <div class="bottom-nav-spacer"></div>
+    
+    <nav class="bottom-nav">
+        <a href="{{ url_for('home') }}" class="nav-item active">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text">Home</span>
+        </a>
+        
+        <a href="#" class="nav-item">
+            <span class="nav-icon">🔍</span>
+            <span class="nav-text">Search</span>
+        </a>
+        
+        <a href="#" class="nav-item post-btn-wrapper">
+            <div class="post-btn">
+                <span class="nav-icon plus-icon">+</span>
+                <span class="nav-text">Post</span>
+            </div>
+        </a>
+        
+        <a href="#" class="nav-item">
+            <span class="nav-icon">👤</span>
+            <span class="nav-text">Profile</span>
+        </a>
+        
+        <a href="#" class="nav-item">
+            <span class="nav-icon">📍</span>
+            <span class="nav-text">Meetup</span>
+        </a>
+    </nav>
+    {% endblock %}
+    <!-- BOTTOM Navigation bar end -->
 </body>
 </html>
