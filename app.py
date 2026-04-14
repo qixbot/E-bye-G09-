@@ -146,5 +146,9 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
     return render_template('admin_dashboard.html')
 
+@app.route('/upload')
+def upload_product():
+    return render_template('upload.html')
+
 if __name__ == '__main__':
     app.run(debug=True)
