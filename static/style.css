@@ -197,15 +197,16 @@ body {
 .categories-section {
     max-width: 1200px; /* Same width as your banner */
     margin: 40px auto; /* Centers the section with top/bottom space */
-    padding: 0 30px; /* Aligns with banner content */
+    padding: 0; /* Aligns with banner content */
 }
 
 /* Header with Title and View All Button */
 .categories-header {
     display: flex;
     justify-content: space-between;
-    align-items: baseline; /* Aligns text with bottom of title */
-    margin-bottom: 10px;
+    align-items: center; /* Aligns text with bottom of title */
+    margin-bottom: 15px;
+    padding: 0;
 }
 
 .categories-title {
@@ -219,7 +220,7 @@ body {
 .view-all-btn {
     background: none;
     border: none;
-    color: #ee4d2d; /* <--- EDIT THIS COLOR LATER! Controls text and icon */
+    color: #ee4d2d;
     font-size: 0.9rem;
     cursor: pointer;
     font-weight: 500;
@@ -238,8 +239,8 @@ body {
     display: flex;
     flex-wrap: wrap; /* Allows pills to wrap onto the next line if needed */
     gap: 12px;
-    margin-top: 15px;
-    padding: 4px;
+    margin-top: 10px;
+    padding: 5px 0;
 }
 
 /* Base Category Pill Style */
@@ -261,7 +262,7 @@ body {
 }
 
 .category-pill span {
-    font-size: 1rem; /* Adjusts the emoji/icon size slightly */
+    font-size: 1.1rem; /* Adjusts the emoji/icon size slightly */
 }
 
 /* Hover State - Turns red when hovered */
