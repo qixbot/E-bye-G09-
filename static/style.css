@@ -101,8 +101,8 @@ body {
     height: 40px;
     width: 40px;
     border-radius: 50%;
-    background-color: #ee4d2d; 
-    color: white;
+    background-color: #e6ded3; 
+    color: #333333;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -143,7 +143,7 @@ body {
 }
 
 .nav-item:hover {
-    color: #ee4d2d; 
+    color: #00381f; 
     background-color: #fef1f0; 
 }
 
@@ -172,7 +172,7 @@ body {
 .post-btn {
     position: absolute;
     bottom: 0; 
-    background-color: #ff4d4f; 
+    background-color: #00381f; 
     color: #ffffff;
     width: 60px; /* Narrower red button */
     height: 72px; /* Only pokes out 12px above the bar now */
@@ -182,14 +182,14 @@ body {
     align-items: center;
     justify-content: flex-start; 
     padding-top: 10px; /* Adjusted spacing for the smaller button */
-    box-shadow: 0 -4px 10px rgba(255, 77, 79, 0.15); /* Softer shadow */
+    box-shadow: 0 -4px 10px rgba(77, 255, 89, 0.15); /* Softer shadow */
     transition: background-color 0.2s; /* Only transition the color now! */
     text-decoration: none; 
 }
 
 /* Removed the upward movement, added a darker color shift */
 .post-btn:hover {
-    background-color: #e03e3f; /* Slightly darker shade of red */
+    background-color: #00381f; /* Slightly darker shade of red */
 }
 
 .post-btn .plus-icon {
@@ -314,7 +314,7 @@ body {
 .view-all-btn {
     background: none;
     border: none;
-    color: #ee4d2d;
+    color: #00381f;
     font-size: 0.9rem;
     cursor: pointer;
     font-weight: 500;
@@ -361,8 +361,8 @@ body {
 /* Hover State - Turns red when hovered */
 .category-pill:hover {
     background-color: #fef1f0; 
-    border-color: #ee4d2d; 
-    color: #ee4d2d;
+    border-color: #00381f; 
+    color: #00381f;
     transform: translateY(-2px); /* Tiny lift effect */
 }
 
@@ -406,7 +406,7 @@ body {
 }
 
 .view-all-link {
-    color: #ee4d2d;
+    color: #00381f;
     text-decoration: none;
     font-weight: 500;
     font-size: 0.95rem;
@@ -508,7 +508,7 @@ body {
 
 .product-price {
     font-size: 1.15rem;
-    color: #ee4d2d;
+    color: #00381f;
     font-weight: 600;
 }
 
@@ -556,8 +556,8 @@ body {
 }
 
 .bottom-search-link a:hover {
-    color: #ee4d2d;
-    border-bottom: 1px solid #ee4d2d;
+    color: #00381f;
+    border-bottom: 1px solid #00381f;
 }
 
 /* =========================================
@@ -614,7 +614,7 @@ body {
 }
 
 .dropzone-label:hover {
-    border-color: #ed5c6a;
+    border-color: #00381f;
     background-color: #fffafb;
 }
 
@@ -630,7 +630,7 @@ body {
 }
 
 .click-text {
-    color: #ed5c6a;
+    color: #00381f;
     font-weight: 600;
 }
 
@@ -667,8 +667,8 @@ body {
 }
 
 .form-input:focus, .form-textarea:focus, .form-select:focus {
-    border-color: #ed5c6a;
-    box-shadow: 0 0 0 3px rgba(237, 92, 106, 0.1);
+    border-color: #00381f;
+    box-shadow: 0 0 0 3px rgba(0, 56, 31, 0.1);
 }
 
 .form-textarea {
@@ -701,8 +701,8 @@ body {
 
 /* What happens when a radio button is selected */
 .condition-radio:checked + .condition-pill {
-    border-color: #ed5c6a;
-    color: #ed5c6a;
+    border-color: #00381f;
+    color: #00381f;
     background-color: #fffafb;
 }
 
@@ -714,7 +714,7 @@ body {
     font-size: 1.1rem;
     font-weight: bold;
     color: #ffffff;
-    background-color: #ed5c6a; /* Pink/Red from mockup */
+    background-color: #00381f;
     border: none;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -722,7 +722,7 @@ body {
 }
 
 .btn-publish:hover {
-    background-color: #d84b59;
+    background-color: #00381f;
 }
 
 /* Mobile Adjustments */
@@ -732,7 +732,7 @@ body {
     }
     
     .condition-options {
-        flex-direction: column; /* Stack the pills on tiny phone screens */
+        flex-direction: column;
     }
 }
 
