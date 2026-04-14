@@ -560,4 +560,180 @@ body {
     border-bottom: 1px solid #ee4d2d;
 }
 
+/* =========================================
+   UPLOAD PRODUCT PAGE
+   ========================================= */
+
+.upload-page-wrapper {
+    padding: 40px 20px 120px 20px; /* Extra bottom padding for the navbar */
+    display: flex;
+    justify-content: center;
+}
+
+.upload-container {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 600px; /* Keeps the form from getting too wide on desktop */
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    border: 1px solid #f0f0f0;
+}
+
+.upload-header {
+    text-align: center;
+    font-family: 'Arial Black', 'Inter', sans-serif;
+    font-size: 2rem;
+    color: #222b45;
+    margin-top: 0;
+    margin-bottom: 30px;
+}
+
+.upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* --- Image Dropzone --- */
+.file-input-hidden {
+    display: none; /* Hide the ugly default browser file input */
+}
+
+.dropzone-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 40px 20px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropzone-label:hover {
+    border-color: #ed5c6a;
+    background-color: #fffafb;
+}
+
+.camera-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.dropzone-text {
+    font-size: 0.95rem;
+    color: #6b7280;
+    margin-bottom: 5px;
+}
+
+.click-text {
+    color: #ed5c6a;
+    font-weight: 600;
+}
+
+.dropzone-hint {
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+/* --- Form Inputs --- */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #8f9bb3;
+    letter-spacing: 0.5px;
+}
+
+.form-input, .form-textarea, .form-select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #e4e9f2;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    color: #222b45;
+    background-color: #ffffff;
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+    border-color: #ed5c6a;
+    box-shadow: 0 0 0 3px rgba(237, 92, 106, 0.1);
+}
+
+.form-textarea {
+    resize: vertical; /* Let users pull the text box down, but not sideways */
+}
+
+/* --- Condition Buttons (Hidden Radios) --- */
+.condition-options {
+    display: flex;
+    gap: 10px;
+}
+
+.condition-radio {
+    display: none; /* Hide the actual circle radio input */
+}
+
+.condition-pill {
+    flex: 1;
+    text-align: center;
+    padding: 12px 10px;
+    border: 1px solid #e4e9f2;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #222b45;
+    background-color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* What happens when a radio button is selected */
+.condition-radio:checked + .condition-pill {
+    border-color: #ed5c6a;
+    color: #ed5c6a;
+    background-color: #fffafb;
+}
+
+/* --- Submit Button --- */
+.btn-publish {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #ffffff;
+    background-color: #ed5c6a; /* Pink/Red from mockup */
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 10px;
+}
+
+.btn-publish:hover {
+    background-color: #d84b59;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 600px) {
+    .upload-container {
+        padding: 25px;
+    }
+    
+    .condition-options {
+        flex-direction: column; /* Stack the pills on tiny phone screens */
+    }
+}
+
 /* You can add other global styles here */
