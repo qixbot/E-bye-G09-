@@ -60,24 +60,24 @@
             <span class="nav-text">Home</span>
         </a>
         
-        <a href="#" class="nav-item">
+        <a href="{{ url_for('search') }}" class="nav-item">
             <span class="nav-icon">🔍</span>
             <span class="nav-text">Search</span>
         </a>
         
         <div class="post-btn-wrapper">
-            <a href="#" class="post-btn">
+            <a href="{{ url_for('upload_product') }}" class="post-btn">
                 <span class="nav-icon plus-icon">+</span>
                 <span class="nav-text">Post</span>
             </a>
         </div>
         
-        <a href="#" class="nav-item">
+        <a href="{{ url_for('profile') }}" class="nav-item">
             <span class="nav-icon">👤</span>
             <span class="nav-text">Profile</span>
         </a>
         
-        <a href="#" class="nav-item">
+        <a href="{{ url_for('meetup') }}" class="nav-item">
             <span class="nav-icon">📍</span>
             <span class="nav-text">Meetup</span>
         </a>
