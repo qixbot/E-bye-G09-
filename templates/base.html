@@ -25,11 +25,13 @@
         
         <div class="nav-profile">
             <a href="#" style="text-decoration: none;">
-                {% if current_user is defined and current_user.is_authenticated %}
-                    <div class="nav-avatar">{{ current_user.username[0].upper() }}</div>
+                
+                {% if session.get('username') %}
+                    <div class="nav-avatar">{{ session['username'][0].upper() }}</div>
                 {% else %}
                     <div class="nav-avatar">X</div>
                 {% endif %}
+                
             </a>
         </div>
     </nav>
