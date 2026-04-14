@@ -23,12 +23,18 @@
         <div class="categories-header">
             <h3 class="categories-title">Browse Categories</h3>
             <button id="view-all-btn" class="view-all-btn" onclick="toggleMoreCategories()">
-                View all categories <span class="arrow-icon">▼</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                View Categories
             </button>
         </div>
 
         <div class="categories-container initial-categories">
-            <a href="#" class="category-pill active"><span>🏠</span> All Items</a>
+            <a href="#" class="category-pill"><span>🏠</span> All Items</a>
             <a href="#" class="category-pill"><span>📚</span> Textbooks</a>
             <a href="#" class="category-pill"><span>💻</span> Gadgets</a>
             <a href="#" class="category-pill"><span>🛏️</span> Dorm Items</a>
@@ -48,27 +54,17 @@
 
     </section>
 
-    </div>
+</div>
 
 <script>
     function toggleMoreCategories() {
         const moreContainer = document.getElementById('more-categories');
-        const viewBtn = document.getElementById('view-all-btn');
         
-        // Remove inline display:none if it's there so our CSS animation can work
         if (moreContainer.style.display === 'none') {
             moreContainer.style.display = 'flex';
-            // slight delay to allow display:flex to apply before adding the opacity class
             setTimeout(() => moreContainer.classList.add('show-more'), 10);
         } else {
             moreContainer.classList.toggle('show-more');
-        }
-        
-        if (moreContainer.classList.contains('show-more')) {
-            viewBtn.innerHTML = 'View less categories <span class="arrow-icon" style="transform: rotate(180deg); display: inline-block;">▼</span>';
-        } else {
-            viewBtn.innerHTML = 'View all categories <span class="arrow-icon" style="transform: rotate(0deg); display: inline-block;">▼</span>';
-            // wait for animation to finish before hiding completely
             setTimeout(() => {
                 if (!moreContainer.classList.contains('show-more')) {
                     moreContainer.style.display = 'none';
