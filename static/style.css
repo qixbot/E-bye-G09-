@@ -123,9 +123,9 @@ body {
     background-color: #ffffff;
     border-top: 1px solid #e0e0e0;
     display: flex;
-    justify-content: space-around; /* Distributes the buttons evenly */
+    justify-content: space-around;
     align-items: center;
-    height: 65px;
+    height: 60px; /* Slightly shorter bar */
     z-index: 1000; 
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
@@ -137,25 +137,24 @@ body {
     justify-content: center;
     text-decoration: none;
     color: #777777;
-    /* Removed flex: 1 so they don't stretch */
-    padding: 8px 20px; /* Creates the neat hover shape */
-    border-radius: 16px; /* Rounds the hover background */
+    padding: 6px 14px; /* Smaller hover square */
+    border-radius: 14px; /* Slightly smaller rounded corners */
     transition: all 0.2s;
 }
 
 .nav-item:hover, 
 .nav-item.active {
     color: #ee4d2d; 
-    background-color: #fef1f0; /* The soft pink/red background from your screenshot */
+    background-color: #fef1f0; 
 }
 
 .nav-icon {
-    font-size: 1.4rem;
-    margin-bottom: 4px;
+    font-size: 1.2rem; /* Smaller icons */
+    margin-bottom: 2px;
 }
 
 .nav-text {
-    font-size: 0.75rem;
+    font-size: 0.7rem; /* Smaller text */
     font-weight: 500;
 }
 
@@ -165,41 +164,39 @@ body {
 
 .post-btn-wrapper {
     position: relative;
-    width: 75px;
-    height: 65px; /* Takes up exactly the height of the bar to hold spacing */
+    width: 60px; /* Narrower wrapper */
+    height: 60px; /* Matches new bar height */
     display: flex;
     justify-content: center;
 }
 
 .post-btn {
     position: absolute;
-    bottom: 0; /* Forces the bottom of the button to stick exactly to the screen edge */
+    bottom: 0; 
     background-color: #ff4d4f; 
     color: #ffffff;
-    width: 75px;
-    height: 85px; /* 65px (bar height) + 20px (poking out the top) */
-    
-    /* This makes top-left & top-right rounded (20px), and bottom-right & bottom-left square (0) */
-    border-radius: 20px 20px 0 0; 
-    
+    width: 60px; /* Narrower red button */
+    height: 72px; /* Only pokes out 12px above the bar now */
+    border-radius: 16px 16px 0 0; /* Slightly tighter top corners */
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start; /* Pushes content to the top... */
-    padding-top: 15px; /* ...and this pads it neatly from the top edge */
-    box-shadow: 0 -6px 12px rgba(255, 77, 79, 0.2); /* Shadow only applied upwards */
-    transition: transform 0.2s;
-    text-decoration: none; /* Removes hyperlink underline */
+    justify-content: flex-start; 
+    padding-top: 10px; /* Adjusted spacing for the smaller button */
+    box-shadow: 0 -4px 10px rgba(255, 77, 79, 0.15); /* Softer shadow */
+    transition: background-color 0.2s; /* Only transition the color now! */
+    text-decoration: none; 
 }
 
+/* Removed the upward movement, added a darker color shift */
 .post-btn:hover {
-    transform: translateY(-4px); 
+    background-color: #e03e3f; /* Slightly darker shade of red */
 }
 
 .post-btn .plus-icon {
-    font-size: 1.8rem;
+    font-size: 1.5rem; /* Smaller plus sign */
     font-weight: bold;
-    margin-bottom: -2px;
+    margin-bottom: -1px;
     line-height: 1;
     color: #ffffff;
 }
