@@ -168,5 +168,24 @@
         });
         fileInput.files = dataTransfer.files;
     }
+
+    // --- Price Auto-Formatting ---
+    const priceInput = document.getElementById('item_price'); // Updated to match your exact ID!
+    
+    if (priceInput) {
+        // The 'blur' event triggers when the user clicks or tabs away from the input
+        priceInput.addEventListener('blur', function() {
+            // Only format if they actually typed something
+            if (this.value) {
+                // Convert their text into a decimal number
+                const parsedPrice = parseFloat(this.value);
+                
+                // If it's a valid number, format it to exactly 2 decimal places
+                if (!isNaN(parsedPrice)) {
+                    this.value = parsedPrice.toFixed(2);
+                }
+            }
+        });
+    }
 </script>
 {% endblock %}
