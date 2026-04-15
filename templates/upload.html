@@ -8,12 +8,14 @@
 
         <form action="#" method="POST" enctype="multipart/form-data" class="upload-form">
             
-            <div class="upload-dropzone">
+            <div class="upload-dropzone" id="dropzone">
                 <input type="file" id="product_images" name="product_images" accept="image/png, image/jpeg" multiple max="12" class="file-input-hidden">
-                <label for="product_images" class="dropzone-label">
+                <label for="product_images" class="dropzone-label" id="dropzone-label">
                     <div class="camera-icon">📸</div>
                     <div class="dropzone-text">Drag & drop photos here, or <span class="click-text">click to browse</span></div>
                     <div class="dropzone-hint">Max 12 photos • JPG, PNG</div>
+                    
+                    <div class="image-preview-container" id="image-preview-container"></div>
                 </label>
             </div>
 
@@ -72,4 +74,44 @@
         </form>
     </div>
 </div>
+
+<script>
+    // --- Image Preview Logic ---
+    const fileInput = document.getElementById('product_images');
+    const previewContainer = document.getElementById('image-preview-container');
+
+    fileInput.addEventListener('change', function() {
+        // Clear out the container in case they select new files
+        previewContainer.innerHTML = '';
+        
+        // Grab the files they selected (capped at 12)
+        const files = Array.from(this.files).slice(0, 12);
+        
+        files.forEach(file => {
+            // Only process if it is actually an image
+            if (file.type.startsWith('image/')) {
+                // Create a temporary URL for the image
+                const imageUrl = URL.createObjectURL(file);
+                
+                // Create the wrapper div
+                const previewWrapper = document.createElement('div');
+                previewWrapper.classList.add('preview-wrapper');
+                
+                // Create the image element
+                const img = document.createElement('img');
+                img.classList.add('preview-img');
+                img.src = imageUrl;
+                
+                // Free up memory once the image loads
+                img.onload = function() {
+                    URL.revokeObjectURL(img.src); 
+                }
+                
+                // Put the image in the wrapper, and the wrapper in the container
+                previewWrapper.appendChild(img);
+                previewContainer.appendChild(previewWrapper);
+            }
+        });
+    });
+</script>
 {% endblock %}
