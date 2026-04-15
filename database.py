@@ -44,13 +44,13 @@ def init_notifications():
     try:
         db.execute("ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
-        # 字段已存在，跳过
+
         pass
     
     try:
         db.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
-        # 字段已存在，跳过
+
         pass
     
     db.commit()
