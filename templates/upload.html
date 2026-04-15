@@ -11,22 +11,21 @@
             <div class="upload-dropzone" id="dropzone">
                 <input type="file" id="product_images" name="product_images" accept="image/png, image/jpeg" multiple style="display: none;">
                 
-                <label for="product_images" class="dropzone-label" id="dropzone-label" style="cursor: pointer; width: 100%;">
-                    
-                    <div id="empty-state" class="dropzone-empty-state">
-                        <div class="camera-icon">📸</div>
-                        <div class="dropzone-text">Drag & drop photos here, or <span class="click-text" style="color: #ee4d2d;">click to browse</span></div>
-                        <div class="dropzone-hint">Max 12 photos • JPG, PNG</div>
-                    </div>
-
-                    <div id="filled-state" class="dropzone-filled-state" style="display: none;">
-                        <span class="mini-camera-icon">📸</span> 
-                        <span class="mini-text">Add more photos (Max 12)</span>
-                    </div>
-
+                <label for="product_images" class="dropzone-label" id="empty-state" style="cursor: pointer; width: 100%;">
+                    <div class="camera-icon">📸</div>
+                    <div class="dropzone-text">Drag & drop photos here, or <span class="click-text" style="color: #00381f;">click to browse</span></div>
+                    <div class="dropzone-hint">Max 12 photos • JPG, PNG</div>
                 </label>
-                
-                <div class="file-grid-container" id="file-grid-container"></div>
+
+                <div id="filled-state" class="dropzone-filled-state" style="display: none;">
+                    
+                    <div class="file-grid-container" id="file-grid-container"></div>
+                    
+                    <label for="product_images" class="add-more-btn" title="Add more images">
+                        <span class="plus-icon">+</span>
+                        <span class="add-text">Add more images</span>
+                    </label>
+                </div>
             </div>
 
             <div class="form-group">
@@ -86,10 +85,9 @@
 </div>
 
 <script>
-    // --- Idea 3: Dynamic Grid Upload Logic ---
+    // --- Upload Logic ---
     const fileInput = document.getElementById('product_images');
     const fileGridContainer = document.getElementById('file-grid-container');
-    const dropzone = document.getElementById('dropzone');
     const emptyState = document.getElementById('empty-state');
     const filledState = document.getElementById('filled-state');
     
@@ -120,27 +118,24 @@
         
         // 2. Toggle UI states based on if we have files
         if (selectedFiles.length > 0) {
-            dropzone.classList.add('has-files'); // Changes to solid border
-            emptyState.style.display = 'none';   // Hides big text
-            filledState.style.display = 'flex';  // Shows mini header
+            emptyState.style.display = 'none';   
+            filledState.style.display = 'block'; // Shows the thin border & + button
         } else {
-            dropzone.classList.remove('has-files'); // Changes back to dashed
-            emptyState.style.display = 'flex';
+            emptyState.style.display = 'flex';   // Reverts to thick dashed box
             filledState.style.display = 'none';
         }
 
-        // 3. Re-draw the grid items
+        // 3. Re-draw the fixed-width file tags
         selectedFiles.forEach((file, index) => {
             const fileItem = document.createElement('div');
             fileItem.classList.add('file-item');
             
-            // Create a temporary URL so the user can click and view it in a new tab
             const fileUrl = URL.createObjectURL(file);
             
             fileItem.innerHTML = `
                 <div class="file-info">
                     <span class="file-icon">📎</span> 
-                    <a href="${fileUrl}" target="_blank" class="file-name-link" title="Click to view image">${file.name}</a>
+                    <a href="${fileUrl}" target="_blank" class="file-name-link" title="${file.name}">${file.name}</a>
                 </div>
                 <button type="button" class="remove-file-btn" onclick="removeFile(${index})">✖</button>
             `;

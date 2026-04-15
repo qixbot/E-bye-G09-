@@ -632,12 +632,10 @@ body {
     color: #9ca3af;
 }
 
-/* --- Dynamic Dropzone States (Idea 3) --- */
-/* This changes the border to solid when files are added! */
-.upload-dropzone.has-files .dropzone-label {
-    border-style: solid;
-    border-color: #00381f; /* Matches your dark green theme */
-    background-color: #fafafa;
+/* --- Dynamic Dropzone States --- */
+.upload-dropzone {
+    position: relative;
+    width: 100%;
 }
 
 .dropzone-empty-state {
@@ -646,22 +644,67 @@ body {
     align-items: center;
 }
 
+/* The box when files are uploaded - thin border matching your inputs! */
 .dropzone-filled-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e4e9f2;
-    margin-bottom: 15px;
-    color: #00381f; /* Matches your dark green theme */
-    font-weight: 600;
+    position: relative;
+    border: 1px solid #e4e9f2; /* Matches your form inputs */
+    border-radius: 10px;
+    padding: 20px;
+    padding-bottom: 55px; /* Creates room for the floating button */
+    background-color: #ffffff;
 }
 
-/* --- The 2-Column File Grid --- */
+/* --- Floating Expandable + Button --- */
+.add-more-btn {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    background-color: #00381f;
+    color: #ffffff;
+    height: 36px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.add-more-btn .plus-icon {
+    font-size: 1.2rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* Text hidden by default */
+.add-more-btn .add-text {
+    max-width: 0;
+    opacity: 0;
+    margin-left: 0;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+/* Hover effects for shadow and text expansion */
+.add-more-btn:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: translateY(-2px);
+}
+
+.add-more-btn:hover .add-text {
+    max-width: 130px;
+    opacity: 1;
+    margin-left: 8px;
+}
+
+/* --- Fixed Size File Items --- */
 .file-grid-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Creates 2 equal columns */
+    display: flex;
+    flex-wrap: wrap; /* Allows boxes to wrap cleanly to the next line */
     gap: 10px;
     width: 100%;
 }
@@ -670,31 +713,30 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: #ffffff;
+    background-color: #f8f9fa;
     border: 1px solid #e4e9f2;
     border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    color: #222b45;
-    font-family: 'Inter', sans-serif;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    width: 160px; /* FIXED WIDTH */
+    box-sizing: border-box;
 }
 
 .file-info {
     display: flex;
     align-items: center;
     overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
 }
 
-/* Make the file name look like a clickable link */
 .file-name-link {
     color: #222b45;
     text-decoration: none;
+    max-width: 90px; /* Forces long names to cut off smoothly */
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     transition: color 0.2s;
+    display: inline-block;
 }
 
 .file-name-link:hover {
@@ -703,17 +745,17 @@ body {
 }
 
 .file-icon {
-    margin-right: 8px;
-    font-size: 1.1rem;
+    margin-right: 6px;
+    font-size: 1rem;
 }
 
 .remove-file-btn {
     background: none;
     border: none;
     color: #8f9bb3;
-    font-size: 1rem;
+    font-size: 0.9rem;
     cursor: pointer;
-    padding: 0 5px;
+    padding: 0 2px;
     transition: color 0.2s;
 }
 
