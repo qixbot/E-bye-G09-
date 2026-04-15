@@ -38,7 +38,7 @@
             {% endwith %}
 
             <form method="POST" action="{{ url_for('login') }}" id="login-form">
-                <h2>Welcome back</h2>
+                <h2>👋Welcome Back</h2>
                 <p class="form-sub">Login to your E-Bye account</p>
                 
                 <div class="form-group">
@@ -53,11 +53,12 @@
                     <div class="form-error" id="password-error" style="display: none;"></div>
                 </div>
                 
-                <div class="form-group remember-me">
+                <div class="form-options">
                     <input type="checkbox" name="remember_me" id="remember_me">
                     <label for="remember_me">Remember me</label>
+                    <a href="{{ url_for('forgot_password') }}" class="forgot-link">Forgot password?</a>
                 </div>
-
+                
                 <button type="submit" class="btn-login">Log in</button>
                 
                 <p class="switch-link">

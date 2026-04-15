@@ -17,7 +17,6 @@ def init_db():
             username TEXT NOT NULL,
             password TEXT NOT NULL,
             gender TEXT,
-            contact TEXT,
             active_hours TEXT,
             avatar TEXT,
             is_admin INTEGER DEFAULT 0,
@@ -27,3 +26,34 @@ def init_db():
     db.commit()
     db.close()
     print("Database ready WITH user table")
+
+def init_notifications():
+    db = get_db()
+    #Notification Table: Stores notifications for all users (freeze/ban/bargain/order)
+    db.execute('''
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        message TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+    ''')
+    #Add freeze/ban fields to the users table）
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+
+        pass
+    
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+
+        pass
+    
+    db.commit()
+    db.close()
+
+init_notifications()

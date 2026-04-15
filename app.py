@@ -4,7 +4,7 @@ from database import init_db, get_db
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'e-bye-secret-key-2025'
+app.secret_key = 'e-bye-secret-key-2026'
 
 # initialize the database
 init_db()
@@ -128,9 +128,9 @@ def admin_login():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        # 这里先做简单验证，后续可以改成数据库验证
-        # 临时管理员账号
-        if email == 'admin@student.mmu.edu.my' and password == 'Admin@2025':
+        # here do simple validation, afterthat will be changed to database validation
+        # temporary admin account
+        if email == 'admin@student.mmu.edu.my' and password == 'Admin@2026':
             session['admin_logged_in'] = True
             flash('Welcome, Administrator!', 'success')
             return redirect(url_for('admin_dashboard'))
@@ -144,7 +144,140 @@ def admin_dashboard():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
-    return render_template('admin_dashboard.html')
+
+    db = get_db()
+    total_users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    db.close()
+    
+    return render_template("admin_dashboard.html", total_users=total_users)
+
+@app.route('/admin/users')
+def admin_users():
+    
+    if not session.get('admin_logged_in'):
+        flash('Please login as admin first', 'error')
+        return redirect(url_for('admin_login'))
+    
+    db = get_db()
+    users = db.execute("SELECT * FROM users").fetchall()
+    db.close()
+    return render_template("admin_users.html", users=users)
+
+@app.route('/admin/products')
+def admin_products():
+    if not session.get('admin_logged_in'):
+        flash('Please login as admin first', 'error')
+        return redirect(url_for('admin_login'))
+    
+    return render_template("admin_products.html")
+
+@app.route('/admin/user/<int:user_id>/freeze', methods=['POST'])
+def freeze_user(user_id):
+    # Administrator Permission Verification
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    reason = request.form.get('reason', 'No reason provided')
+    db = get_db()
+    
+    # 1.Add a "freeze tag" to the user
+    db.execute("UPDATE users SET is_frozen = 1 WHERE id = ?", (user_id,))
+    
+   # 2.Send a "Freeze Notice" to the user
+    db.execute(
+        "INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)",
+        (user_id, f"Your account has been frozen. Reason: {reason}")
+    )
+    
+    db.commit()
+    db.close()
+    flash(f"User {user_id} has been frozen, notification sent.", "success")
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/block', methods=['POST'])
+def block_user(user_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    reason = request.form.get('reason', 'No reason provided')
+    db = get_db()
+    
+    # 1.Add a "permanent ban mark" to the user
+    db.execute("UPDATE users SET is_blocked = 1 WHERE id = ?", (user_id,))
+    
+    # 2.Send a "Ban Notice" to this user
+    db.execute(
+        "INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)",
+        (user_id, f"Your account has been PERMANENTLY blocked. Reason: {reason}")
+    )
+    
+    db.commit()
+    db.close()
+    flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')  
+        
+        # validate email
+        if not email:
+            flash('Email is required', 'error')
+            return render_template('forgot_password.html')
+        
+        if not email.endswith('@student.mmu.edu.my'):
+            flash('Only @student.mmu.edu.my emails are allowed', 'error')
+            return render_template('forgot_password.html')
+        
+        # validate password
+        if not password:
+            flash('Password is required', 'error')
+            return render_template('forgot_password.html')
+        
+        if len(password) < 8:
+            flash('Password must be at least 8 characters', 'error')
+            return render_template('forgot_password.html')
+        
+        if not re.search(r'[A-Z]', password):
+            flash('Password must contain at least 1 uppercase letter', 'error')
+            return render_template('forgot_password.html')
+        
+        if not re.search(r'[a-z]', password):
+            flash('Password must contain at least 1 lowercase letter', 'error')
+            return render_template('forgot_password.html')
+        
+        if not re.search(r'[0-9]', password):
+            flash('Password must contain at least 1 number', 'error')
+            return render_template('forgot_password.html')
+        
+        if not re.search(r'[!@#$%^&*]', password):
+            flash('Password must contain at least 1 special character', 'error')
+            return render_template('forgot_password.html')
+        
+        if password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return render_template('forgot_password.html')
+        
+        db = get_db()
+        user = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+        
+        if not user:
+            flash('No account found with this email address', 'error')
+            return render_template('forgot_password.html')
+        
+        # update password
+        hashed_password = generate_password_hash(password)
+        db.execute('UPDATE users SET password = ? WHERE id = ?', (hashed_password, user['id']))
+        db.commit()
+        
+        flash('Password reset successfully! Please login with your new password.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html')
 
 @app.route('/upload')
 def upload_product():
