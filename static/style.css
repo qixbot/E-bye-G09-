@@ -762,9 +762,9 @@ body {
 }
 
 .remove-file-btn:hover {
-    background-color: #ff3d71; /* Turns bright red to warn user of deletion */
+    background-color: #333333;
     color: #ffffff;
-    border-color: #ff3d71;
+    border-color: #333333;
 }
 
 /* --- Popup Toast Notification --- */
@@ -773,13 +773,13 @@ body {
     bottom: 40px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background-color: #ff3d71; /* Eye-catching warning red */
+    background-color: #00381f; /* Eye-catching warning red */
     color: #ffffff;
     padding: 12px 24px;
     border-radius: 8px;
     font-weight: 600;
     font-size: 0.95rem;
-    box-shadow: 0 4px 12px rgba(255, 61, 113, 0.3);
+    box-shadow: 0 4px 12px #333333;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
