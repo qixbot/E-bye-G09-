@@ -67,13 +67,6 @@ body {
     transition: all 0.3s ease;    
 }
 
-/* The "Light Up" Glow Effect when clicking inside */
-.nav-search:focus-within {
-    border-color: #4CAF50;
-    box-shadow: 0 0 10px rgb(169, 255, 170);
-    background-color: #ffffff;
-}
-
 /* --- Search Icon --- */
 .search-icon {
     font-size: 18px;
