@@ -632,6 +632,58 @@ body {
     color: #9ca3af;
 }
 
+/* --- Gmail-style File List with Remove Buttons --- */
+.file-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 15px;
+    width: 100%;
+    align-items: center; 
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Pushes the X to the right */
+    background-color: #f8f9fa;
+    border: 1px solid #e4e9f2;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #222b45;
+    width: 90%; 
+    font-family: 'Inter', sans-serif;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.file-icon {
+    margin-right: 8px;
+    font-size: 1.1rem;
+}
+
+/* The 'X' Button styling */
+.remove-file-btn {
+    background: none;
+    border: none;
+    color: #8f9bb3;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 5px;
+    margin-left: 10px;
+    transition: color 0.2s;
+}
+
+.remove-file-btn:hover {
+    color: #00381f; /* Turns your theme red on hover */
+}
 /* --- Form Inputs --- */
 .form-group {
     display: flex;

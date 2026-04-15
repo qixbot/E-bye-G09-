@@ -9,14 +9,15 @@
         <form action="#" method="POST" enctype="multipart/form-data" class="upload-form">
             
             <div class="upload-dropzone" id="dropzone">
-                <input type="file" id="product_images" name="product_images" accept="image/png, image/jpeg" multiple max="12" class="file-input-hidden">
-                <label for="product_images" class="dropzone-label" id="dropzone-label">
+                <input type="file" id="product_images" name="product_images" accept="image/png, image/jpeg" multiple style="display: none;">
+                
+                <label for="product_images" class="dropzone-label" id="dropzone-label" style="cursor: pointer;">
                     <div class="camera-icon">📸</div>
-                    <div class="dropzone-text">Drag & drop photos here, or <span class="click-text">click to browse</span></div>
+                    <div class="dropzone-text">Drag & drop photos here, or <span class="click-text" style="color: #ee4d2d;">click to browse</span></div>
                     <div class="dropzone-hint">Max 12 photos • JPG, PNG</div>
-                    
-                    <div class="image-preview-container" id="image-preview-container"></div>
                 </label>
+                
+                <div class="file-list-container" id="file-list-container"></div>
             </div>
 
             <div class="form-group">
@@ -76,42 +77,67 @@
 </div>
 
 <script>
-    // --- Image Preview Logic ---
+    // --- Advanced File Upload Logic ---
     const fileInput = document.getElementById('product_images');
-    const previewContainer = document.getElementById('image-preview-container');
+    const fileListContainer = document.getElementById('file-list-container');
+    
+    // This array holds ALL our files, keeping track across multiple clicks!
+    let selectedFiles = [];
 
-    fileInput.addEventListener('change', function() {
-        // Clear out the container in case they select new files
-        previewContainer.innerHTML = '';
+    // When the user selects files...
+    fileInput.addEventListener('change', function(event) {
+        const newFiles = Array.from(event.target.files);
         
-        // Grab the files they selected (capped at 12)
-        const files = Array.from(this.files).slice(0, 12);
-        
-        files.forEach(file => {
-            // Only process if it is actually an image
-            if (file.type.startsWith('image/')) {
-                // Create a temporary URL for the image
-                const imageUrl = URL.createObjectURL(file);
-                
-                // Create the wrapper div
-                const previewWrapper = document.createElement('div');
-                previewWrapper.classList.add('preview-wrapper');
-                
-                // Create the image element
-                const img = document.createElement('img');
-                img.classList.add('preview-img');
-                img.src = imageUrl;
-                
-                // Free up memory once the image loads
-                img.onload = function() {
-                    URL.revokeObjectURL(img.src); 
+        // Add new files to our running list (max 12)
+        newFiles.forEach(file => {
+            if (selectedFiles.length < 12) {
+                // Prevents uploading the exact same file twice
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
                 }
-                
-                // Put the image in the wrapper, and the wrapper in the container
-                previewWrapper.appendChild(img);
-                previewContainer.appendChild(previewWrapper);
             }
         });
+        
+        updateDisplayAndSync();
     });
+
+    // Function triggered when the "X" button is clicked
+    function removeFile(index) {
+        // Remove 1 item from the array at the specific index
+        selectedFiles.splice(index, 1);
+        updateDisplayAndSync();
+    }
+
+    // This handles both drawing the screen and updating the hidden input
+    function updateDisplayAndSync() {
+        // 1. Clear the visual container
+        fileListContainer.innerHTML = '';
+        
+        // 2. Re-draw the visual list of file names
+        selectedFiles.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.classList.add('file-item');
+            
+            // Note: type="button" is crucial so clicking 'x' doesn't submit the whole form!
+            fileItem.innerHTML = `
+                <div class="file-info">
+                    <span class="file-icon">📎</span> 
+                    <span style="overflow: hidden; text-overflow: ellipsis;">${file.name}</span>
+                </div>
+                <button type="button" class="remove-file-btn" onclick="removeFile(${index})">✖</button>
+            `;
+            
+            fileListContainer.appendChild(fileItem);
+        });
+
+        // 3. The Magic Trick: Sync the hidden HTML input so Flask gets the right files
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        
+        // Overwrite the actual input files with our customized list
+        fileInput.files = dataTransfer.files;
+    }
 </script>
 {% endblock %}
