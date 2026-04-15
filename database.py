@@ -50,7 +50,7 @@ def init_notifications():
     try:
         db.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
-#你好你好
+
         pass
     
     db.commit()
