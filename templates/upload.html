@@ -11,13 +11,22 @@
             <div class="upload-dropzone" id="dropzone">
                 <input type="file" id="product_images" name="product_images" accept="image/png, image/jpeg" multiple style="display: none;">
                 
-                <label for="product_images" class="dropzone-label" id="dropzone-label" style="cursor: pointer;">
-                    <div class="camera-icon">📸</div>
-                    <div class="dropzone-text">Drag & drop photos here, or <span class="click-text" style="color: #ee4d2d;">click to browse</span></div>
-                    <div class="dropzone-hint">Max 12 photos • JPG, PNG</div>
+                <label for="product_images" class="dropzone-label" id="dropzone-label" style="cursor: pointer; width: 100%;">
+                    
+                    <div id="empty-state" class="dropzone-empty-state">
+                        <div class="camera-icon">📸</div>
+                        <div class="dropzone-text">Drag & drop photos here, or <span class="click-text" style="color: #ee4d2d;">click to browse</span></div>
+                        <div class="dropzone-hint">Max 12 photos • JPG, PNG</div>
+                    </div>
+
+                    <div id="filled-state" class="dropzone-filled-state" style="display: none;">
+                        <span class="mini-camera-icon">📸</span> 
+                        <span class="mini-text">Add more photos (Max 12)</span>
+                    </div>
+
                 </label>
                 
-                <div class="file-list-container" id="file-list-container"></div>
+                <div class="file-grid-container" id="file-grid-container"></div>
             </div>
 
             <div class="form-group">
@@ -77,21 +86,20 @@
 </div>
 
 <script>
-    // --- Advanced File Upload Logic ---
+    // --- Idea 3: Dynamic Grid Upload Logic ---
     const fileInput = document.getElementById('product_images');
-    const fileListContainer = document.getElementById('file-list-container');
+    const fileGridContainer = document.getElementById('file-grid-container');
+    const dropzone = document.getElementById('dropzone');
+    const emptyState = document.getElementById('empty-state');
+    const filledState = document.getElementById('filled-state');
     
-    // This array holds ALL our files, keeping track across multiple clicks!
     let selectedFiles = [];
 
-    // When the user selects files...
     fileInput.addEventListener('change', function(event) {
         const newFiles = Array.from(event.target.files);
         
-        // Add new files to our running list (max 12)
         newFiles.forEach(file => {
             if (selectedFiles.length < 12) {
-                // Prevents uploading the exact same file twice
                 if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
                     selectedFiles.push(file);
                 }
@@ -101,42 +109,50 @@
         updateDisplayAndSync();
     });
 
-    // Function triggered when the "X" button is clicked
     function removeFile(index) {
-        // Remove 1 item from the array at the specific index
         selectedFiles.splice(index, 1);
         updateDisplayAndSync();
     }
 
-    // This handles both drawing the screen and updating the hidden input
     function updateDisplayAndSync() {
-        // 1. Clear the visual container
-        fileListContainer.innerHTML = '';
+        // 1. Clear the visual grid
+        fileGridContainer.innerHTML = '';
         
-        // 2. Re-draw the visual list of file names
+        // 2. Toggle UI states based on if we have files
+        if (selectedFiles.length > 0) {
+            dropzone.classList.add('has-files'); // Changes to solid border
+            emptyState.style.display = 'none';   // Hides big text
+            filledState.style.display = 'flex';  // Shows mini header
+        } else {
+            dropzone.classList.remove('has-files'); // Changes back to dashed
+            emptyState.style.display = 'flex';
+            filledState.style.display = 'none';
+        }
+
+        // 3. Re-draw the grid items
         selectedFiles.forEach((file, index) => {
             const fileItem = document.createElement('div');
             fileItem.classList.add('file-item');
             
-            // Note: type="button" is crucial so clicking 'x' doesn't submit the whole form!
+            // Create a temporary URL so the user can click and view it in a new tab
+            const fileUrl = URL.createObjectURL(file);
+            
             fileItem.innerHTML = `
                 <div class="file-info">
                     <span class="file-icon">📎</span> 
-                    <span style="overflow: hidden; text-overflow: ellipsis;">${file.name}</span>
+                    <a href="${fileUrl}" target="_blank" class="file-name-link" title="Click to view image">${file.name}</a>
                 </div>
                 <button type="button" class="remove-file-btn" onclick="removeFile(${index})">✖</button>
             `;
             
-            fileListContainer.appendChild(fileItem);
+            fileGridContainer.appendChild(fileItem);
         });
 
-        // 3. The Magic Trick: Sync the hidden HTML input so Flask gets the right files
+        // 4. Sync the hidden input for Flask
         const dataTransfer = new DataTransfer();
         selectedFiles.forEach(file => {
             dataTransfer.items.add(file);
         });
-        
-        // Overwrite the actual input files with our customized list
         fileInput.files = dataTransfer.files;
     }
 </script>

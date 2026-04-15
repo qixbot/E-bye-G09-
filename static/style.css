@@ -632,28 +632,52 @@ body {
     color: #9ca3af;
 }
 
-/* --- Gmail-style File List with Remove Buttons --- */
-.file-list-container {
+/* --- Dynamic Dropzone States (Idea 3) --- */
+/* This changes the border to solid when files are added! */
+.upload-dropzone.has-files .dropzone-label {
+    border-style: solid;
+    border-color: #00381f; /* Matches your dark green theme */
+    background-color: #fafafa;
+}
+
+.dropzone-empty-state {
     display: flex;
     flex-direction: column;
+    align-items: center;
+}
+
+.dropzone-filled-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     gap: 8px;
-    margin-top: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e4e9f2;
+    margin-bottom: 15px;
+    color: #00381f; /* Matches your dark green theme */
+    font-weight: 600;
+}
+
+/* --- The 2-Column File Grid --- */
+.file-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Creates 2 equal columns */
+    gap: 10px;
     width: 100%;
-    align-items: center; 
 }
 
 .file-item {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Pushes the X to the right */
-    background-color: #f8f9fa;
+    justify-content: space-between;
+    background-color: #ffffff;
     border: 1px solid #e4e9f2;
     border-radius: 6px;
     padding: 8px 12px;
     font-size: 0.85rem;
     color: #222b45;
-    width: 90%; 
     font-family: 'Inter', sans-serif;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .file-info {
@@ -664,12 +688,25 @@ body {
     text-overflow: ellipsis;
 }
 
+/* Make the file name look like a clickable link */
+.file-name-link {
+    color: #222b45;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+}
+
+.file-name-link:hover {
+    color: #00381f;
+    text-decoration: underline;
+}
+
 .file-icon {
     margin-right: 8px;
     font-size: 1.1rem;
 }
 
-/* The 'X' Button styling */
 .remove-file-btn {
     background: none;
     border: none;
@@ -677,13 +714,13 @@ body {
     font-size: 1rem;
     cursor: pointer;
     padding: 0 5px;
-    margin-left: 10px;
     transition: color 0.2s;
 }
 
 .remove-file-btn:hover {
-    color: #00381f; /* Turns your theme red on hover */
+    color: #00381f;
 }
+
 /* --- Form Inputs --- */
 .form-group {
     display: flex;
