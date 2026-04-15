@@ -776,9 +776,8 @@ body {
     background-color: #00381f; /* Eye-catching warning red */
     color: #ffffff;
     padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.95rem;
+    border-radius: 5px;
+    font-size: 0.85rem;
     box-shadow: 0 4px 12px #333333;
     opacity: 0;
     visibility: hidden;
