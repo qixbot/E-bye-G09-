@@ -8,6 +8,8 @@
 
         <form action="#" method="POST" enctype="multipart/form-data" class="upload-form">
             
+            <div id="toast-message" class="toast-message">You can only upload up to 12 photos!</div>
+
             <div class="upload-dropzone" id="dropzone">
                 <input type="file" id="product_images" name="product_images" accept="image/png, image/jpeg" multiple style="display: none;">
                 
@@ -85,24 +87,41 @@
 </div>
 
 <script>
-    // --- Upload Logic ---
     const fileInput = document.getElementById('product_images');
     const fileGridContainer = document.getElementById('file-grid-container');
     const emptyState = document.getElementById('empty-state');
     const filledState = document.getElementById('filled-state');
+    const toastMessage = document.getElementById('toast-message');
     
     let selectedFiles = [];
 
+    // Trigger the popup animation
+    function showToast() {
+        toastMessage.classList.add('show');
+        // Wait 3 seconds, then remove the class to fade it out
+        setTimeout(() => {
+            toastMessage.classList.remove('show');
+        }, 3000);
+    }
+
     fileInput.addEventListener('change', function(event) {
         const newFiles = Array.from(event.target.files);
+        let triggeredLimitWarning = false;
         
         newFiles.forEach(file => {
             if (selectedFiles.length < 12) {
                 if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
                     selectedFiles.push(file);
                 }
+            } else {
+                // If we hit 12, flag it so we know to show the warning
+                triggeredLimitWarning = true;
             }
         });
+        
+        if (triggeredLimitWarning) {
+            showToast();
+        }
         
         updateDisplayAndSync();
     });
@@ -113,37 +132,36 @@
     }
 
     function updateDisplayAndSync() {
-        // 1. Clear the visual grid
         fileGridContainer.innerHTML = '';
         
-        // 2. Toggle UI states based on if we have files
         if (selectedFiles.length > 0) {
             emptyState.style.display = 'none';   
-            filledState.style.display = 'block'; // Shows the thin border & + button
+            filledState.style.display = 'block'; 
         } else {
-            emptyState.style.display = 'flex';   // Reverts to thick dashed box
+            emptyState.style.display = 'flex';   
             filledState.style.display = 'none';
         }
 
-        // 3. Re-draw the fixed-width file tags
         selectedFiles.forEach((file, index) => {
-            const fileItem = document.createElement('div');
-            fileItem.classList.add('file-item');
+            const fileCard = document.createElement('div');
+            fileCard.classList.add('file-card');
             
             const fileUrl = URL.createObjectURL(file);
             
-            fileItem.innerHTML = `
-                <div class="file-info">
-                    <span class="file-icon">📎</span> 
-                    <a href="${fileUrl}" target="_blank" class="file-name-link" title="${file.name}">${file.name}</a>
-                </div>
-                <button type="button" class="remove-file-btn" onclick="removeFile(${index})">✖</button>
+            fileCard.innerHTML = `
+                <img src="${fileUrl}" class="file-card-img" title="${file.name}">
+                <div class="file-card-name" title="${file.name}">${file.name}</div>
+                <button type="button" class="remove-file-btn" onclick="removeFile(${index})" title="Remove">✖</button>
             `;
             
-            fileGridContainer.appendChild(fileItem);
+            // Free up memory once the image loads
+            fileCard.querySelector('.file-card-img').onload = function() {
+                URL.revokeObjectURL(this.src);
+            }
+            
+            fileGridContainer.appendChild(fileCard);
         });
 
-        // 4. Sync the hidden input for Flask
         const dataTransfer = new DataTransfer();
         selectedFiles.forEach(file => {
             dataTransfer.items.add(file);
