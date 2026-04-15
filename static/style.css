@@ -145,6 +145,12 @@ body {
     margin-bottom: 2px;
 }
 
+img.nav-icon {
+    height: 20px;
+    width: auto;
+    object-fit: contain;
+}
+
 .nav-text {
     font-size: 0.7rem; /* Smaller text */
     font-weight: 500;
