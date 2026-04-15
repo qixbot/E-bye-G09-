@@ -53,11 +53,10 @@
 }
 
 .hero-img {
-    max-width: 120%;
+    width: 100%;
+    max-width: 350px;
     height: auto;
     object-fit: contain;
-    transform: scaleX(-1);
-    image-rendering: -webkit-optimize-contrast;
 }
 
 /* MOBILE VIEW RESPONSIVENESS */
