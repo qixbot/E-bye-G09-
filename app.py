@@ -4,7 +4,7 @@ from database import init_db, get_db
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'e-bye-secret-key-2025'
+app.secret_key = 'e-bye-secret-key-2026'
 
 # initialize the database
 init_db()
@@ -130,7 +130,7 @@ def admin_login():
         
         # here do simple validation, afterthat will be changed to database validation
         # temporary admin account
-        if email == 'admin@student.mmu.edu.my' and password == 'Admin@2025':
+        if email == 'admin@student.mmu.edu.my' and password == 'Admin@2026':
             session['admin_logged_in'] = True
             flash('Welcome, Administrator!', 'success')
             return redirect(url_for('admin_dashboard'))
@@ -152,7 +152,7 @@ def forgot_password():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')  # 修正: get 不是 grt
+        confirm_password = request.form.get('confirm_password')  
         
         # validate email
         if not email:
