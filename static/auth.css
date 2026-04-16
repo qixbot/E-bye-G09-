@@ -10,6 +10,46 @@ body {
     background: linear-gradient(135deg, #f7f6f2 0%, #e6ded3 100%);
     color: #333333;
     min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Dynamic halo background */
+
+body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 40%, rgba(0, 56, 31, 0.08) 0%, transparent 60%);
+    pointer-events: none;
+    animation: slowDrift 20s ease infinite;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    bottom: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 70% 80%, rgba(212, 214, 213, 0.15) 0%, transparent 60%);
+    pointer-events: none;
+    animation: slowDriftReverse 25s ease infinite;
+}
+
+@keyframes slowDrift {
+    0% { transform: translate(0, 0); }
+    50% { transform: translate(5%, 5%); }
+    100% { transform: translate(0, 0); }
+}
+
+@keyframes slowDriftReverse {
+    0% { transform: translate(0, 0); }
+    50% { transform: translate(-5%, -5%); }
+    100% { transform: translate(0, 0); }
 }
 
 /*  AUTH Page Layout  */
@@ -19,31 +59,34 @@ body {
     align-items: center;
     justify-content: center;
     padding: 40px;
+    position:relative;
+    z-index: 1;
 }
 
-/*  CARD with floating effect */
+/* Glassy card */
 .auth-card {
     max-width: 1000px;
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    background: white;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(20px);
     border-radius: 48px;
     overflow: hidden;
-    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.3);
-    transform: translateY(0);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.2);
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1), box-shadow 0.4s ease;
 }
 
 .auth-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 40px 70px -15px rgba(0, 0, 0, 0.35);
+    box-shadow:  0 35px 60px -15px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 /*  LEFT COLUMN (branding) */
 .auth-left {
-    background: #00381f;
-    padding: 32px 28px 40px 28px;
+    background: linear-gradient(135deg, #00381f 0%, #1a5c3a 100%);
+    padding: 40px 32px;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -55,12 +98,45 @@ body {
 .auth-left::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+    top: 0%;
+    left: 0%;
+    right: 0%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
     pointer-events: none;
+}
+
+@keyframes rotateGlow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.auth-left::after {
+    content: '';
+    position: absolute;
+    bottom: 0%;
+    left: -100%;
+    width: 80;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.2), transparent);
+    animation: shimmer 8s infinite;
+    pointer-events: none;
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    20% {
+        left: 100%;
+    }
+    100% {
+        left: 100%;
+    }
 }
 
 /* Top Logos */
@@ -77,11 +153,20 @@ body {
 .mmu-logo-top {
     height: 65px;
     width: auto;
+    filter:brightess(0) invert(1);
+    opacity: 0.9;
+    transition: opacity 0.3s;
+}
+
+.mmu-logo-top:hover{
+    opacity: 1;
 }
 
 .ebye-logo-top {
     height: 70px;
     width: auto;
+    filter: brightness(0) invert(1);
+    opacity: 0.9;
 }
 
 .logo-divider {
@@ -106,22 +191,51 @@ body {
     width: 100%;
     height: auto;
     object-fit: contain;
-    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35))
-            drop-shadow(0 0 5px rgba(0, 0, 0, 0.2));
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.91))
+            drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: float 3s ease-in-out infinite;
 }
 
+@keyframes float {
+    0% {transform: translateY(0px);}
+    50% {transform: translateY(-8px);}
+    100% {transform: translateY(0px);}
+}
+   
 .ebee-center:hover {
     transform: scale(1.02);
-    filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.5))
-            drop-shadow(0 0 18px rgba(255, 255, 255, 0.4))
-            drop-shadow(0 0 10px rgba(226, 226, 226, 0.35));
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8))
+            drop-shadow(0 0 8px rgb(139, 139, 139))
+            drop-shadow(0 8px 20px rgb(0, 0, 0));
+}
+
+/*  User Login access description */
+.login-access-desc {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    z-index: 1;
+}
+.login-access-desc p {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+.login-access-desc span {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
 }
 
 /* RIGHT COLUMN (Form) */
 .auth-right {
     padding: 44px 48px;
     background: white;
+    backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -132,22 +246,26 @@ body {
 .auth-right h2 {
     font-size: 32px;
     font-weight: 700;
-    color: #00381f;
-    margin-bottom: 8px;
+    background: linear-gradient(135deg, #00381f 0%, #1a5c3a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 12px;
     letter-spacing: -0.5px;
-    animation: fadeInUp 0.5s ease;
+    animation: fadeInUp 0.6s ease;
 }
 
 .form-sub {
     color: #6b6b6b;
     font-size: 15px;
-    margin-bottom: 32px;
-    animation: fadeInUp 0.5s ease 0.1s both;
+    margin-bottom: 36px;
+    animation: fadeInUp 0.6s ease 0.1s both;
 }
 
+/* Form group - Glass input box */
 .form-group {
-    margin-bottom: 20px;
-    animation: fadeInUp 0.4s ease backwards;
+    margin-bottom: 24px;
+    animation: fadeInUp 0.5s ease backwards;
 }
 
 .form-group:nth-child(1) { animation-delay: 0.05s; }
@@ -159,12 +277,12 @@ body {
 
 .form-group label {
     display: block;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: #333;
     margin-bottom: 8px;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
     transition: color 0.2s;
 }
 
@@ -172,20 +290,22 @@ body {
 .form-group select {
     width: 100%;
     padding: 14px 18px;
-    border: 1.5px solid #e8e8e8;
-    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1.5px solidrgba(212, 214, 213, 0.5);
+    border-radius: 28px;
     font-size: 15px;
     font-family: 'Inter', sans-serif;
-    transition: all 0.2s;
+    transition: all 0.3s;
     background: white;
-    transition: all 0.25s ease;
+    transition: all 0.3s ease;
+    color: #333;
 }
 
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
     border-color: #00381f;
-    box-shadow: 0 0 0 3px rgba(0, 56, 31, 0.06);
+    box-shadow: 0 0 0 4px rgba(0, 56, 31, 0.1);
     transform: scale(1.01);
 }
 
@@ -207,18 +327,19 @@ body {
 .btn-login {
     width: 100%;
     padding: 16px;
-    background: #00381f;
+    background: linear-gradient(135deg, #00381f 0%, #1a5c3a 100%);
     color: white;
     border: none;
-    border-radius: 50px;
+    border-radius: 40px;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     margin-top: 16px;
-    transition: all 0.2s;
+    transition: all 0.3s;
     position: relative;
     overflow: hidden;
     animation: fadeInUp 0.5s ease 0.35s both;
+    box-shadow: 0 4px 15px rgba(0, 56, 31, 0.3);
 }
 
 .btn-login::before {
@@ -231,7 +352,7 @@ body {
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.2);
     transform: translate(-50%, -50%);
-    transition: width 0.5s, height 0.5s;
+    transition: width 0.6s, height 0.5s;
 }
 
 .btn-login:hover::before{
@@ -240,11 +361,56 @@ body {
 }
 
 .btn-login:hover {
-    background: #1a5c3a;
-    transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(0, 56, 31, 0.2);
+    background: linear-gradient(135deg, #1a5c3a 0%, #00381f 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 56, 31, 0.4);
 }
 
+
+/* Remember Me and Forgot Password */
+.form-options{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    animation: fadeInUp 0.4s ease 0.3s both;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.remember-me input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #00381f;
+}
+
+.remember-me label {
+    font-size: 13px;
+    color: #6b6b6b;
+    text-transform: none;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.forgot-link {
+    font-size: 13px;
+    color: #6b6b6b;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.forgot-link:hover {
+    color: #00381f;
+    text-decoration: underline;
+}
+
+/* Switch Link */
 .switch-link {
     text-align: center;
     margin-top: 20px;
@@ -265,6 +431,7 @@ body {
     color: #1a5c3a;
 }
 
+/*Admin Login*/
 .admin-login-link {
     text-align: center;
     margin-top: 16px;
@@ -285,15 +452,17 @@ body {
     text-decoration: underline;
 }
 
+/*Password Validation*/
 .password-requirements {
     margin-top: 12px;
-    background: #f7f6f2;
-    border-radius: 16px;
+    background: rgba(247, 246, 242, 0.8);
+    backdrop-filter: blur(4px);
+    border-radius: 20px;
     padding: 14px 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    border: 1px solid #d4d6d5;
+    border: 1px solid rgba(212, 214, 213, 0.5);
 }
 
 .password-requirements small {
@@ -302,7 +471,6 @@ body {
     align-items: center;
     gap: 10px;
     font-weight: 450;
-    transition: all 0.2s;
 }
 
 .req-valid {
@@ -341,21 +509,18 @@ body {
     border-color: #e74c3c !important;
 }
 
-.field-error:focus {
-    border-color: #e74c3c !important;
-    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.08) !important;
-}
-
+/*Flash-message*/
 .flash-messages {
     margin-bottom: 24px;
 }
 
 .flash-message {
     padding: 12px 18px;
-    border-radius: 14px;
+    border-radius: 28px;
     font-size: 14px;
     margin-bottom: 12px;
     animation: slideInRight 0.3s ease;
+    backdrop-filter: blur(8px);
 }
 
 .flash-message.success {
@@ -368,70 +533,6 @@ body {
     background: rgba(231, 76, 60, 0.08);
     color: #e74c3c;
     border: 1px solid rgba(231, 76, 60, 0.15);
-}
-
-/* Remember Me and Forgot Password */
-.form-options{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 20px;
-    animation: fadeInUp 0.4s ease 0.3s both;
-}
-
-.remember-me {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.remember-me input {
-    width: 18px;
-    height: 18px;
-    margin: 0;
-    cursor: pointer;
-    accent-color: #00381f;
-}
-
-.remember-me label {
-    font-size: 13px;
-    color: #6b6b6b;
-    text-transform: none;
-    font-weight: normal;
-    cursor: pointer;
-}
-
-.forgot-link {
-    font-size: 13px;
-    color: #6b6b6b;
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-.forgot-link:hover {
-    color: #00381f;
-    text-decoration: underline;
-}
-
-/*  User Login access description */
-.login-access-desc {
-    text-align: center;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    position: relative;
-    z-index: 1;
-}
-.login-access-desc p {
-    font-size: 13px;
-    font-weight: 600;
-    color: #ffffff;
-    letter-spacing: 0.5px;
-    margin-bottom: 6px;
-}
-.login-access-desc span {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 11px;
 }
 
 /*  ADMIN access description */
