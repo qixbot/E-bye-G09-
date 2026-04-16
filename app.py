@@ -138,7 +138,7 @@ def admin_login():
             flash('Invalid admin credentials', 'error')
     
     return render_template('admin_login.html')
-
+#keting's route
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if not session.get('admin_logged_in'):
