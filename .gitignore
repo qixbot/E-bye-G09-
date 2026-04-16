@@ -1,3 +1,6 @@
-ebye.db
 __pycache__/
 venv/
+*.pyc
+*.db
+*.sqlite
+.DS_Store
