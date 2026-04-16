@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='upload.css') }}">
+
+<div class="upload-page-wrapper">
+    <div class="upload-container">
+        
+        <h1 class="upload-header">📦 List an Item</h1>
+
+        <form action="#" method="POST" enctype="multipart/form-data" class="upload-form">
+            
+            <div id="toast-message" class="toast-message">You can only upload up to 12 photos!</div>
+
+            <div class="upload-dropzone" id="dropzone">
+                <input type="file" id="product_images" name="product_images" accept="image/png, image/jpeg" multiple style="display: none;">
+                
+                <label for="product_images" class="dropzone-label" id="empty-state" style="cursor: pointer; width: 100%;">
+                    <div class="camera-icon">📸</div>
+                    <div class="dropzone-text">Drag & drop photos here, or <span class="click-text" style="color: #00381f;">click to browse</span></div>
+                    <div class="dropzone-hint">Max 12 photos • JPG, PNG</div>
+                </label>
+
+                <div id="filled-state" class="dropzone-filled-state" style="display: none;">
+                    
+                    <div class="file-grid-container" id="file-grid-container"></div>
+                    
+                    <label for="product_images" class="add-more-btn" title="Add more images">
+                        <span class="plus-icon">+</span>
+                        <span class="add-text">Add more images</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="item_title">ITEM TITLE</label>
+                <input type="text" id="item_title" name="item_title" class="form-input" placeholder="e.g. Data Structures Textbook (3rd Ed)" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="item_category">CATEGORY</label>
+                <div class="select-wrapper">
+                    <select id="item_category" name="item_category" class="form-select" required>
+                        <option value="" disabled selected>Select a category...</option>
+                        <option value="books">📚 Books</option>
+                        <option value="gadgets">💻 Gadgets</option>
+                        <option value="dorm">🛏️ Dorm Items</option>
+                        <option value="fashion">👕 Fashion</option>
+                        <option value="beauty">💄 Beauty</option>
+                        <option value="sports">⚽ Sports</option>
+                        <option value="groceries">🛒 Groceries</option>
+                        <option value="stationery">✏️ Stationery</option>
+                        <option value="music">🎸 Music</option >
+                        <option value="others">📦 Others</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">CONDITION</label>
+                <div class="condition-options">
+                    
+                    <input type="radio" id="cond_new" name="item_condition" value="like_new" class="condition-radio" checked>
+                    <label for="cond_new" class="condition-pill">✨ Like New</label>
+
+                    <input type="radio" id="cond_good" name="item_condition" value="good" class="condition-radio">
+                    <label for="cond_good" class="condition-pill">👍 Good</label>
+
+                    <input type="radio" id="cond_fair" name="item_condition" value="fair" class="condition-radio">
+                    <label for="cond_fair" class="condition-pill">📦 Fair</label>
+                    
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="item_price">PRICE (RM)</label>
+                <input type="number" id="item_price" name="item_price" class="form-input" placeholder="0.00" step="0.01" min="0" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="item_description">DESCRIPTION</label>
+                <textarea id="item_description" name="item_description" class="form-textarea" placeholder="Describe your item... (brand, usage, reason for selling, etc.)" rows="4" required></textarea>
+            </div>
+
+            <button type="submit" class="btn-publish">🏷️ Upload Item</button>
+
+        </form>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('product_images');
+    const fileGridContainer = document.getElementById('file-grid-container');
+    const emptyState = document.getElementById('empty-state');
+    const filledState = document.getElementById('filled-state');
+    const toastMessage = document.getElementById('toast-message');
+    
+    let selectedFiles = [];
+
+    // Trigger the popup animation
+    function showToast() {
+        toastMessage.classList.add('show');
+        // Wait 3 seconds, then remove the class to fade it out
+        setTimeout(() => {
+            toastMessage.classList.remove('show');
+        }, 3000);
+    }
+
+    fileInput.addEventListener('change', function(event) {
+        const newFiles = Array.from(event.target.files);
+        let triggeredLimitWarning = false;
+        
+        newFiles.forEach(file => {
+            if (selectedFiles.length < 12) {
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                }
+            } else {
+                // If we hit 12, flag it so we know to show the warning
+                triggeredLimitWarning = true;
+            }
+        });
+        
+        if (triggeredLimitWarning) {
+            showToast();
+        }
+        
+        updateDisplayAndSync();
+    });
+
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        updateDisplayAndSync();
+    }
+
+    function updateDisplayAndSync() {
+        fileGridContainer.innerHTML = '';
+        
+        if (selectedFiles.length > 0) {
+            emptyState.style.display = 'none';   
+            filledState.style.display = 'block'; 
+        } else {
+            emptyState.style.display = 'flex';   
+            filledState.style.display = 'none';
+        }
+
+        selectedFiles.forEach((file, index) => {
+            const fileCard = document.createElement('div');
+            fileCard.classList.add('file-card');
+            
+            const fileUrl = URL.createObjectURL(file);
+            
+            fileCard.innerHTML = `
+                <img src="${fileUrl}" class="file-card-img" title="${file.name}">
+                <div class="file-card-name" title="${file.name}">${file.name}</div>
+                <button type="button" class="remove-file-btn" onclick="removeFile(${index})" title="Remove">✖</button>
+            `;
+            
+            // Free up memory once the image loads
+            fileCard.querySelector('.file-card-img').onload = function() {
+                URL.revokeObjectURL(this.src);
+            }
+            
+            fileGridContainer.appendChild(fileCard);
+        });
+
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        fileInput.files = dataTransfer.files;
+    }
+
+    // --- Form Submission Validation ---
+    // Grab the form element
+    const uploadForm = document.querySelector('.upload-form');
+    
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function(event) {
+            // Check if they uploaded at least 1 image
+            if (selectedFiles.length === 0) {
+                // STOP the form from publishing
+                event.preventDefault(); 
+                
+                // Change the toast text to warn them about the missing image
+                toastMessage.innerText = "Please upload at least one photo!";
+                showToast();
+                
+                // Change the text back to the 12-image warning after the popup fades
+                setTimeout(() => {
+                    toastMessage.innerText = "You can only upload up to 12 photos!";
+                }, 3500); 
+                
+                // Smoothly scroll them back to the top of the page so they see the image box
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+    }
+
+    // --- Price Auto-Formatting ---
+    const priceInput = document.getElementById('item_price'); // Updated to match your exact ID!
+    
+    if (priceInput) {
+        // The 'blur' event triggers when the user clicks or tabs away from the input
+        priceInput.addEventListener('blur', function() {
+            // Only format if they actually typed something
+            if (this.value) {
+                // Convert their text into a decimal number
+                const parsedPrice = parseFloat(this.value);
+                
+                // If it's a valid number, format it to exactly 2 decimal places
+                if (!isNaN(parsedPrice)) {
+                    this.value = parsedPrice.toFixed(2);
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -10,6 +10,34 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    <!-- TOP Navigation bar - Xingru -->
+    {% block navbar %}
+    <nav class="top-navbar">
+        <a href="{{ url_for('home') }}" class="nav-site">
+            <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-bye Logo" class="site-logo">
+            <span class="site-name">E-bye</span>
+        </a>
+        
+        <form action="#" method="GET" class="nav-search">
+            <span class="search-icon">🔍</span>
+            <input type="text" name="query" placeholder="Search textbooks, dorm items, gadgets..." class="search-input">
+        </form>
+        
+        <div class="nav-profile">
+            <a href="#" style="text-decoration: none;">
+                
+                {% if session.get('username') %}
+                    <div class="nav-avatar">{{ session['username'][0].upper() }}</div>
+                {% else %}
+                    <div class="nav-avatar">X</div>
+                {% endif %}
+                
+            </a>
+        </div>
+    </nav>
+    {% endblock %}
+    <!-- TOP Navigation bar end -->
+
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="toast-container">
@@ -21,5 +49,40 @@
     {% endwith %}
     
     {% block content %}{% endblock %}
+
+    <!-- BOTTOM Navigation bar - Xingru -->
+    {% block bottom_nav %}
+    <div class="bottom-nav-spacer"></div>
+    
+    <nav class="bottom-nav">
+        <a href="{{ url_for('home') }}" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text">Home</span>
+        </a>
+        
+        <a href="#" class="nav-item">
+            <span class="nav-icon">🔍</span>
+            <span class="nav-text">Search</span>
+        </a>
+        
+        <div class="post-btn-wrapper">
+            <a href="{{ url_for('upload_product') }}" class="post-btn">
+                <span class="nav-icon plus-icon">+</span>
+                <span class="nav-text">Post</span>
+            </a>
+        </div>
+        
+        <a href="#" class="nav-item">
+            <img src="{{ url_for('static', filename='ebee-head.png') }}" class="nav-icon" alt="Profile">
+            <span class="nav-text">Profile</span>
+        </a>
+        
+        <a href="#" class="nav-item">
+            <span class="nav-icon">📍</span>
+            <span class="nav-text">Meetup</span>
+        </a>
+    </nav>
+    {% endblock %}
+    <!-- BOTTOM Navigation bar end -->
 </body>
 </html>

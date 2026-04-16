@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+
+<div class="homepage-wrapper">
+    
+    <div class="hero-banner">
+        
+        <div class="hero-text">
+            <h1 class="hero-title">E-bye</h1>
+            <p class="hero-motto">
+                The official second-hand marketplace for MMU students. Say goodbye to old items, get great deals!
+            </p>
+        </div>
+
+        <div class="hero-graphic">
+            <img src="{{ url_for('static', filename='shopping-cart.png') }}" alt="E-bye Banner Graphic" class="hero-img">
+        </div>
+        
+    </div>
+
+    <section class="categories-section">
+        
+        <div class="categories-header">
+            <h3 class="categories-title">Browse Categories</h3>
+            <button id="view-all-btn" class="view-all-btn" onclick="toggleMoreCategories()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                View Categories
+            </button>
+        </div>
+
+        <div class="categories-container initial-categories">
+            <a href="#" class="category-pill"><span>🏠</span> All Items</a>
+            <a href="#" class="category-pill"><span>📚</span> Books</a>
+            <a href="#" class="category-pill"><span>💻</span> Gadgets</a>
+            <a href="#" class="category-pill"><span>🛏️</span> Dorm Items</a>
+            <a href="#" class="category-pill"><span>👕</span> Fashion</a>
+            <a href="#" class="category-pill"><span>💄</span> Beauty</a>
+        </div>
+
+        <div id="more-categories" class="categories-container more-categories" style="display: none;">
+            <a href="#" class="category-pill"><span>⚽</span> Sports</a>
+            <a href="#" class="category-pill"><span>🛒</span> Groceries</a>
+            <a href="#" class="category-pill"><span>✏️</span> Stationery</a>
+            <a href="#" class="category-pill"><span>🎸</span> Music</a>
+            <a href="#" class="category-pill"><span>📦</span> Others</a>
+        </div>
+
+    </section>
+
+<section class="latest-products-section">
+        
+        <div class="section-header">
+            <h3 class="section-title">Latest Products</h3>
+            <a href="#" class="view-all-link">View all &rarr;</a>
+        </div>
+
+        {% if latest_products %}
+            
+            <div class="product-grid">
+                
+                {% for product in latest_products %}
+                <a href="#" class="product-card">
+                    <div class="product-image-container">
+                        <span class="condition-badge">{{ product.condition }}</span>
+                        
+                        {% if product.image_2 %}
+                            <img src="{{ url_for('static', filename='uploads/' ~ product.image_1) }}" class="product-img primary-img" alt="{{ product.name }}">
+                            <img src="{{ url_for('static', filename='uploads/' ~ product.image_2) }}" class="product-img hover-img" alt="{{ product.name }}">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='uploads/' ~ product.image_1) }}" class="product-img" alt="{{ product.name }}">
+                        {% endif %}
+                        
+                    </div>
+                    <div class="product-info">
+                        <h4 class="product-name">{{ product.name }}</h4>
+                        <div class="product-price">RM {{ product.price }}</div>
+                        <div class="product-seller">
+                            <span class="seller-icon">👤</span> {{ product.seller_name }}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+
+            </div>
+
+            <div class="bottom-search-link">
+                <a href="#">Go to search page to see all products</a>
+            </div>
+
+        {% else %}
+            
+            <div class="empty-products-state">
+                <p>Oh no, nothing is posted yet! 🛒<br>Check back soon for great deals.</p>
+            </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+<script>
+    function toggleMoreCategories() {
+        const moreContainer = document.getElementById('more-categories');
+        
+        if (moreContainer.style.display === 'none') {
+            moreContainer.style.display = 'flex';
+            setTimeout(() => moreContainer.classList.add('show-more'), 10);
+        } else {
+            moreContainer.classList.toggle('show-more');
+            setTimeout(() => {
+                if (!moreContainer.classList.contains('show-more')) {
+                    moreContainer.style.display = 'none';
+                }
+            }, 400); 
+        }
+    }
+</script>
+{% endblock %}
