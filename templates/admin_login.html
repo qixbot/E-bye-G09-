@@ -45,21 +45,28 @@
                 <h2>🔑 Admin Portal</h2>
                 <p class="form-sub">Welcome back, administrator!</p>
 
+                <div class="info-box">
+                    <span class="info-ic">⚠️</span>
+                    <span>This portal is for E-bye system administrators only. Only @student.mmu.edu.my accounts flagged as admin can log in here..</span>
+                </div>
+
                 <div class="form-group">
-                    <label>Email address</label>
+                    <label>Admin Email</label>
                     <input type="email" name="email" id="admin-email" placeholder="admin@student.mmu.edu.my" required>
                     <div class="form-error" id="admin-email-error" style="display: none;"></div>
-                    <div class="field-hint">*only @student.mmu.edu.my email set as administrator</div>
                 </div>
 
                 <div class="form-group">
                     <label>Password</label>
+                    <div class="input-wrap">
                     <input type="password" name="password" id="admin-password" placeholder="Enter your password" required>
-                    <div class="form-error" id="admin-password-error" style="display: none;"></div>
+                    <button type="button" class="eye-btn" onclick="toggleAdminPassword(this)">👀</button>
+                </div>
+                    <div class="form-error" id="admin-password-error"></div>
                 </div>
                 <button type="submit" class="btn-login">Admin Login</button>
                 <p class="switch-link">
-                    <a href="{{ url_for('login') }}">Back to User Login</a>
+                    <a href="{{ url_for('login') }}">←Back to User Login</a>
                 </p>
             </form>
         </div>
@@ -67,7 +74,44 @@
 </div>
 
 <script>
-    document.getElementById('admin-login-form').addEventListener('submit', function(event) {
+    function toggleAdminPassword(btn)  {
+      const input = document.getElementById('admin-password');
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🫣';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👀';
+      }
+    }
+
+    function showAdminError(field, message) {
+    const errorDiv = document.getElementById(`admin-${field}-error`);
+    if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        const input = document.getElementById(`admin-${field}`);
+        if (input) {
+            input.classList.add('field-error');
+        }
+      }
+    }
+
+    function clearAdminError(field) {
+          const errorDiv = document.getElementById(`admin-${field}-error`);
+        if (errorDiv) errorDiv.style.display = 'none';
+        const input = document.getElementById(`admin-${field}`);
+        if (input) input.classList.remove('field-error');
+    }
+
+    document.getElementById('admin-email').addEventListener('input', function() {
+        clearAdminError('email');
+    });
+    document.getElementById('admin-password').addEventListener('input', function() {
+        clearAdminError('password');
+    });
+
+     document.getElementById('admin-login-form').addEventListener('submit', function(event) {
         const email = document.getElementById('admin-email').value;
         const password = document.getElementById('admin-password').value;
         let hasError = false;
@@ -92,33 +136,6 @@
             event.preventDefault();
         }
     });
-
-   function showError(field, message) {
-    const errorDiv = document.getElementById(`admin-${field}-error`);
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        const input = document.getElementById(`admin-${field}`);
-        if (input) {
-            input.classList.add('field-error');
-        }
-    }
 }
-
-    document.getElementById('admin-email').addEventListener('input', function() {
-        const errorDiv = document.getElementById('admin-email-error');
-        if (errorDiv) {
-            errorDiv.style.display = 'none';
-            this.classList.remove('field-error');
-        }
-    });
-
-    document.getElementById('admin-password').addEventListener('input', function() {
-        const errorDiv = document.getElementById('admin-password-error');
-        if (errorDiv) {
-            errorDiv.style.display = 'none';
-            this.classList.remove('field-error');
-        }
-    });
 </script>
 {% endblock %}
