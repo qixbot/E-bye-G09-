@@ -375,11 +375,6 @@ def block_user(user_id):
     flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
     return redirect(url_for('admin_users'))
 
-
-@app.route('/forgot-password', methods=['GET', 'POST'])
-def forgot_password():
-    return render_template('forgot_password.html')
-
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_product():
     if 'user_id' not in session:
