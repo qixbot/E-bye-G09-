@@ -1,14 +1,21 @@
 import re
+import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from database import init_db, get_db, init_products
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026'
-init_products()
+
+# --- Setup folder for uploaded product images ---
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # initialize the database
 init_db()
+init_products()
 
 @app.route('/')
 def index():
@@ -114,7 +121,17 @@ def register():
 def home():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    return render_template('home.html', username=session.get('username'))
+    
+    db = get_db()
+    # Fetch all products and the seller's username
+    products_data = db.execute('''
+        SELECT p.*, u.username as seller_name 
+        FROM products p
+        JOIN users u ON p.seller_id = u.id
+        ORDER BY p.created_at DESC
+    ''').fetchall()
+    db.close()
+    return render_template('home.html', username=session.get('username'), latest_products=products_data)
 
 @app.route('/logout')
 def logout():
@@ -216,8 +233,47 @@ def block_user(user_id):
 def forgot_password():
     return render_template('forgot_password.html')
 
-@app.route('/upload')
+@app.route('/upload', methods=['GET', 'POST'])
 def upload_product():
+    if 'user_id' not in session:
+        flash("You must be logged in to post an item.", "error")
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        # 1. Get the text data from the form
+        name = request.form.get('item_name')
+        price = request.form.get('item_price') 
+        description = request.form.get('item_desc')
+        condition = request.form.get('item_condition') 
+        category = request.form.get('item_category') 
+        seller_id = session['user_id']
+
+        # 2. Get the images (up to 12)
+        files = request.files.getlist('product_images')
+        saved_image_names = []
+        
+        for file in files:
+            if file and file.filename != '':
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                saved_image_names.append(filename)
+
+        # Join the image names with commas
+        images_string = ",".join(saved_image_names)
+
+        # 3. Save everything to the database
+        db = get_db()
+        db.execute('''
+            INSERT INTO products (seller_id, name, price, description, condition, category, images)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (seller_id, name, price, description, condition, category, images_string))
+        db.commit()
+        db.close()
+
+        flash("Your item has been successfully listed!", "success")
+        return redirect(url_for('home'))
+
     return render_template('upload.html')
 
 if __name__ == '__main__':
