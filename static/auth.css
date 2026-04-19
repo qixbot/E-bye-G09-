@@ -76,7 +76,7 @@ body::after {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 100px 24px 40px; 
+    padding: 48px 24px 40px; 
     position:relative;
     z-index: 1;
 }
@@ -110,7 +110,7 @@ body::after {
     }
     to{
         opacity: 1;
-        transform: translateY(32px) scale(1);
+        transform: translateY(0px) scale(1);
     }
 }
 .auth-card:hover {
@@ -132,6 +132,8 @@ body::after {
     position: relative;
     overflow: hidden;
     min-height: 580px;
+    max-height:85vh;
+    overflow-y: auto;
 }
 
 .auth-left::before {
@@ -195,10 +197,11 @@ body::after {
     margin-bottom: 45px;
     position: relative;
     z-index: 2;
+    width: 100%; 
 }
 
 .mmu-logo-top {
-    height: 62px;
+    height: 60px;
     width: auto;
     filter: brightness(0) invert(1);
     opacity: 0.88;
@@ -208,7 +211,7 @@ body::after {
 .mmu-logo-top:hover{ opacity: 1;}
 
 .ebye-logo-top {
-    height: 68px;
+    height: 60px;
     width: auto;
     filter: brightness(0) invert(1);
     opacity: 0.88;
@@ -216,7 +219,7 @@ body::after {
 
 .logo-divider {
     width: 1px;
-    height: 46px;
+    height: 50px;
     background: rgba(255, 255, 255, 0.22);
 }
 
@@ -232,7 +235,7 @@ body::after {
 }
 
 .ebee-center {
-    max-width: 190px;
+    max-width: 175px;
     width: 100%;
     height: auto;
     object-fit: contain;
@@ -297,10 +300,10 @@ body::after {
     flex-direction: column;
     justify-content: flex-start;  
     position:relative; 
-    min-height: 580px;
-    max-height:90vh;
+    max-height: 85vh;
     overflow-y: auto;
-    scrollbar-width: thin;
+    scrollbar-width:thin;
+    scrollbar-color: #1a5c3a;
 }
 
 .auth-right::before {

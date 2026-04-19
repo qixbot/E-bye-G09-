@@ -4,7 +4,7 @@ from database import init_db, get_db
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'e-bye-secret-key-2026'
+app.secret_key = 'e-bye-secret-key-2026-new'
 
 # initialize the database
 init_db()
@@ -15,14 +15,18 @@ def index():
         return redirect(url_for('home'))
     return redirect(url_for('login'))
 
+# Eileen's Route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+
         db = get_db()
-        user = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
-        
+        user = db.execute(
+            'SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+        db.close() 
+
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
@@ -34,6 +38,7 @@ def login():
     
     return render_template('login.html')
 
+# Eileen's Route
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -45,7 +50,13 @@ def register():
         gender = request.form.get('gender')
         
         # verification and validation
+        q1 = request.form.get('q1', '').strip()
+        a1 = request.form.get('a1', '').strip().lower()  # store lowercase for case-insensitive matching
+        q2 = request.form.get('q2', '').strip()
+        a2 = request.form.get('a2', '').strip().lower()
+ 
         errors = []
+        
         
         # Student ID
         if not student_id or len(student_id) != 10:
@@ -93,16 +104,19 @@ def register():
         existing = db.execute('SELECT * FROM users WHERE student_id = ? OR email = ?', 
                               (student_id, email)).fetchone()
         if existing:
+            db.close()
             flash('Student ID or Email already registered', 'error')
             return render_template('register.html')
         
         # create user with gender field
         hashed_password = generate_password_hash(password)
         db.execute('''
-            INSERT INTO users (student_id, email, username, password, gender)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (student_id, email, username, hashed_password, gender))
+           INSERT INTO users (student_id, email, username, password, gender,
+                   security_q1, security_a1, security_q2, security_a2)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ''', (student_id, email, username, hashed_password, gender, q1, a1, q2, a2))
         db.commit()
+        db.close() 
         
         flash('Account created successfully! Please login.', 'success')
         return redirect(url_for('login'))
@@ -121,15 +135,148 @@ def logout():
     flash('Logged out', 'info')
     return redirect(url_for('login'))
 
+#Eileen's Route
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        step = request.form.get('step')
 
+        # Step 1: verify email
+        if step == '1':
+            email = request.form.get('fp_email', '').strip()
+            if not email:
+                flash('Please enter your email.', 'error')
+                return render_template('forgot_password.html')
+            if not email.endswith('@student.mmu.edu.my'):
+                flash('Only @student.mmu.edu.my emails are allowed.', 'error')
+                return render_template('forgot_password.html')
+ 
+            db   = get_db()
+            user = db.execute(
+                'SELECT id, security_q1, security_q2 FROM users WHERE email = ?',
+                (email,)
+            ).fetchone()
+            db.close()
+ 
+            if not user:
+                flash('No account found with that email.', 'error')
+                return render_template('forgot_password.html')
+ 
+            # Store in session so step 2 knows which user
+            session['fp_email'] = email
+            session['fp_q1']    = user['security_q1']
+            session['fp_q2']    = user['security_q2']
+            return render_template('forgot_password.html',
+                                   step=2,
+                                   q1=user['security_q1'],
+                                   q2=user['security_q2'])
+        
+        # Step 2: verify security question answers
+        elif step == '2':
+            email = session.get('fp_email')
+            if not email:
+                flash('Session expired. Please start again.', 'error')
+                return render_template('forgot_password.html')
+ 
+            a1_input = request.form.get('fp_a1', '').strip().lower()
+            a2_input = request.form.get('fp_a2', '').strip().lower()
+ 
+            db   = get_db()
+            user = db.execute(
+                'SELECT id, security_a1, security_a2 FROM users WHERE email = ?',
+                (email,)
+            ).fetchone()
+            db.close()
+ 
+            if not user:
+                flash('User not found.', 'error')
+                return render_template('forgot_password.html')
+ 
+            if a1_input != user['security_a1'] or a2_input != user['security_a2']:
+                flash('One or both answers are incorrect. Please try again.', 'error')
+                return render_template('forgot_password.html',
+                                       step=2,
+                                       q1=session.get('fp_q1'),
+                                       q2=session.get('fp_q2'))
+ 
+            # Answers correct — allow password reset
+            session['fp_verified'] = True
+            return render_template('forgot_password.html', step=3)
+ 
+  # Step 3: save new password 
+        elif step == '3':
+            if not session.get('fp_verified'):
+                flash('Please complete identity verification first.', 'error')
+                return render_template('forgot_password.html')
+ 
+            email            = session.get('fp_email')
+            new_password     = request.form.get('fp_pw', '')
+            confirm_password = request.form.get('fp_cpw', '')
+ 
+            # Validate new password
+            errors = []
+            if len(new_password) < 8:
+                errors.append('Password must be at least 8 characters')
+            if not re.search(r'[A-Z]', new_password):
+                errors.append('Password must contain at least 1 uppercase letter')
+            if not re.search(r'[a-z]', new_password):
+                errors.append('Password must contain at least 1 lowercase letter')
+            if not re.search(r'[0-9]', new_password):
+                errors.append('Password must contain at least 1 number')
+            if not re.search(r'[!@#$%^&*]', new_password):
+                errors.append('Password must contain at least 1 special character')
+            if new_password != confirm_password:
+                errors.append('Passwords do not match')
+ 
+            if errors:
+                for e in errors:
+                    flash(e, 'error')
+                return render_template('forgot_password.html', step=3)
+ 
+            # Update password in database
+            hashed = generate_password_hash(new_password)
+            db = get_db()
+            db.execute(
+                'UPDATE users SET password = ? WHERE email = ?',
+                (hashed, email)
+            )
+            db.commit()
+            db.close()
+ 
+            # Clear forgot-password session keys
+            session.pop('fp_email',    None)
+            session.pop('fp_q1',       None)
+            session.pop('fp_q2',       None)
+            session.pop('fp_verified', None)
+ 
+            flash('Password reset successfully! Please login with your new password.', 'success')
+            return redirect(url_for('login'))
+ 
+    return render_template('forgot_password.html')
+ 
+
+# Eileen's Route
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        # Add your admin authentication logic here
-        flash('Admin login demo - implement your logic', 'info')
-        return redirect(url_for('admin_dashboard'))
+
+        db = get_db()
+        user = db.execute(
+            'SELECT * FROM users WHERE email = ? AND is_admin = 1', (email,)
+        ).fetchone()
+        db.close()
+
+        if user and check_password_hash(user['password'], password):
+            session['admin_logged_in'] = True
+            session['admin_email'] = user['email']
+            session['admin_username'] = user['username']
+            flash('Admin login successful!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid admin credentials', 'error')
+    
     return render_template('admin_login.html')
 
 #keting's route
@@ -209,11 +356,6 @@ def block_user(user_id):
     db.close()
     flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
     return redirect(url_for('admin_users'))
-
-
-@app.route('/forgot-password', methods=['GET', 'POST'])
-def forgot_password():
-    return render_template('forgot_password.html')
 
 @app.route('/upload')
 def upload_product():
