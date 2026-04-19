@@ -119,8 +119,8 @@ def register():
 
 @app.route('/home')
 def home():
-#    if 'user_id' not in session:
-#        return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     
     db = get_db()
     # Fetch all products and the seller's username
@@ -235,9 +235,9 @@ def forgot_password():
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_product():
-    #if 'user_id' not in session:
-    #    flash("You must be logged in to post an item.", "error")
-    #    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        flash("You must be logged in to post an item.", "error")
+        return redirect(url_for('login'))
 
     if request.method == 'POST':
         # 1. Get the text data from the form
