@@ -91,7 +91,7 @@
                             <option value="What city were you born in?">What city were you born in?</option>
                             <option value="What is your favourite song?">What is your favourite song?</option>
                         </select>
-                        <input type="text" id ="a1" name="a1" place holder="Your answer" style = "margin-top:8px;">
+                        <input type="text" id ="a1" name="a1" placeholder="Your answer" style = "margin-top:8px;">
                         <div class="form-error" id="a1-error"></div>
                         <div class="sec-q-row"></div>
                         <label>Question 2</label>
@@ -102,7 +102,7 @@
                             <option value="What is your most favourite food?">What city were you born in?</option>
                             <option value="Who is your crush?">Who is your crush?</option>
                         </select>
-                        <input type="text" id ="a2" name="a2" place holder="Your answer" style = "margin-top:8px;">
+                        <input type="text" id ="a2" name="a2" placeholder="Your answer" style = "margin-top:8px;">
                         <div class="form-error" id="a2-error"></div>
                     </div>
                  </div>
@@ -111,7 +111,7 @@
                 <div class="form-group">
                     <label>Password</label>
                     <div class="input-wrap">
-                        <input type="password" name="password" id="password" placeholder="Create a strong password" required oninput="checkPasswordStrength()">
+                        <input type="password" name="password" id="password" placeholder="Create a strong password" required oninput="checkPasswordStrength(); checkPasswordMatch()">
                         <button type="button" class="eye-btn" onclick="togglePassword('password', this)">👀</button>
                     </div>
                     <div class="form-error" id="password-error">
@@ -132,11 +132,12 @@
                 <div class="form-group">
                 <label>Confirm password</label>
                 <div class="input-wrap">
-                <input type="password" id="confirm_password" placeholder="Re-enter your password" required>
+                <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter your password" required oninput="checkPasswordMatch()">
                 <button type="button" class="eye-btn" onclick="togglePassword('confirm_password', this)">👀</button>
                 </div>
                 <div class="password-match" id="password-match"></div>
                 <div class="form-error" id="confirm_password-error"></div>
+                </div>
                 <button type="submit" class="btn-login">Create account</button>
                 
                 <p class="switch-link">
@@ -207,15 +208,19 @@ function checkPasswordMatch() {
     const confirm = document.getElementById('confirm_password').value;
     const matchDiv = document.getElementById('password-match');
     if (!matchDiv) return;
-     if (!confirm) {
+    
+    if (!confirm) {
         matchDiv.innerHTML = '';
         matchDiv.className = 'password-match';
+        clearError('confirm_password'); 
     } else if (password === confirm) {
         matchDiv.innerHTML = '✓ Passwords match';
-        matchDiv.className = 'password-match match-valid';    
+        matchDiv.className = 'password-match match-valid';
+        clearError('confirm_password');
     } else {
         matchDiv.innerHTML = '✗ Passwords do not match';
         matchDiv.className = 'password-match match-invalid';
+        showError('confirm_password', 'Passwords do not match');
     }
 }
 

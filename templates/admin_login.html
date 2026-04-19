@@ -98,7 +98,7 @@
     }
 
     function clearAdminError(field) {
-          const errorDiv = document.getElementById(`admin-${field}-error`);
+        const errorDiv = document.getElementById(`admin-${field}-error`);
         if (errorDiv) errorDiv.style.display = 'none';
         const input = document.getElementById(`admin-${field}`);
         if (input) input.classList.remove('field-error');
@@ -120,15 +120,15 @@
         document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
 
         if (!email) {
-            showError('email', 'Email address is required.');
+            showAdminError('email', 'Email address is required.');
             hasError = true;
         } else if (!email.endsWith('@student.mmu.edu.my')) {
-            showError('email', 'Only @student.mmu.edu.my email addresses are allowed.');
+            showAdminError('email', 'Only @student.mmu.edu.my email addresses are allowed.');
             hasError = true;
         }
 
         if (!password) {
-            showError('password', 'Password is required.');
+            showAdminError('password', 'Password is required.');
             hasError = true;
         }
 
@@ -136,6 +136,5 @@
             event.preventDefault();
         }
     });
-}
 </script>
 {% endblock %}

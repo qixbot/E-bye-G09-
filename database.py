@@ -1,14 +1,18 @@
 import sqlite3
+from werkzeug.security import generate_password_hash
 
 DATABASE = 'ebyte.db'
-
+# Eileen Part
 def get_db():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
 
+
 def init_db():
     db = get_db()
+
+#  Create users table
     db.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,16 +28,28 @@ def init_db():
             active_hours TEXT,
             avatar TEXT,
             is_admin INTEGER DEFAULT 0,
+            is_frozen INTEGER DEFAULT 0,
+            is_blocked INTEGER DEFAULT 0,   
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     db.commit()
-    db.close()
-    print("Database ready WITH user table")
 
-def init_notifications():
-    db = get_db()
-    #Notification Table: Stores notifications for all users (freeze/ban/bargain/order)
+    # Add columns if they don't exist yet (safe for existing databases)
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass   # column already exists
+    
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass    # column already exists
+
+    db.commit()
+
+    #keting part
+    # Create Notification Table= Stores notifications for all users (freeze/ban/bargain/order)
     db.execute('''
     CREATE TABLE IF NOT EXISTS notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,24 +58,11 @@ def init_notifications():
         is_read INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
-    )
+        )
     ''')
-    #Add freeze/ban fields to the users table）
-    try:
-        db.execute("ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-
-        pass
-    
-    try:
-        db.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-
-        pass
-    
     db.commit()
-    db.close()
 
+<<<<<<< HEAD
 init_notifications()
 
 def init_products():
@@ -83,3 +86,28 @@ def init_products():
     db.commit()
     db.close()
     print("Database ready WITH products table")
+=======
+    # Eileen Part
+    #CREATE DEFAULT ADMIN
+    admin_email = 'admin@student.mmu.edu.my'
+    admin_password = generate_password_hash('Admin123!')
+    
+    existing = db.execute(
+        'SELECT * FROM users WHERE email = ?', (admin_email,)
+        ).fetchone()
+    
+    if not existing:
+        db.execute('''
+            INSERT INTO users (student_id, email, username, password, is_admin)
+            VALUES (?, ?, ?, ?, ?)
+        ''', ('ADMIN001', admin_email, 'Administrator', admin_password, 1))
+        db.commit()
+        print("✅ Default admin created: admin@student.mmu.edu.my / Admin123!")
+    else:
+        print("Admin user already exists")
+    
+    db.close()
+    print("Database ready WITH user table")
+
+   
+>>>>>>> aa2cc62353c681da1a8143711f3c71a0681db379
