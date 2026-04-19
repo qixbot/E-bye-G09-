@@ -235,9 +235,9 @@ def forgot_password():
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_product():
-    if 'user_id' not in session:
+    #if 'user_id' not in session:
         flash("You must be logged in to post an item.", "error")
-        return redirect(url_for('login'))
+    #    return redirect(url_for('login'))
 
     if request.method == 'POST':
         # 1. Get the text data from the form
