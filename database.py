@@ -62,31 +62,6 @@ def init_db():
     ''')
     db.commit()
 
-<<<<<<< HEAD
-init_notifications()
-
-def init_products():
-    db = get_db()
-    
-    db.execute('''
-        CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            seller_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            price REAL NOT NULL,
-            description TEXT,
-            condition TEXT,
-            category TEXT,
-            images TEXT, 
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (seller_id) REFERENCES users(id)
-        )
-    ''')
-    
-    db.commit()
-    db.close()
-    print("Database ready WITH products table")
-=======
     # Eileen Part
     #CREATE DEFAULT ADMIN
     admin_email = 'admin@student.mmu.edu.my'
@@ -109,5 +84,56 @@ def init_products():
     db.close()
     print("Database ready WITH user table")
 
-   
->>>>>>> aa2cc62353c681da1a8143711f3c71a0681db379
+def init_notifications():
+    db = get_db()
+    #Notification Table: Stores notifications for all users (freeze/ban/bargain/order)
+    db.execute('''
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        message TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+    ''')
+    #Add freeze/ban fields to the users table）
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+
+        pass
+    
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+
+        pass
+    
+    db.commit()
+    db.close()
+
+init_notifications()
+
+#Xingru's part
+def init_products():
+    db = get_db()
+    
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            seller_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            price REAL NOT NULL,
+            description TEXT,
+            condition TEXT,
+            category TEXT,
+            images TEXT, 
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (seller_id) REFERENCES users(id)
+        )
+    ''')
+    
+    db.commit()
+    db.close()
+    print("Database ready WITH products table")
