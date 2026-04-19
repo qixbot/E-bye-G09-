@@ -9,7 +9,7 @@
         
         <h1 class="upload-header">📦 List an Item</h1>
 
-        <form action="#" method="POST" enctype="multipart/form-data" class="upload-form">
+        <form action="{{ url_for('upload_product') }}" method="POST" enctype="multipart/form-data" class="upload-form">
             
             <div id="toast-message" class="toast-message">You can only upload up to 12 photos!</div>
 

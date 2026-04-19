@@ -119,8 +119,8 @@ def register():
 
 @app.route('/home')
 def home():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    #if 'user_id' not in session:
+    #    return redirect(url_for('login'))
     
     db = get_db()
     # Fetch all products and the seller's username
