@@ -61,3 +61,25 @@ def init_notifications():
     db.close()
 
 init_notifications()
+
+def init_products():
+    db = get_db()
+    
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            seller_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            price REAL NOT NULL,
+            description TEXT,
+            condition TEXT,
+            category TEXT,
+            images TEXT, 
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (seller_id) REFERENCES users(id)
+        )
+    ''')
+    
+    db.commit()
+    db.close()
+    print("Database ready WITH products table")

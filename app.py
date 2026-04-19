@@ -1,10 +1,11 @@
 import re
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from database import init_db, get_db
+from database import init_db, get_db, init_products
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026'
+init_products()
 
 # initialize the database
 init_db()
