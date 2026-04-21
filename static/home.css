@@ -231,48 +231,51 @@
     box-shadow: 0 8px 16px rgba(0,0,0,0.08); 
 }
 
-/* Image Container & Slide Effect */
+/* --- Card Image Container (Makes it a perfect square) --- */
 .product-image-container {
     position: relative;
     width: 100%;
-    padding-top: 100%; 
-    background-color: #f8f9fa;
-    overflow: hidden; 
+    padding-top: 100%; /* This is the magic trick for a 1:1 square ratio */
+    background-color: #f4f4f4; /* Subtle background while images load */
+    overflow: hidden;
+    border-radius: 8px 8px 0 0; /* Rounds the top corners of the image */
 }
 
+/* --- Base Image Styling --- */
 .product-img {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover; 
-    transition: transform 0.4s ease-in-out; 
+    object-fit: cover; /* Ensures the image fills the square without squishing */
+    transition: opacity 0.3s ease-in-out; /* Smooth fade effect */
 }
 
+/* --- Hover Effect Logic --- */
 .hover-img {
-    left: 100%; 
+    opacity: 0; /* Hides the second image by default */
+    z-index: 2; /* Makes sure it sits on top of the first image */
 }
 
-.product-card:hover .primary-img {
-    transform: translateX(-100%);
-}
-.product-card:hover .hover-img {
-    transform: translateX(-100%);
+/* When the user hovers over the container, show the second image */
+.product-image-container:hover .hover-img {
+    opacity: 1; 
 }
 
-/* Condition Badge */
+/* --- Condition Pill --- */
 .condition-badge {
     position: absolute;
     top: 10px;
     left: 10px;
-    background-color: rgba(0, 0, 0, 0.65);
+    background-color: #00381f; /* Matches your theme */
     color: #ffffff;
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 600;
-    z-index: 10; 
+    z-index: 10; /* Keeps it on top of all images */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 /* Card Text Area */
