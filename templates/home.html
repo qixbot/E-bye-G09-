@@ -4,6 +4,16 @@
 {% block content %}
     <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
 
+ {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="toast-container">
+            {% for category, message in messages %}
+                <div class="toast toast-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+    
 <div class="homepage-wrapper">
     
     <div class="hero-banner">

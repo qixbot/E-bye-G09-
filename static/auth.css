@@ -756,28 +756,142 @@ body::after {
     text-decoration: underline;
 }
 
-/*Flash-message*/
-.flash-messages {margin-bottom: 20px;}
-
-.flash-message {
-    padding: 11px 16px;
-    border-radius: 26px;
-    font-size: 13px;
-    margin-bottom: 10px;
-    backdrop-filter: blur(8px);
-    animation: slideInRight 0.3s ease;
+/* Login message */
+.toast-container {
+     position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(3px);
+    animation: fadeInMask 0.2s ease, fadeOutMask 0.3s ease 2s forwards;
+    pointer-events: none;
 }
 
-.flash-message.success {
-    background: rgba(39, 174, 96, 0.1);
-    color: #27ae60;
-    border: 1px solid rgba(39, 174, 96, 0.2);
+/* main window */
+.toast {
+    padding: 16px 32px;
+    border-radius: 60px;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    color: #ffffff;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+    animation: toastPop 0.3s cubic-bezier(0.34, 1.2, 0.64, 1), toastFadeOut 0.3s ease 3s forwards;
+    pointer-events: auto;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.flash-message.error {
-    background: rgba(231, 76, 60, 0.08);
-    color: #e74c3c;
-    border: 1px solid rgba(231, 76, 60, 0.15);
+/* Login success */
+.toast-success {
+    background: linear-gradient(135deg, #00381f, #1a5c3a);
+    border-left: 4px solid #00c986;
+}
+
+/* Login Failed */
+.toast-error {
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+    border-left: 4px solid #ff9f8f;
+}
+
+/* Info */
+.toast-info {
+    background: linear-gradient(135deg, #2c3e50, #3498db);
+    border-left: 4px solid #5dade2;
+}
+
+/* icon */
+.toast::before {
+    font-size: 18px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.toast-success::before {
+    content: "✓";
+}
+
+.toast-error::before {
+    content: "!";
+    font-weight: 700;
+}
+
+.toast-info::before {
+    content: "i";
+    font-family: serif;
+    font-weight: 700;
+    font-style: italic;
+}
+
+/* Mask fade in */
+@keyframes fadeInMask {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(3px);
+    }
+}
+
+
+/* Mask fade out - disappears after 3 seconds */
+@keyframes fadeOutMask {
+    to {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+        visibility: hidden;
+    }
+}
+
+/* Toast Pop animation */
+@keyframes toastPop {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Toast fade out - disappears after 3 seconds */
+@keyframes toastFadeOut {
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+        visibility: hidden;
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .toast {
+        padding: 12px 24px;
+        font-size: 13px;
+    }
+    
+    .toast::before {
+        width: 24px;
+        height: 24px;
+        font-size: 16px;
+    }
 }
 
 /* Steps for forgot password */

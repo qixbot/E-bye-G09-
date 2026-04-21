@@ -32,9 +32,7 @@ def login():
         password = request.form.get('password', '')
 
         db = get_db()
-        user = db.execute(
-            'SELECT * FROM users WHERE email = ?', (email,)).fetchone()
-        db.close() 
+        user = db.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', (email,)).fetchone()
 
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
@@ -110,12 +108,23 @@ def register():
         db = get_db()
         
         # check if student_id or email already exists
-        existing = db.execute('SELECT * FROM users WHERE student_id = ? OR email = ?', 
-                              (student_id, email)).fetchone()
+        existing = db.execute(
+              'SELECT * FROM users WHERE student_id = ? OR LOWER(email) = LOWER(?)', 
+              (student_id, email)
+        ).fetchone()
         if existing:
-            db.close()
-            flash('Student ID or Email already registered', 'error')
-            return render_template('register.html')
+           db.close()
+           flash('Student ID or Email already registered', 'error')
+           return render_template('register.html')
+        
+        username_exists = db.execute(
+              'SELECT * FROM users WHERE LOWER(username) = LOWER(?)', 
+               (username,)
+        ).fetchone()
+        if username_exists:
+          db.close()
+          flash('Username already taken. Please choose another one.', 'error')
+          return render_template('register.html')
         
         # create user with gender field
         hashed_password = generate_password_hash(password)
@@ -185,7 +194,7 @@ def forgot_password():
                 flash('Only @student.mmu.edu.my emails are allowed.', 'error')
                 return render_template('forgot_password.html')
  
-            db   = get_db()
+            db = get_db()
             user = db.execute(
                 'SELECT id, security_q1, security_q2 FROM users WHERE email = ?',
                 (email,)
@@ -198,13 +207,13 @@ def forgot_password():
  
             # Store in session so step 2 knows which user
             session['fp_email'] = email
-            session['fp_q1']    = user['security_q1']
-            session['fp_q2']    = user['security_q2']
+            session['fp_q1'] = user['security_q1']
+            session['fp_q2'] = user['security_q2']
             return render_template('forgot_password.html',
                                    step=2,
                                    q1=user['security_q1'],
                                    q2=user['security_q2'])
-        
+
         # Step 2: verify security question answers
         elif step == '2':
             email = session.get('fp_email')
@@ -215,7 +224,7 @@ def forgot_password():
             a1_input = request.form.get('fp_a1', '').strip().lower()
             a2_input = request.form.get('fp_a2', '').strip().lower()
  
-            db   = get_db()
+            db = get_db()
             user = db.execute(
                 'SELECT id, security_a1, security_a2 FROM users WHERE email = ?',
                 (email,)
@@ -236,15 +245,15 @@ def forgot_password():
             # Answers correct — allow password reset
             session['fp_verified'] = True
             return render_template('forgot_password.html', step=3)
- 
-  # Step 3: save new password 
+
+        # Step 3: save new password 
         elif step == '3':
             if not session.get('fp_verified'):
                 flash('Please complete identity verification first.', 'error')
                 return render_template('forgot_password.html')
  
-            email            = session.get('fp_email')
-            new_password     = request.form.get('fp_pw', '')
+            email = session.get('fp_email')
+            new_password = request.form.get('fp_pw', '')
             confirm_password = request.form.get('fp_cpw', '')
  
             # Validate new password
@@ -278,16 +287,15 @@ def forgot_password():
             db.close()
  
             # Clear forgot-password session keys
-            session.pop('fp_email',    None)
-            session.pop('fp_q1',       None)
-            session.pop('fp_q2',       None)
+            session.pop('fp_email', None)
+            session.pop('fp_q1', None)
+            session.pop('fp_q2', None)
             session.pop('fp_verified', None)
  
             flash('Password reset successfully! Please login with your new password.', 'success')
             return redirect(url_for('login'))
  
     return render_template('forgot_password.html')
- 
 
 # Eileen's Route
 @app.route('/admin/login', methods=['GET', 'POST'])
