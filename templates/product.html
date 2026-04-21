@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='product.css') }}">
+
+<div class="product-page">
+    <a href="{{ url_for('home') }}" class="back-link">← Back to Home</a>
+
+    <div class="product-grid">
+        <!-- Left: Images -->
+        <div>
+            <div class="main-image">
+                <img id="main-product-img" src="{{ url_for('static', filename='uploads/' ~ images[0]) }}" alt="{{ product.name }}">
+            </div>
+            {% if images|length > 1 %}
+            <div class="thumbnail-list">
+                {% for img in images %}
+                <img src="{{ url_for('static', filename='uploads/' ~ img) }}" 
+                     class="thumbnail" 
+                     onclick="changeMainImage(this.src)"
+                     alt="Thumbnail">
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Details -->
+        <div>
+            <div class="condition-badge">{{ product.condition | replace('_', ' ') | title }}</div>
+            <h1 class="product-name">{{ product.name }}</h1>
+            
+            <div class="price">RM {{ "%.2f"|format(product.price) }}</div>
+
+            <div class="seller-info">
+                <span class="seller-name">👤 {{ product.seller_name }}</span>
+                <span class="upload-date">Posted on {{ product.created_at.split(' ')[0] }}</span>
+            </div>
+
+            <div class="description">
+                <strong>Description</strong><br>
+                {{ product.description }}
+            </div>
+
+            <button class="buy-btn" onclick="alert('Purchase flow not implemented yet.')">Buy Now – Set Meetup</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function changeMainImage(src) {
+        document.getElementById('main-product-img').src = src;
+        document.querySelectorAll('.thumbnail').forEach(thumb => {
+            thumb.classList.remove('active');
+            if (thumb.src === src) thumb.classList.add('active');
+        });
+    }
+</script>
+{% endblock %}

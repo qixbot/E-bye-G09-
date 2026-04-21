@@ -77,7 +77,7 @@
             <div class="product-grid">
                 
                 {% for product in latest_products %}
-                <a href="#" class="product-card">
+                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-card">
                     <div class="product-image-container" 
                         data-images='{{ product.images_list[:3] | tojson }}'
                         data-total="{{ product.images_list[:3]|length }}"

@@ -134,6 +134,12 @@ def init_products():
         )
     ''')
     
+    # Add status column if not exists (for approval workflow)
+    try:
+        db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    
     db.commit()
     db.close()
     print("Database ready WITH products table")

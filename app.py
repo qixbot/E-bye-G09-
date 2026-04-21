@@ -1,3 +1,4 @@
+from ast import For
 import re
 import os
 import uuid
@@ -151,6 +152,7 @@ def home():
         SELECT p.*, u.username as seller_name 
         FROM products p
         JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'approved'
         ORDER BY p.created_at DESC
     ''').fetchall()
     db.close()
@@ -464,16 +466,56 @@ def upload_product():
         images_string = ",".join(saved_image_names)
         db = get_db()
         db.execute('''
-            INSERT INTO products (seller_id, name, price, description, condition, category, images)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (seller_id, name, price, description, condition, category, images_string))
+            INSERT INTO products (seller_id, name, price, description, condition, category, images, created_at, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+        ''', (seller_id, name, price_val, description, condition, category, images_string, 'pending'))
         db.commit()
         db.close()
 
-        flash("Your item has been successfully listed!", "success")
+        flash("Your item has been submitted for admin approval. It will appear once approved.", "success")
         return redirect(url_for('home'))
 
     return render_template('upload.html')
+
+
+# -------- For testing purposes only - clear all products from database -------------------------
+# This route is not linked from anywhere in the UI and should be used with caution.
+
+@app.route('/clear-products')
+def clear_products():
+    db = get_db()
+    db.execute("DELETE FROM products")
+    db.execute("DELETE FROM sqlite_sequence WHERE name='products'")
+    db.commit()
+    db.close()
+    return "All products deleted."
+
+# -----------------------------------------------------------------------------------------------
+
+
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+    if 'user_id' not in session:
+        flash('Please login to view product details.', 'error')
+        return redirect(url_for('login'))
+
+    db = get_db()
+    product = db.execute('''
+        SELECT p.*, u.username as seller_name, u.id as seller_id, u.created_at as user_joined
+        FROM products p
+        JOIN users u ON p.seller_id = u.id
+        WHERE p.id = ? AND p.status = 'approved'
+    ''', (product_id,)).fetchone()
+    db.close()
+
+    if not product:
+        flash('Product not found or not yet approved.', 'error')
+        return redirect(url_for('home'))
+
+    # Split images into list
+    images = product['images'].split(',') if product['images'] else []
+    
+    return render_template('product.html', product=product, images=images)
 
 if __name__ == '__main__':
     app.run(debug=True)
