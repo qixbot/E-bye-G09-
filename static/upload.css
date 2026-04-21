@@ -248,6 +248,14 @@
     letter-spacing: 0.5px;
 }
 
+.form-group small {
+    display: block;
+    text-align: center;
+    margin-top: 6px;
+    font-size: 0.7rem;
+    color: #8f9bb3;
+}
+
 .form-input, .form-textarea, .form-select {
     width: 100%;
     padding: 14px 16px;

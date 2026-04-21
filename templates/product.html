@@ -4,7 +4,13 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='product.css') }}">
 
 <div class="product-page">
-    <a href="{{ url_for('home') }}" class="back-link">← Back to Home</a>
+    <div class="page-actions">
+        <button class="action-icon" id="copyLinkBtn" title="Copy link">🔗</button>
+        <button class="action-icon" id="reportBtn" title="Report item">⚠️</button>
+    </div>
+    <div id="copyToast" class="copy-toast">Link copied to clipboard!</div>
+
+    <button class="back-btn" onclick="goBack()">← Back</button>
 
     <div class="product-grid">
         <!-- Left: Images -->
@@ -12,12 +18,14 @@
             <div class="main-image">
                 <img id="main-product-img" src="{{ url_for('static', filename='uploads/' ~ images[0]) }}" alt="{{ product.name }}">
             </div>
+            <div class="image-counter" id="image-counter">1 / {{ images|length }}</div>
             {% if images|length > 1 %}
             <div class="thumbnail-list">
                 {% for img in images %}
                 <img src="{{ url_for('static', filename='uploads/' ~ img) }}" 
                      class="thumbnail" 
-                     onclick="changeMainImage(this.src)"
+                     data-index="{{ loop.index0 }}"
+                     onclick="changeMainImage(this.src, {{ loop.index0 }})"
                      alt="Thumbnail">
                 {% endfor %}
             </div>
@@ -32,8 +40,15 @@
             <div class="price">RM {{ "%.2f"|format(product.price) }}</div>
 
             <div class="seller-info">
-                <span class="seller-name">👤 {{ product.seller_name }}</span>
-                <span class="upload-date">Posted on {{ product.created_at.split(' ')[0] }}</span>
+                <div class="seller-left">
+                    <a href="{{ url_for('user_profile', user_id=product.seller_id) }}" class="seller-avatar-link">
+                        <div class="seller-avatar">
+                            {{ product.seller_name[0].upper() }}
+                        </div>
+                    </a>
+                    <span class="seller-name">{{ product.seller_name }}</span>
+                </div>
+                <div class="upload-date">Posted on {{ product.created_at.split(' ')[0] }}</div>
             </div>
 
             <div class="description">
@@ -41,18 +56,167 @@
                 {{ product.description }}
             </div>
 
-            <button class="buy-btn" onclick="alert('Purchase flow not implemented yet.')">Buy Now – Set Meetup</button>
+            <div class="action-buttons">
+                <button class="buy-btn" onclick="alert('Purchase flow not implemented yet.')">Buy Now</button>
+                <button class="offer-btn" onclick="openOfferModal()">Make an Offer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Offer Modal -->
+<div id="offerModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeOfferModal()">&times;</span>
+        <h2>Make an Offer</h2>
+        <p class="modal-caption">Current asking price: <strong>RM {{ "%.2f"|format(product.price) }}</strong> — suggest your price below</p>
+        <div class="form-group">
+            <label>Your offer (RM)</label>
+            <input type="number" id="offerAmount" class="offer-input" placeholder="0.00" step="0.01" min="0" max="9999999">
+            <small class="offer-hint">Max RM 9,999,999.99</small>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-cancel" onclick="closeOfferModal()">Cancel</button>
+            <button class="modal-send" onclick="sendOffer()">Send Offer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Report Modal -->
+<div id="reportModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeReportModal()">&times;</span>
+        <h2>Report Item</h2>
+        <p class="modal-caption">Why are you reporting this product?</p>
+        <div class="report-reasons">
+            <button class="reason-btn" data-reason="Spam">Spam</button>
+            <button class="reason-btn" data-reason="Harassment">Harassment</button>
+            <button class="reason-btn" data-reason="Wrong product">Wrong product</button>
+            <button class="reason-btn" id="otherReasonBtn">Others</button>
+        </div>
+        <div id="otherReasonBox" style="display: none; margin-top: 15px;">
+            <textarea id="otherReasonText" rows="3" placeholder="Please describe the issue..." class="report-textarea"></textarea>
+        </div>
+        <div class="modal-buttons" style="margin-top: 25px;">
+            <button class="modal-cancel" onclick="closeReportModal()">Cancel</button>
+            <button class="modal-send" id="sendReportBtn">Send Report</button>
         </div>
     </div>
 </div>
 
 <script>
-    function changeMainImage(src) {
-        document.getElementById('main-product-img').src = src;
+    function showCopyToast() {
+        const toast = document.getElementById('copyToast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    document.getElementById('copyLinkBtn').addEventListener('click', function() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            showCopyToast();
+        }).catch(() => {
+            alert('Failed to copy link.');
+        });
+    });
+    function changeMainImage(src, index) {
+        const mainImg = document.getElementById('main-product-img');
+        mainImg.src = src;
+        const counter = document.getElementById('image-counter');
+        const total = {{ images|length }};
+        counter.textContent = (index + 1) + ' / ' + total;
+        
         document.querySelectorAll('.thumbnail').forEach(thumb => {
             thumb.classList.remove('active');
             if (thumb.src === src) thumb.classList.add('active');
         });
+    }
+
+    function openOfferModal() {
+        document.getElementById('offerModal').style.display = 'flex';
+    }
+    function closeOfferModal() {
+        document.getElementById('offerModal').style.display = 'none';
+    }
+    function sendOffer() {
+        let offer = document.getElementById('offerAmount').value;
+        if (!offer || parseFloat(offer) <= 0) {
+            alert("Please enter a valid offer amount.");
+            return;
+        }
+        alert(`Offer of RM ${parseFloat(offer).toFixed(2)} sent to seller.`);
+        closeOfferModal();
+    }
+    window.onclick = function(event) {
+        const modal = document.getElementById('offerModal');
+        if (event.target === modal) closeOfferModal();
+    }
+    function goBack() {
+        if (document.referrer && document.referrer !== "") {
+            window.location.href = document.referrer;
+        } else {
+            window.location.href = "{{ url_for('home') }}";
+        }
+    }
+    // Report modal
+    const reportModal = document.getElementById('reportModal');
+    const reportBtn = document.getElementById('reportBtn');
+    const otherReasonBtn = document.getElementById('otherReasonBtn');
+    const otherReasonBox = document.getElementById('otherReasonBox');
+    let selectedReason = null;
+
+    reportBtn.onclick = () => { reportModal.style.display = 'flex'; };
+    function closeReportModal() { reportModal.style.display = 'none'; resetReportModal(); }
+
+    function resetReportModal() {
+        selectedReason = null;
+        otherReasonBox.style.display = 'none';
+        document.getElementById('otherReasonText').value = '';
+        document.querySelectorAll('.reason-btn').forEach(btn => btn.style.background = '#f0f0f0');
+    }
+
+    document.querySelectorAll('.reason-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.reason-btn').forEach(b => b.style.background = '#f0f0f0');
+            this.style.background = '#d0e8dc';
+            if (this.id === 'otherReasonBtn') {
+                selectedReason = 'Others';
+                otherReasonBox.style.display = 'block';
+            } else {
+                selectedReason = this.getAttribute('data-reason');
+                otherReasonBox.style.display = 'none';
+            }
+        });
+    });
+
+    document.getElementById('sendReportBtn').addEventListener('click', function() {
+        if (!selectedReason) {
+            alert('Please select a reason.');
+            return;
+        }
+        let extraDetails = '';
+        if (selectedReason === 'Others') {
+            extraDetails = document.getElementById('otherReasonText').value.trim();
+            if (!extraDetails) {
+                alert('Please describe the issue.');
+                return;
+            }
+        }
+        // For now: just show an alert and log to console
+        const reportData = {
+            product_id: {{ product.id }},
+            reason: selectedReason,
+            details: extraDetails
+        };
+        console.log('Report sent:', reportData);
+        alert('Thank you. Your report has been sent to the admin.');
+        closeReportModal();
+    });
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('reportModal');
+        if (event.target === modal) closeReportModal();
     }
 </script>
 {% endblock %}
