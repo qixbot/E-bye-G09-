@@ -30,14 +30,24 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
+        remember_me = request.form.get('remember_me') 
 
         db = get_db()
-        user = db.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', (email,)).fetchone()
+        user = db.execute(
+            'SELECT * FROM users WHERE LOWER(email) = LOWER(?)', 
+            (email,)).fetchone()
+        db.close()
 
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['student_id'] = user['student_id']
+            flash('Login successful!', 'success')
+            if remember_me:
+                session.permanent = True
+            else:
+                session.permanent = False
+            
             flash('Login successful!', 'success')
             return redirect(url_for('home'))
         else:
@@ -320,6 +330,31 @@ def admin_login():
             flash('Invalid admin credentials', 'error')
     
     return render_template('admin_login.html')
+
+#Eileen's Route ------EDIT profile
+@app.route('/edit_profile', methods=['GET'])
+def edit_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+
+    listing_count = db.execute(
+        'SELECT COUNT(*) FROM products WHERE seller_id = ?',
+        (session['user_id'],)
+    ).fetchone()[0]
+    
+    db.close()
+    return render_template(
+        'edit_profile.html',
+        user=user,
+        listing_count=listing_count,
+        sold_count=0
+    )
 
 #keting's route
 @app.route('/admin/dashboard')
