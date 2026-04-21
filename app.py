@@ -1,5 +1,7 @@
 import re
 import os
+import sqlite3
+import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from database import init_db, get_db, init_products
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -26,24 +28,77 @@ def index():
 # Eileen's Route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # 提前初始化变量，彻底消灭未定义报错
+    user = None
+    db = None
+
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
 
         db = get_db()
-        user = db.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', (email,)).fetchone()
+        # 先查数据库，user一定会被定义
+        user = db.execute(
+            "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
+            (email,)
+        ).fetchone()
 
+        # 必须先确认user存在、密码正确，再去读user的字段
         if user and check_password_hash(user['password'], password):
+
+            # 永久封禁拦截
+            if user['is_blocked'] == 1:
+                flash("❌ Your account has been permanently blocked.", "error")
+                db.close()
+                return render_template('login.html')
+
+            # 冻结状态校验
+            if user['is_frozen'] == 1:
+                now = datetime.datetime.now()
+                freeze_end = user['frozen_until']
+
+                # 兼容时间格式
+                if isinstance(freeze_end, str):
+                    freeze_end = datetime.datetime.fromisoformat(freeze_end)
+
+                # 还在冻结期
+                if now < freeze_end:
+                    remain = freeze_end - now
+                    remain_d = remain.days
+                    remain_h = remain.seconds // 3600
+                    remain_m = (remain.seconds % 3600) // 60
+
+                    # 安全读取冻结理由
+                    freeze_reason = user['freeze_reason'] if user['freeze_reason'] else "No specific reason"
+
+                    flash(f"""⚠️ Account Frozen
+Reason: {freeze_reason}
+Remaining: {remain_d}d {remain_h}h {remain_m}m""", "error")
+                    db.close()
+                    return render_template('login.html')
+
+                # 到期 自动解冻
+                else:
+                    db.execute("""
+                        UPDATE users
+                        SET is_frozen = 0, freeze_reason = NULL, frozen_at = NULL, frozen_until = NULL
+                        WHERE id = ?
+                    """, (user['id'],))
+                    db.commit()
+
+            # 校验全部通过 → 正常登录
             session['user_id'] = user['id']
             session['username'] = user['username']
-            session['student_id'] = user['student_id']
-            flash('Login successful!', 'success')
+            flash("✅ Login successful!", "success")
+            db.close()
             return redirect(url_for('home'))
-        else:
-            flash('Invalid email or password', 'error')
-    
-    return render_template('login.html')
 
+        # 账号不存在/密码错误
+        else:
+            flash("❌ Invalid email or password.", "error")
+            db.close()
+
+    return render_template('login.html')
 # Eileen's Route
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -285,24 +340,26 @@ def forgot_password():
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
 
         db = get_db()
-        user = db.execute(
-            'SELECT * FROM users WHERE email = ? AND is_admin = 1', (email,)
-        ).fetchone()
-        db.close()
+        user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
 
         if user and check_password_hash(user['password'], password):
-            session['admin_logged_in'] = True
-            session['admin_email'] = user['email']
-            session['admin_username'] = user['username']
-            flash('Admin login successful!', 'success')
-            return redirect(url_for('admin_dashboard'))
+            if user['is_admin'] == 1:
+                session['admin_logged_in'] = True
+                session['admin_id'] = user['id']
+                flash("✅ Admin login successful", "success")
+                db.close()
+                return redirect(url_for('admin_dashboard'))
+            else:
+                flash("❌ This is not an admin account", "error")
         else:
-            flash('Invalid admin credentials', 'error')
-    
+            flash("❌ Invalid email or password", "error")
+
+        db.close()
+
     return render_template('admin_login.html')
 
 #keting's route
@@ -320,68 +377,130 @@ def admin_dashboard():
 
 @app.route('/admin/users')
 def admin_users():
-    
     if not session.get('admin_logged_in'):
-        flash('Please login as admin first', 'error')
+        flash("Please login first", "error")
         return redirect(url_for('admin_login'))
-    
+
     db = get_db()
-    users = db.execute("SELECT * FROM users").fetchall()
+    users = db.execute("""
+        SELECT id, student_id, username, email,
+               is_admin, is_frozen, is_blocked,
+               frozen_until, freeze_reason
+        FROM users
+    """).fetchall()
     db.close()
+
     return render_template("admin_users.html", users=users)
 
 @app.route('/admin/products')
 def admin_products():
     if not session.get('admin_logged_in'):
-        flash('Please login as admin first', 'error')
+        flash("Please login first", "error")
         return redirect(url_for('admin_login'))
-    
+
     return render_template("admin_products.html")
 
+# 冻结用户
 @app.route('/admin/user/<int:user_id>/freeze', methods=['POST'])
 def freeze_user(user_id):
-    # Administrator Permission Verification
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    
-    reason = request.form.get('reason', 'No reason provided')
+
+    reason = request.form.get('reason', 'No reason provided').strip()
+    now = datetime.datetime.now()
+    frozen_end_time = now + datetime.timedelta(days=7)
+
     db = get_db()
-    
-    # 1.Add a "freeze tag" to the user
-    db.execute("UPDATE users SET is_frozen = 1 WHERE id = ?", (user_id,))
-    
-   # 2.Send a "Freeze Notice" to the user
-    db.execute(
-        "INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)",
-        (user_id, f"Your account has been frozen. Reason: {reason}")
-    )
-    
+    db.execute("""
+        UPDATE users
+        SET is_frozen = 1,
+            freeze_reason = ?,
+            frozen_at = ?,
+            frozen_until = ?
+        WHERE id = ?
+    """, (reason, now, frozen_end_time, user_id))
+
+    # 给用户发送站内通知
+    db.execute("""
+        INSERT INTO notifications (user_id, message, created_at)
+        VALUES (?, ?, ?)
+    """, (
+        user_id,
+        f"Your account has been frozen for 7 days.\nReason: {reason}\nWill automatically unfreeze on {frozen_end_time.strftime('%Y-%m-%d %H:%M')}",
+        now
+    ))
+
     db.commit()
     db.close()
-    flash(f"User {user_id} has been frozen, notification sent.", "success")
-    return redirect(url_for('admin_users'))
 
+    flash("✅ User successfully frozen for 7 days.", "success")
+    return redirect(url_for('admin_users'))
+# 解冻用户
+@app.route('/admin/user/<int:user_id>/unfreeze', methods=['POST'])
+def unfreeze_user(user_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    now = datetime.datetime.now()
+    db = get_db()
+
+    db.execute("""
+        UPDATE users
+        SET is_frozen = 0,
+            freeze_reason = NULL,
+            frozen_at = NULL,
+            frozen_until = NULL
+        WHERE id = ?
+    """, (user_id,))
+
+    db.execute("""
+        INSERT INTO notifications (user_id, message, created_at)
+        VALUES (?, ?, ?)
+    """, (user_id, "Your account has been manually unfrozen by admin.", now))
+
+    db.commit()
+    db.close()
+
+    flash("✅ User has been manually unfrozen.", "success")
+    return redirect(url_for('admin_users'))
+# 封禁用户
 @app.route('/admin/user/<int:user_id>/block', methods=['POST'])
 def block_user(user_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    
     reason = request.form.get('reason', 'No reason provided')
     db = get_db()
-    
-    # 1.Add a "permanent ban mark" to the user
     db.execute("UPDATE users SET is_blocked = 1 WHERE id = ?", (user_id,))
-    
-    # 2.Send a "Ban Notice" to this user
-    db.execute(
-        "INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)",
-        (user_id, f"Your account has been PERMANENTLY blocked. Reason: {reason}")
-    )
-    
+    db.execute("INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)",
+               (user_id, f"Your account has been PERMANENTLY blocked. Reason: {reason}"))
     db.commit()
     db.close()
-    flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
+    flash(f"User {user_id} has been blocked.", "success")
     return redirect(url_for('admin_users'))
+
+# 解封用户
+@app.route('/admin/user/<int:user_id>/unblock', methods=['POST'])
+def unblock_user(user_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    db = get_db()
+    db.execute("UPDATE users SET is_blocked = 0 WHERE id = ?", (user_id,))
+    db.execute("INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)",
+               (user_id, "Your account has been unbanned and restored to normal."))
+    db.commit()
+    db.close()
+    flash(f"User {user_id} has been unbanned.", "success")
+    return redirect(url_for('admin_users'))
+
+#keting's route(user chat list)
+@app.route('/chatlist')
+def user_chatlist():
+
+    if 'user_id' not in session:
+        flash("Please login first", "error")
+        return redirect(url_for('login'))
+
+    return render_template("user_chatlist.html")
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_product():
