@@ -42,7 +42,7 @@ def login():
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['student_id'] = user['student_id']
-            flash('Login successful!', 'success')
+            
             if remember_me:
                 session.permanent = True
             else:
@@ -180,7 +180,8 @@ def home():
             product['image_2'] = None
         products.append(product)
     
-    return render_template('home.html', username=session.get('username'), latest_products=products)
+    return render_template('home.html', 
+    username=session.get('username'), latest_products=products)
 
 @app.route('/logout')
 def logout():
@@ -246,7 +247,8 @@ def forgot_password():
                 return render_template('forgot_password.html')
  
             if a1_input != user['security_a1'] or a2_input != user['security_a2']:
-                flash('One or both answers are incorrect. Please try again.', 'error')
+                flash(
+                    'One or both answers are incorrect. Please try again.', 'error')
                 return render_template('forgot_password.html',
                                        step=2,
                                        q1=session.get('fp_q1'),
@@ -347,7 +349,7 @@ def edit_profile():
         'SELECT COUNT(*) FROM products WHERE seller_id = ?',
         (session['user_id'],)
     ).fetchone()[0]
-    
+
     db.close()
     return render_template(
         'edit_profile.html',
@@ -355,6 +357,146 @@ def edit_profile():
         listing_count=listing_count,
         sold_count=0
     )
+
+
+#Eileen's Route ------UPDATE profile
+@app.route('/update-profile', methods=['POST'])
+def update_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    username = request.form.get('username')
+    full_name = request.form.get('full_name')
+    bio = request.form.get('bio')
+    contact = request.form.get('contact')
+    gender = request.form.get('gender')
+    active_hours = request.form.get('active_hours')
+    
+    db = get_db()
+    
+    # Check if username already taken
+    existing = db.execute(
+        'SELECT id FROM users WHERE username = ? AND id != ?',
+        (username, session['user_id'])
+    ).fetchone()
+    if existing:
+        db.close()
+        flash('Username already taken', 'error')
+        return redirect(url_for('edit_profile'))
+    
+    # Handle avatar upload
+    avatar = request.files.get('avatar')
+    if avatar and avatar.filename:
+        filename = secure_filename(f"avatar_{session['user_id']}_{avatar.filename}")
+        avatar.save(os.path.join('static/uploads', filename))
+        db.execute(
+            'UPDATE users SET avatar = ? WHERE id = ?',
+            (filename, session['user_id'])
+        )
+
+    # Handle cover image upload
+    cover = request.files.get('cover_image')
+    if cover and cover.filename:
+        filename = secure_filename(f"cover_{session['user_id']}_{cover.filename}")
+        cover.save(os.path.join('static/uploads', filename))
+        db.execute(
+            'UPDATE users SET cover_image = ? WHERE id = ?', 
+            (filename, session['user_id'])
+        )
+    
+    # Update other fields
+    db.execute(
+        'UPDATE users SET username = ?, full_name = ?, bio = ?, '
+        'contact = ?, gender = ?, active_hours = ? WHERE id = ?',
+    (username, full_name, bio, contact, gender, active_hours, session['user_id'])
+    )
+    
+    db.commit()
+    db.close()
+
+    session['username'] = username
+    flash('Profile updated successfully!', 'success')
+    return redirect(url_for('edit_profile'))
+
+
+#Eileen's Route ------CHANGE password 
+@app.route('/change-password', methods=['POST'])
+def change_password():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+
+    if not user:
+        db.close()
+        flash('User not found', 'error')
+        return redirect(url_for('edit_profile'))
+
+    if not check_password_hash(user['password'], current_password):
+        db.close()
+        flash('Current password is incorrect', 'error')
+        return redirect(url_for('edit_profile'))
+
+    if new_password != confirm_password:
+        db.close()
+        flash('New passwords do not match', 'error')
+        return redirect(url_for('edit_profile'))
+
+    hashed = generate_password_hash(new_password)
+    db.execute(
+        'UPDATE users SET password = ? WHERE id = ?',
+        (hashed, session['user_id'])
+    )
+    db.commit()
+    db.close()
+
+    flash('Password changed successfully!', 'success')
+    return redirect(url_for('edit_profile'))
+          
+
+#Eileen's Route ------DELETE account
+@app.route('/delete-account', methods=['POST'])
+def delete_account():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    password = request.form.get('password')
+    confirm_text = request.form.get('confirm_text')
+
+    if confirm_text != 'DELETE':
+        flash('Please type DELETE to confirm', 'error')
+        return redirect(url_for('edit_profile'))
+
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+
+    if not check_password_hash(user['password'], password):
+        flash('Password is incorrect', 'error')
+        return redirect(url_for('edit_profile'))
+
+    db.execute('DELETE FROM products WHERE seller_id = ?', (session['user_id'],))
+    db.execute('DELETE FROM orders WHERE buyer_id = ? OR seller_id = ?', 
+               (session['user_id'], session['user_id']))
+    db.execute('DELETE FROM notifications WHERE user_id = ?', (session['user_id'],))
+    db.execute('DELETE FROM users WHERE id = ?', (session['user_id'],))
+    db.commit()
+    db.close()
+
+    session.clear()
+    flash('Your account has been permanently deleted', 'info')
+    return redirect(url_for('login'))
+
 
 #keting's route
 @app.route('/admin/dashboard')
