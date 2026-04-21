@@ -1,5 +1,6 @@
 import re
 import os
+import uuid
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from database import init_db, get_db, init_products
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -137,7 +138,6 @@ def home():
         return redirect(url_for('login'))
     
     db = get_db()
-    # Fetch all products and the seller's username
     products_data = db.execute('''
         SELECT p.*, u.username as seller_name 
         FROM products p
@@ -145,7 +145,22 @@ def home():
         ORDER BY p.created_at DESC
     ''').fetchall()
     db.close()
-    return render_template('home.html', username=session.get('username'), latest_products=products_data)
+
+    # Convert each product row to a dict and split the 'images' string
+    products = []
+    for row in products_data:
+        product = dict(row)
+        images_str = product.get('images', '')
+        if images_str:
+            img_list = images_str.split(',')
+            product['image_1'] = img_list[0] if len(img_list) > 0 else None
+            product['image_2'] = img_list[1] if len(img_list) > 1 else None
+        else:
+            product['image_1'] = None
+            product['image_2'] = None
+        products.append(product)
+    
+    return render_template('home.html', username=session.get('username'), latest_products=products)
 
 @app.route('/logout')
 def logout():
@@ -393,14 +408,18 @@ def upload_product():
         # 2. Get the images (up to 12)
         files = request.files.getlist('product_images')
         saved_image_names = []
-        
         for file in files:
             if file and file.filename != '':
                 filename = secure_filename(file.filename)
+                if not filename:   # happens with non-ASCII filenames
+                    filename = f"image_{uuid.uuid4().hex}.jpg"
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
                 saved_image_names.append(filename)
-
+        # Validation
+        if not saved_image_names:
+            flash("Please upload at least one photo.", "error")
+            return render_template('upload.html')
         # Join the image names with commas
         images_string = ",".join(saved_image_names)
 
