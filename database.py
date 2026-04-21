@@ -33,6 +33,27 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    try:
+          db.execute("ALTER TABLE users ADD COLUMN contact TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+      db.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
+    except sqlite3.OperationalError:
+        pass
+    
+    try:
+       db.execute("ALTER TABLE users ADD COLUMN bio TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+       db.execute("ALTER TABLE users ADD COLUMN active_hours TEXT")
+    except sqlite3.OperationalError:
+        pass
+
     db.commit()
 
     # Add columns if they don't exist yet (safe for existing databases)
@@ -133,6 +154,12 @@ def init_products():
             FOREIGN KEY (seller_id) REFERENCES users(id)
         )
     ''')
+    
+    # Add status column if not exists (for approval workflow)
+    try:
+        db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
+    except sqlite3.OperationalError:
+        pass  # column already exists
     
     db.commit()
     db.close()

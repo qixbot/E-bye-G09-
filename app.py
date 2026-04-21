@@ -1,7 +1,12 @@
+from ast import For
 import re
 import os
+<<<<<<< HEAD
 import sqlite3
 import datetime
+=======
+import uuid
+>>>>>>> ae72e42c3bd896907ba3f18366c0f05a3393179f
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from database import init_db, get_db, init_products
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -35,13 +40,21 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
+        remember_me = request.form.get('remember_me') 
 
         db = get_db()
+<<<<<<< HEAD
         # 先查数据库，user一定会被定义
         user = db.execute(
             "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
             (email,)
         ).fetchone()
+=======
+        user = db.execute(
+            'SELECT * FROM users WHERE LOWER(email) = LOWER(?)', 
+            (email,)).fetchone()
+        db.close()
+>>>>>>> ae72e42c3bd896907ba3f18366c0f05a3393179f
 
         # 必须先确认user存在、密码正确，再去读user的字段
         if user and check_password_hash(user['password'], password):
@@ -89,8 +102,19 @@ Remaining: {remain_d}d {remain_h}h {remain_m}m""", "error")
             # 校验全部通过 → 正常登录
             session['user_id'] = user['id']
             session['username'] = user['username']
+<<<<<<< HEAD
             flash("✅ Login successful!", "success")
             db.close()
+=======
+            session['student_id'] = user['student_id']
+            
+            if remember_me:
+                session.permanent = True
+            else:
+                session.permanent = False
+            
+            flash('Login successful!', 'success')
+>>>>>>> ae72e42c3bd896907ba3f18366c0f05a3393179f
             return redirect(url_for('home'))
 
         # 账号不存在/密码错误
@@ -201,15 +225,32 @@ def home():
         return redirect(url_for('login'))
     
     db = get_db()
-    # Fetch all products and the seller's username
     products_data = db.execute('''
         SELECT p.*, u.username as seller_name 
         FROM products p
         JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'approved'
         ORDER BY p.created_at DESC
     ''').fetchall()
     db.close()
-    return render_template('home.html', username=session.get('username'), latest_products=products_data)
+
+    products = []
+    for row in products_data:
+        product = dict(row)
+        images_str = product.get('images', '')
+        if images_str:
+            img_list = images_str.split(',')
+            product['images_list'] = img_list   # full list
+            product['image_1'] = img_list[0] if len(img_list) > 0 else None
+            product['image_2'] = img_list[1] if len(img_list) > 1 else None
+        else:
+            product['images_list'] = []
+            product['image_1'] = None
+            product['image_2'] = None
+        products.append(product)
+    
+    return render_template('home.html', 
+    username=session.get('username'), latest_products=products)
 
 @app.route('/logout')
 def logout():
@@ -275,7 +316,8 @@ def forgot_password():
                 return render_template('forgot_password.html')
  
             if a1_input != user['security_a1'] or a2_input != user['security_a2']:
-                flash('One or both answers are incorrect. Please try again.', 'error')
+                flash(
+                    'One or both answers are incorrect. Please try again.', 'error')
                 return render_template('forgot_password.html',
                                        step=2,
                                        q1=session.get('fp_q1'),
@@ -361,6 +403,171 @@ def admin_login():
         db.close()
 
     return render_template('admin_login.html')
+
+#Eileen's Route ------EDIT profile
+@app.route('/edit_profile', methods=['GET'])
+def edit_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+
+    listing_count = db.execute(
+        'SELECT COUNT(*) FROM products WHERE seller_id = ?',
+        (session['user_id'],)
+    ).fetchone()[0]
+
+    db.close()
+    return render_template(
+        'edit_profile.html',
+        user=user,
+        listing_count=listing_count,
+        sold_count=0
+    )
+
+
+#Eileen's Route ------UPDATE profile
+@app.route('/update-profile', methods=['POST'])
+def update_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    username = request.form.get('username')
+    full_name = request.form.get('full_name')
+    bio = request.form.get('bio')
+    contact = request.form.get('contact')
+    gender = request.form.get('gender')
+    active_hours = request.form.get('active_hours')
+    
+    db = get_db()
+    
+    # Check if username already taken
+    existing = db.execute(
+        'SELECT id FROM users WHERE username = ? AND id != ?',
+        (username, session['user_id'])
+    ).fetchone()
+    if existing:
+        db.close()
+        flash('Username already taken', 'error')
+        return redirect(url_for('edit_profile'))
+    
+    # Handle avatar upload
+    avatar = request.files.get('avatar')
+    if avatar and avatar.filename:
+        filename = secure_filename(f"avatar_{session['user_id']}_{avatar.filename}")
+        avatar.save(os.path.join('static/uploads', filename))
+        db.execute(
+            'UPDATE users SET avatar = ? WHERE id = ?',
+            (filename, session['user_id'])
+        )
+
+    # Handle cover image upload
+    cover = request.files.get('cover_image')
+    if cover and cover.filename:
+        filename = secure_filename(f"cover_{session['user_id']}_{cover.filename}")
+        cover.save(os.path.join('static/uploads', filename))
+        db.execute(
+            'UPDATE users SET cover_image = ? WHERE id = ?', 
+            (filename, session['user_id'])
+        )
+    
+    # Update other fields
+    db.execute(
+        'UPDATE users SET username = ?, full_name = ?, bio = ?, '
+        'contact = ?, gender = ?, active_hours = ? WHERE id = ?',
+    (username, full_name, bio, contact, gender, active_hours, session['user_id'])
+    )
+    
+    db.commit()
+    db.close()
+
+    session['username'] = username
+    flash('Profile updated successfully!', 'success')
+    return redirect(url_for('edit_profile'))
+
+
+#Eileen's Route ------CHANGE password 
+@app.route('/change-password', methods=['POST'])
+def change_password():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+
+    if not user:
+        db.close()
+        flash('User not found', 'error')
+        return redirect(url_for('edit_profile'))
+
+    if not check_password_hash(user['password'], current_password):
+        db.close()
+        flash('Current password is incorrect', 'error')
+        return redirect(url_for('edit_profile'))
+
+    if new_password != confirm_password:
+        db.close()
+        flash('New passwords do not match', 'error')
+        return redirect(url_for('edit_profile'))
+
+    hashed = generate_password_hash(new_password)
+    db.execute(
+        'UPDATE users SET password = ? WHERE id = ?',
+        (hashed, session['user_id'])
+    )
+    db.commit()
+    db.close()
+
+    flash('Password changed successfully!', 'success')
+    return redirect(url_for('edit_profile'))
+          
+
+#Eileen's Route ------DELETE account
+@app.route('/delete-account', methods=['POST'])
+def delete_account():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    password = request.form.get('password')
+    confirm_text = request.form.get('confirm_text')
+
+    if confirm_text != 'DELETE':
+        flash('Please type DELETE to confirm', 'error')
+        return redirect(url_for('edit_profile'))
+
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+
+    if not check_password_hash(user['password'], password):
+        flash('Password is incorrect', 'error')
+        return redirect(url_for('edit_profile'))
+
+    db.execute('DELETE FROM products WHERE seller_id = ?', (session['user_id'],))
+    db.execute('DELETE FROM orders WHERE buyer_id = ? OR seller_id = ?', 
+               (session['user_id'], session['user_id']))
+    db.execute('DELETE FROM notifications WHERE user_id = ?', (session['user_id'],))
+    db.execute('DELETE FROM users WHERE id = ?', (session['user_id'],))
+    db.commit()
+    db.close()
+
+    session.clear()
+    flash('Your account has been permanently deleted', 'info')
+    return redirect(url_for('login'))
+
 
 #keting's route
 @app.route('/admin/dashboard')
@@ -509,41 +716,114 @@ def upload_product():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        # 1. Get the text data from the form
-        name = request.form.get('item_name')
-        price = request.form.get('item_price') 
-        description = request.form.get('item_desc')
-        condition = request.form.get('item_condition') 
-        category = request.form.get('item_category') 
+        name = request.form.get('item_name', '').strip()
+        price = request.form.get('item_price', '').strip()
+        description = request.form.get('item_desc', '').strip()
+        condition = request.form.get('item_condition')
+        category = request.form.get('item_category')
         seller_id = session['user_id']
 
-        # 2. Get the images (up to 12)
+        errors = []
+        if not name:
+            errors.append("Item name is required.")
+        if not price:
+            errors.append("Price is required.")
+        elif not price.replace('.', '').isdigit() or float(price) < 0:
+            errors.append("Please enter a valid price (positive number).")
+        if not description:
+            errors.append("Description is required.")
+        if not category or category == "":
+            errors.append("Please select a category.")
+        if not condition:
+            errors.append("Please select a condition.")
+
+        # Price validation and rounding
+        price_val = None
+        try:
+            price_val = float(price)
+            if price_val < 0:
+                errors.append("Price cannot be negative.")
+            elif price_val > 9999999:
+                errors.append("Price cannot exceed RM 9,999,999.")
+            else:
+                # Round to 2 decimal places
+                price_val = round(price_val, 2)
+        except ValueError:
+            errors.append("Please enter a valid price.")
+
+        # Validate images
         files = request.files.getlist('product_images')
         saved_image_names = []
-        
         for file in files:
             if file and file.filename != '':
                 filename = secure_filename(file.filename)
+                if not filename:
+                    filename = f"image_{uuid.uuid4().hex}.jpg"
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
                 saved_image_names.append(filename)
 
-        # Join the image names with commas
-        images_string = ",".join(saved_image_names)
+        if not saved_image_names:
+            errors.append("Please upload at least one photo.")
 
-        # 3. Save everything to the database
+        if errors:
+            for err in errors:
+                flash(err, "error")
+            return render_template('upload.html')
+
+        images_string = ",".join(saved_image_names)
         db = get_db()
         db.execute('''
-            INSERT INTO products (seller_id, name, price, description, condition, category, images)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (seller_id, name, price, description, condition, category, images_string))
+            INSERT INTO products (seller_id, name, price, description, condition, category, images, created_at, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+        ''', (seller_id, name, price_val, description, condition, category, images_string, 'pending'))
         db.commit()
         db.close()
 
-        flash("Your item has been successfully listed!", "success")
+        flash("Your item has been submitted for admin approval. It will appear once approved.", "success")
         return redirect(url_for('home'))
 
     return render_template('upload.html')
+
+
+# -------- For testing purposes only - clear all products from database -------------------------
+# This route is not linked from anywhere in the UI and should be used with caution.
+
+@app.route('/clear-products')
+def clear_products():
+    db = get_db()
+    db.execute("DELETE FROM products")
+    db.execute("DELETE FROM sqlite_sequence WHERE name='products'")
+    db.commit()
+    db.close()
+    return "All products deleted."
+
+# -----------------------------------------------------------------------------------------------
+
+
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+    if 'user_id' not in session:
+        flash('Please login to view product details.', 'error')
+        return redirect(url_for('login'))
+
+    db = get_db()
+    product = db.execute('''
+        SELECT p.*, u.username as seller_name, u.id as seller_id, u.created_at as user_joined
+        FROM products p
+        JOIN users u ON p.seller_id = u.id
+        WHERE p.id = ? AND p.status = 'approved'
+    ''', (product_id,)).fetchone()
+    db.close()
+
+    if not product:
+        flash('Product not found or not yet approved.', 'error')
+        return redirect(url_for('home'))
+
+    # Split images into list
+    images = product['images'].split(',') if product['images'] else []
+    
+    return render_template('product.html', product=product, images=images)
 
 if __name__ == '__main__':
     app.run(debug=True)

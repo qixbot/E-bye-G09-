@@ -63,10 +63,12 @@
                 </div>
 
                 <div class="form-options">
-                    <input type="checkbox" name="remember_me" id="remember_me">
-                    <label for="remember_me">Remember me</label>
-                    <a href="{{ url_for('forgot_password') }}" class="forgot-link">Forgot password?</a>
-                </div>
+    <div class="remember-me">
+        <input type="checkbox" name="remember_me" id="remember_me">
+        <label for="remember_me">Remember me</label>
+    </div>
+    <a href="{{ url_for('forgot_password') }}" class="forgot-link">Forgot password?</a>
+</div>
                 
                 <button type="submit" class="btn-login">Log in</button>
                 
