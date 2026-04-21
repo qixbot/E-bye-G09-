@@ -146,16 +146,17 @@ def home():
     ''').fetchall()
     db.close()
 
-    # Convert each product row to a dict and split the 'images' string
     products = []
     for row in products_data:
         product = dict(row)
         images_str = product.get('images', '')
         if images_str:
             img_list = images_str.split(',')
+            product['images_list'] = img_list   # full list
             product['image_1'] = img_list[0] if len(img_list) > 0 else None
             product['image_2'] = img_list[1] if len(img_list) > 1 else None
         else:
+            product['images_list'] = []
             product['image_1'] = None
             product['image_2'] = None
         products.append(product)
@@ -397,33 +398,62 @@ def upload_product():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        # 1. Get the text data from the form
-        name = request.form.get('item_name')
-        price = request.form.get('item_price') 
-        description = request.form.get('item_desc')
-        condition = request.form.get('item_condition') 
-        category = request.form.get('item_category') 
+        name = request.form.get('item_name', '').strip()
+        price = request.form.get('item_price', '').strip()
+        description = request.form.get('item_desc', '').strip()
+        condition = request.form.get('item_condition')
+        category = request.form.get('item_category')
         seller_id = session['user_id']
 
-        # 2. Get the images (up to 12)
+        errors = []
+        if not name:
+            errors.append("Item name is required.")
+        if not price:
+            errors.append("Price is required.")
+        elif not price.replace('.', '').isdigit() or float(price) < 0:
+            errors.append("Please enter a valid price (positive number).")
+        if not description:
+            errors.append("Description is required.")
+        if not category or category == "":
+            errors.append("Please select a category.")
+        if not condition:
+            errors.append("Please select a condition.")
+
+        # Price validation and rounding
+        price_val = None
+        try:
+            price_val = float(price)
+            if price_val < 0:
+                errors.append("Price cannot be negative.")
+            elif price_val > 9999999:
+                errors.append("Price cannot exceed RM 9,999,999.")
+            else:
+                # Round to 2 decimal places
+                price_val = round(price_val, 2)
+        except ValueError:
+            errors.append("Please enter a valid price.")
+
+        # Validate images
         files = request.files.getlist('product_images')
         saved_image_names = []
         for file in files:
             if file and file.filename != '':
                 filename = secure_filename(file.filename)
-                if not filename:   # happens with non-ASCII filenames
+                if not filename:
                     filename = f"image_{uuid.uuid4().hex}.jpg"
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
                 saved_image_names.append(filename)
-        # Validation
-        if not saved_image_names:
-            flash("Please upload at least one photo.", "error")
-            return render_template('upload.html')
-        # Join the image names with commas
-        images_string = ",".join(saved_image_names)
 
-        # 3. Save everything to the database
+        if not saved_image_names:
+            errors.append("Please upload at least one photo.")
+
+        if errors:
+            for err in errors:
+                flash(err, "error")
+            return render_template('upload.html')
+
+        images_string = ",".join(saved_image_names)
         db = get_db()
         db.execute('''
             INSERT INTO products (seller_id, name, price, description, condition, category, images)
