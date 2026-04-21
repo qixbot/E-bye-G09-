@@ -22,15 +22,17 @@
             <span class="search-icon">🔍</span>
             <input type="text" name="query" placeholder="Search textbooks, dorm items, gadgets..." class="search-input">
         </form>
-        <!-- Notification button -->
-        <a href="{{ url_for('notifications') }}" class="nav-icon-btn" title="Notifications">
-            <img src="{{ url_for('static', filename='notif_icon_green.png') }}" class="nav-icon-img" alt="Notifications">
-        </a>
-        <!-- Chat button -->
-        <a href="{{ url_for('chat') }}" class="nav-icon-btn" title="Messages">
-            <img src="{{ url_for('static', filename='chat-icon-green.png') }}" class="nav-icon-img" alt="Chat">
-        </a>
+        
         <div class="nav-profile">
+            <!-- Notification button -->
+            <a href="#" class="nav-icon-btn" title="Notifications">
+                <img src="{{ url_for('static', filename='notif_icon.png') }}" class="nav-icon-img" alt="Notifications">
+            </a>
+            <!-- Chat button -->
+            <a href="#" class="nav-icon-btn" title="Messages">
+                <img src="{{ url_for('static', filename='chat-icon_Ver2.png') }}" class="nav-icon-img" alt="Chat">
+            </a>
+
             <a href="#" style="text-decoration: none;">
                 
                 {% if session.get('username') %}
@@ -68,8 +70,8 @@
         </a>
         
         <a href="#" class="nav-item">
-            <span class="nav-icon">🔍</span>
-            <span class="nav-text">Search</span>
+            <span class="nav-icon">🛒</span>
+            <span class="nav-text">Cart</span>
         </a>
         
         <div class="post-btn-wrapper">

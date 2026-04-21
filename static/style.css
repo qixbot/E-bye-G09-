@@ -104,8 +104,9 @@ body {
     background-color: rgba(255, 255, 255, 0.15);
 }
 
+/* If you use images instead of emoji */
 .nav-icon-img {
-    width: 24px;
+    width: auto;
     height: 24px;
     filter: brightness(0) invert(1);
 }
@@ -113,6 +114,12 @@ body {
 .nav-profile {
     display: flex;
     align-items: center;
+    gap: 12px;  /* default gap between all children */
+}
+
+/* make the gap before avatar larger by adding margin-left to avatar link */
+.nav-profile a:last-child {
+    margin-left: 20px;  /* extra gap before avatar */
 }
 
 /* Initial Letter Avatar for Logged-in Users */
