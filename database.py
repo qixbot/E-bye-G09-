@@ -12,7 +12,7 @@ def get_db():
 def init_db():
     db = get_db()
 
-    # create user table 
+#  Create users table
     db.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,28 +20,71 @@ def init_db():
             email TEXT UNIQUE NOT NULL,
             username TEXT NOT NULL,
             password TEXT NOT NULL,
-            full_name TEXT,
             gender TEXT,
-            contact TEXT,
-            bio TEXT,
-            avatar TEXT,
-            cover_image TEXT,
-            active_hours TEXT,
             security_q1 TEXT,
             security_a1 TEXT,
             security_q2 TEXT,
             security_a2 TEXT,
+            active_hours TEXT,
+            avatar TEXT,
             is_admin INTEGER DEFAULT 0,
             is_frozen INTEGER DEFAULT 0,
-            is_blocked INTEGER DEFAULT 0,
+            is_blocked INTEGER DEFAULT 0,   
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
+    try:
+          db.execute("ALTER TABLE users ADD COLUMN contact TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+      db.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
+    except sqlite3.OperationalError:
+        pass
+    
+    try:
+       db.execute("ALTER TABLE users ADD COLUMN bio TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+       db.execute("ALTER TABLE users ADD COLUMN active_hours TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    db.commit()
+
+    # Add columns if they don't exist yet (safe for existing databases)
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass   # column already exists
+    
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass    # column already exists
+
+    db.commit()
+
+    #keting part
+    # Create Notification Table= Stores notifications for all users (freeze/ban/bargain/order)
+    db.execute('''
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        message TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
     db.commit()
 
     # Eileen Part
-    #CREATE Default admin
+    #CREATE DEFAULT ADMIN
     admin_email = 'admin@student.mmu.edu.my'
     admin_password = generate_password_hash('Admin123!')
     
@@ -62,8 +105,6 @@ def init_db():
     db.close()
     print("Database ready WITH user table")
 
-
-#keting's part
 def init_notifications():
     db = get_db()
     #Notification Table: Stores notifications for all users (freeze/ban/bargain/order)
@@ -76,7 +117,20 @@ def init_notifications():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
     )
-    ''') 
+    ''')
+    #Add freeze/ban fields to the users table）
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+
+        pass
+    
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+
+        pass
+    
     db.commit()
     db.close()
 
@@ -96,7 +150,6 @@ def init_products():
             condition TEXT,
             category TEXT,
             images TEXT, 
-            status TEXT DEFAULT 'for_sale',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (seller_id) REFERENCES users(id)
         )
