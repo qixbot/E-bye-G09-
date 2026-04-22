@@ -48,7 +48,6 @@ def login():
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
-            flash("✅ Login successful!", "success")
             db.close()
             session['student_id'] = user['student_id']
             
