@@ -672,7 +672,7 @@ def upload_product():
     return render_template('upload.html')
 
 
-# -------- For testing purposes only - clear all products from database -------------------------
+# --------(Xingru) For testing purposes only - clear all products from database -------------------------
 # This route is not linked from anywhere in the UI and should be used with caution.
 
 @app.route('/clear-products')
