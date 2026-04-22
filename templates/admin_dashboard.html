@@ -1,80 +1,52 @@
 {% extends "base.html" %}
+{% block bottom_nav %}
+{% endblock %}
+
+{% block navbar %}
+{% endblock %}
 
 {% block content %}
+<div class="container mt-5">
+    <h1>Admin Dashboard</h1>
+    <hr>
+    <p class="lead">Welcome to E-Bye Admin Control Panel</p>
 
-<!-- 顶部按钮栏 -->
-<div style="
-    background-color: #ffffff;
-    padding:12px 30px;
-    margin-bottom:40px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-">
-    <div style="display:flex; gap:12px;">
-        <a href="{{ url_for('admin_users') }}" 
-           style="background-color:#205c30; color:white; border:none; border-radius:22px; padding:8px 22px; text-decoration:none;">
-            Manage Users
-        </a>
-        <a href="{{ url_for('admin_products') }}" 
-           style="background-color:#205c30; color:white; border:none; border-radius:22px; padding:8px 22px; text-decoration:none;">
-            Manage Products
-        </a>
-        <a href="{{ url_for('admin_login') }}?logout=1" 
-           style="background-color:#205c30; color:white; border:none; border-radius:22px; padding:8px 22px; text-decoration:none;">
-            Logout
-        </a>
-    </div>
-</div>
-
-
-<!-- 主体内容 -->
-<div style="padding:0 30px; max-width:1200px; margin: 0 auto;">
-
-    <h2>Admin Dashboard</h2>
-    <p style="color:#555; margin-bottom:35px;">
-        This is the admin control panel to view platform user statistics, product overview and pending system notifications.
-    </p>
-    <hr style="margin-bottom:40px;">
-
-    <!-- 方块之间 外部大间距 完全独立分开 -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px;">
-
-        <!-- 卡片1 -->
-        <div style="
-            background-color:#205c30;
-            color:white;
-            border-radius:16px;
-            padding:30px;
-        ">
-            <h5>Total Registered Users</h5>
-            <p class="display-3 mt-3 mb-0">{{ total_users }}</p>
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Registered Users</h5>
+                    <p class="card-text display-4">{{ total_users }}</p>
+                </div>
+            </div>
         </div>
-
-        <!-- 卡片2 -->
-        <div style="
-            background-color:#205c30;
-            color:white;
-            border-radius:16px;
-            padding:30px;
-        ">
-            <h5>Total Products</h5>
-            <p class="display-3 mt-3 mb-0">0</p>
-            <small style="opacity:0.9;">Coming soon (product system)</small>
+        <div class="col-md-4">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Products</h5>
+                    <p class="card-text display-4">0</p>
+                    <small>Coming soon (product system)</small>
+                </div>
+            </div>
         </div>
-
-        <!-- 卡片3 -->
-        <div style="
-            background-color:#205c30;
-            color:white;
-            border-radius:16px;
-            padding:30px;
-        ">
-            <h5>Pending Notifications</h5>
-            <p class="display-3 mt-3 mb-0">0</p>
-            <small style="opacity:0.9;">Coming soon (notification system)</small>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Notifications</h5>
+                    <p class="card-text display-4">0</p>
+                    <small>Coming soon (notification system)</small>
+                </div>
+            </div>
         </div>
-
     </div>
 
+    <div class="mt-5">
+        <h3>Quick Actions</h3>
+        <div class="d-flex gap-3 mt-3">
+            <a href="{{ url_for('admin_users') }}" class="btn btn-lg btn-outline-dark">Manage Users</a>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-lg btn-outline-dark">Manage Products</a>
+            <a href="{{ url_for('admin_login') }}?logout=1" class="btn btn-lg btn-danger">Logout</a>
+        </div>
+    </div>
 </div>
-
 {% endblock %}
