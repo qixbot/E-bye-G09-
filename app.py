@@ -36,7 +36,6 @@ def login():
         remember_me = request.form.get('remember_me') 
 
         db = get_db()
-        # 先查数据库，user一定会被定义
         user = db.execute(
             "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
             (email,)
@@ -78,7 +77,7 @@ def register():
         
         # verification and validation
         q1 = request.form.get('q1', '').strip()
-        a1 = request.form.get('a1', '').strip().lower()  # store lowercase for case-insensitive matching
+        a1 = request.form.get('a1', '').strip().lower()  
         q2 = request.form.get('q2', '').strip()
         a2 = request.form.get('a2', '').strip().lower()
  
@@ -587,6 +586,13 @@ def block_user(user_id):
     db.close()
     flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
     return redirect(url_for('admin_users'))
+
+@app.route('/chatlist')
+def user_chatlist():
+    if 'user_id' not in session:
+        flash("Please login first", "error")
+        return redirect(url_for('login'))
+    return render_template('user_chatlist.html')
 
 # Xingru's Route ------Upload product
 @app.route('/upload', methods=['GET', 'POST'])
