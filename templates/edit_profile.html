@@ -1,5 +1,5 @@
 {% extends "base.html"%}
-<!-- eileen part -->
+
 {% block bottom_nav %}
 {% endblock %}
 
@@ -12,24 +12,26 @@
 <div class="ep-page">
     <!-- hero -->
     <div class="ep-hero">
-        <nav class="ep-breadcrumb">
-            <a href="{{ url_for('home') }}">Home</a>
-            <span class="ep-breadcrumb-sep">›</span>
-            <a href="#">Profile</a>
-            <span class="ep-breadcrumb-sep">›</span>
-            <span style="color:rgba(255,255,255,0.9)">Edit</span>
-        </nav>
-    </div>
+            <nav class="ep-breadcrumb">
+                <a href="{{ url_for('home') }}">Home</a>
+                <span class="ep-breadcrumb-sep">›</span>
+                <a href="#">Profile</a>
+                <span class="ep-breadcrumb-sep">›</span>
+                <span style="color:rgba(255,255,255,0.9)">Edit</span>
+            </nav>
+        </div>
 
-    <div class="ep-wrap">
-        <div class="ep-grid">
+<!-- main card content -->
+ <div class="ep-wrap">
+    <div class="ep-grid">
 
-            <!-- left column -->
-            <div class="ep-identity">
-                <div class="ep-avatar-card">
-                    <div class="ep-avatar-cover"></div>
+        <!-- left: indentity column -->
+        <div class="ep-identity">
+        <!-- Avatar card -->
+        <div class="ep-avatar-card">
+        <div class="ep-avatar-cover"></div>
                     <div class="ep-avatar-wrap">
-                        <div class="ep-av-ring" onclick="document.getElementById('av-input-side').click()">
+                        <div class="ep-av-ring" onclick="document.getElementById('av-input-side').click()" title="Change photo">
                             {% if user.avatar %}
                                 <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" id="side-av-img" alt="Avatar">
                             {% else %}
@@ -39,45 +41,55 @@
                         </div>
                     </div>
                     <input type="file" id="av-input-side" accept="image/*" style="display:none" onchange="syncAvatarPreview(this)">
-                    
-                    <div class="ep-avatar-body">
-                        <div class="ep-name">{{ user.full_name or user.username }}</div>
-                        <div class="ep-handle">@{{ user.username }}</div>
-                        <div class="ep-stats">
-                            <div class="ep-stat">
-                                <div class="ep-stat-n">{{ listing_count or 0 }}</div>
-                                <div class="ep-stat-l">Listings</div>
-                            </div>
-                            <div class="ep-stat">
-                                <div class="ep-stat-n">{{ user.rating or '—' }}</div>
-                                <div class="ep-stat-l">Rating</div>
-                            </div>
-                        </div>
-                        <div class="ep-verified">✓ MMU Verified</div>
-                    </div>
+             
+        <div class="ep-avatar-body">
+            <div class="ep-name">{{ user.full_name or user.username }}</div>
+            <div class="ep-handle">@{{ user.username }}</div>
+ 
+                <div class="ep-stats">
+                    <div class="ep-stat">
+                    <div class="ep-stat-n">{{ listing_count or 0 }}</div>
+                    <div class="ep-stat-l">Listings</div>
                 </div>
-
-                <div class="ep-nav-card">
-                    <button class="ep-nav-item on" id="nav-edit" onclick="switchTab('edit')">
-                        <span class="ep-nav-icon">✏️</span> Edit Profile
-                    </button>
-                    <button class="ep-nav-item" id="nav-password" onclick="switchTab('password')">
-                        <span class="ep-nav-icon">🔒</span> Change Password
-                    </button>
-                    <button class="ep-nav-item ep-danger" id="nav-delete" onclick="switchTab('delete')">
-                        <span class="ep-nav-icon">🗑️</span> Delete Account
-                    </button>
+                <div class="ep-stat">
+                    <div class="ep-stat-n">{{ user.rating or '—' }}</div>
+                    <div class="ep-stat-l">Rating</div>
                 </div>
             </div>
+             <div class="ep-verified">✓ MMU Verified</div>
+            </div>
+        </div>
+ 
+        <div class="ep-nav-card">
+                    <button class="ep-nav-item on" id="nav-edit" onclick="switchTab('edit')">
+                        
+                        <span class="ep-nav-icon">✏️</span>
+                        Edit Profile
+                    </button>
+                    <button class="ep-nav-item" id="nav-password" onclick="switchTab('password')">
+                        
+                        <span class="ep-nav-icon">🔒</span>
+                        Change Password
+                    </button>
+                    <button class="ep-nav-item ep-danger" id="nav-delete" onclick="switchTab('delete')">
+                        
+                        <span class="ep-nav-icon">🗑️</span>
+                        Delete Account
+                    </button>
+                </div>
+ </div><!-- end ep-identity -->
 
-            <!-- right panel -->
+            <!--RIGHT: Form panel-->
             <div class="ep-panel">
+ 
+                <!-- Tab bar synced with left nav -->
                 <div class="ep-section-tabs">
                     <button class="ep-tab-btn on" id="tab-edit" onclick="switchTab('edit')">Edit Profile</button>
                     <button class="ep-tab-btn" id="tab-password" onclick="switchTab('password')">Password</button>
                     <button class="ep-tab-btn" id="tab-delete" onclick="switchTab('delete')" style="color:var(--red)">Delete Account</button>
                 </div>
-
+ 
+                <!-- Flash messages (from Flask) -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         <div style="padding:20px 40px 0">
@@ -91,211 +103,247 @@
                     {% endif %}
                 {% endwith %}
 
-                <!-- section 1: edit profile -->
-                <div class="ep-section on" id="section-edit">
-                    <div class="ep-section-head">
-                        <h2>Edit Profile</h2>
-                        <p>Update your public information visible to MMU students</p>
-                    </div>
+<!--section 1= edit profile -->
+<div class="ep-section on" id="section-edit">
+     <div class="ep-section-head">
+        <h2>Edit Profile</h2>
+        <p>Update your public information visible to MMU students</p>
+</div>
+  
+<form method="POST" action="{{ url_for('update_profile') }}" enctype="multipart/form-data" id="edit-form">
 
-                    <form method="POST" action="{{ url_for('update_profile') }}" enctype="multipart/form-data" id="edit-form">
-                        <div class="ep-av-upload" onclick="document.getElementById('avatar-input').click()">
-                            <div class="ep-av-upload-thumb">
-                                {% if user.avatar %}
-                                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" id="avatar-preview-img">
-                                {% else %}
-                                    <div class="ep-av-upload-thumb-init" id="avatar-preview-img">{{ user.username[0].upper() if user.username else 'U' }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="ep-av-upload-text">
-                                <p>Profile photo</p>
-                                <span>Click to upload · JPG, PNG · Max 2MB</span>
-                            </div>
-                            <div class="ep-av-upload-btn">Change</div>
-                        </div>
-                        <input type="file" id="avatar-input" name="avatar" accept="image/*" style="display:none" onchange="previewAvatar(this)">
-
-                        <div class="ep-grid-2">
-                            <div class="ep-fg">
-                                <label>Display Name</label>
-                                <input type="text" name="full_name" value="{{ user.full_name or '' }}" placeholder="Your full name">
-                            </div>
-                            <div class="ep-fg">
-                                <label>Username</label>
-                                <input type="text" name="username" value="{{ user.username or '' }}" placeholder="@username">
-                            </div>
-                        </div>
-
-                        <div class="ep-fg">
-                            <label>Bio</label>
-                            <textarea name="bio" placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
-                        </div>
-
-                        <div class="ep-grid-2">
-                            <div class="ep-fg">
-                                <label>Phone Number</label>
-                                <input type="tel" name="contact" value="{{ user.contact or '' }}" placeholder="+60 12-345 6789">
-                            </div>
-                            <div class="ep-fg">
-                                <label>Gender</label>
-                                <select name="gender">
-                                    <option value="" {% if not user.gender %}selected{% endif %}>Prefer not to say</option>
-                                    <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>Female</option>
-                                    <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>Male</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="ep-fg">
-                            <label>Active Hours</label>
-                            <select name="active_hours">
-                                <option value="" {% if not user.active_hours %}selected{% endif %}>Not set</option>
-                                <option value="Morning (9am-12pm)" {% if user.active_hours == 'Morning (9am-12pm)' %}selected{% endif %}>Morning (9am-12pm)</option>
-                                <option value="Afternoon (2pm-5pm)" {% if user.active_hours == 'Afternoon (2pm-5pm)' %}selected{% endif %}>Afternoon (2pm-5pm)</option>
-                                <option value="Evening (8pm-11pm)" {% if user.active_hours == 'Evening (8pm-11pm)' %}selected{% endif %}>Evening (8pm-11pm)</option>
-                                <option value="Flexible" {% if user.active_hours == 'Flexible' %}selected{% endif %}>Flexible</option>
-                            </select>
-                            <div class="ep-hint">Buyers will see when you're usually available to respond</div>
-                        </div>
-
-                        <div class="ep-divider"></div>
-                        <div class="ep-actions">
-                            <button type="submit" class="ep-btn-save">Save Changes</button>
-                            <button type="button" class="ep-btn-cancel" onclick="window.location='{{ url_for('home') }}'">Cancel</button>
-                        </div>
-                    </form>
+    <!-- avatar upload strip -->
+     <div class="ep-av-upload" onclick="document.getElementById('avatar-input').click()">
+            <div class="ep-av-upload-thumb">
+                {% if user.avatar %}
+                <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" id="avatar-preview-img" alt="Avatar">
+                {% else %}
+            <div class="ep-av-upload-thumb-init" id="avatar-preview-img">{{ user.username[0].upper() if user.username else 'U' }}</div>
+                {% endif %}
                 </div>
+        <div class="ep-av-upload-text">
+            <p>Profile photo</p>
+            <span>Click to upload · JPG, PNG · Max 2MB</span>
+        </div>
+        <div class="ep-av-upload-btn">Change</div>
+        </div>
+        <input type="file" id="avatar-input" name="avatar" accept="image/*" style="display:none" onchange="previewAvatar(this)">
+ 
+            
+            <!-- Two-column row -->
+            <!-- FULL NAME -->
+            <div class="ep-grid-2">
+            <div class="ep-fg">
+                <label>Display Name</label>
+                <input type="text" name="full_name" value="{{user.full_name or ''}}" placeholder="Your full name">
+             </div>
 
-                <!-- section 2: change password -->
-                <div class="ep-section" id="section-password">
-                    <div class="ep-section-head">
-                        <h2>Change Password</h2>
-                        <p>Choose a strong password to keep your account secure</p>
-                    </div>
+            <!-- USERNAME -->
+            <div class="ep-fg">
+                <label>Userame</label>
+                <input type="text" name="username" value="{{user.username or ''}}" placeholder="@username">
+             </div>
+            
 
-                    <form method="POST" action="{{ url_for('change_password') }}" id="pw-form">
-                        <div class="ep-fg">
-                            <label>Current Password</label>
-                            <div class="ep-input-wrap">
-                                <input type="password" name="current_password" id="current_password" placeholder="Enter your current password" required>
-                                <button type="button" class="ep-eye" onclick="togglePassword('current_password', this)">👀</button>
-                            </div>
-                        </div>
+            <!-- BIO -->
+            <div class="ep-fg">
+                <label>Bio</label>
+                <textarea  name="bio" placeholder="Tell others students about yourself...">{{user.bio or ''}}</textarea>
+             </div>
 
-                        <div class="ep-fg">
-                            <label>New Password</label>
-                            <div class="ep-input-wrap">
-                                <input type="password" name="new_password" id="new_password" placeholder="Create a strong new password" required oninput="checkPwStrength()">
-                                <button type="button" class="ep-eye" onclick="togglePassword('new_password', this)">👀</button>
-                            </div>
-                            <div class="ep-strength-wrap"><div class="ep-strength-bar" id="ep-strength-bar"></div></div>
-                            <div class="ep-strength-label" id="ep-strength-label"></div>
-                            <div class="ep-reqs" id="ep-reqs">
-                                <small id="ep-req-len" class="req-invalid"><em class="req-icon">✗</em> At least 8 characters</small>
-                                <small id="ep-req-up" class="req-invalid"><em class="req-icon">✗</em> At least 1 uppercase letter (A-Z)</small>
-                                <small id="ep-req-lo" class="req-invalid"><em class="req-icon">✗</em> At least 1 lowercase letter (a-z)</small>
-                                <small id="ep-req-num" class="req-invalid"><em class="req-icon">✗</em> At least 1 number (0-9)</small>
-                                <small id="ep-req-sp" class="req-invalid"><em class="req-icon">✗</em> At least 1 special character (! @ # $ % ^ &amp; *)</small>
-                            </div>
-                        </div>
+             <!-- Contact -->
+            <div class="ep-fg">
+                <label>Phone Number</label>
+                <input type="tel" name="contact" value="{{user.contact or ''}}" placeholder="+60 12-345 6789">
+             </div>
 
-                        <div class="ep-fg">
-                            <label>Confirm New Password</label>
-                            <div class="ep-input-wrap">
-                                <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter new password" required oninput="checkPwMatch()">
-                                <button type="button" class="ep-eye" onclick="togglePassword('confirm_password', this)">👀</button>
-                            </div>
-                            <div class="ep-pw-match" id="ep-pw-match"></div>
-                        </div>
-
-                        <div class="ep-divider"></div>
-                        <div class="ep-actions">
-                            <button type="submit" class="ep-btn-save" onclick="return validatePwForm()">Update Password</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- section 3: delete account -->
-                <div id="section-delete" class="ep-section">
-                    <div class="ep-section-head">
-                        <h2>Delete Account</h2>
-                        <p>Permanently remove your account and all associated data</p>
-                    </div>
-
-                    <div class="ep-danger-box">
-                        <div class="ep-danger-icon">⚠️</div>
-                        <div>
-                            <div class="ep-danger-title">This action cannot be undone</div>
-                            <div class="ep-danger-desc">Deleting your account will permanently remove:</div>
-                            <ul class="ep-danger-list">
-                                <li>Your profile and all personal information</li>
-                                <li>All your listings</li>
-                                <li>Your purchase history</li>
-                                <li>Your ratings and reviews</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <form method="POST" action="{{ url_for('delete_account') }}" id="delete-form" onsubmit="return confirmDelete()">
-                        <div class="ep-fg">
-                            <label>Enter your password to confirm</label>
-                            <div class="ep-input-wrap">
-                                <input type="password" name="password" id="delete_password" placeholder="Your current password" required>
-                                <button type="button" class="ep-eye" onclick="togglePassword('delete_password', this)">👀</button>
-                            </div>
-                        </div>
-                        <div class="ep-fg">
-                            <label>Type <span class="ep-confirm-word">DELETE</span> to confirm</label>
-                            <input type="text" name="confirm_text" placeholder="DELETE" required oninput="this.value = this.value.toUpperCase()">
-                        </div>
-                        <div class="ep-divider"></div>
-                        <div class="ep-actions">
-                            <button type="submit" class="ep-btn-danger">Permanently Delete Account</button>
-                            <button type="button" class="ep-btn-cancel" onclick="switchTab('edit')">Cancel</button>
-                        </div>
-                    </form>
-                </div>
+             <!-- Gender -->
+             <div class="ep-fg">
+                <label>Gender</label>
+                <select name="gender" id="gender" class="form-input">
+                <option value="" {% if not user.gender %}selected{% endif %}>Prefer not to say</option>
+                <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>Female</option>
+                <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>Male</option>
+                </select>
             </div>
         </div>
+
+            <!-- Active Hours -->
+            <div class="ep-fg">
+                <label>Active Hours</label>
+                    <select name="active_hours">
+                            <option value="" {% if not user.active_hours %}selected{% endif %}>Not set</option>
+                            <option value="Morning (9am-12pm)" {% if user.active_hours == 'Morning (9am-12pm)' %}selected{% endif %}>Morning (9am-12pm)</option>
+                            <option value="Afternoon (2pm-5pm)" {% if user.active_hours == 'Afternoon (2pm-5pm)' %}selected{% endif %}>Afternoon (2pm-5pm)</option>
+                            <option value="Evening (8pm-11pm)" {% if user.active_hours == 'Evening (8pm-11pm)' %}selected{% endif %}>Evening (8pm-11pm)</option>
+                            <option value="Flexible" {% if user.active_hours == 'Flexible' %}selected{% endif %}>Flexible</option>
+                    </select>
+                    <div class="ep-hint">Buyers will see when you're usually available to respond</div>
+            </div>
+
+            <div class="ep-divider"></div>
+            <div class="ep-actions">
+                        <button type="submit" class="ep-btn-save">Save Changes</button>
+                        <button type="button" class="ep-btn-cancel" onclick="window.location='{{ url_for('home') }}'">Cancel</button>
+                    </div>
+                </form>
+            </div><!-- end section-edit -->
+                
+            <!-- section 2 change password -->
+             <div class="ep-section" id="section-password">
+                  <div class="ep-section-head">
+                  <h2>Change Password</h2>
+                  <p>Choose a strong password to keep your account secure</p>
+                  <form method="POST" action="{{ url_for('change_password') }}" id="pw-form">
+
+                   <div class="ep-fg">
+                   <label>Current Password</label>
+                   <div class="ep-input-wrap">
+                    <input type="password" name="current_password" id="current_password" placeholder="Enter your current password" required>
+                    <button type="button" class="ep-eye" onclick="togglePassword('current_password', this)">👀</button>
+                    </div>
+                    <div class="ep-error" id="cur-ep-err"></div>
+                    </div>
+
+                   <div class="ep-fg">
+                   <label>New Password</label>
+                   <div class="ep-input-wrap">
+                    <input type="password" name="new_password" id="new_password" placeholder="Create a strong new password" required oninput="checkPwStrength()">
+                    <button type="button" class="ep-eye" onclick="togglePassword('new_password', this)">👀</button>
+                    </div>
+                    <div class="ep-error" id="new-ep-err"></div>
+                    </div>
+
+                    <div class ="ep-strength-wrap">
+                    <div class="ep-strength-bar" id="ep-strength-bar"></div>
+                    </div>
+                    <div class="ep-strength-label" id="ep-strength-label"></div>
+                    <div class="ep-reqs" id="ep-reqs">
+                        <small id="ep-req-len" class="req-invalid"><em class="req-icon">✗</em> At least 8 characters</small>
+                        <small id="ep-req-up" class="req-invalid"><em class="req-icon">✗</em> At least 1 uppercase letter (A-Z)</small>
+                        <small id="ep-req-lo" class="req-invalid"><em class="req-icon">✗</em> At least 1 lowercase letter (a-z)</small>
+                        <small id="ep-req-num" class="req-invalid"><em class="req-icon">✗</em> At least 1 number (0-9)</small>
+                        <small id="ep-req-sp" class="req-invalid"><em class="req-icon">✗</em> At least 1 special character (! @ # $ % ^ &amp; *)</small>
+                    </div>
+                </div>
+            
+                <div class="ep-fg">
+                    <label>Confirm NewPassword</label>
+                    <div class="ep-input-wrap">
+                        <input type="password" name="confirm_password" id="confirm_password"
+                        placeholder="Re-enter new password" required oninput="checkPwMatch()">
+                        <button type="button" class="ep-eye" onclick="togglePassword('confirm_password', this)">👀</button>
+                    </div>
+                    <div class="ep-pw-match" id="ep-pw-match"></div>
+                    <div class="ep-error" id="conf-pw-err"></div>
+                </div>
+ 
+                        <div class="ep-divider"></div>
+                        <div class="ep-actions">
+                        <button type="submit" class="ep-btn-save" onclick="return validatePwForm()">Update Password</button>
+                    </div>
+               </form>
+        </div><!-- end section-password -->
+        
+
+
+    <!-- Section 3: Delete Account -->
+    <div id="section-delete" class="ep-section">
+                <div class="ep-section-head">
+                    <h2>Delete Account</h2>
+                    <p>Permanently remove your accountn and all associated data</p>
+                </div>
+
+             <div class="ep-danger-box">
+             <div class="ep-danger-icon">⚠️</div>
+             <div>
+             <div class="ep-danger-title">This action cannot be undone</div>
+             <div class="ep-danger-desc">Deleting your account will permanently remove:</div>
+             <ul class="ep-danger-list">
+                 <li>Your profile and all personal information</li>
+                 <li>All your listings</li>
+                 <li>Your purchase history</li>
+                 <li>Your ratings and reviews</li>
+        </ul>
     </div>
 </div>
 
+                <form method="POST" action="{{ url_for('delete_account') }}" id="delete-form" onsubmit="return confirmDelete()">
+                <div class="ep-fg">
+                    <label>Enter your password to confirm</label>
+                    <div class="ep-input-wrap">
+                        <input type="password" name="password" id="delete_password" placeholder="Your current password" required>
+                        <button type="button" class="ep-eye" onclick="togglePassword('delete_password', this)">👀</button>
+                    </div>
+                </div>
+                     <div class="ep-fg">
+                      <label>Type <span class="ep-confirm-word">DELETE</span> to confirm</label>
+                      <input type="text" name="confirm_text" placeholder="DELETE" required
+                                   oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                    
+                <div class="ep-divider"></div>        
+                <div class="ep-actions">
+                     <button type="submit" class="ep-btn-danger">Permanently Delete Account</button>
+                     <button type="button" class="ep-btn-cancel" onclick="switchTab('edit')">Cancel</button>
+               </div>
+            </form>
+        </div><!-- end section-delete -->
+    </div><!-- end ep-panel -->
+</div><!-- end ep-grid -->
+</div><!-- end ep-wrap -->
+</div><!-- end ep-page -->
+
 <script>
 function switchTab(name) {
+    // Sections
     document.querySelectorAll('.ep-section').forEach(s => s.classList.remove('on'));
     document.getElementById('section-' + name).classList.add('on');
+ 
+    // Tab buttons (top bar)
     document.querySelectorAll('.ep-tab-btn').forEach(b => b.classList.remove('on'));
     document.getElementById('tab-' + name).classList.add('on');
+ 
+    // Left nav buttons
     document.querySelectorAll('.ep-nav-item').forEach(b => b.classList.remove('on'));
     document.getElementById('nav-' + name).classList.add('on');
 }
 
-function togglePassword(id, btn) {
-    const inp = document.getElementById(id);
+    // can see password function
+    function togglePassword(id, btn) {
+     const inp = document.getElementById(id);
     if (!inp) return;
     inp.type = inp.type === 'password' ? 'text' : 'password';
     btn.textContent = inp.type === 'password' ? '👀' : '🫣';
-}
-
-function checkPwStrength() {
-    const pw = document.getElementById('new_password').value;
-    const checks = {
+      }
+    
+    //check password strength
+    function checkPwStrength() {
+    const pw= document.getElementById('new_password').value;
+    const  checks ={
         len: pw.length >= 8,
-        upper: /[A-Z]/.test(pw),
-        lower: /[a-z]/.test(pw),
-        number: /[0-9]/.test(pw),
-        special: /[!@#$%^&*]/.test(pw)
+        upper:/[A-Z]/.test(pw),
+        lower:/[a-z]/.test(pw),
+        number:/[0-9]/.test(pw),
+        special:/[!@#$%^&*]/.test(pw)
     };
-    const score = Object.values(checks).filter(Boolean).length;
+
+    const score=Object.values(checks).filter(Boolean).length;
     const colors = ['', '#e74c3c', '#e67e22', '#f1c40f', '#27ae60', '#00c986'];
     const labels = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
     const widths = ['0%', '20%', '40%', '60%', '80%', '100%'];
-    const bar = document.getElementById('ep-strength-bar');
-    if (bar) { bar.style.width = widths[score]; bar.style.background = colors[score]; }
-    const label = document.getElementById('ep-strength-label');
+    
+    const bar= document.getElementById('ep-strength-bar');
+    if (bar){
+        bar.style.width= widths[score];
+        bar.style.background= colors[score];
+    }
+    const label=  document.getElementById('ep-strength-label');
     if (label) label.textContent = pw ? `Password strength: ${labels[score]}` : '';
+
     const reqs = ['ep-req-len', 'ep-req-up', 'ep-req-lo', 'ep-req-num', 'ep-req-sp'];
     const valid = [checks.len, checks.upper, checks.lower, checks.number, checks.special];
+    
     reqs.forEach((id, i) => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -303,15 +351,20 @@ function checkPwStrength() {
         el.className = valid[i] ? 'req-valid' : 'req-invalid';
         if (ic) ic.textContent = valid[i] ? '✓' : '✗';
     });
-    return score === 5;
-}
+        return score === 5;
+    }
 
-function checkPwMatch() {
-    const pw = document.getElementById('new_password').value || '';
-    const cpw = document.getElementById('confirm_password').value || '';
+    //check password match
+    function checkPwMatch() {
+    const pw = document.getElementById('new_password').value|| '';
+    const cpw = document.getElementById('confirm_password').value|| '';
     const div = document.getElementById('ep-pw-match');
+    
     if (!div) return;
-    if (!cpw) { div.innerHTML = ''; div.className = 'ep-pw-match'; return; }
+    if (!cpw) {
+        div.innerHTML = ''; div.className = 'ep-pw-match';
+        return;
+    }
     if (pw === cpw) {
         div.innerHTML = '✓ Passwords match';
         div.className = 'ep-pw-match pw-ok';
@@ -321,26 +374,28 @@ function checkPwMatch() {
     }
 }
 
+//preview avatar
 function previewAvatar(input) {
     if (!input.files || !input.files[0]) return;
     const reader = new FileReader();
     reader.onload = function(e) {
+        // Update upload strip thumb
         const thumb = document.getElementById('avatar-preview-img');
         if (thumb) {
             if (thumb.tagName === 'IMG') {
                 thumb.src = e.target.result;
             } else {
                 const img = document.createElement('img');
-                img.id = 'avatar-preview-img';
-                img.src = e.target.result;
+                img.id  = 'avatar-preview-img';
+                img.src = e.target.result;       // FIX: was img.scr
                 img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
                 thumb.parentNode.replaceChild(img, thumb);
             }
         }
-        syncSideAv(e.target.result);
-    };
-    reader.readAsDataURL(input.files[0]);
-}
+        };
+                reader.readAsDataURL(input.files[0]);
+            }
+
 
 function syncAvatarPreview(input) {
     if (!input.files || !input.files[0]) return;
@@ -348,7 +403,7 @@ function syncAvatarPreview(input) {
     reader.onload = e => syncSideAv(e.target.result);
     reader.readAsDataURL(input.files[0]);
 }
-
+ 
 function syncSideAv(src) {
     const side = document.getElementById('side-av-img');
     if (!side) return;
@@ -356,35 +411,39 @@ function syncSideAv(src) {
         side.src = src;
     } else {
         const img = document.createElement('img');
-        img.id = 'side-av-img';
+        img.id  = 'side-av-img';
         img.src = src;
         img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
         side.parentNode.replaceChild(img, side);
     }
 }
 
+//delete accounrt confirmaton
 function confirmDelete() {
-    const text = document.querySelector('#delete-form input[name="confirm_text"]').value;
-    if (text !== 'DELETE') { alert('Please type DELETE to confirm.'); return false; }
+        const confirmText = document.querySelector('#delete-form input[name="confirm_text"]').value;
+         
+       if (confirmText !== 'DELETE') {
+        alert('Please type DELETE to confirm.');
+        return false;
+    }
     return confirm('⚠️ WARNING: This will permanently delete your account. This cannot be undone. Are you absolutely sure?');
 }
 
-function validatePwForm() {
-    const strong = checkPwStrength();
-    const pw = document.getElementById('new_password').value || '';
-    const cpw = document.getElementById('confirm_password').value || '';
-    const cur = document.getElementById('current_password').value || '';
-    if (!cur) { alert('Please enter your current password.'); return false; }
-    if (!strong) { alert('Please meet all password requirements.'); return false; }
-    if (pw !== cpw) { alert('Passwords do not match.'); return false; }
-    return true;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const newPw = document.getElementById('new_password');
-    const confPw = document.getElementById('confirm_password');
-    if (newPw) newPw.addEventListener('input', function() { checkPwStrength(); checkPwMatch(); });
-    if (confPw) confPw.addEventListener('input', checkPwMatch);
-});
+// Real-time monitoring of new password input
+     document.addEventListener('DOMContentLoaded', function() {
+        const newPw = document.getElementById('new_password');
+        const confPw = document.getElementById('confirm_password');
+        
+        if (newPw) {
+            newPw.addEventListener('input', function() {
+                checkPwStrength();
+                checkPwMatch();
+            });
+        }
+        
+        if (confPw) {
+            confPw.addEventListener('input', checkPwMatch);
+        }
+    });
 </script>
 {% endblock %}

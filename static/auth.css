@@ -23,7 +23,7 @@
 /* Body */
 body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(135deg, #f7f6f2 0%, #e6ded3 100%);
+    background:transparent;
     color: #333333;
     min-height: 100vh;
     position: relative;
