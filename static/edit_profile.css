@@ -129,68 +129,6 @@
     position: relative; z-index:1;
 }
 
-.ep-breadcrumb{
-    position: absolute;
-    top: 28px; left: 40px;
-    display: flex; align-items: center; gap:8px;
-    font-size:12px; font-weight: 500;
-    color:rgba(255,255,255,0.55);
-}
-
-.ep-breadcrumb a{
-    color: rgba(255,255,255,0.55);
-    text-decoration: none;
-    transition: color .2s;
-}
-
-.ep-breadcrumb a:hover { color:rgba(255, 255, 255, 0.9);}
-.ep-breadcrumb-sep{ opacity:0.4;}
-
-/* main layout */
-.ep-wrap {
-    max-width:1100px;
-    margin: 0 auto;
-    padding:0 40px;
-    position: relative; z-index: 1;
-}
-
-.ep-grid{
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 24px;
-    /* pull grid up to overlap the herp */
-    margin-top: -56px;
-}
-
-/* left column - identity card */
-.ep-identity{
-    display: flex;
-    flex-direction: column;
-    gap:16px;
-}
-
-/* avatar card */
-.ep-avatar-card{
-    background: var(--white);
-    border-radius:var(--radius-xl);
-    overflow:hidden;
-    box-shadow:var(--shadow-lg);
-    border:1px solid rgba(255, 255, 255, 0.8);
-}
-
-.ep-avatar-cover {
-    height:90px;
-    background: linear-gradient(135deg, var(--ev) 0%, #0d4d2c 60%, #2d7a50 100%);
-    position:relative;
-}
-
-.ep-avatar-wrap {
-    display: flex;
-    justify-content: center;
-    margin-top: -44px;
-    padding: 0 24px;
-    position: relative; z-index:1;
-}
 
 .ep-av-ring {
     width: 88px; height: 88px;
