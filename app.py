@@ -1,12 +1,9 @@
 from ast import For
 import re
 import os
-<<<<<<< HEAD
 import sqlite3
 import datetime
-=======
 import uuid
->>>>>>> ae72e42c3bd896907ba3f18366c0f05a3393179f
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from database import init_db, get_db, init_products
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -43,18 +40,15 @@ def login():
         remember_me = request.form.get('remember_me') 
 
         db = get_db()
-<<<<<<< HEAD
         # 先查数据库，user一定会被定义
         user = db.execute(
             "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
             (email,)
         ).fetchone()
-=======
         user = db.execute(
             'SELECT * FROM users WHERE LOWER(email) = LOWER(?)', 
             (email,)).fetchone()
         db.close()
->>>>>>> ae72e42c3bd896907ba3f18366c0f05a3393179f
 
         # 必须先确认user存在、密码正确，再去读user的字段
         if user and check_password_hash(user['password'], password):
@@ -102,10 +96,8 @@ Remaining: {remain_d}d {remain_h}h {remain_m}m""", "error")
             # 校验全部通过 → 正常登录
             session['user_id'] = user['id']
             session['username'] = user['username']
-<<<<<<< HEAD
             flash("✅ Login successful!", "success")
             db.close()
-=======
             session['student_id'] = user['student_id']
             
             if remember_me:
@@ -114,7 +106,6 @@ Remaining: {remain_d}d {remain_h}h {remain_m}m""", "error")
                 session.permanent = False
             
             flash('Login successful!', 'success')
->>>>>>> ae72e42c3bd896907ba3f18366c0f05a3393179f
             return redirect(url_for('home'))
 
         # 账号不存在/密码错误
