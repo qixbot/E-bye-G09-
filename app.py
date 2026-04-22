@@ -152,6 +152,7 @@ def register():
     
     return render_template('register.html')
 
+# Xingru's Route ------Homepage
 @app.route('/home')
 def home():
     if 'user_id' not in session:
@@ -578,6 +579,7 @@ def block_user(user_id):
     flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
     return redirect(url_for('admin_users'))
 
+# Xingru's Route ------Upload product
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_product():
     if 'user_id' not in session:
@@ -669,7 +671,7 @@ def clear_products():
 
 # -----------------------------------------------------------------------------------------------
 
-
+# Xingru's Route ------Product details page
 @app.route('/product/<int:product_id>')
 def product_detail(product_id):
     if 'user_id' not in session:
