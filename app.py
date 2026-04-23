@@ -586,8 +586,93 @@ def admin_products():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
-    
-    return render_template("admin_products.html")
+
+    db = get_db()
+    pending = db.execute('''
+        SELECT p.*, u.username as seller_name
+        FROM products p JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'pending' ORDER BY p.created_at DESC
+    ''').fetchall()
+
+    approved = db.execute('''
+        SELECT p.*, u.username as seller_name
+        FROM products p JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'approved' ORDER BY p.created_at DESC
+    ''').fetchall()
+
+    rejected = db.execute('''
+        SELECT p.*, u.username as seller_name
+        FROM products p JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'rejected' ORDER BY p.created_at DESC
+    ''').fetchall()
+    db.close()
+
+    return render_template("admin_product.html",
+                           pending_list=pending,
+                           approved_list=approved,
+                           rejected_list=rejected)
+
+# 审核通过商品
+@app.route('/admin/product/approve/<int:pid>')
+def approve_product(pid):
+    if not session.get('admin_logged_in'):
+        flash('Unauthorized', 'error')
+        return redirect(url_for('admin_login'))
+
+    db = get_db()
+    # 更新商品状态+清空驳回理由
+    db.execute('''
+        UPDATE products 
+        SET status = 'approved', reject_reason = ''
+        WHERE id = ?
+    ''', (pid,))
+
+    # 获取商品和卖家信息，用于发通知
+    prod = db.execute('SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
+    seller_id = prod['seller_id']
+    prod_name = prod['name']
+
+    db.commit()
+    db.close()
+
+    # 【之后对接ChatList通知在这里加】
+    # 通知文案：✅ 你的商品【{prod_name}】审核已通过，现已上架展示！
+
+    flash("Product approved successfully, now visible on homepage", "success")
+    return redirect(url_for('admin_products'))
+
+
+# 驳回商品 + 填写理由
+@app.route('/admin/product/reject/<int:pid>', methods=['POST'])
+def reject_product(pid):
+    if not session.get('admin_logged_in'):
+        flash('Unauthorized', 'error')
+        return redirect(url_for('admin_login'))
+
+    reject_reason = request.form.get('reject_reason','').strip()
+    if not reject_reason:
+        flash("Please provide a reason for rejection", "error")
+        return redirect(url_for('admin_products'))
+
+    db = get_db()
+    db.execute('''
+        UPDATE products 
+        SET status = 'rejected', reject_reason = ?
+        WHERE id = ?
+    ''', (reject_reason, pid))
+
+    prod = db.execute('SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
+    seller_id = prod['seller_id']
+    prod_name = prod['name']
+
+    db.commit()
+    db.close()
+
+    # 【之后对接ChatList通知在这里加】
+    # 通知文案：❌ 你的商品【{prod_name}】审核驳回，原因：{reject_reason}，修改后可重新上传
+
+    flash("Product rejected successfully", "success")
+    return redirect(url_for('admin_products'))
 
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
 def freeze_7day(user_id):

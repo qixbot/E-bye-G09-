@@ -160,6 +160,11 @@ def init_products():
         db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
     except sqlite3.OperationalError:
         pass  # column already exists
+    #reject reason
+    try:
+        db.execute("ALTER TABLE products ADD COLUMN reject_reason TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
     
     db.commit()
     db.close()
