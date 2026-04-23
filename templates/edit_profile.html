@@ -9,20 +9,75 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='edit_profile.css') }}">
 
-<div class="ep-page">
-    <!-- hero -->
+<div class="ep-page" id="epPage">
+
+    <!-- hero page area -->
     <div class="ep-hero">
-        <nav class="ep-breadcrumb">
+        <!-- return arrow -->
+         <button class="ep-back-btn" onclick="window.location.href='{{ url_for('home') }}'"> ←
+        </button>
+    
+    <nav class="ep-breadcrumb">
             <a href="{{ url_for('home') }}">Home</a>
             <span class="ep-breadcrumb-sep">›</span>
             <a href="#">Profile</a>
             <span class="ep-breadcrumb-sep">›</span>
             <span style="color:rgba(255,255,255,0.9)">Edit</span>
         </nav>
+        <button class="ep-bg-toggle" onclick="toggleBgPanel()" title="Change Background">
+            🎨
+        </button>
+    </div>
+    
+    <div class="ep-bg-panel" id="epBgPanel">
+    <div class="ep-bg-panel-header">
+        <span>🎨 Choose Background</span>
+        <button class="ep-bg-close" onclick="toggleBgPanel()">✕</button>
     </div>
 
-    <div class="ep-wrap">
-        <div class="ep-grid">
+    <div class="ep-bg-options">
+        <div class="ep-bg-option" onclick="setBg('default')">
+            <div class="ep-bg-preview default-bg"></div>
+            <span>Default</span>
+        </div>
+        <div class="ep-bg-option" onclick="setBg('gradient')">
+            <div class="ep-bg-preview gradient-bg"></div>
+            <span>Gradient</span>
+        </div>
+        <div class="ep-bg-option" onclick="setBg('dark')">
+            <div class="ep-bg-preview dark-bg"></div>
+            <span>Dark</span>
+        </div>
+        <div class="ep-bg-option" onclick="setBg('forest')">
+            <div class="ep-bg-preview forest-bg"></div>
+            <span>Forest</span>
+        </div>
+        <div class="ep-bg-option" onclick="setBg('ocean')">
+            <div class="ep-bg-preview ocean-bg"></div>
+            <span>Ocean</span>
+        </div>
+    </div>
+</div>
+
+<!-- background layer -->
+<div class="ep-bg-layer" id="epBgLayer"></div>
+
+    <!-- user can change their background cover -->
+    <div class="ep-cover-container"> 
+        <div class="ep-cover-image" id="coverImage"
+     style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) if user.cover_image else '' }}'); background-color: #00381f;">
+        
+        <div class="ep-cover-overlay">
+            <button class="ep-cover-upload-btn" onclick="document.getElementById('cover-input').click()">
+                📷 Change Cover Photo
+            </button>
+        </div>
+        </div>
+        <input type="file" id="cover-input" name="cover_image" accept="image/*" style="display:none" onchange="uploadCover(this)">
+    </div>
+
+            <div class="ep-wrap">
+            <div class="ep-grid">
 
             <!-- left column -->
             <div class="ep-identity">
@@ -43,6 +98,32 @@
                     <div class="ep-avatar-body">
                         <div class="ep-name">{{ user.full_name or user.username }}</div>
                         <div class="ep-handle">@{{ user.username }}</div>
+                        
+                        <!-- account status section -->
+                         <div class="ep-account-status">
+                            <div class="ep-status-header">
+                                <span>📊 Account Status</span>
+                                <span class="ep-status-badge verified">✓ Verified</span>
+                        </div>
+                        <div class="ep-status-metrics">
+                            <div class="ep-metric">
+                                <div class="ep-metric-value">{{ trust_score or 85 }}%</div>
+                                    <div class="ep-metric-label">Trust Score</div>
+                                </div>
+                                <div class="ep-metric">
+                                    <div class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</div>
+                                    <div class="ep-metric-label">Member Since</div>
+                                </div>
+                                <div class="ep-metric">
+                                    <div class="ep-metric-value">{{ response_rate or '98' }}%</div>
+                                    <div class="ep-metric-label">Response Rate</div>
+                                </div>
+                            </div>
+                            <div class="ep-status-progress">
+                                <div class="ep-progress-bar" style="width: {{ trust_score or 85 }}%"></div>
+                            </div>
+                        </div>
+
                         <div class="ep-stats">
                             <div class="ep-stat">
                                 <div class="ep-stat-n">{{ listing_count or 0 }}</div>
@@ -70,8 +151,8 @@
                 </div>
             </div>
 
-            <!-- right panel -->
-            <div class="ep-panel">
+                 <!-- right panel -->
+                <div class="ep-panel">
                 <div class="ep-section-tabs">
                     <button class="ep-tab-btn on" id="tab-edit" onclick="switchTab('edit')">Edit Profile</button>
                     <button class="ep-tab-btn" id="tab-password" onclick="switchTab('password')">Password</button>
@@ -261,6 +342,88 @@
 </div>
 
 <script>
+function setBg(bgType) {
+    const bgLayer = document.getElementById('epBgLayer');
+    if (!bgLayer) return;
+    
+    if (bgType === 'default') {
+        bgLayer.style.background = '';
+        localStorage.setItem('profileBg', 'default');
+    } else if (bgType === 'gradient') {
+        bgLayer.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        localStorage.setItem('profileBg', 'gradient');
+    } else if (bgType === 'dark') {
+        bgLayer.style.background = '#1a1a2e';
+        localStorage.setItem('profileBg', 'dark');
+    } else if (bgType === 'forest') {
+        bgLayer.style.background = 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)';
+        localStorage.setItem('profileBg', 'forest');
+    } else if (bgType === 'ocean') {
+        bgLayer.style.background = 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)';
+        localStorage.setItem('profileBg', 'ocean');
+    }
+}
+
+// restore saved background
+function restoreBackground() {
+    const savedBg = localStorage.getItem('profileBg');
+    if (savedBg && savedBg !== 'default') {
+        setBg(savedBg);
+    }
+}
+
+// upload cover function
+function uploadCover(input) {
+    if (!input.files || !input.files[0]) return;
+
+    const formData = new FormData();
+    formData.append('cover_image',input.files[0]);
+
+    fetch('/update-cover',{
+        method: 'POST',
+        body:formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if(data.success){
+            const coverDiv = document.getElementById('coverImage');
+            coverDiv.style.backgroundImage = `url(${data.image_url}?t=${Date.now()})`;
+
+            //output success message
+            const toast = document.createElement('div');
+            toast.className = 'ep-flash success';
+            toast.innerHTML ='✅ Cover photo updated!';
+            document.querySelector('.ep-panel').prepend(toast);
+            setTimeout(() => toast.remove(), 3000);
+        } else {
+            alert('Upload failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Upload failed. Please try again.');
+    });
+}
+
+function toggleBgPanel() {
+    const panel = document.getElementById('epBgPanel');
+    if (panel) {
+        panel.classList.toggle('open');
+    }
+}
+
+function previewCover(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const coverDiv = document.getElementById('coverImage');
+            coverDiv.style.backgroundImage = `url(${e.target.result})`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+
 function switchTab(name) {
     document.querySelectorAll('.ep-section').forEach(s => s.classList.remove('on'));
     document.getElementById('section-' + name).classList.add('on');
@@ -381,6 +544,7 @@ function validatePwForm() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    restoreBackground();  //
     const newPw = document.getElementById('new_password');
     const confPw = document.getElementById('confirm_password');
     if (newPw) newPw.addEventListener('input', function() { checkPwStrength(); checkPwMatch(); });
