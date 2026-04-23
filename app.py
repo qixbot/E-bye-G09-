@@ -605,13 +605,18 @@ def admin_products():
         FROM products p JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'rejected' ORDER BY p.created_at DESC
     ''').fetchall()
+    # 把数据库原生Row，全部转成Python标准字典
+    pending = [dict(row) for row in pending]
+    approved = [dict(row) for row in approved]
+    rejected = [dict(row) for row in rejected]
+
     db.close()
 
+    # 这里三个参数一个都不能少！
     return render_template("admin_product.html",
                            pending_list=pending,
                            approved_list=approved,
                            rejected_list=rejected)
-
 # 审核通过商品
 @app.route('/admin/product/approve/<int:pid>')
 def approve_product(pid):
@@ -673,6 +678,27 @@ def reject_product(pid):
 
     flash("Product rejected successfully", "success")
     return redirect(url_for('admin_products'))
+
+# Admin 弹窗专用 拿商品完整信息
+@app.route('/admin/api/product/<int:pid>')
+def admin_get_product_info(pid):
+    if not session.get('admin_logged_in'):
+        return {"error":"no permission"},403
+
+    db = get_db()
+    product = db.execute('''
+        SELECT p.*, u.username as seller_name
+        FROM products p
+        JOIN users u ON p.seller_id = u.id
+        WHERE p.id = ?
+    ''', (pid,)).fetchone()
+    db.close()
+
+    if not product:
+        return {"error":"not found"},404
+
+    # 直接转字典给前端弹窗用
+    return dict(product)
 
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
 def freeze_7day(user_id):
