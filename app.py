@@ -2,7 +2,7 @@ from ast import For
 import re
 import os
 import sqlite3
-import datetime
+from datetime import datetime ,timedelta
 import uuid
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from database import init_db, get_db, init_products
@@ -21,13 +21,6 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 init_db()
 init_products()
 
-@app.route('/')
-def index():
-    if 'user_id' in session:
-        return redirect(url_for('home'))
-    return redirect(url_for('login'))
-
-# Eileen's Route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -36,19 +29,68 @@ def login():
         remember_me = request.form.get('remember_me') 
 
         db = get_db()
+        # 单次查询用户，去除重复冗余
         user = db.execute(
             "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
             (email,)
         ).fetchone()
-        user = db.execute(
-            'SELECT * FROM users WHERE LOWER(email) = LOWER(?)', 
-            (email,)).fetchone()
         db.close()
 
+        # 账号+密码校验通过，才进入后续判断
         if user and check_password_hash(user['password'], password):
+
+            # ========== 1. 永久封禁拦截 ==========
+            if user["is_blocked"] == 1:
+                flash("❌ This account is permanently blocked.", "danger")
+                return redirect(url_for("login"))
+
+            # ========== 2. 限时冻结精准拦截 ==========
+            is_user_frozen = user["is_frozen"]
+            frozen_end_time = user["frozen_until"]
+
+            if is_user_frozen == 1 and frozen_end_time:
+                now = datetime.now()
+                expire_time = None
+
+                # 安全解析时间
+                try:
+                    expire_time = datetime.strptime(frozen_end_time, "%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    pass
+
+                # 账号仍在冻结有效期，强制拦截
+                if expire_time and now < expire_time:
+                    # 计算剩余解冻时间
+                    time_diff = expire_time - now
+                    remain_days = time_diff.days
+                    remain_hours = time_diff.seconds // 3600
+
+                    # 兼容空冻结理由
+                    freeze_reason_text = user["freeze_reason"] if user["freeze_reason"] else "No specific reason provided"
+
+                    # 独立变量存消息，彻底杜绝f-string语法标红
+                    alert_msg = f"""⚠️ ACCOUNT FROZEN
+Reason: {freeze_reason_text}
+Will automatically unlock in: {remain_days} Day(s) {remain_hours} Hour(s)"""
+
+                    flash(alert_msg, "warning")
+                    # return 缩进100%合法，彻底消除标红
+                    return redirect(url_for("login"))
+                
+                # 冻结已过期，自动解冻
+                else:
+                    db_auto_unfreeze = get_db()
+                    db_auto_unfreeze.execute("""
+                        UPDATE users
+                        SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
+                        WHERE id = ?
+                    """, (user["id"],))
+                    db_auto_unfreeze.commit()
+                    db_auto_unfreeze.close()
+
+            # ========== 全部校验通过，正式登录 ==========
             session['user_id'] = user['id']
             session['username'] = user['username']
-            db.close()
             session['student_id'] = user['student_id']
             
             if remember_me:
@@ -56,8 +98,10 @@ def login():
             else:
                 session.permanent = False
             
-            flash('Login successful!', 'success')
+            flash('✅ Login successful!', 'success')
             return redirect(url_for('home'))
+
+        # 账号/密码错误兜底
         else:
             flash('Invalid email or password', 'error')
     
@@ -541,29 +585,41 @@ def admin_products():
     
     return render_template("admin_products.html")
 
-@app.route('/admin/user/<int:user_id>/freeze', methods=['POST'])
-def freeze_user(user_id):
-    # Administrator Permission Verification
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    
-    reason = request.form.get('reason', 'No reason provided')
+@app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
+def freeze_7day(user_id):
+    if not session.get("admin_logged_in"):
+        flash("Unauthorized")
+        return redirect(url_for("admin_login"))
+
+    reason = request.form.get('reason', 'No reason provided').strip()
+    now = datetime.now()
+    frozen_end_time = now + timedelta(days=7)
+    time_str = frozen_end_time.strftime("%Y-%m-%d %H:%M:%S")
+
     db = get_db()
-    
-    # 1.Add a "freeze tag" to the user
-    db.execute("UPDATE users SET is_frozen = 1 WHERE id = ?", (user_id,))
-    
-   # 2.Send a "Freeze Notice" to the user
-    db.execute(
-        "INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)",
-        (user_id, f"Your account has been frozen. Reason: {reason}")
-    )
-    
+    db.execute("""
+        UPDATE users
+        SET is_frozen = 1,
+            freeze_reason = ?,
+            frozen_at = ?,
+            frozen_until = ?
+        WHERE id = ?
+    """, (reason, now.strftime("%Y-%m-%d %H:%M:%S"), time_str, user_id))
+
+    db.execute("""
+        INSERT INTO notifications (user_id, message, created_at)
+        VALUES (?, ?, ?)
+    """, (
+        user_id,
+        f"Your account has been frozen for 7 days.\nReason: {reason}\nAuto unfreeze: {time_str}",
+        now.strftime("%Y-%m-%d %H:%M:%S")
+    ))
+
     db.commit()
     db.close()
-    flash(f"User {user_id} has been frozen, notification sent.", "success")
-    return redirect(url_for('admin_users'))
-
+    flash("User successfully frozen for 7 days.", "success")
+    return redirect(url_for("admin_users"))
+    
 @app.route('/admin/user/<int:user_id>/block', methods=['POST'])
 def block_user(user_id):
     if not session.get('admin_logged_in'):
@@ -585,6 +641,43 @@ def block_user(user_id):
     db.close()
     flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
     return redirect(url_for('admin_users'))
+
+@app.route("/admin/unfreeze/<int:user_id>", methods=["POST"])
+def unfreeze_user(user_id):
+    # 正确管理员判定 和你后台登录一致
+    if not session.get("admin_logged_in"):
+        flash("Unauthorized")
+        return redirect(url_for("admin_login"))
+
+    db = get_db()
+    db.execute("""
+        UPDATE users 
+        SET is_frozen = 0, frozen_until = NULL 
+        WHERE id = ?
+    """, (user_id,))
+    db.commit()
+    db.close()
+
+    flash("User has been unfrozen successfully.", "success")
+    return redirect(url_for("admin_users"))
+
+@app.route("/admin/unblock/<int:user_id>", methods=["POST"])
+def unblock_user(user_id):
+    if not session.get("admin_logged_in"):
+        flash("Unauthorized")
+        return redirect(url_for("admin_login"))
+
+    db = get_db()
+    db.execute("""
+        UPDATE users 
+        SET is_blocked = 0 
+        WHERE id = ?
+    """, (user_id,))
+    db.commit()
+    db.close()
+
+    flash("User ban has been lifted successfully.", "success")
+    return redirect(url_for("admin_users"))
 
 @app.route('/chatlist')
 def user_chatlist():

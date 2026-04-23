@@ -1,51 +1,228 @@
-{% extends "base.html" %}{% block bottom_nav %}
-{% endblock %}
-
-{% block navbar %}
-{% endblock %}
+{% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1>User Management</h1>
+<!-- 顶部导航 -->
+<div style="background:#fff;padding:12px 30px;margin-bottom:30px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
+    <div style="display:flex; gap:12px;">
+        <a href="{{ url_for('admin_dashboard') }}" style="background:#205c30;color:white;border:none;border-radius:22px;padding:8px 22px;text-decoration:none;">Dashboard</a>
+        <a href="{{ url_for('admin_products') }}" style="background:#205c30;color:white;border:none;border-radius:22px;padding:8px 22px;text-decoration:none;">Manage Products</a>
+        <a href="{{ url_for('logout') }}" style="background:#205c30;color:white;border:none;border-radius:22px;padding:8px 22px;text-decoration:none;">Logout</a>
+    </div>
+</div>
+
+<div style="padding:0 30px 180px 30px; max-width:1400px; margin:0 auto;">
+    <h2>Manage All Users</h2>
+    <p style="color:#555;margin-bottom:20px;">7-day temporary freeze, auto unfreeze when expired</p>
+
+    <!-- 搜索栏 -->
+    <div class="mb-4" style="position:relative;max-width:700px;">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:#888;">🔍</span>
+        <input type="text" id="searchInput" class="form-control" placeholder="Search username / email" style="border-radius:12px;padding:12px 16px 12px 40px;width:100%;">
+    </div>
     <hr>
 
-    <div class="mb-4">
-        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">Back to Dashboard</a>
+    <!-- ✅ 正常活跃用户 -->
+    <h4 class="mb-3">✅ Active Users</h4>
+    <div style="background:white;border-radius:16px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <table class="table table-hover w-100">
+            <thead>
+                <tr>
+                    <th style="padding:16px 30px;">No.</th>
+                    <th style="padding:16px 30px;">Student ID</th>
+                    <th style="padding:16px 30px;">Email</th>
+                    <th style="padding:16px 30px;">Username</th>
+                    <th style="padding:16px 30px;">Status</th>
+                    <th style="padding:16px 30px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set active_list = users | selectattr('is_blocked', '==', 0) | selectattr('is_frozen', '==', 0) | list %}
+                {% if active_list | length == 0 %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No active users at the moment</td>
+                </tr>
+                {% else %}
+                {% for u in active_list %}
+                <tr class="user-row">
+                    <td style="padding:16px 30px;">{{ u.id }}</td>
+                    <td style="padding:16px 30px;">{{ u.student_id }}</td>
+                    <td style="padding:16px 30px;" class="user-email">{{ u.email }}</td>
+                    <td style="padding:16px 30px;" class="user-username">{{ u.username }}</td>
+                    <td style="padding:16px 30px;"><span style="color:green;font-weight:500;">✅ Active</span></td>
+                    <td style="padding:16px 30px;">
+                        <button onclick='openModal({{ u.id }}, "freeze")' style="background-color:#ffc107;color:#000;border:none;border-radius:20px;padding:7px 18px;margin-right:8px;">Freeze 7 Days</button>
+                        <button onclick='openModal({{ u.id }}, "block")' style="background-color:#dc3545;color:white;border:none;border-radius:20px;padding:7px 18px;">Block</button>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
     </div>
 
-    <table class="table table-bordered table-striped">
-        <thead class="table-dark">
-            <tr>
-                <th>ID</th>
-                <th>Student ID</th>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Is Admin</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users %}
-            <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.student_id }}</td>
-                <td>{{ user.username }}</td>
-                <td>{{ user.email }}</td>
-                <td>{{ '✅ Admin' if user.is_admin == 1 else '👤 User' }}</td>
-                <td>
-                    <form method="POST" action="{{ url_for('freeze_user', user_id=user.id) }}" style="display:inline;">
-                        <input type="text" name="reason" placeholder="Freeze reason" required style="width:150px;">
-                        <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Confirm freeze this user?')">Freeze</button>
-                    </form>
-                    
-                    <form method="POST" action="{{ url_for('block_user', user_id=user.id) }}" style="display:inline;">
-                        <input type="text" name="reason" placeholder="Block reason" required style="width:150px;">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Confirm PERMANENT block? This cannot be undone!')">Block</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <br><br><br>
+
+    <!-- ⚠️ 冻结用户 -->
+    <h4 class="mb-3 text-warning">⚠️ Frozen Users (Auto Unfreeze In 7 Days)</h4>
+    <div style="background:white;border-radius:16px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <table class="table table-hover w-100">
+            <thead>
+                <tr>
+                    <th style="padding:16px 30px;">No.</th>
+                    <th style="padding:16px 30px;">Student ID</th>
+                    <th style="padding:16px 30px;">Email</th>
+                    <th style="padding:16px 30px;">Username</th>
+                    <th style="padding:16px 30px;">Auto Unfreeze Time</th>
+                    <th style="padding:16px 30px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set frozen_list = users | selectattr('is_frozen', '==', 1) | selectattr('is_blocked', '==', 0) | list %}
+                {% if frozen_list | length == 0 %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No users are currently frozen</td>
+                </tr>
+                {% else %}
+                {% for u in frozen_list %}
+                <tr class="user-row">
+                    <td style="padding:16px 30px;">{{ u.id }}</td>
+                    <td style="padding:16px 30px;">{{ u.student_id }}</td>
+                    <td style="padding:16px 30px;" class="user-email">{{ u.email }}</td>
+                    <td style="padding:16px 30px;" class="user-username">{{ u.username }}</td>
+                    <td style="padding:16px 30px;">
+                        {% if u.frozen_until %}
+                        <span style="color:orange;">{{ u.frozen_until.split(' ')[0] }}</span>
+                        {% else %}
+                        <span style="color:orange;">Processing</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:16px 30px;">
+                        <form method="post" action="{{ url_for('unfreeze_user', user_id=u.id) }}" onsubmit="return confirm('Unfreeze this user early?')">
+                            <button type="submit" style="background-color:#17a2b8;color:white;border:none;border-radius:20px;padding:7px 18px;font-weight:bold;">Unfreeze Now</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <br><br><br>
+
+    <!-- ❌ 封禁用户 -->
+    <h4 class="mb-3 text-danger">❌ Permanently Blocked Users</h4>
+    <div style="background:white;border-radius:16px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <table class="table table-hover w-100">
+            <thead>
+                <tr>
+                    <th style="padding:16px 30px;">No.</th>
+                    <th style="padding:16px 30px;">Student ID</th>
+                    <th style="padding:16px 30px;">Email</th>
+                    <th style="padding:16px 30px;">Username</th>
+                    <th style="padding:16px 30px;">Status</th>
+                    <th style="padding:16px 30px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set blocked_list = users | selectattr('is_blocked', '==', 1) | list %}
+                {% if blocked_list | length == 0 %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No users are currently blocked</td>
+                </tr>
+                {% else %}
+                {% for u in blocked_list %}
+                <tr class="user-row">
+                    <td style="padding:16px 30px;">{{ u.id }}</td>
+                    <td style="padding:16px 30px;">{{ u.student_id }}</td>
+                    <td style="padding:16px 30px;" class="user-email">{{ u.email }}</td>
+                    <td style="padding:16px 30px;" class="user-username">{{ u.username }}</td>
+                    <td style="padding:16px 30px;"><span style="color:red;font-weight:500;">❌ Permanently Blocked</span></td>
+                    <td style="padding:16px 30px;">
+                        <form method="post" action="{{ url_for('unblock_user', user_id=u.id) }}" onsubmit="return confirm('Unban this user?')">
+                            <button type="submit" style="background-color:#198754;color:white;border:none;border-radius:20px;padding:7px 18px;">Unban User</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
 </div>
+
+<!-- 理由弹窗 -->
+<div id="actionModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;"></div>
+<div id="reasonBox" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:30px;border-radius:16px;width:450px;z-index:1000;">
+    <h4 id="modalTitle">Action Reason</h4>
+    <textarea id="reasonInput" class="form-control" rows="4" placeholder="Enter reason here..."></textarea>
+    <br>
+    <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button onclick="closeModal()" class="btn btn-secondary">Cancel</button>
+        <button onclick="submitAction()" class="btn btn-primary">Confirm</button>
+    </div>
+</div>
+
+<!-- 交互脚本 -->
+<script>
+let targetId = null;
+let actType = null;
+
+// 搜索功能
+document.getElementById('searchInput').addEventListener('input', function(){
+    const val = this.value.toLowerCase();
+    document.querySelectorAll('.user-row').forEach(row=>{
+        const e = row.querySelector('.user-email')?.textContent.toLowerCase()||'';
+        const u = row.querySelector('.user-username')?.textContent.toLowerCase()||'';
+        row.style.display = (e.includes(val)||u.includes(val))?'':'none';
+    });
+});
+
+function openModal(id,type){
+    targetId=id; actType=type;
+    document.getElementById('actionModal').style.display='block';
+    document.getElementById('reasonBox').style.display='block';
+    document.getElementById('modalTitle').innerText=type==='freeze'?'Freeze 7 Days':'Block User';
+}
+
+function closeModal(){
+    document.getElementById('actionModal').style.display='none';
+    document.getElementById('reasonBox').style.display='none';
+    document.getElementById('reasonInput').value='';
+}
+
+function submitAction(){
+    const r=document.getElementById('reasonInput').value.trim();
+    if(!r){alert('Please enter reason');return;}
+    const f=document.createElement('form');f.method='POST';
+    f.action=actType==='freeze'?`/admin/user/${targetId}/freeze`:`/admin/user/${targetId}/block`;
+    const i=document.createElement('input');i.type='hidden';i.name='reason';i.value=r;
+    f.appendChild(i);document.body.appendChild(f);f.submit();closeModal();
+}
+</script>
+
+<!-- 全局2秒自动消失提示 -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for category, message in messages %}
+<div id="globalToast" style="
+    position:fixed;top:25px;left:50%;transform:translateX(-50%);
+    background:#205c30;color:white;padding:12px 35px;border-radius:30px;
+    z-index:9999;transition: opacity 0.6s;">
+    {{ message }}
+</div>
+{% endfor %}
+{% endwith %}
+
+<script>
+// 2秒后自动淡出消失
+setTimeout(()=>{
+    const toast = document.getElementById('globalToast');
+    if(toast){
+        toast.style.opacity = '0';
+        setTimeout(()=> toast.remove(), 600);
+    }
+}, 2000);
+</script>
+
 {% endblock %}
