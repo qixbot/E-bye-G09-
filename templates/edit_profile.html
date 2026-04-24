@@ -1,10 +1,7 @@
 {% extends "base.html"%}
 <!-- eileen part -->
-{% block bottom_nav %}
-{% endblock %}
-
-{% block navbar %}
-{% endblock %}
+{% block bottom_nav %}{% endblock %}
+{% block navbar %}{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='edit_profile.css') }}">
@@ -12,11 +9,15 @@
 <div class="ep-page" id="epPage">
 
     <!-- hero page area -->
-    <div class="ep-hero">
-        <!-- return arrow -->
-         <button class="ep-back-btn" onclick="window.location.href='{{ url_for('home') }}'"> ←
-        </button>
-    
+    <div class="ep-hero" id="coverImage" 
+    style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) if user.cover_image else '' }}'); 
+    background-color: #00381f; background-size: cover; background-position: center;"></div>
+       
+    <!-- return arrow -->
+    <button class="ep-back-btn" onclick="window.location.href='{{ url_for('home') }}'; void(0);">
+    ← Back to Home
+    </button>
+
     <nav class="ep-breadcrumb">
             <a href="{{ url_for('home') }}">Home</a>
             <span class="ep-breadcrumb-sep">›</span>
@@ -27,8 +28,18 @@
         <button class="ep-bg-toggle" onclick="toggleBgPanel()" title="Change Background">
             🎨
         </button>
-    </div>
     
+    <div class="ep-cover-overlay">
+            <button class="ep-cover-upload-btn" onclick="document.getElementById('cover-input').click()">
+                📷 Change Cover Photo
+            </button>
+        </div>
+    <input type="file" id="cover-input" name="cover_image" accept="image/*" style="display:none" onchange="uploadCover(this)">
+</div><!-- end ep-hero -->
+
+     <div class="ep-bg-layer" id="epBgLayer"></div>
+    
+    <!-- background selection panel -->
     <div class="ep-bg-panel" id="epBgPanel">
     <div class="ep-bg-panel-header">
         <span>🎨 Choose Background</span>
@@ -58,27 +69,11 @@
         </div>
     </div>
 </div>
-
-<!-- background layer -->
-<div class="ep-bg-layer" id="epBgLayer"></div>
-
-    <!-- user can change their background cover -->
-    <div class="ep-cover-container"> 
-        <div class="ep-cover-image" id="coverImage"
-     style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) if user.cover_image else '' }}'); background-color: #00381f;">
         
-        <div class="ep-cover-overlay">
-            <button class="ep-cover-upload-btn" onclick="document.getElementById('cover-input').click()">
-                📷 Change Cover Photo
-            </button>
-        </div>
-        </div>
-        <input type="file" id="cover-input" name="cover_image" accept="image/*" style="display:none" onchange="uploadCover(this)">
-    </div>
 
-            <div class="ep-wrap">
-            <div class="ep-grid">
-
+    <!-- main content -->
+    <div class="ep-wrap">
+        <div class="ep-grid">
             <!-- left column -->
             <div class="ep-identity">
                 <div class="ep-avatar-card">
@@ -100,14 +95,14 @@
                         <div class="ep-handle">@{{ user.username }}</div>
                         
                         <!-- account status section -->
-                         <div class="ep-account-status">
+                        <div class="ep-account-status">
                             <div class="ep-status-header">
                                 <span>📊 Account Status</span>
                                 <span class="ep-status-badge verified">✓ Verified</span>
-                        </div>
-                        <div class="ep-status-metrics">
-                            <div class="ep-metric">
-                                <div class="ep-metric-value">{{ trust_score or 85 }}%</div>
+                            </div>
+                            <div class="ep-status-metrics">
+                                <div class="ep-metric">
+                                    <div class="ep-metric-value">{{ trust_score or 85 }}%</div>
                                     <div class="ep-metric-label">Trust Score</div>
                                 </div>
                                 <div class="ep-metric">
@@ -122,8 +117,8 @@
                             <div class="ep-status-progress">
                                 <div class="ep-progress-bar" style="width: {{ trust_score or 85 }}%"></div>
                             </div>
-                        </div>
-
+                        </div>  
+                        
                         <div class="ep-stats">
                             <div class="ep-stat">
                                 <div class="ep-stat-n">{{ listing_count or 0 }}</div>
@@ -135,9 +130,9 @@
                             </div>
                         </div>
                         <div class="ep-verified">✓ MMU Verified</div>
-                    </div>
-                </div>
+                    </div>  
 
+                <!-- navigation card -->
                 <div class="ep-nav-card">
                     <button class="ep-nav-item on" id="nav-edit" onclick="switchTab('edit')">
                         <span class="ep-nav-icon">✏️</span> Edit Profile
@@ -151,8 +146,8 @@
                 </div>
             </div>
 
-                 <!-- right panel -->
-                <div class="ep-panel">
+            <!-- right panel -->
+            <div class="ep-panel">
                 <div class="ep-section-tabs">
                     <button class="ep-tab-btn on" id="tab-edit" onclick="switchTab('edit')">Edit Profile</button>
                     <button class="ep-tab-btn" id="tab-password" onclick="switchTab('password')">Password</button>
@@ -337,11 +332,20 @@
                     </form>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
+
+        </div>  <!-- close ep-grid -->
+    </div>  <!-- close ep-wrap -->
+</div>  <!-- close ep-page -->
+
 
 <script>
+//background layer
+const epBgLayer = document.createElement('div');
+epBgLayer.className = 'ep-bg-layer';
+epBgLayer.id = 'epBgLayer';
+document.getElementById('epPage').insertBefore
+(epBgLayer, document.querySelector('.ep-hero').nextSibling);
+
 function setBg(bgType) {
     const bgLayer = document.getElementById('epBgLayer');
     if (!bgLayer) return;
@@ -381,7 +385,8 @@ function uploadCover(input) {
 
     fetch('/update-cover',{
         method: 'POST',
-        body:formData
+        body:formData,
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {

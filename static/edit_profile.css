@@ -104,7 +104,7 @@
 .ep-bg-toggle{
     position: absolute;
     right: 20px; top: 20px;
-    width: 400px; height:40px;
+    width: 40px; height:40px;
     border-radius:50%; background:rgba(255,255,255,0.2);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255,255,255,0.3);
@@ -118,7 +118,7 @@
     background: rgba(255,255,255,0.35); transition: scale(1.05);
 }
 
-.eb-bg-panel{
+.ep-bg-panel{
     position: fixed;
     bottom: 80px;
     right: 20px;
@@ -133,18 +133,18 @@
     transform-origin: bottom right;
 }
 
-.eb-bg-panel.open{
+.ep-bg-panel.open{
     transform:scale(1);
     opacity:1;
 }
 
-.eb-bg-panel-header{
+.ep-bg-panel-header{
     display: flex; justify-content: space-between;
     align-items: center; margin-bottom: 12px;
     font-weight: 600; color:#333;
 }
 
-.eb-bg-panel.close{
+.ep-bg-panel.close{
     background: none; border: none;
     font-size: 18px; cursor: pointer; color:#999;
 }
@@ -192,6 +192,48 @@
 }
 .ocean-bg {
     background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+}
+
+.ep-cover-container{
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+}
+
+.ep-cover-image{
+    width:100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.ep-cover-overlay{
+    position: absolute;
+    bottom: 0;
+    left: 0; right:0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.6));
+    padding:20px; opacity: 0;
+    display: flex; justify-content: center;
+    transition: opacity 0.3s;
+}
+
+.ep-cover-container:hover .ep-cover-overlay{
+    opacity:1;
+}
+
+.ep-cover-upload-btn{
+    background: rgba(255,255,255,0.9); border:none;
+    border-radius: 30px; padding:8px 20px;
+    font-size: 14px; font-weight:600;
+    cursor:pointer; color:#00381f;
+    transition: all 0.2s;
+}
+
+.ep-cover-upload-btn:hover{
+    background: white;
+    transform: scale(1.05);
 }
 
 .ep-account-status{

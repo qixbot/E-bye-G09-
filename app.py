@@ -1,16 +1,55 @@
 from ast import For
+
 import re
+
 import os
-import sqlite3
-from datetime import datetime ,timedelta
+
 import uuid
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+
+import sqlite3
+
+from datetime import datetime, timedelta
+
+from flask import(
+Flask, 
+render_template,
+request, redirect, 
+url_for, session, flash, jsonify)
+
 from database import init_db, get_db, init_products
+
 from werkzeug.security import generate_password_hash, check_password_hash
+
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026-new'
+
+#jinja2 time filter
+@app.template_filter('time_since')
+
+def time_since(date):
+
+    if not date:
+        return 'New'
+    now = datetime.now()
+    if isinstance(date, str):
+        try:
+            date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+        except:
+            return 'New'
+    diff = now - date
+    if diff.days > 365:
+        return f"{diff.days//365}y"
+    elif diff.days > 30:
+        return f"{diff.days//30}m"
+    elif diff.days > 0:
+        return f"{diff.days}d"
+    elif diff.seconds > 3600:
+        return f"{diff.seconds//3600}h"
+    elif diff.seconds > 60:
+        return f"{diff.seconds//60}m"
+    return 'Just now'
 
 # --- Setup folder for uploaded product images ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
@@ -22,10 +61,13 @@ init_db()
 init_products()
 
 @app.route('/')
+
 def index():
     return redirect(url_for('login'))
 
+#Eileen and Keting
 @app.route('/login', methods=['GET', 'POST'])
+
 def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
@@ -33,9 +75,8 @@ def login():
         remember_me = request.form.get('remember_me') 
 
         db = get_db()
-        # 单次查询用户，去除重复冗余
         user = db.execute(
-            "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
+            'SELECT * FROM users WHERE LOWER(email) = LOWER(?)',
             (email,)
         ).fetchone()
         db.close()
@@ -43,14 +84,14 @@ def login():
         # 账号+密码校验通过，才进入后续判断
         if user and check_password_hash(user['password'], password):
 
-            # ========== 1. 永久封禁拦截 ==========
-            if user["is_blocked"] == 1:
-                flash("❌ This account is permanently blocked.", "danger")
-                return redirect(url_for("login"))
+            # 永久封禁拦截 
+            if user['is_blocked'] == 1:
+                flash('❌ This account is permanently blocked.', 'danger')
+                return redirect(url_for('login'))
 
-            # ========== 2. 限时冻结精准拦截 ==========
-            is_user_frozen = user["is_frozen"]
-            frozen_end_time = user["frozen_until"]
+            # 限时冻结精准拦截 
+            is_user_frozen = user['is_frozen']
+            frozen_end_time = user['frozen_until']
 
             if is_user_frozen == 1 and frozen_end_time:
                 now = datetime.now()
@@ -70,16 +111,19 @@ def login():
                     remain_hours = time_diff.seconds // 3600
 
                     # 兼容空冻结理由
-                    freeze_reason_text = user["freeze_reason"] if user["freeze_reason"] else "No specific reason provided"
-
-                    # 独立变量存消息，彻底杜绝f-string语法标红
-                    alert_msg = f"""⚠️ ACCOUNT FROZEN
-Reason: {freeze_reason_text}
-Will automatically unlock in: {remain_days} Day(s) {remain_hours} Hour(s)"""
-
-                    flash(alert_msg, "warning")
-                    # return 缩进100%合法，彻底消除标红
-                    return redirect(url_for("login"))
+                    freeze_reason_text = (
+                        user['freeze_reason']
+                        if user['freeze_reason']
+                        else 'No specific reason provided'
+                    )
+                    alert_msg = (
+                        f'⚠️ ACCOUNT FROZEN\n'
+                        f'Reason: {freeze_reason_text}\n'
+                        f'Will unlock in: {remain_days} Day(s) '
+                        f'{remain_hours} Hour(s)'
+                    )
+                    flash(alert_msg, 'warning')
+                    return redirect(url_for('login'))
                 
                 # 冻结已过期，自动解冻
                 else:
@@ -91,8 +135,8 @@ Will automatically unlock in: {remain_days} Day(s) {remain_hours} Hour(s)"""
                     """, (user["id"],))
                     db_auto_unfreeze.commit()
                     db_auto_unfreeze.close()
-
-            # ========== 全部校验通过，正式登录 ==========
+            
+            # 全部校验通过，正式登录 
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['student_id'] = user['student_id']
@@ -113,6 +157,7 @@ Will automatically unlock in: {remain_days} Day(s) {remain_hours} Hour(s)"""
 
 # Eileen's Route
 @app.route('/register', methods=['GET', 'POST'])
+
 def register():
     if request.method == 'POST':
         student_id = request.form.get('student_id')
@@ -141,7 +186,9 @@ def register():
         if not email:
             errors.append('Email is required')
         elif not (email.endswith('@student.mmu.edu.my')):
-            errors.append('Only MMU email addresses are allowed (@student.mmu.edu.my)')
+            errors.append(
+                'Only MMU email addresses are allowed '
+                '(@student.mmu.edu.my)')
         
         # Username
         if not username or len(username) < 3:
@@ -160,7 +207,9 @@ def register():
             if not re.search(r'[0-9]', password):
                 errors.append('Password must contain at least 1 number')
             if not re.search(r'[!@#$%^&*]', password):
-                errors.append('Password must contain at least 1 special character (! @ # $ % ^ & *)')
+                errors.append(
+                    'Password must contain at least 1 special character '
+                    '(! @ # $ % ^ & *)')
         
         # Confirm password
         if password != confirm_password:
@@ -175,7 +224,8 @@ def register():
         
         # check if student_id or email already exists
         existing = db.execute(
-              'SELECT * FROM users WHERE student_id = ? OR LOWER(email) = LOWER(?)', 
+              'SELECT * FROM users ' \
+              'WHERE student_id = ? OR LOWER(email) = LOWER(?)', 
               (student_id, email)
         ).fetchone()
         if existing:
@@ -209,6 +259,7 @@ def register():
 
 # Xingru's Route ------Homepage
 @app.route('/home')
+
 def home():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -242,6 +293,7 @@ def home():
     username=session.get('username'), latest_products=products)
 
 @app.route('/logout')
+
 def logout():
     session.clear()
     flash('Logged out', 'info')
@@ -249,6 +301,7 @@ def logout():
 
 #Eileen's Route
 @app.route('/forgot-password', methods=['GET', 'POST'])
+
 def forgot_password():
     if request.method == 'POST':
         step = request.form.get('step')
@@ -362,13 +415,17 @@ def forgot_password():
             session.pop('fp_q2', None)
             session.pop('fp_verified', None)
  
-            flash('Password reset successfully! Please login with your new password.', 'success')
+            flash(
+                'Password reset successfully! ' \
+                'Please login with your new password.', 'success'
+                )
             return redirect(url_for('login'))
  
     return render_template('forgot_password.html')
 
 # Eileen's Route
 @app.route('/admin/login', methods=['GET', 'POST'])
+
 def admin_login():
     if request.method == 'POST':
         email = request.form.get('email')
@@ -393,6 +450,7 @@ def admin_login():
 
 #Eileen's Route ------EDIT profile
 @app.route('/edit_profile', methods=['GET'])
+
 def edit_profile():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -408,17 +466,38 @@ def edit_profile():
         (session['user_id'],)
     ).fetchone()[0]
 
+    # gain trust score and response rate
+    #basic mark=60. the below is 5 mark 
+    #10 listing can go up to 20 marks
+    trust_score = 60
+    if user['avatar']:        trust_score += 5
+    if user['bio']:           trust_score += 5
+    if user['contact']:       trust_score += 5
+    if user['full_name']:     trust_score += 5
+    trust_score += min(20, (listing_count // 10) * 5)
+    trust_score = min(trust_score, 100)
+
+    #real response rate but currently dont have the chat and order
+    #things first,will according to the prodile complement to estimate the marks
+    filled_fields = sum([
+        bool(user['bio']), bool(user['contact']),
+        bool(user['active_hours']), bool(user['full_name']), bool(user['avatar'])
+    ])
+    response_rate = 60 + (filled_fields * 8)  # highest=100
+
     db.close()
     return render_template(
         'edit_profile.html',
         user=user,
         listing_count=listing_count,
-        sold_count=0
+        sold_count=0,
+        trust_score=trust_score,
+        response_rate=response_rate
     )
-
 
 #Eileen's Route ------UPDATE profile
 @app.route('/update-profile', methods=['POST'])
+
 def update_profile():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -452,7 +531,6 @@ def update_profile():
             (filename, session['user_id'])
         )
 
-    # Handle cover image upload
     cover = request.files.get('cover_image')
     if cover and cover.filename:
         filename = secure_filename(f"cover_{session['user_id']}_{cover.filename}")
@@ -461,12 +539,11 @@ def update_profile():
             'UPDATE users SET cover_image = ? WHERE id = ?', 
             (filename, session['user_id'])
         )
-    
-    # Update other fields
-    db.execute(
+
+    db.execute(        
         'UPDATE users SET username = ?, full_name = ?, bio = ?, '
         'contact = ?, gender = ?, active_hours = ? WHERE id = ?',
-    (username, full_name, bio, contact, gender, active_hours, session['user_id'])
+        (username, full_name, bio, contact, gender, active_hours, session['user_id'])
     )
     
     db.commit()
@@ -479,6 +556,7 @@ def update_profile():
 
 #Eileen's Route ------CHANGE password 
 @app.route('/change-password', methods=['POST'])
+
 def change_password():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -522,6 +600,7 @@ def change_password():
 
 #Eileen's Route ------DELETE account
 @app.route('/delete-account', methods=['POST'])
+
 def delete_account():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -555,9 +634,43 @@ def delete_account():
     flash('Your account has been permanently deleted', 'info')
     return redirect(url_for('login'))
 
+#Update background cover
+@app.route('/update-cover',methods=['POST'])
+
+def update_cover():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    if 'cover_image' not in request.files:
+        return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+    
+    file = request.files['cover_image']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'}), 400
+    
+    if file:
+        original_filename = secure_filename(file.filename)
+        if not original_filename:
+            original_filename = f"cover_{uuid.uuid4().hex}.jpg"
+        filepath = os.path.join('static/uploads', original_filename)
+        file.save(filepath)
+        
+        db = get_db()
+        db.execute(
+            'UPDATE users SET cover_image = ? WHERE id = ?', 
+            (original_filename, session['user_id']))
+        db.commit()
+        db.close()
+        
+        return jsonify(
+            {'success': True, 'image_url': url_for('static', 
+            filename=f'uploads/{original_filename}')})
+    
+    return jsonify({'success': False, 'error': 'Upload failed'}), 500
 
 #keting's route
 @app.route('/admin/dashboard')
+
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
@@ -570,6 +683,7 @@ def admin_dashboard():
     return render_template("admin_dashboard.html", total_users=total_users)
 
 @app.route('/admin/users')
+
 def admin_users():
     
     if not session.get('admin_logged_in'):
@@ -582,6 +696,7 @@ def admin_users():
     return render_template("admin_users.html", users=users)
 
 @app.route('/admin/products')
+
 def admin_products():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
@@ -590,9 +705,10 @@ def admin_products():
     return render_template("admin_products.html")
 
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
+
 def freeze_7day(user_id):
     if not session.get("admin_logged_in"):
-        flash("Unauthorized")
+        flash("Unauthorized", "error")
         return redirect(url_for("admin_login"))
 
     reason = request.form.get('reason', 'No reason provided').strip()
@@ -603,19 +719,20 @@ def freeze_7day(user_id):
     db = get_db()
     db.execute("""
         UPDATE users
-        SET is_frozen = 1,
-            freeze_reason = ?,
-            frozen_at = ?,
-            frozen_until = ?
+        SET is_frozen = 1, 
+            frozen_until = ?, 
+            freeze_reason = ?
         WHERE id = ?
-    """, (reason, now.strftime("%Y-%m-%d %H:%M:%S"), time_str, user_id))
+    """, (time_str, reason, user_id))
 
     db.execute("""
         INSERT INTO notifications (user_id, message, created_at)
         VALUES (?, ?, ?)
     """, (
         user_id,
-        f"Your account has been frozen for 7 days.\nReason: {reason}\nAuto unfreeze: {time_str}",
+        f'Your account has been frozen for 7 days.\n'
+        f'Reason: {reason}\n'
+        f'Auto unfreeze: {time_str}',
         now.strftime("%Y-%m-%d %H:%M:%S")
     ))
 
@@ -623,8 +740,9 @@ def freeze_7day(user_id):
     db.close()
     flash("User successfully frozen for 7 days.", "success")
     return redirect(url_for("admin_users"))
-    
+
 @app.route('/admin/user/<int:user_id>/block', methods=['POST'])
+
 def block_user(user_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
@@ -643,10 +761,15 @@ def block_user(user_id):
     
     db.commit()
     db.close()
-    flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
+    flash(
+        f"User {user_id} has been permanently blocked, notification sent.",
+        "success"
+    )
+
     return redirect(url_for('admin_users'))
 
 @app.route("/admin/unfreeze/<int:user_id>", methods=["POST"])
+
 def unfreeze_user(user_id):
     # 正确管理员判定 和你后台登录一致
     if not session.get("admin_logged_in"):
@@ -656,7 +779,7 @@ def unfreeze_user(user_id):
     db = get_db()
     db.execute("""
         UPDATE users 
-        SET is_frozen = 0, frozen_until = NULL 
+        SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
         WHERE id = ?
     """, (user_id,))
     db.commit()
@@ -666,6 +789,7 @@ def unfreeze_user(user_id):
     return redirect(url_for("admin_users"))
 
 @app.route("/admin/unblock/<int:user_id>", methods=["POST"])
+
 def unblock_user(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized")
@@ -684,6 +808,7 @@ def unblock_user(user_id):
     return redirect(url_for("admin_users"))
 
 @app.route('/chatlist')
+
 def user_chatlist():
     if 'user_id' not in session:
         flash("Please login first", "error")
@@ -692,6 +817,7 @@ def user_chatlist():
 
 # Xingru's Route ------Upload product
 @app.route('/upload', methods=['GET', 'POST'])
+
 def upload_product():
     if 'user_id' not in session:
         flash("You must be logged in to post an item.", "error")
@@ -756,22 +882,27 @@ def upload_product():
         images_string = ",".join(saved_image_names)
         db = get_db()
         db.execute('''
-            INSERT INTO products (seller_id, name, price, description, condition, category, images, created_at, status)
+            INSERT INTO products (seller_id, name, price,
+                    description, condition, category, images, created_at, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
-        ''', (seller_id, name, price_val, description, condition, category, images_string, 'pending'))
+        ''', (seller_id, name, 
+              price_val, description,
+                condition, category, images_string, 'pending'))
         db.commit()
         db.close()
 
-        flash("Your item has been submitted for admin approval. It will appear once approved.", "success")
+        flash("Your item has been submitted for admin approval." \
+        " It will appear once approved.", "success")
         return redirect(url_for('home'))
 
     return render_template('upload.html')
 
 
-# --------(Xingru) For testing purposes only - clear all products from database -------------------------
+# (Xingru) For testing purposes only - clear all products from database 
 # This route is not linked from anywhere in the UI and should be used with caution.
 
 @app.route('/clear-products')
+
 def clear_products():
     db = get_db()
     db.execute("DELETE FROM products")
@@ -780,10 +911,11 @@ def clear_products():
     db.close()
     return "All products deleted."
 
-# -----------------------------------------------------------------------------------------------
+######
 
 # Xingru's Route ------Product details page
 @app.route('/product/<int:product_id>')
+
 def product_detail(product_id):
     if 'user_id' not in session:
         flash('Please login to view product details.', 'error')
@@ -791,7 +923,8 @@ def product_detail(product_id):
 
     db = get_db()
     product = db.execute('''
-        SELECT p.*, u.username as seller_name, u.id as seller_id, u.created_at as user_joined
+        SELECT p.*, u.username as seller_name, 
+                         u.id as seller_id, u.created_at as user_joined
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.id = ? AND p.status = 'approved'
