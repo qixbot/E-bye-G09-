@@ -1,5 +1,4 @@
 {% extends "base.html"%}
-<!-- eileen part -->
 {% block bottom_nav %}{% endblock %}
 {% block navbar %}{% endblock %}
 
@@ -8,68 +7,61 @@
 
 <div class="ep-page" id="epPage">
 
-    <!-- hero page area -->
-    <div class="ep-hero" id="coverImage" 
-    style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) if user.cover_image else '' }}'); 
-    background-color: #00381f; background-size: cover; background-position: center;"></div>
-       
-    <!-- return arrow -->
-    <button class="ep-back-btn" onclick="window.location.href='{{ url_for('home') }}'; void(0);">
-    ← Back to Home
-    </button>
-
-    <nav class="ep-breadcrumb">
-            <a href="{{ url_for('home') }}">Home</a>
-            <span class="ep-breadcrumb-sep">›</span>
-            <a href="#">Profile</a>
-            <span class="ep-breadcrumb-sep">›</span>
-            <span style="color:rgba(255,255,255,0.9)">Edit</span>
-        </nav>
+    <!-- hero area -->
+    <div class="ep-hero">
+        <button class="ep-back-btn" onclick="window.location.href='{{ url_for('home') }}'; void(0);">
+            ←
+        </button>
         <button class="ep-bg-toggle" onclick="toggleBgPanel()" title="Change Background">
             🎨
         </button>
-    
-    <div class="ep-cover-overlay">
-            <button class="ep-cover-upload-btn" onclick="document.getElementById('cover-input').click()">
-                📷 Change Cover Photo
-            </button>
-        </div>
-    <input type="file" id="cover-input" name="cover_image" accept="image/*" style="display:none" onchange="uploadCover(this)">
-</div><!-- end ep-hero -->
+    </div>
 
-     <div class="ep-bg-layer" id="epBgLayer"></div>
-    
+    <!-- background layer -->
+    <div class="ep-bg-layer" id="epBgLayer"></div>
+
     <!-- background selection panel -->
     <div class="ep-bg-panel" id="epBgPanel">
-    <div class="ep-bg-panel-header">
-        <span>🎨 Choose Background</span>
-        <button class="ep-bg-close" onclick="toggleBgPanel()">✕</button>
+        <div class="ep-bg-panel-header">
+            <span>🎨 Choose Background</span>
+            <button class="ep-bg-close" onclick="toggleBgPanel()">✕</button>
+        </div>
+        <div class="ep-bg-options">
+            <div class="ep-bg-option" onclick="setBg('default')">
+                <div class="ep-bg-preview default-bg"></div>
+                <span>Default</span>
+            </div>
+            <div class="ep-bg-option" onclick="setBg('gradient')">
+                <div class="ep-bg-preview gradient-bg"></div>
+                <span>Gradient</span>
+            </div>
+            <div class="ep-bg-option" onclick="setBg('dark')">
+                <div class="ep-bg-preview dark-bg"></div>
+                <span>Dark</span>
+            </div>
+            <div class="ep-bg-option" onclick="setBg('forest')">
+                <div class="ep-bg-preview forest-bg"></div>
+                <span>Forest</span>
+            </div>
+            <div class="ep-bg-option" onclick="setBg('ocean')">
+                <div class="ep-bg-preview ocean-bg"></div>
+                <span>Ocean</span>
+            </div>
+        </div>
     </div>
 
-    <div class="ep-bg-options">
-        <div class="ep-bg-option" onclick="setBg('default')">
-            <div class="ep-bg-preview default-bg"></div>
-            <span>Default</span>
+    <!-- cover photo -->
+    <div class="ep-cover-container">
+        <div class="ep-cover-image" id="coverImage"
+            style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) if user.cover_image else '' }}'); background-color: #00381f">
+            <div class="ep-cover-overlay">
+                <button class="ep-cover-upload-btn" onclick="document.getElementById('cover-input').click()">
+                    📷 Change Cover Photo
+                </button>
+            </div>
         </div>
-        <div class="ep-bg-option" onclick="setBg('gradient')">
-            <div class="ep-bg-preview gradient-bg"></div>
-            <span>Gradient</span>
-        </div>
-        <div class="ep-bg-option" onclick="setBg('dark')">
-            <div class="ep-bg-preview dark-bg"></div>
-            <span>Dark</span>
-        </div>
-        <div class="ep-bg-option" onclick="setBg('forest')">
-            <div class="ep-bg-preview forest-bg"></div>
-            <span>Forest</span>
-        </div>
-        <div class="ep-bg-option" onclick="setBg('ocean')">
-            <div class="ep-bg-preview ocean-bg"></div>
-            <span>Ocean</span>
-        </div>
+        <input type="file" id="cover-input" name="cover_image" accept="image/*" style="display:none" onchange="uploadCover(this)">
     </div>
-</div>
-        
 
     <!-- main content -->
     <div class="ep-wrap">
@@ -94,7 +86,6 @@
                         <div class="ep-name">{{ user.full_name or user.username }}</div>
                         <div class="ep-handle">@{{ user.username }}</div>
                         
-                        <!-- account status section -->
                         <div class="ep-account-status">
                             <div class="ep-status-header">
                                 <span>📊 Account Status</span>
@@ -117,7 +108,7 @@
                             <div class="ep-status-progress">
                                 <div class="ep-progress-bar" style="width: {{ trust_score or 85 }}%"></div>
                             </div>
-                        </div>  
+                        </div>
                         
                         <div class="ep-stats">
                             <div class="ep-stat">
@@ -130,9 +121,9 @@
                             </div>
                         </div>
                         <div class="ep-verified">✓ MMU Verified</div>
-                    </div>  
+                    </div>
+                </div>
 
-                <!-- navigation card -->
                 <div class="ep-nav-card">
                     <button class="ep-nav-item on" id="nav-edit" onclick="switchTab('edit')">
                         <span class="ep-nav-icon">✏️</span> Edit Profile
@@ -332,20 +323,11 @@
                     </form>
                 </div>
             </div>
-
-        </div>  <!-- close ep-grid -->
-    </div>  <!-- close ep-wrap -->
-</div>  <!-- close ep-page -->
-
+        </div>
+    </div>
+</div>
 
 <script>
-//background layer
-const epBgLayer = document.createElement('div');
-epBgLayer.className = 'ep-bg-layer';
-epBgLayer.id = 'epBgLayer';
-document.getElementById('epPage').insertBefore
-(epBgLayer, document.querySelector('.ep-hero').nextSibling);
-
 function setBg(bgType) {
     const bgLayer = document.getElementById('epBgLayer');
     if (!bgLayer) return;
@@ -368,7 +350,6 @@ function setBg(bgType) {
     }
 }
 
-// restore saved background
 function restoreBackground() {
     const savedBg = localStorage.getItem('profileBg');
     if (savedBg && savedBg !== 'default') {
@@ -376,28 +357,23 @@ function restoreBackground() {
     }
 }
 
-// upload cover function
 function uploadCover(input) {
     if (!input.files || !input.files[0]) return;
-
     const formData = new FormData();
-    formData.append('cover_image',input.files[0]);
-
-    fetch('/update-cover',{
+    formData.append('cover_image', input.files[0]);
+    fetch('/update-cover', {
         method: 'POST',
-        body:formData,
+        body: formData,
         credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {
-        if(data.success){
+        if (data.success) {
             const coverDiv = document.getElementById('coverImage');
             coverDiv.style.backgroundImage = `url(${data.image_url}?t=${Date.now()})`;
-
-            //output success message
             const toast = document.createElement('div');
             toast.className = 'ep-flash success';
-            toast.innerHTML ='✅ Cover photo updated!';
+            toast.innerHTML = '✅ Cover photo updated!';
             document.querySelector('.ep-panel').prepend(toast);
             setTimeout(() => toast.remove(), 3000);
         } else {
@@ -412,22 +388,8 @@ function uploadCover(input) {
 
 function toggleBgPanel() {
     const panel = document.getElementById('epBgPanel');
-    if (panel) {
-        panel.classList.toggle('open');
-    }
+    if (panel) panel.classList.toggle('open');
 }
-
-function previewCover(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const coverDiv = document.getElementById('coverImage');
-            coverDiv.style.backgroundImage = `url(${e.target.result})`;
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
 
 function switchTab(name) {
     document.querySelectorAll('.ep-section').forEach(s => s.classList.remove('on'));
@@ -549,7 +511,7 @@ function validatePwForm() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    restoreBackground();  //
+    restoreBackground();
     const newPw = document.getElementById('new_password');
     const confPw = document.getElementById('confirm_password');
     if (newPw) newPw.addEventListener('input', function() { checkPwStrength(); checkPwMatch(); });

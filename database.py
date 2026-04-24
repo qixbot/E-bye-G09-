@@ -1,4 +1,5 @@
 import sqlite3
+
 from werkzeug.security import generate_password_hash
 
 DATABASE = 'ebyte.db'
@@ -106,3 +107,4 @@ def init_products():
     db.commit()
     db.close()
     print("Database ready WITH products table")
+    

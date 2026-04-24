@@ -531,6 +531,7 @@ def update_profile():
             (filename, session['user_id'])
         )
 
+    # Handle cover image upload
     cover = request.files.get('cover_image')
     if cover and cover.filename:
         filename = secure_filename(f"cover_{session['user_id']}_{cover.filename}")
@@ -539,7 +540,8 @@ def update_profile():
             'UPDATE users SET cover_image = ? WHERE id = ?', 
             (filename, session['user_id'])
         )
-
+    
+    # Update other fields 
     db.execute(        
         'UPDATE users SET username = ?, full_name = ?, bio = ?, '
         'contact = ?, gender = ?, active_hours = ? WHERE id = ?',
@@ -678,9 +680,10 @@ def admin_dashboard():
 
     db = get_db()
     total_users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    total_products = db.execute("SELECT COUNT(*) FROM products").fetchone()[0]
     db.close()
     
-    return render_template("admin_dashboard.html", total_users=total_users)
+    return render_template("admin_dashboard.html", total_users=total_users, total_products=total_products)
 
 @app.route('/admin/users')
 
@@ -723,16 +726,14 @@ def freeze_7day(user_id):
             frozen_until = ?, 
             freeze_reason = ?
         WHERE id = ?
-    """, (time_str, reason, user_id))
+    """, (time_str, reason, user_id)) 
 
     db.execute("""
         INSERT INTO notifications (user_id, message, created_at)
         VALUES (?, ?, ?)
     """, (
         user_id,
-        f'Your account has been frozen for 7 days.\n'
-        f'Reason: {reason}\n'
-        f'Auto unfreeze: {time_str}',
+        f"Your account has been frozen for 7 days.\nReason: {reason}\nAuto unfreeze: {time_str}",
         now.strftime("%Y-%m-%d %H:%M:%S")
     ))
 

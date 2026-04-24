@@ -65,21 +65,6 @@
     right: -60px; top: -100px;
 }
 
-.ep-breadcrumb {
-    position: absolute;
-    top: 28px; left: 40px;
-    display: flex; align-items: center; gap: 8px;
-    font-size: 12px; font-weight: 500;
-    color: rgba(255,255,255,0.55);
-}
-
-.ep-breadcrumb a { 
-    color: rgba(255,255,255,0.55); 
-    text-decoration: none; transition: color .2s; }
-
-.ep-breadcrumb a:hover { color: rgba(255,255,255,0.9); }
-.ep-breadcrumb-sep { opacity: 0.4; }
-
 .ep-wrap { 
     max-width: 1100px; margin: 0 auto;
     padding: 0 40px; position: relative; 
@@ -640,6 +625,7 @@ ep.ep-status-badge.pending{
     cursor: pointer;
     transition: all .2s;
     margin-bottom: 22px;
+    justify-content: flex-start;
 }
 .ep-av-upload:hover { 
     border-color: var(--ev); 
@@ -671,7 +657,6 @@ ep.ep-status-badge.pending{
 }
 .ep-av-upload-text span { font-size: 11px; color: var(--ink3); }
 .ep-av-upload-btn { 
-    margin-left: auto; 
     padding: 8px 16px; 
     background: var(--ev); 
     color: #fff; border: none;
