@@ -28,6 +28,8 @@ def init_db():
             bio Text,
             avatar TEXT,
             cover_image TEXT,
+            bg_type TEXT DEFAULT 'default',
+            bg_image TEXT,
             active_hours TEXT,
             security_q1 TEXT,
             security_a1 TEXT,

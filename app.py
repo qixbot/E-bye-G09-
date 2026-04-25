@@ -81,15 +81,15 @@ def login():
         ).fetchone()
         db.close()
 
-        # 账号+密码校验通过，才进入后续判断
+        # Account+password check vakidation if correct then will pass to verify
         if user and check_password_hash(user['password'], password):
 
-            # 永久封禁拦截 
+            # Block the user permanenetly
             if user['is_blocked'] == 1:
                 flash('❌ This account is permanently blocked.', 'danger')
                 return redirect(url_for('login'))
 
-            # 限时冻结精准拦截 
+            #  time-limited freezing and precise interception
             is_user_frozen = user['is_frozen']
             frozen_end_time = user['frozen_until']
 
@@ -97,20 +97,20 @@ def login():
                 now = datetime.now()
                 expire_time = None
 
-                # 安全解析时间
+                # Security analysis time
                 try:
                     expire_time = datetime.strptime(frozen_end_time, "%Y-%m-%d %H:%M:%S")
                 except Exception:
                     pass
 
-                # 账号仍在冻结有效期，强制拦截
+                # The account is still frozen and will be forcibly blocked.
                 if expire_time and now < expire_time:
-                    # 计算剩余解冻时间
+                    # Calculate the remaining thawing time
                     time_diff = expire_time - now
                     remain_days = time_diff.days
                     remain_hours = time_diff.seconds // 3600
 
-                    # 兼容空冻结理由
+                    # Reasons for compatibility with empty freeze
                     freeze_reason_text = (
                         user['freeze_reason']
                         if user['freeze_reason']
@@ -125,7 +125,7 @@ def login():
                     flash(alert_msg, 'warning')
                     return redirect(url_for('login'))
                 
-                # 冻结已过期，自动解冻
+                # The freeze period has expired; it will automatically unfreeze.
                 else:
                     db_auto_unfreeze = get_db()
                     db_auto_unfreeze.execute("""
@@ -136,7 +136,7 @@ def login():
                     db_auto_unfreeze.commit()
                     db_auto_unfreeze.close()
             
-            # 全部校验通过，正式登录 
+            #  All verifications passed, now officially logged in.
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['student_id'] = user['student_id']
@@ -149,7 +149,7 @@ def login():
             flash('✅ Login successful!', 'success')
             return redirect(url_for('home'))
 
-        # 账号/密码错误兜底
+        # Account/password error fallback
         else:
             flash('Invalid email or password', 'error')
     
@@ -167,7 +167,7 @@ def register():
         confirm_password = request.form.get('confirm_password')
         gender = request.form.get('gender')
         
-        # verification and validation
+        # Verification and validation
         q1 = request.form.get('q1', '').strip()
         a1 = request.form.get('a1', '').strip().lower()  
         q2 = request.form.get('q2', '').strip()
@@ -222,7 +222,7 @@ def register():
         
         db = get_db()
         
-        # check if student_id or email already exists
+        # Check if student_id or email already exists
         existing = db.execute(
               'SELECT * FROM users ' \
               'WHERE student_id = ? OR LOWER(email) = LOWER(?)', 
@@ -242,7 +242,7 @@ def register():
           flash('Username already taken. Please choose another one.', 'error')
           return render_template('register.html')
         
-        # create user with gender field
+        # Create user with gender field
         hashed_password = generate_password_hash(password)
         db.execute('''
            INSERT INTO users (student_id, email, username, password, gender,
@@ -299,7 +299,7 @@ def logout():
     flash('Logged out', 'info')
     return redirect(url_for('login'))
 
-#Eileen's Route
+#Eileen's Route-Forgot Password
 @app.route('/forgot-password', methods=['GET', 'POST'])
 
 def forgot_password():
@@ -466,24 +466,66 @@ def edit_profile():
         (session['user_id'],)
     ).fetchone()[0]
 
-    # gain trust score and response rate
-    #basic mark=60. the below is 5 mark 
+    # Gain trust score and response rate
+    #Basic mark=60. the below is 5 mark 
     #10 listing can go up to 20 marks
     trust_score = 60
-    if user['avatar']:        trust_score += 5
-    if user['bio']:           trust_score += 5
-    if user['contact']:       trust_score += 5
-    if user['full_name']:     trust_score += 5
-    trust_score += min(20, (listing_count // 10) * 5)
-    trust_score = min(trust_score, 100)
+    if user['avatar']:        trust_score += 8
+    if user['bio']:           trust_score += 8
+    if user['contact']:       trust_score += 7
+    if user['full_name']:     trust_score += 7
 
-    #real response rate but currently dont have the chat and order
-    #things first,will according to the prodile complement to estimate the marks
-    filled_fields = sum([
-        bool(user['bio']), bool(user['contact']),
-        bool(user['active_hours']), bool(user['full_name']), bool(user['avatar'])
-    ])
-    response_rate = 60 + (filled_fields * 8)  # highest=100
+    if user['created_at']:
+        try:
+            created_date = datetime.strptime(user['created_at'], '%Y-%m-%d %H:%M:%S')
+            days_since_join = (datetime.now() - created_date).days
+            if days_since_join >= 365:
+                trust_score += 20
+            elif days_since_join >= 180:
+                trust_score += 15
+            elif days_since_join >= 30:
+                trust_score += 10
+            elif days_since_join >= 7:
+                trust_score += 5
+        except:
+            pass
+    
+    # 商品数量加分（最多25分）
+    trust_score += min(25, (listing_count // 2) * 2)  # 每2个商品加2分，最高25分
+    
+    # 活跃度加分（最多15分）
+    if user['active_hours'] and user['active_hours'] != 'Not set':
+        trust_score += 10
+    if user['gender']:
+        trust_score += 5
+
+    trust_score = min(trust_score, 100)
+    trust_score = max(trust_score, 30)
+
+    # ========== 修复 Response Rate（如果没有聊天功能，暂时用商品活跃度代替）==========
+    # 真正的响应率需要聊天数据，这里先用商品和活跃度估算
+    response_rate = 50  # 基础分
+    
+    # 有商品在售加10分
+    if listing_count > 0:
+        response_rate += 15
+    
+    # 有完善资料加10分
+    if user['bio'] and user['contact']:
+        response_rate += 10
+    
+    # 有活跃时间加10分
+    if user['active_hours'] and user['active_hours'] != 'Not set':
+        response_rate += 10
+    
+    # 有头像加5分
+    if user['avatar']:
+        response_rate += 5
+    
+    response_rate = min (response_rate, 98)
+    response_rate = max (response_rate, 40)
+
+    bg_image_value = user['bg_image'] if user and 'bg_image' in user.keys() else None
 
     db.close()
     return render_template(
@@ -492,12 +534,12 @@ def edit_profile():
         listing_count=listing_count,
         sold_count=0,
         trust_score=trust_score,
-        response_rate=response_rate
+        response_rate=response_rate,
+        bg_image=bg_image_value
     )
 
 #Eileen's Route ------UPDATE profile
 @app.route('/update-profile', methods=['POST'])
-
 def update_profile():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -541,12 +583,25 @@ def update_profile():
             (filename, session['user_id'])
         )
     
+    # Handle background image upload
+    bg_image = request.files.get('bg_image')
+    if bg_image and bg_image.filename:
+        ext = bg_image.filename.rsplit('.', 1)[-1].lower() if '.' in bg_image.filename else 'jpg'
+        if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+            bg_filename = secure_filename(f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
+            bg_image.save(os.path.join('static/uploads', bg_filename))
+            db.execute(
+                'UPDATE users SET bg_image = ? WHERE id = ?',
+                (bg_filename, session['user_id'])
+            )
+    
     # Update other fields 
-    db.execute(        
-        'UPDATE users SET username = ?, full_name = ?, bio = ?, '
-        'contact = ?, gender = ?, active_hours = ? WHERE id = ?',
-        (username, full_name, bio, contact, gender, active_hours, session['user_id'])
-    )
+    db.execute('''        
+        UPDATE users 
+        SET username = ?, full_name = ?, bio = ?,
+            contact = ?, gender = ?, active_hours = ?
+        WHERE id = ?
+    ''', (username, full_name, bio, contact, gender, active_hours, session['user_id']))
     
     db.commit()
     db.close()
@@ -554,6 +609,38 @@ def update_profile():
     session['username'] = username
     flash('Profile updated successfully!', 'success')
     return redirect(url_for('edit_profile'))
+
+#Eileen's Route ------Upload Background profile
+@app.route('/upload-background', methods=['POST'])
+
+def upload_background():
+
+    if 'user_id' not in session:   
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    if 'bg_image' not in request.files:  
+        return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+    
+    file = request.files['bg_image']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'}), 400
+    
+    if file:
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+        if ext not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+            return jsonify({'success': False, 'error': 'Unsupported file format'}), 400
+        
+        filename = secure_filename(f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
+        filepath = os.path.join('static/uploads', filename)
+        file.save(filepath)
+        
+        return jsonify({
+            'success': True, 
+            'image_url': url_for('static', filename=f'uploads/{filename}')
+        })
+    
+    return jsonify({'success': False, 'error': 'Upload failed'}), 500
+
 
 
 #Eileen's Route ------CHANGE password 
@@ -683,7 +770,8 @@ def admin_dashboard():
     total_products = db.execute("SELECT COUNT(*) FROM products").fetchone()[0]
     db.close()
     
-    return render_template("admin_dashboard.html", total_users=total_users, total_products=total_products)
+    return render_template("admin_dashboard.html", 
+                           total_users=total_users, total_products=total_products)
 
 @app.route('/admin/users')
 

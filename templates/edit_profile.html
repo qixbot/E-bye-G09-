@@ -27,6 +27,7 @@
             <button class="ep-bg-close" onclick="toggleBgPanel()">✕</button>
         </div>
         <div class="ep-bg-options">
+            <!-- choose color options -->
             <div class="ep-bg-option" onclick="setBg('default')">
                 <div class="ep-bg-preview default-bg"></div>
                 <span>Default</span>
@@ -47,8 +48,19 @@
                 <div class="ep-bg-preview ocean-bg"></div>
                 <span>Ocean</span>
             </div>
+             <!-- upload customize picture  -->
+            <div class="ep-bg-option" onclick="document.getElementById('bg-image-input').click()">
+            <div class="ep-bg-preview" style="display:flex; align-items: center;justify-content: center; font-size: 24px;">📷</div>
+            <span>Custom Photo</span>
         </div>
+     </div>
+          <input type="file" id="bg-image-input" name="bg_image" accept="image/*" style="display:none" onchange="previewBackground(this)">
     </div>
+    <div class="ep-bg-preview-area" style="margin-top: 20px; padding: 16px; background: var(--bone); border-radius: var(--radius-md); text-align: center;">
+    <label style="font-size: 12px; font-weight: 600; color: var(--ink3);">Current Background</label>
+    <div id="currentBgPreview" style="width: 100%; height: 100px; border-radius: 12px; margin-top: 8px; background-size: cover; background-position: center; border: 1px solid var(--sand);"></div>
+    <p class="ep-hint" style="margin-top: 8px;">Background will be saved when you click "Save Changes"</p>
+</div>
 
     <!-- cover photo -->
     <div class="ep-cover-container">
@@ -93,7 +105,7 @@
                             </div>
                             <div class="ep-status-metrics">
                                 <div class="ep-metric">
-                                    <div class="ep-metric-value">{{ trust_score or 85 }}%</div>
+                                    <div class="ep-metric-value">{{ trust_score }}%</div>
                                     <div class="ep-metric-label">Trust Score</div>
                                 </div>
                                 <div class="ep-metric">
@@ -101,12 +113,12 @@
                                     <div class="ep-metric-label">Member Since</div>
                                 </div>
                                 <div class="ep-metric">
-                                    <div class="ep-metric-value">{{ response_rate or '98' }}%</div>
+                                    <div class="ep-metric-value">{{ response_rate }}%</div>
                                     <div class="ep-metric-label">Response Rate</div>
                                 </div>
                             </div>
                             <div class="ep-status-progress">
-                                <div class="ep-progress-bar" style="width: {{ trust_score or 85 }}%"></div>
+                                <div class="ep-progress-bar" style="width: {{ trust_score }}%"></div>
                             </div>
                         </div>
                         
@@ -328,34 +340,137 @@
 </div>
 
 <script>
+let currentBgType = localStorage.getItem('profileBg') || 'default';
+let customBgUrl = localStorage.getItem('customBgUrl') || null;
+
+function loadSavedBackground(){
+    const bgImage = '{{ bg_image if bg_image else ""}}';
+    const bgLayer = document.getElementById('epBgLayer');     
+    const previewDiv = document.getElementById('currentBgPreview'); 
+    
+
+    if(bgImage && bgImage !==''){
+        const imgUrl = "{{url_for('static', filename='uploads/' + bg_image) if bg_image else ''}}";
+
+        if (imgUrl && imgUrl !==''){
+            bgLayer.style.background ='';
+            bgLayer.style.backgroundImage = `url(${imgUrl})`;
+            bgLayer.style.backgroundSize = 'cover';
+            bgLayer.style.backgroundPosition = 'center';
+            if (previewDiv){
+                previewDiv.style.background ='';
+                previewDiv.style.backgroundImage = `url(${imgUrl})`;
+                previewDiv.style.backgroundSize = 'cover'; 
+                previewDiv.style.backgroundPosition = 'center';
+            }
+        }
+    }
+}
+
 function setBg(bgType) {
-    const bgLayer = document.getElementById('epBgLayer');
+   const bgLayer = document.getElementById('epBgLayer');  
+   const previewDiv = document.getElementById('currentBgPreview');
     if (!bgLayer) return;
     
+    const defaultBg = 'linear-gradient(135deg, #f7f6f2 0%, #e6ded3 100%)';
+    
+    let bgStyle ='';
+    
     if (bgType === 'default') {
-        bgLayer.style.background = '';
-        localStorage.setItem('profileBg', 'default');
+        bgStyle = defaultBg;
+        localStorage.removeItem('profileBg');
+        localStorage.removeItem('customBgUrl');
     } else if (bgType === 'gradient') {
-        bgLayer.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        bgStyle= 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         localStorage.setItem('profileBg', 'gradient');
+        localStorage.removeItem('customBgUrl');
     } else if (bgType === 'dark') {
-        bgLayer.style.background = '#1a1a2e';
+        bgStyle = '#1a1a2e';
         localStorage.setItem('profileBg', 'dark');
+        localStorage.removeItem('customBgUrl');
     } else if (bgType === 'forest') {
-        bgLayer.style.background = 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)';
+        bgStyle= 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)';
         localStorage.setItem('profileBg', 'forest');
+        localStorage.removeItem('customBgUrl');
     } else if (bgType === 'ocean') {
-        bgLayer.style.background = 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)';
+        bgStyle= 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)';
         localStorage.setItem('profileBg', 'ocean');
+        localStorage.removeItem('customBgUrl');
     }
+
+    bgLayer.style.background = bgStyle;
+    bgLayer.style.backgroundImage ='';
+
+    if (previewDiv && bgStyle) {
+        previewDiv.style.background = bgStyle;
+        previewDiv.style.backgroundImage = '';
+    }
+}
+
+function previewBackground(input){
+    if (!input.files || !input.files[0]) return;
+
+    const file = input.files[0];
+    if(!file.type.startsWith('image/')){
+        alert('Please upload an image file(JPG,PNG,GIF)');
+        input.value ='';
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB');
+        input.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e){
+
+        const previewDiv = document.getElementById('currentBgPreview');
+        if(previewDiv){
+             previewDiv.style.background = '';
+            previewDiv.style.backgroundImage = `url(${e.target.result})`;
+            previewDiv.style.backgroundSize = 'cover';
+            previewDiv.style.backgroundPosition = 'center';
+        }
+        
+        const bgLayer = document.getElementById('epBgLayer');
+        bgLayer.style.background='';
+        bgLayer.style.backgroundImage = `url(${e.target.result})`;
+        bgLayer.style.backgroundSize ='cover';
+        bgLayer.style.backgroundPosition = 'center';
+    };
+    reader.readAsDataURL(file);
 }
 
 function restoreBackground() {
     const savedBg = localStorage.getItem('profileBg');
-    if (savedBg && savedBg !== 'default') {
-        setBg(savedBg);
+    const saveCustomBg = localStorage.getItem('customBgUrl');
+    const bgLayer = document.getElementById('epBgLayer');
+    if (!bgLayer) return;
+
+    const defaultBg = 'linear-gradient(135deg, #f7f6f2 0%, #e6ded3 100%)';
+
+     
+    if (savedBg === 'custom' && savedCustomBg) {
+        customBgUrl = savedCustomBg;
+        bgLayer.style.background = '';
+        bgLayer.style.backgroundImage = `url(${savedCustomBg})`;
+        bgLayer.style.backgroundSize = 'cover';
+        bgLayer.style.backgroundPosition = 'center';
+    } else if (savedBg === 'gradient') {
+        bgLayer.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    } else if (savedBg === 'dark') {
+        bgLayer.style.background = '#1a1a2e';
+    } else if (savedBg === 'forest') {
+        bgLayer.style.background = 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)';
+    } else if (savedBg === 'ocean') {
+        bgLayer.style.background = 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)';
+    } else {
+        bgLayer.style.background = defaultBg;
     }
 }
+
 
 function uploadCover(input) {
     if (!input.files || !input.files[0]) return;
@@ -511,6 +626,7 @@ function validatePwForm() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    loadSavedBackground();
     restoreBackground();
     const newPw = document.getElementById('new_password');
     const confPw = document.getElementById('confirm_password');

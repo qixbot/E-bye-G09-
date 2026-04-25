@@ -37,7 +37,7 @@
     color: var(--ink);
     position: relative;
     overflow-x: hidden;
-    padding: 0 0 80px;
+    padding: 0 0 0px;
 }
 
 .ep-hero {
@@ -103,35 +103,64 @@
     background: rgba(255,255,255,0.35); transition: scale(1.05);
 }
 
-.ep-bg-panel{
+/* 背景选择面板 - 美化 */
+.ep-bg-panel {
     position: fixed;
     bottom: 80px;
     right: 20px;
-    background: white;
-    border-radius: 20px;
-    padding: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
     z-index: 100;
     transform: scale(0);
     opacity: 0;
     transition: all 0.3s ease;
     transform-origin: bottom right;
+    min-width: 260px;
 }
 
-.ep-bg-panel.open{
-    transform:scale(1);
-    opacity:1;
+.ep-bg-panel.open {
+    transform: scale(1);
+    opacity: 1;
 }
 
-.ep-bg-panel-header{
-    display: flex; justify-content: space-between;
-    align-items: center; margin-bottom: 12px;
-    font-weight: 600; color:#333;
+.ep-bg-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.ep-bg-panel.close{
-    background: none; border: none;
-    font-size: 18px; cursor: pointer; color:#999;
+.ep-bg-panel-header span {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #00381f;
+    letter-spacing: 0.5px;
+}
+
+.ep-bg-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #999;
+    transition: all 0.2s;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ep-bg-close:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #333;
 }
 
 .ep-bg-options {
@@ -143,24 +172,48 @@
 .ep-bg-option {
     text-align: center;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 12px;
 }
 
 .ep-bg-option:hover {
-    transform: scale(1.05);
+    transform: translateY(-3px);
+    background: rgba(0, 56, 31, 0.08);
 }
 
 .ep-bg-preview {
     width: 70px;
     height: 70px;
-    border-radius: 12px;
-    margin-bottom: 6px;
+    border-radius: 16px;
+    margin-bottom: 8px;
     border: 2px solid #e0e0e0;
-    transition: border-color 0.2s;
+    transition: all 0.2s ease;
+    margin: 0 auto 8px auto;
 }
 
 .ep-bg-option:hover .ep-bg-preview {
     border-color: #00381f;
+    transform: scale(1.02);
+}
+
+.ep-bg-option span {
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4a4540;
+    text-align: center;
+    margin-top: 6px;
+    letter-spacing: 0.3px;
+}
+
+.ep-bg-option .ep-bg-preview:has(> span) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
 }
 
 .default-bg {
@@ -178,6 +231,8 @@
 .ocean-bg {
     background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
 }
+
+.custom-bg{background-size: cover;background-position: center;}
 
 .ep-cover-container{
     position: relative;
