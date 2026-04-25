@@ -564,10 +564,32 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
 
     db = get_db()
+    
+    # 总注册用户数
     total_users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    
+    # 已通过审核的商品数
+    approved_count = db.execute(
+        "SELECT COUNT(*) FROM products WHERE status = 'approved'"
+    ).fetchone()[0]
+    
+    # 待审核商品数
+    pending_count = db.execute(
+        "SELECT COUNT(*) FROM products WHERE status = 'pending'"
+    ).fetchone()[0]
+    
+    # 活跃卖家数（有至少一个商品的用户）
+    seller_count = db.execute(
+        "SELECT COUNT(DISTINCT seller_id) FROM products"
+    ).fetchone()[0]
+    
     db.close()
     
-    return render_template("admin_dashboard.html", total_users=total_users)
+    return render_template("admin_dashboard.html",
+                           total_users=total_users,
+                           approved_count=approved_count,
+                           pending_count=pending_count,
+                           seller_count=seller_count)
 
 @app.route('/admin/users')
 def admin_users():

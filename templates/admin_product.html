@@ -45,7 +45,7 @@
                         <td>{{ "%.2f"|format(item.price) }}</td>
                         <td>{{ item.created_at }}</td>
                         <td>
-                            <button onclick="openDetailModal({{ item }})" 
+                            <button onclick="loadProduct({{ item.id }})" 
                                style="background:#4a6fa5;color:white;padding:6px 12px;border-radius:8px;border:none;margin-right:6px;cursor:pointer;">
                                View
                             </button>
@@ -61,7 +61,9 @@
                     </tr>
                     {% endfor %}
                 {% else %}
-                    <td colspan="6" class="text-center py-4 text-muted">No pending products</td>
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No pending products</td>
+                    </tr>
                 {% endif %}
             </tbody>
         </table>
@@ -93,7 +95,7 @@
                         <td>{{ "%.2f"|format(item.price) }}</td>
                         <td><span style="color:#205c30;font-weight:bold;">Approved</span></td>
                         <td>
-                            <button onclick="openDetailModal({{ item }})" 
+                            <button onclick="loadProduct({{ item.id }})" 
                                style="background:#4a6fa5;color:white;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;">
                                View
                             </button>
@@ -101,7 +103,9 @@
                     </tr>
                     {% endfor %}
                 {% else %}
-                    <td colspan="6" class="text-center py-4 text-muted">No approved products yet</td>
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No approved products yet</td>
+                    </tr>
                 {% endif %}
             </tbody>
         </table>
@@ -133,7 +137,7 @@
                         <td>{{ item.reject_reason }}</td>
                         <td><span style="color:#c0392b;font-weight:bold;">Rejected</span></td>
                         <td>
-                            <button onclick="openDetailModal({{ item }})" 
+                            <button onclick="loadProduct({{ item.id }})" 
                                style="background:#4a6fa5;color:white;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;">
                                 View
                             </button>
@@ -141,7 +145,9 @@
                     </tr>
                     {% endfor %}
                 {% else %}
-                    <td colspan="6" class="text-center py-4 text-muted">No rejected products</td>
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No rejected products</td>
+                    </tr>
                 {% endif %}
             </tbody>
         </table>
@@ -165,7 +171,7 @@
     </div>
 </div>
 
-<!-- 商品详情弹窗 -->
+<!-- 商品详情弹窗（已优化图片查看） -->
 <div id="detailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;">
   <div style="background:white;border-radius:20px;width:600px;margin:80px auto;padding:25px;">
 
@@ -174,29 +180,30 @@
       <button onclick="closeDetailModal()" style="border:none;background:none;font-size:22px;cursor:pointer;">✕</button>
     </div>
 
-    <!-- 图片区（这次绝对稳定） -->
+    <!-- 图片查看区：支持左右箭头翻看 -->
     <div id="detailImageArea" 
 style="width:100%; height:260px; background:#f8f8f8; border-radius:16px; margin-bottom:20px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
 
-    <!-- 箭头永远在最顶层，不会被盖住 -->
+    <!-- 左箭头 -->
     <button onclick="prevImg()" 
-    style="position:absolute; left:10px; top:50%; transform:translateY(-50%); z-index:99999;
+    style="position:absolute; left:10px; top:50%; transform:translateY(-50%); z-index:10;
     background:#205c30; color:white; border:none; width:42px; height:42px;
-    border-radius:50%; cursor:pointer; font-size:28px;">‹</button>
+    border-radius:50%; cursor:pointer; font-size:28px; display:flex; align-items:center; justify-content:center;">‹</button>
 
-    <!-- 只留一个单图占位，永远一张居中 -->
-    <img id="onlyImg" style="max-width:90%; max-height:230px; border-radius:12px; object-fit:contain;">
+    <!-- 单张图片展示 -->
+    <img id="onlyImg" style="max-width:90%; max-height:230px; border-radius:12px; object-fit:contain;" alt="Product image">
 
+    <!-- 右箭头 -->
     <button onclick="nextImg()" 
-    style="position:absolute; right:10px; top:50%; transform:translateY(-50%); z-index:99999;
+    style="position:absolute; right:10px; top:50%; transform:translateY(-50%); z-index:10;
     background:#205c30; color:white; border:none; width:42px; height:42px;
-    border-radius:50%; cursor:pointer; font-size:28px;">›</button>
+    border-radius:50%; cursor:pointer; font-size:28px; display:flex; align-items:center; justify-content:center;">›</button>
 
-    <!-- 页码 -->
-    <div id="pageText" style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); color:#444;"></div>
+    <!-- 图片页码指示器 -->
+    <div id="pageText" style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); color:#444; background:rgba(255,255,255,0.8); padding:2px 12px; border-radius:20px; font-size:13px;"></div>
 
 </div>
-    <!-- 文字信息 -->
+    <!-- 文字信息区域 -->
     <div id="detailInfoArea" style="line-height:1.8;"></div>
 
     <div style="text-align:right;margin-top:15px;">
@@ -208,85 +215,157 @@ style="width:100%; height:260px; background:#f8f8f8; border-radius:16px; margin-
 
 <script>
 let currentPid = 0;
+
 // 驳回弹窗逻辑
 function openRejectModal(pid){
     currentPid = pid;
     document.getElementById('rejectForm').action = "/admin/product/reject/" + pid;
     const modal = document.getElementById('rejectModal');
     modal.style.display = "block";
-    setTimeout(()=> modal.style.opacity = 1,10);
+    setTimeout(function(){ modal.style.opacity = 1; }, 10);
 }
+
 function closeRejectModal(){
     const modal = document.getElementById('rejectModal');
     modal.style.opacity = 0;
-    setTimeout(()=> modal.style.display = "none",300);
+    setTimeout(function(){ modal.style.display = "none"; }, 300);
 }
 
-// 详情弹窗逻辑
-function openDetailModal(product){
-    const modal = document.getElementById('detailModal');
-    // 填充图片
-    const imageArea = document.getElementById('detailImageArea');
-    const images = product.images ? product.images.split(',') : [];
-    imageArea.innerHTML = '';
-    if(images.length > 0 && images[0]){
-        images.forEach(img => {
-            const imgEl = document.createElement('img');
-            imgEl.src = `/static/uploads/${img}`;
-            imgEl.style = "max-height:260px;border-radius:12px;object-fit:cover;";
-            imageArea.appendChild(imgEl);
-        })
-    }else{
-        imageArea.innerHTML = '<span style="color:#999;">No images uploaded</span>';
+// 全局图片轮播变量
+let nowIndex = 0;
+let pics = [];
+
+// 核心：通过API获取商品数据并展示图片
+async function loadProduct(pid){
+    nowIndex = 0;
+    pics = [];
+
+    try {
+        const res = await fetch("/admin/api/product/" + pid);
+        if (!res.ok) {
+            alert("Failed to load product details");
+            return;
+        }
+        const data = await res.json();
+
+        if (data.images && typeof data.images === 'string' && data.images.trim().length > 0) {
+            pics = data.images.split(',').map(function(x){ return x.trim(); }).filter(function(x){ return x.length > 0; });
+        } else {
+            pics = [];
+        }
+
+        refreshPic();
+
+        let time = "";
+        if (data.created_at) {
+            time = new Date(data.created_at + "Z").toLocaleString("en-MY", {
+                timeZone: "Asia/Kuala_Lumpur",
+                hour12: false
+            });
+        }
+
+        document.getElementById('detailInfoArea').innerHTML = 
+        "<p><strong>Product Name：</strong>" + (data.name || '') + "</p>" +
+        "<p><strong>Seller：</strong>" + (data.seller_name || '') + "</p>" +
+        "<p><strong>Price：</strong>RM " + Number(data.price || 0).toFixed(2) + "</p>" +
+        "<p><strong>Category：</strong>" + (data.category || '') + "</p>" +
+        "<p><strong>Condition：</strong>" + (data.condition || '') + "</p>" +
+        "<p><strong>Description：</strong>" + (data.description || '') + "</p>" +
+        "<p><strong>Upload Time：</strong>" + time + "</p>" +
+        "<p><strong>Current Status：</strong>" + (data.status || '') + "</p>" +
+        (data.reject_reason ? "<p><strong>Reject Reason：</strong>" + data.reject_reason + "</p>" : '');
+
+        const modal = document.getElementById('detailModal');
+        modal.style.display = "block";
+        setTimeout(function(){
+            modal.style.opacity = 1;
+        }, 10);
+    } catch (error) {
+        console.error("Error loading product:", error);
+        alert("Could not load product information.");
+    }
+}
+
+function refreshPic() {
+    const imgElement = document.getElementById('onlyImg');
+    const pageText = document.getElementById('pageText');
+    
+    if (!imgElement || !pageText) return;
+
+    if (pics.length === 0) {
+        imgElement.style.display = "none";
+        pageText.innerText = "No images";
+        return;
     }
 
-    // 填充文字信息
-    const infoArea = document.getElementById('detailInfoArea');
-    infoArea.innerHTML = `
-    <p><strong>Product Name：</strong>${product.name}</p>
-    <p><strong>Seller：</strong>${product.seller_name}</p>
-    <p><strong>Price：</strong>RM ${parseFloat(product.price).toFixed(2)}</p>
-    <p><strong>Category：</strong>${product.category}</p>
-    <p><strong>Condition：</strong>${product.condition}</p>
-    <p><strong>Description：</strong>${product.description}</p>
-    <p><strong>Upload Time：</strong>${product.created_at}</p>
-    <p><strong>Current Status：</strong>${product.status}</p>
-    ${product.reject_reason ? `<p><strong>Reject Reason：</strong>${product.reject_reason}</p>` : ''}
-    `;
+    if (nowIndex < 0) nowIndex = 0;
+    if (nowIndex >= pics.length) nowIndex = pics.length - 1;
 
-    modal.style.display = "block";
-    setTimeout(()=> {
-        modal.style.opacity = 1;
-        modal.querySelector('div').style.transform = "translateY(0)";
-    },10);
+    imgElement.style.display = "block";
+    imgElement.src = "/static/uploads/" + pics[nowIndex];
+    imgElement.alt = "Product image " + (nowIndex + 1);
+    
+    pageText.innerText = (nowIndex + 1) + " / " + pics.length;
 }
 
-function closeDetailModal(){
+function prevImg() {
+    if (pics.length <= 1) return;
+    nowIndex = (nowIndex <= 0) ? pics.length - 1 : nowIndex - 1;
+    refreshPic();
+}
+
+function nextImg() {
+    if (pics.length <= 1) return;
+    nowIndex = (nowIndex >= pics.length - 1) ? 0 : nowIndex + 1;
+    refreshPic();
+}
+
+function closeDetailModal() {
     const modal = document.getElementById('detailModal');
     modal.style.opacity = 0;
-    modal.querySelector('div').style.transform = "translateY(10px)";
-    setTimeout(()=> modal.style.display = "none",300);
+    setTimeout(function(){
+        modal.style.display = "none";
+        document.getElementById('onlyImg').src = "";
+        document.getElementById('pageText').innerText = "";
+    }, 300);
 }
 
-// 点击空白区域关闭弹窗
-document.getElementById('detailModal').addEventListener('click',function(e){
-    if(e.target === this) closeDetailModal();
-})
-document.getElementById('rejectModal').addEventListener('click',function(e){
-    if(e.target === this) closeRejectModal();
-})
+// 页面加载完成后绑定事件
+document.addEventListener('DOMContentLoaded', function() {
+    const detailModal = document.getElementById('detailModal');
+    if (detailModal) {
+        detailModal.addEventListener('click', function(e) {
+            if (e.target === detailModal) closeDetailModal();
+        });
+    }
 
-// 搜索功能
-document.getElementById('searchInput').addEventListener('input', function(){
-    const val = this.value.toLowerCase();
-    document.querySelectorAll('tbody tr').forEach(row => {
-        const t = row.textContent.toLowerCase();
-        row.style.display = t.includes(val) ? '' : 'none';
-    });
+    const rejectModal = document.getElementById('rejectModal');
+    if (rejectModal) {
+        rejectModal.addEventListener('click', function(e) {
+            if (e.target === rejectModal) closeRejectModal();
+        });
+    }
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const val = this.value.toLowerCase();
+            document.querySelectorAll('tbody tr').forEach(function(row) {
+                const t = row.textContent.toLowerCase();
+                row.style.display = t.includes(val) ? '' : 'none';
+            });
+        });
+    }
 });
+
+// 2秒自动消失提示
+setTimeout(function() {
+    const t = document.getElementById('toast');
+    if(t) { t.style.opacity = 0; setTimeout(function(){ t.remove(); }, 600); }
+}, 2000);
 </script>
 
-<!-- 2秒自动消失提示 -->
+<!-- Flash消息 -->
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% for cat, msg in messages %}
 <div id="toast" style="position:fixed;top:25px;left:50%;transform:translateX(-50%);background:#205c30;color:white;padding:12px 30px;border-radius:30px;z-index:9999;transition:opacity 0.6s;">
@@ -294,88 +373,5 @@ document.getElementById('searchInput').addEventListener('input', function(){
 </div>
 {% endfor %}
 {% endwith %}
-
-<script>
-setTimeout(() => {
-    const t = document.getElementById('toast');
-    if(t) { t.style.opacity = 0; setTimeout(()=>t.remove(),600); }
-}, 2000);
-
-// 全局轮播变量
-let nowIndex = 0;
-let pics = [];
-
-// 打开详情弹窗
-async function loadProduct(pid){
-    // 每次打开强制清空重置
-    nowIndex = 0;
-    pics = [];
-
-    // 获取商品数据
-    const res = await fetch(`/admin/api/product/${pid}`);
-    const data = await res.json();
-
-    // 安全解析多张图片，绝对不会丢失
-    if(data.images){
-        pics = data.images.split(',').map(x=>x.trim()).filter(x=>x.length>0);
-    }
-
-    // 刷新当前图片
-    refreshPic();
-
-    // 吉隆坡时间精准校准
-    let time = "";
-    if(data.created_at){
-        time = new Date(data.created_at + "Z").toLocaleString("en-MY",{
-            timeZone:"Asia/Kuala_Lumpur",
-            hour12:false
-        })
-    }
-
-    // 填充文字信息
-    document.getElementById('detailInfoArea').innerHTML = `
-    <p><strong>Product Name：</strong>${data.name}</p>
-    <p><strong>Seller：</strong>${data.seller_name}</p>
-    <p><strong>Price：</strong>RM ${Number(data.price).toFixed(2)}</p>
-    <p><strong>Category：</strong>${data.category}</p>
-    <p><strong>Condition：</strong>${data.condition}</p>
-    <p><strong>Description：</strong>${data.description}</p>
-    <p><strong>Upload Time：</strong>${time}</p>
-    <p><strong>Current Status：</strong>${data.status}</p>
-    `;
-
-    // 打开弹窗
-    document.getElementById('detailModal').style.display = "block";
-}
-
-// 渲染当前单张图
-function refreshPic(){
-    if(pics.length === 0){
-        document.getElementById('onlyImg').style.display = "none";
-        document.getElementById('pageText').innerText = "暂无图片";
-        return
-    }
-    // 只加载一张，永远居中
-    document.getElementById('onlyImg').src = `/static/uploads/${pics[nowIndex]}`;
-    document.getElementById('pageText').innerText = `${nowIndex+1} / ${pics.length}`;
-}
-
-// 切换逻辑
-function prevImg(){
-    if(pics.length <=1) return;
-    nowIndex = nowIndex <=0 ? pics.length-1 : nowIndex-1;
-    refreshPic();
-}
-function nextImg(){
-    if(pics.length <=1) return;
-    nowIndex = nowIndex >= pics.length-1 ? 0 : nowIndex+1;
-    refreshPic();
-}
-
-// 关闭弹窗
-function closeDetailModal(){
-    document.getElementById('detailModal').style.display = "none";
-}
-</script>
 
 {% endblock %}
