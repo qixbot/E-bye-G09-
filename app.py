@@ -879,7 +879,6 @@ def admin_dashboard():
     db = get_db()
 
     total_products = db.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-    db.close()
     
     # 总注册用户数
     total_users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
@@ -903,7 +902,6 @@ def admin_dashboard():
     
     return render_template("admin_dashboard.html",
                            total_users=total_users,
-                           total_products=total_products
                            approved_count=approved_count,
                            pending_count=pending_count,
                            seller_count=seller_count)
