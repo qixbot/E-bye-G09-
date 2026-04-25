@@ -500,6 +500,7 @@ function previewBackground(input) {
 
 function saveBgToDatabase(imageUrl) {
     const filename = imageUrl.split('/').pop().split('?')[0];
+    
     const formData = new FormData();
     formData.append('bg_image_filename', filename);
     
