@@ -375,27 +375,23 @@ function setBg(bgType) {
     const defaultBg = 'linear-gradient(135deg, #f7f6f2 0%, #e6ded3 100%)';
     
     let bgStyle ='';
+    let bgImageFilename= null;
     
     if (bgType === 'default') {
         bgStyle = defaultBg;
-        localStorage.removeItem('profileBg');
-        localStorage.removeItem('customBgUrl');
+        bgImageFilename = null;
     } else if (bgType === 'gradient') {
         bgStyle= 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        localStorage.setItem('profileBg', 'gradient');
-        localStorage.removeItem('customBgUrl');
+        bgImageFilename = null;
     } else if (bgType === 'dark') {
         bgStyle = '#1a1a2e';
-        localStorage.setItem('profileBg', 'dark');
-        localStorage.removeItem('customBgUrl');
+        bgImageFilename = null;
     } else if (bgType === 'forest') {
         bgStyle= 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)';
-        localStorage.setItem('profileBg', 'forest');
-        localStorage.removeItem('customBgUrl');
+        bgImageFilename = null;
     } else if (bgType === 'ocean') {
         bgStyle= 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)';
-        localStorage.setItem('profileBg', 'ocean');
-        localStorage.removeItem('customBgUrl');
+        bgImageFilename = null;
     }
 
     bgLayer.style.background = bgStyle;
@@ -405,15 +401,39 @@ function setBg(bgType) {
         previewDiv.style.background = bgStyle;
         previewDiv.style.backgroundImage = '';
     }
+
+    if (bgImageFilename === null){
+        saveBgPresetToDatabase(bgType); 
+    }
 }
 
-function previewBackground(input){
+function saveBgPresetToDatabase(bgType) {
+    fetch('/save-background-preset', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bg_type: bgType }),
+        credentials: "same-origin"
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Failed to save background preset');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving preset:', error);
+    });
+}
+
+function previewBackground(input) {
     if (!input.files || !input.files[0]) return;
 
     const file = input.files[0];
-    if(!file.type.startsWith('image/')){
-        alert('Please upload an image file(JPG,PNG,GIF)');
-        input.value ='';
+    if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file (JPG, PNG, GIF)');
+        input.value = '';
         return;
     }
 
@@ -423,24 +443,80 @@ function previewBackground(input){
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = function(e){
+    // 显示加载提示
+    const toast = document.createElement('div');
+    toast.className = 'ep-flash success';
+    toast.innerHTML = '⏳ Uploading background image...';
+    document.querySelector('.ep-panel').prepend(toast);
 
-        const previewDiv = document.getElementById('currentBgPreview');
-        if(previewDiv){
-             previewDiv.style.background = '';
-            previewDiv.style.backgroundImage = `url(${e.target.result})`;
-            previewDiv.style.backgroundSize = 'cover';
-            previewDiv.style.backgroundPosition = 'center';
+    // 立即上传到服务器
+    const formData = new FormData();
+    formData.append('bg_image', file);
+
+    fetch('/upload-background', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        toast.remove();
+        if (data.success) {
+            // 保存图片URL到数据库（通过后端）
+            // 先显示预览
+            const previewDiv = document.getElementById('currentBgPreview');
+            if (previewDiv) {
+                previewDiv.style.background = '';
+                previewDiv.style.backgroundImage = `url(${data.image_url}?t=${Date.now()})`;
+                previewDiv.style.backgroundSize = 'cover';
+                previewDiv.style.backgroundPosition = 'center';
+            }
+            
+            const bgLayer = document.getElementById('epBgLayer');
+            bgLayer.style.background = '';
+            bgLayer.style.backgroundImage = `url(${data.image_url}?t=${Date.now()})`;
+            bgLayer.style.backgroundSize = 'cover';
+            bgLayer.style.backgroundPosition = 'center';
+            
+            // 保存到数据库（调用更新接口）
+            saveBgToDatabase(data.image_url);
+            
+            // 显示成功提示
+            const successToast = document.createElement('div');
+            successToast.className = 'ep-flash success';
+            successToast.innerHTML = '✅ Background image updated!';
+            document.querySelector('.ep-panel').prepend(successToast);
+            setTimeout(() => successToast.remove(), 3000);
+        } else {
+            alert('Upload failed: ' + data.error);
         }
-        
-        const bgLayer = document.getElementById('epBgLayer');
-        bgLayer.style.background='';
-        bgLayer.style.backgroundImage = `url(${e.target.result})`;
-        bgLayer.style.backgroundSize ='cover';
-        bgLayer.style.backgroundPosition = 'center';
-    };
-    reader.readAsDataURL(file);
+    })
+    .catch(error => {
+        toast.remove();
+        console.error('Error:', error);
+        alert('Upload failed. Please try again.');
+    });
+}
+
+function saveBgToDatabase(imageUrl) {
+    const filename = imageUrl.split('/').pop().split('?')[0];
+    const formData = new FormData();
+    formData.append('bg_image_filename', filename);
+    
+    fetch('/save-background', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Failed to save background to database');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving background:', error);
+    });
 }
 
 function restoreBackground() {
@@ -627,7 +703,6 @@ function validatePwForm() {
 
 document.addEventListener('DOMContentLoaded', function() {
     loadSavedBackground();
-    restoreBackground();
     const newPw = document.getElementById('new_password');
     const confPw = document.getElementById('confirm_password');
     if (newPw) newPw.addEventListener('input', function() { checkPwStrength(); checkPwMatch(); });

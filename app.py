@@ -525,7 +525,7 @@ def edit_profile():
     response_rate = min (response_rate, 98)
     response_rate = max (response_rate, 40)
 
-    bg_image_value = user['bg_image'] if user and 'bg_image' in user.keys() else None
+     bg_image_value = user.get('bg_image') if user else None
 
     db.close()
     return render_template(
@@ -540,6 +540,7 @@ def edit_profile():
 
 #Eileen's Route ------UPDATE profile
 @app.route('/update-profile', methods=['POST'])
+
 def update_profile():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -588,7 +589,8 @@ def update_profile():
     if bg_image and bg_image.filename:
         ext = bg_image.filename.rsplit('.', 1)[-1].lower() if '.' in bg_image.filename else 'jpg'
         if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
-            bg_filename = secure_filename(f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
+            bg_filename = secure_filename
+            (f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
             bg_image.save(os.path.join('static/uploads', bg_filename))
             db.execute(
                 'UPDATE users SET bg_image = ? WHERE id = ?',
@@ -641,6 +643,47 @@ def upload_background():
     
     return jsonify({'success': False, 'error': 'Upload failed'}), 500
 
+@app.route('/save-background', methods=['POST'])
+
+def save_background():
+
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    bg_filename = request.form.get('bg_image_filename')
+    if not bg_filename:
+        return jsonify({'success': False, 'error': 'No filename provided'}), 400
+    
+    db = get_db()
+    db.execute(
+        'UPDATE users SET bg_image = ? WHERE id = ?',
+        (bg_filename, session['user_id'])
+    )
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+# 保存预设背景到数据库
+@app.route('/save-background-preset', methods=['POST'])
+
+def save_background_preset():
+
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    bg_type = data.get('bg_type', 'default')
+    
+    db = get_db()
+    db.execute(
+        'UPDATE users SET bg_type = ?, bg_image = NULL WHERE id = ?',
+        (bg_type, session['user_id'])
+    )
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
 
 
 #Eileen's Route ------CHANGE password 
