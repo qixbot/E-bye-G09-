@@ -670,20 +670,17 @@ def save_background():
 def save_background_preset():
 
     if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
+        return jsonify({'success': False}), 401
     data = request.get_json()
     bg_type = data.get('bg_type', 'default')
 
     db = get_db()
-    db.execute(
-        'UPDATE users SET bg_type = ?, bg_image = NULL WHERE id = ?',
-        (bg_type, session['user_id'])
-    )
+    db.execute('UPDATE users SET bg_type = ? WHERE id = ?', (bg_type, session['user_id']))
     db.commit()
     db.close()
-
+    
     return jsonify({'success': True})
+
 
 # Eileen's Route ------CHANGE password
 @app.route('/change-password', methods=['POST'])
@@ -764,7 +761,26 @@ def delete_account():
     flash('Your account has been permanently deleted', 'info')
     return redirect(url_for('login'))
 
-# Update background cover
+# Eileen's Route ------VERIFY password
+@app.route('/verify-password', methods=['POST'])
+
+def verify_password():
+    if 'user_id' not in session:
+        return jsonify({'valid': False}), 401
+    
+    data = request.get_json()
+    password = data.get('password', '')
+    
+    db = get_db()
+    user = db.execute('SELECT password FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    db.close()
+    
+    if user and check_password_hash(user['password'], password):
+        return jsonify({'valid': True})
+    else:
+        return jsonify({'valid': False})
+    
+#Eileen's Route ------ UPDATE background cover
 @app.route('/update-cover', methods=['POST'])
 
 def update_cover():
@@ -796,6 +812,61 @@ def update_cover():
             {'success': True, 'image_url': url_for('static',filename=f'uploads/{original_filename}')})
 
     return jsonify({'success': False, 'error': 'Upload failed'}), 500
+
+#Eileen's Route ------ UPDATE profile avatar
+@app.route('/update-profile-avatar', methods=['POST'])
+
+def update_profile_avatar():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    if 'avatar' not in request.files:
+        return jsonify({'success': False, 'error': 'No file'}), 400
+    file = request.files['avatar']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'Empty filename'}), 400
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+    filename = secure_filename(f"avatar_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
+    filepath = os.path.join('static/uploads', filename)
+    file.save(filepath)
+    db = get_db()
+    db.execute('UPDATE users SET avatar = ? WHERE id = ?', (filename, session['user_id']))
+    db.commit()
+    db.close()
+    return jsonify({'success': True, 'image_url': url_for('static', filename=f'uploads/{filename}')})
+
+#Eileen's Route ------ api
+@app.route('/api/user/purchases')
+
+def api_user_purchases():
+    if 'user_id' not in session:
+        return jsonify([])
+    # You need to implement purchases logic or return empty for now
+    return jsonify([])
+
+#Eileen's Route ------ api
+@app.route('/api/user/listings')
+
+def api_user_listings():
+    if 'user_id' not in session:
+        return jsonify([])
+    db = get_db()
+    rows = db.execute('''
+        SELECT id, name, price, status, created_at,
+               CASE category
+                   WHEN 'books' THEN '📚'
+                   WHEN 'gadgets' THEN '💻'
+                   WHEN 'dorm' THEN '🛏'
+                   WHEN 'fashion' THEN '👕'
+                   WHEN 'stationery' THEN '✏️'
+                   WHEN 'sports' THEN '⚽'
+                   ELSE '📦'
+               END as emoji
+        FROM products
+        WHERE seller_id = ?
+        ORDER BY created_at DESC
+    ''', (session['user_id'],)).fetchall()
+    db.close()
+    return jsonify([dict(row) for row in rows])
 
 # keting's route
 @app.route('/admin/dashboard')
