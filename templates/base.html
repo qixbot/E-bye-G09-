@@ -14,7 +14,7 @@
     {% block navbar %}
     <nav class="top-navbar">
         <a href="{{ url_for('home') }}" class="nav-site">
-            <img src="{{ url_for('static', filename='logo.jpg') }}" alt="E-bye Logo" class="site-logo">
+            <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-bye Logo" class="site-logo">
             <span class="site-name">E-bye</span>
         </a>
         
@@ -24,19 +24,26 @@
         </form>
         
         <div class="nav-profile">
-            <a href="#" style="text-decoration: none;">
-                
-                {% if session.get('username') %}
-                    <div class="nav-avatar">{{ session['username'][0].upper() }}</div>
-                {% else %}
-                    <div class="nav-avatar">X</div>
-                {% endif %}
-                
+            <!-- Notification button -->
+            <a href="#" class="nav-icon-btn" title="Notifications">
+                <img src="{{ url_for('static', filename='notif_icon.png') }}" class="nav-icon-img" alt="Notifications">
             </a>
+            <!-- Chat button -->
+            <a href="/chatlist" class="nav-icon-btn" title="Messages">
+        <img src="{{ url_for('static', filename='chat-icon_Ver2.png') }}" class="nav-icon-img" alt="Chat">
+    </a>
+
+            <a href="{{ url_for('edit_profile') }}" style="text-decoration: none;">
+        {% if session.get('username') %}
+            <div class="nav-avatar">{{ session['username'][0].upper() }}</div>
+        {% else %}
+            <div class="nav-avatar">X</div>
+        {% endif %}
+    </a>
         </div>
     </nav>
     {% endblock %}
-    <!-- TOP Navigation bar end -->
+       <!-- TOP Navigation bar end -->
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -47,9 +54,9 @@
             </div>
         {% endif %}
     {% endwith %}
-    
-    {% block content %}{% endblock %}
 
+    {% block content %}{% endblock %}
+    
     <!-- BOTTOM Navigation bar - Xingru -->
     {% block bottom_nav %}
     <div class="bottom-nav-spacer"></div>
@@ -61,21 +68,22 @@
         </a>
         
         <a href="#" class="nav-item">
-            <span class="nav-icon">🔍</span>
-            <span class="nav-text">Search</span>
+            <span class="nav-icon">🛒</span>
+            <span class="nav-text">Cart</span>
         </a>
         
         <div class="post-btn-wrapper">
-            <a href="#" class="post-btn">
+            <a href="{{ url_for('upload_product') }}" class="post-btn">
                 <span class="nav-icon plus-icon">+</span>
                 <span class="nav-text">Post</span>
             </a>
         </div>
-        
-        <a href="#" class="nav-item">
-            <span class="nav-icon">👤</span>
-            <span class="nav-text">Profile</span>
-        </a>
+
+         <a href="#" class="nav-item">
+        <img src="{{ url_for('static', filename='ebee-head.png') }}" class="nav-icon" alt="Profile">
+        <span class="nav-text">Profile</span>
+    </a>
+
         
         <a href="#" class="nav-item">
             <span class="nav-icon">📍</span>

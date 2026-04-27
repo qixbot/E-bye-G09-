@@ -1,6 +1,19 @@
+<! --- Xingru's part --- >
 {% extends "base.html" %}
 
 {% block content %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+
+ {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="toast-container">
+            {% for category, message in messages %}
+                <div class="toast toast-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+    
 <div class="homepage-wrapper">
     
     <div class="hero-banner">
@@ -13,7 +26,7 @@
         </div>
 
         <div class="hero-graphic">
-            <img src="{{ url_for('static', filename='banner-placeholder.png') }}" alt="E-bye Banner Graphic" class="hero-img">
+            <img src="{{ url_for('static', filename='shopping-cart.png') }}" alt="E-bye Banner Graphic" class="hero-img">
         </div>
         
     </div>
@@ -34,7 +47,7 @@
         </div>
 
         <div class="categories-container initial-categories">
-            <a href="#" class="category-pill"><span>🏠</span> All Items</a>
+            <a href="#" class="category-pill"><span>🌐</span> All Items</a>
             <a href="#" class="category-pill"><span>📚</span> Books</a>
             <a href="#" class="category-pill"><span>💻</span> Gadgets</a>
             <a href="#" class="category-pill"><span>🛏️</span> Dorm Items</a>
@@ -64,21 +77,35 @@
             <div class="product-grid">
                 
                 {% for product in latest_products %}
-                <a href="#" class="product-card">
-                    <div class="product-image-container">
+                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-card">
+                    <div class="product-image-container" 
+                        data-images='{{ product.images_list[:3] | tojson }}'
+                        data-total="{{ product.images_list[:3]|length }}"
+                        data-actual-total="{{ product.images_list|length }}">
+
                         <span class="condition-badge">{{ product.condition }}</span>
                         
-                        {% if product.image_2 %}
-                            <img src="{{ url_for('static', filename='uploads/' ~ product.image_1) }}" class="product-img primary-img" alt="{{ product.name }}">
-                            <img src="{{ url_for('static', filename='uploads/' ~ product.image_2) }}" class="product-img hover-img" alt="{{ product.name }}">
-                        {% else %}
-                            <img src="{{ url_for('static', filename='uploads/' ~ product.image_1) }}" class="product-img" alt="{{ product.name }}">
-                        {% endif %}
+                        <!-- Carousel track -->
+                        <div class="carousel-window">
+                            <div class="carousel-track">
+                                {% for img in product.images_list[:3] %}
+                                    <img src="{{ url_for('static', filename='uploads/' ~ img) }}" 
+                                        class="carousel-img" 
+                                        alt="{{ product.name }}">
+                                {% endfor %}
+                            </div>
+                        </div>
                         
+                        <!-- Overlay that slides in after last image -->
+                        <div class="image-overlay">
+                            <div class="overlay-text">👆 Tap to see more →</div>
+                        </div>
+                        
+                        <div class="image-counter">1/{{ product.images_list|length }}</div>
                     </div>
                     <div class="product-info">
                         <h4 class="product-name">{{ product.name }}</h4>
-                        <div class="product-price">RM {{ product.price }}</div>
+                        <div class="product-price">RM {{ "%.2f"|format(product.price) }}</div>
                         <div class="product-seller">
                             <span class="seller-icon">👤</span> {{ product.seller_name }}
                         </div>
@@ -93,15 +120,11 @@
             </div>
 
         {% else %}
-            
             <div class="empty-products-state">
                 <p>Oh no, nothing is posted yet! 🛒<br>Check back soon for great deals.</p>
             </div>
-
         {% endif %}
-
     </section>
-
 </div>
 
 <script>
@@ -120,5 +143,117 @@
             }, 400); 
         }
     }
+</script>
+
+<script>
+    document.querySelectorAll('.product-card').forEach(card => {
+        const container = card.querySelector('.product-image-container');
+        if (!container) return;
+
+        let images = [];
+        try {
+            images = JSON.parse(container.dataset.images);
+        } catch(e) { images = []; }
+        const total = parseInt(container.dataset.total);          // images in carousel (max 3)
+        const actualTotal = parseInt(container.dataset.actualTotal); // real total uploaded
+        if (total <= 1) return;
+
+        let currentIndex = 0;
+        let hoverTimeout = null;
+        let slideInterval = null;
+        let isHovering = false;
+        let overlayActive = false;
+
+        const track = container.querySelector('.carousel-track');
+        const overlay = container.querySelector('.image-overlay');
+        const counter = container.querySelector('.image-counter');
+
+        function updateCounter() {
+            if (counter && !overlayActive) {
+                counter.textContent = `${currentIndex+1}/${actualTotal}`;
+            }
+        }
+
+        function goToSlide(index, animate = true) {
+            if (!track) return;
+            track.style.transition = animate ? 'transform 0.4s ease-in-out' : 'none';
+            const offset = - (index * 100);
+            track.style.transform = `translateX(${offset}%)`;
+            currentIndex = index;
+            updateCounter();
+        }
+
+        function showOverlay() {
+            if (overlay) {
+                overlay.classList.add('show');
+                overlayActive = true;
+                if (counter) counter.style.display = 'none';
+            }
+        }
+
+        function hideOverlay() {
+            if (overlay) {
+                overlay.style.transition = 'none';
+                overlay.classList.remove('show');
+                overlayActive = false;
+                if (counter) counter.style.display = '';
+                updateCounter();
+                void overlay.offsetHeight;
+                overlay.style.transition = '';
+            }
+        }
+
+        function nextSlide() {
+            if (!isHovering) return;
+            if (overlayActive) return;
+            
+            const next = currentIndex + 1;
+            if (next < total) {
+                goToSlide(next, true);
+            } else if (next === total) {
+                showOverlay();
+                if (slideInterval) clearInterval(slideInterval);
+                slideInterval = null;
+            }
+        }
+
+        function startSlideshow() {
+            if (slideInterval) clearInterval(slideInterval);
+            slideInterval = setInterval(() => {
+                if (isHovering && !overlayActive) nextSlide();
+            }, 2500);
+        }
+
+        function stopSlideshow() {
+            if (slideInterval) {
+                clearInterval(slideInterval);
+                slideInterval = null;
+            }
+        }
+
+        function resetToFirst() {
+            stopSlideshow();
+            isHovering = false;
+            clearTimeout(hoverTimeout);
+            hideOverlay();
+            goToSlide(0, false);
+        }
+
+        goToSlide(0, false);
+
+        card.addEventListener('mouseenter', () => {
+            if (isHovering) return;
+            isHovering = true;
+            if (currentIndex !== 0) goToSlide(0, false);
+            hideOverlay();
+            hoverTimeout = setTimeout(() => {
+                if (isHovering) startSlideshow();
+            }, 0);
+        });
+
+        card.addEventListener('mouseleave', () => {
+            resetToFirst();
+        });
+    });
 </script>
 {% endblock %}

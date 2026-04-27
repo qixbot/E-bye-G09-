@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div style="padding:30px 30px 180px; max-width:900px; margin:0 auto;">
+    <h2>Messages</h2>
+    <p style="color:#555;margin-bottom:20px;">All your chats, updates and notifications</p>
+
+    <!-- 全局搜索栏 -->
+    <div class="mb-4" style="position:relative;">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:#888;">🔍</span>
+        <input type="text" id="searchInput" class="form-control" placeholder="Search chats, notifications" style="border-radius:12px;padding:12px 16px 12px 40px;width:100%;">
+    </div>
+    <hr>
+
+    <!-- 顶部快捷功能入 -->
+    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:18px; margin-bottom:35px; text-align:center;">
+        <!-- 评论@消息 -->
+        <div style="cursor:pointer;">
+            <div style="width:60px;height:60px;background:#f0f2ff;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:24px;">💬</div>
+            <div style="font-size:14px;margin-top:8px; color:#333;">Comments & Mentions</div>
+        </div>
+        <!-- 订单议价互动 -->
+        <div style="cursor:pointer;">
+            <div style="width:60px;height:60px;background:#fff3f0;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:24px;">🤝</div>
+            <div style="font-size:14px;margin-top:8px; color:#333;">Order Bargain</div>
+        </div>
+        <!-- 系统全局通知 -->
+        <div style="cursor:pointer;">
+            <div style="width:60px;height:60px;background:#f0f8f3;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:24px;">🔔</div>
+            <div style="font-size:14px;margin-top:8px; color:#333;">System Notice</div>
+        </div>
+        <!-- 账号状态提醒 -->
+        <div style="cursor:pointer;">
+            <div style="width:60px;height:60px;background:#fffbe6;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:24px;">👤</div>
+            <div style="font-size:14px;margin-top:8px; color:#333;">Account Status</div>
+        </div>
+    </div>
+
+    <h4 style="margin-bottom:18px;">Chat Conversations</h4>
+
+    <!-- 聊天会话列表 -->
+    <div id="chatListContainer" style="display:flex; flex-direction:column; gap:12px;">
+
+        <!-- 1. 带未读红点 普通私聊会话 -->
+        <div class="chat-item" style="background:#fff;border-radius:14px;padding:16px 20px;box-shadow:0 2px 6px rgba(0,0,0,0.05);display:flex;align-items:center;gap:14px;cursor:pointer;">
+            <div style="width:52px;height:52px;background:#ddd;border-radius:50%;flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:16px;">Seller / Buyer Name</div>
+                <div style="color:#666;font-size:14px;margin-top:3px;">Hello, can the price of the product be further negotiated for a discount?</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+                <div style="color:#888;font-size:13px;">Today 10:20</div>
+                <div style="width:10px;height:10px;background:#ff3b30;border-radius:50%;margin:6px 0 0 auto;"></div>
+            </div>
+        </div>
+
+        <!-- 2. 已读私聊会话 -->
+        <div class="chat-item" style="background:#fff;border-radius:14px;padding:16px 20px;box-shadow:0 2px 6px rgba(0,0,0,0.05);display:flex;align-items:center;gap:14px;cursor:pointer;">
+            <div style="width:52px;height:52px;background:#ddd;border-radius:50%;flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:16px;">Another User</div>
+                <div style="color:#666;font-size:14px;margin-top:3px;">Your order has been confirmed for shipment.</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+                <div style="color:#888;font-size:13px;">Yesterday</div>
+            </div>
+        </div>
+
+        <!-- 3. 官方系统通知会话 -->
+        <div class="chat-item" style="background:#fff;border-radius:14px;padding:16px 20px;box-shadow:0 2px 6px rgba(0,0,0,0.05);display:flex;align-items:center;gap:14px;cursor:pointer;">
+            <div style="width:52px;height:52px;background:#205c30;color:white;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">📢</div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:16px;">Official System</div>
+                <div style="color:#666;font-size:14px;margin-top:3px;">The review result for product listing has been updated</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+                <div style="color:#888;font-size:13px;">3 days ago</div>
+            </div>
+        </div>
+
+        <!-- 暂无消息空状态 -->
+        <!--
+        <div style="text-align:center;padding:60px 20px;color:#888;">
+            No messages or conversations yet
+        </div>
+        -->
+
+    </div>
+
+</div>
+
+<!-- 实时搜索过滤脚本 -->
+<script>
+document.getElementById('searchInput').addEventListener('input', function(){
+    const keyword = this.value.toLowerCase();
+    document.querySelectorAll('.chat-item').forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(keyword) ? '' : 'none';
+    });
+})
+</script>
+
+<!-- 全局2秒自动消失操作提示 -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for category, message in messages %}
+<div id="globalToast" style="
+    position:fixed;top:25px;left:50%;transform:translateX(-50%);
+    background:#205c30;color:white;padding:12px 35px;border-radius:30px;
+    z-index:9999;transition: opacity 0.6s;">
+    {{ message }}
+</div>
+{% endfor %}
+{% endwith %}
+
+<script>
+setTimeout(()=>{
+    const toast = document.getElementById('globalToast');
+    if(toast){
+        toast.style.opacity = '0';
+        setTimeout(()=> toast.remove(), 600);
+    }
+}, 2000);
+</script>
+
+{% endblock %}
