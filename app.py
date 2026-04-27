@@ -1101,7 +1101,7 @@ def reject_product(pid):
         UPDATE products 
         SET status = 'rejected', reject_reason = ?
         WHERE id = ?
-    """, (reject_reason, pid))
+    ''', (reject_reason, pid))
 
     prod = db.execute(
         'SELECT seller_id, name FROM products WHERE id = ?', (pid,)
@@ -1362,7 +1362,7 @@ def product_detail(product_id):
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.id = ? AND p.status = 'approved'
-    """, (product_id,)).fetchone()
+    ''', (product_id,)).fetchone()
     db.close()
     
     if not product:
