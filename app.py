@@ -278,8 +278,13 @@ def home():
         if images_str:
             img_list = images_str.split(',')
             # Filter only image files for carousel (max 3)
-            image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
-            image_only = [f for f in img_list if f.split('.')[-1].lower() in image_extensions]
+            image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
+            image_only = []
+            for f in img_list:
+                f = f.strip()          # remove accidental spaces
+                ext = f.split('.')[-1].lower()
+                if ext in image_extensions:
+                    image_only.append(f)
             product['images_list'] = image_only[:3]      # for carousel (only images)
             product['actual_total'] = len(img_list)      # total media (including videos)
             product['image_1'] = image_only[0] if len(image_only) > 0 else None

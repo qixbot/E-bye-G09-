@@ -152,7 +152,7 @@
 }
 
 .category-pill:hover {
-    background-color: #e6ded3; 
+    background-color: #e0e0e0; 
     border-color: #00381f; 
     color: #00381f;
     transform: translateY(-2px);
