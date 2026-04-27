@@ -97,7 +97,8 @@ def login():
 
                 # Security analysis time
                 try:
-                    expire_time = datetime.strptime(frozen_end_time, "%Y-%m-%d %H:%M:%S")
+                    expire_time = datetime.strptime
+                    (frozen_end_time, "%Y-%m-%d %H:%M:%S")
                 except Exception:
                     pass
 
@@ -286,7 +287,7 @@ def home():
         products.append(product)
 
     return render_template('home.html',
-                           username=session.get('username'), latest_products=products)
+    username=session.get('username'), latest_products=products)
 
 @app.route('/logout')
 
@@ -473,7 +474,8 @@ def edit_profile():
 
     if user['created_at']:
         try:
-            created_date = datetime.strptime(user['created_at'], '%Y-%m-%d %H:%M:%S')
+            created_date = datetime.strptime
+            (user['created_at'], '%Y-%m-%d %H:%M:%S')
             days_since_join = (datetime.now() - created_date).days
             if days_since_join >= 365:
                 trust_score += 20
@@ -525,8 +527,10 @@ def edit_profile():
     if user:
             user_dict = dict(user)
             bg_image_value = user_dict.get('bg_image')
+            bg_type_value = user_dict.get('bg_type', 'default')
     else:
             bg_image_value = None
+            bg_type_value = 'default'
 
     db.close()
     return render_template(
@@ -536,7 +540,8 @@ def edit_profile():
         sold_count=0,
         trust_score=trust_score,
         response_rate=response_rate,
-        bg_image=bg_image_value
+        bg_image=bg_image_value,
+        bg_type=bg_type_value
     )
 
 # Eileen's Route ------UPDATE profile
@@ -588,9 +593,11 @@ def update_profile():
     # Handle background image upload
     bg_image = request.files.get('bg_image')
     if bg_image and bg_image.filename:
-        ext = bg_image.filename.rsplit('.', 1)[-1].lower() if '.' in bg_image.filename else 'jpg'
+        ext = bg_image.filename.rsplit
+        ('.', 1)[-1].lower() if '.' in bg_image.filename else 'jpg'
         if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
-            bg_filename = secure_filename(f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
+            bg_filename = secure_filename
+            (f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
             bg_image.save(os.path.join('static/uploads', bg_filename))
             db.execute(
                 'UPDATE users SET bg_image = ? WHERE id = ?',
@@ -603,7 +610,9 @@ def update_profile():
         SET username = ?, full_name = ?, bio = ?,
             contact = ?, gender = ?, active_hours = ?
         WHERE id = ?
-    ''', (username, full_name, bio, contact, gender, active_hours, session['user_id']))
+    ''', (
+        username, 
+        full_name, bio, contact, gender, active_hours, session['user_id']))
 
     db.commit()
     db.close()
@@ -627,13 +636,27 @@ def upload_background():
         return jsonify({'success': False, 'error': 'No file selected'}), 400
 
     if file:
-        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+        ext = file.filename.rsplit
+        ('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+        
         if ext not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
-            return jsonify({'success': False, 'error': 'Unsupported file format'}), 400
+            return jsonify
+        ({'success': False, 'error': 'Unsupported file format'}), 400
 
-        filename = secure_filename(f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
+        filename = secure_filename
+        (f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
+        
         filepath = os.path.join('static/uploads', filename)
         file.save(filepath)
+
+        # ✅ 直接保存到数据库，不需要额外调用 /save-background
+        db = get_db()
+        db.execute(
+            'UPDATE users SET bg_image = ? WHERE id = ?',
+            (filename, session['user_id'])
+        )
+        db.commit()
+        db.close()
 
         return jsonify({
             'success': True,
@@ -645,7 +668,7 @@ def upload_background():
 @app.route('/save-background', methods=['POST'])
 
 def save_background():
-
+    # 保留此接口以兼容旧版前端，但新代码已不再需要
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
@@ -663,18 +686,32 @@ def save_background():
 
     return jsonify({'success': True})
 
-# 保存预设背景到数据库
+# 保存预设背景到数据库（修复版：同时保存 bg_type 和 bg_value）
 @app.route('/save-background-preset', methods=['POST'])
 
 def save_background_preset():
 
     if 'user_id' not in session:
         return jsonify({'success': False}), 401
+    
     data = request.get_json()
     bg_type = data.get('bg_type', 'default')
+    bg_value = data.get('bg_value')  # ✅ 新增：获取背景的具体值
 
     db = get_db()
-    db.execute('UPDATE users SET bg_type = ? WHERE id = ?', (bg_type, session['user_id']))
+    
+    if bg_value:
+        # 如果有具体的背景值（颜色或渐变），同时保存到 bg_image 字段
+        db.execute(
+            'UPDATE users SET bg_type = ?, bg_image = ? WHERE id = ?', 
+            (bg_type, bg_value, session['user_id'])
+        )
+    else:
+        db.execute(
+            'UPDATE users SET bg_type = ? WHERE id = ?', 
+            (bg_type, session['user_id'])
+        )
+    
     db.commit()
     db.close()
     
@@ -771,7 +808,8 @@ def verify_password():
     password = data.get('password', '')
     
     db = get_db()
-    user = db.execute('SELECT password FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    user = db.execute(
+        'SELECT password FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     db.close()
     
     if user and check_password_hash(user['password'], password):
@@ -808,7 +846,8 @@ def update_cover():
         db.close()
 
         return jsonify(
-            {'success': True, 'image_url': url_for('static',filename=f'uploads/{original_filename}')})
+          {'success': True, 
+           'image_url': url_for('static',filename=f'uploads/{original_filename}')})
 
     return jsonify({'success': False, 'error': 'Upload failed'}), 500
 
@@ -823,15 +862,20 @@ def update_profile_avatar():
     file = request.files['avatar']
     if file.filename == '':
         return jsonify({'success': False, 'error': 'Empty filename'}), 400
-    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
-    filename = secure_filename(f"avatar_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
+    ext = file.filename.rsplit
+    ('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+    filename = secure_filename(
+        f"avatar_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
     filepath = os.path.join('static/uploads', filename)
     file.save(filepath)
     db = get_db()
-    db.execute('UPDATE users SET avatar = ? WHERE id = ?', (filename, session['user_id']))
+    db.execute(
+        'UPDATE users SET avatar = ? WHERE id = ?', 
+        (filename, session['user_id']))
     db.commit()
     db.close()
-    return jsonify({'success': True, 'image_url': url_for('static', filename=f'uploads/{filename}')})
+    return jsonify
+({'success': True, 'image_url': url_for('static', filename=f'uploads/{filename}')})
 
 #Eileen's Route ------ api
 @app.route('/api/user/purchases')
@@ -973,7 +1017,8 @@ def approve_product(pid):
     ''', (pid,))
 
     # 获取商品和卖家信息，用于发通知
-    prod = db.execute('SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
+    prod = db.execute(
+        'SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
     seller_id = prod['seller_id']
     prod_name = prod['name']
 
@@ -1007,7 +1052,8 @@ def reject_product(pid):
         WHERE id = ?
     ''', (reject_reason, pid))
 
-    prod = db.execute('SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
+    prod = db.execute(
+        'SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
     seller_id = prod['seller_id']
     prod_name = prod['name']
 
