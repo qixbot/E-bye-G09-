@@ -40,7 +40,7 @@ body {
 }
 
 .site-logo {
-    height: 80px;                   
+    height: 65px;                   
     width: auto;
 }
 
@@ -126,7 +126,9 @@ body {
 .nav-avatar {
     height: 40px;
     width: 40px;
+    border: none;
     border-radius: 50%;
+    outline: none;
     background-color: #e6ded3; 
     color: #333333;
     display: flex;
@@ -136,7 +138,21 @@ body {
     font-weight: bold;
     text-transform: uppercase; 
 }
-
+.nav-avatar-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #e6ded3;
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+.nav-profile a {
+    border: none;
+    text-decoration: none;
+    line-height: 0;  /* removes extra spacing below image */
+}
 /* =========================================
    BOTTOM NAVIGATION BAR
    ========================================= */
@@ -233,5 +249,6 @@ img.nav-icon {
 .post-btn .nav-text {
     color: #ffffff;
 }
+
 
 /* You can add other global styles here */

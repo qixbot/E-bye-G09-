@@ -1,5 +1,7 @@
 import re
 
+import subprocess
+
 import os
 
 import sqlite3
@@ -50,6 +52,23 @@ def time_since(date):
     elif diff.seconds > 60:
         return f"{diff.seconds//60}m"
     return 'Just now'
+
+def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
+    """Extract a frame from video at given time offset and save as JPEG."""
+    cmd = [
+        'ffmpeg',
+        '-i', video_path,
+        '-ss', str(time_offset),
+        '-vframes', '1',
+        '-q:v', '2',
+        '-y',
+        thumbnail_path
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+        return True
+    except subprocess.CalledProcessError:
+        return False
 
 # --- Setup folder for uploaded product images ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
@@ -298,7 +317,7 @@ def home():
 
     db = get_db()
     products_data = db.execute('''
-        SELECT p.*, u.username as seller_name
+        SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'approved'
@@ -396,6 +415,18 @@ def update_profile_avatar():
     
     return jsonify({'success': True})
 
+#added by Xingru - public route to serve avatar by user_id (for displaying other users' avatars)
+@app.route('/user-avatar/<int:user_id>')
+def user_avatar(user_id):
+    db = get_db()
+    user = db.execute('SELECT avatar_blob FROM users WHERE id = ?', (user_id,)).fetchone()
+    db.close()
+    if user and user['avatar_blob']:
+        response = make_response(user['avatar_blob'])
+        response.headers.set('Content-Type', 'image/jpeg')
+        return response
+    # Return a default placeholder (transparent 1x1 gif or 404)
+    return '', 404
 
 # ============================================================
 # COVER ROUTES - Store as BLOB in database
@@ -1248,7 +1279,6 @@ def user_chatlist():
 # Xingru's Route - Upload Product
 @app.route('/upload', methods=['GET', 'POST'])
 
-
 def upload_product():
     if 'user_id' not in session:
         flash("You must be logged in to post an item.", "error")
@@ -1290,25 +1320,43 @@ def upload_product():
         
         # Validate images
         files = request.files.getlist('product_images')
-        saved_image_names = []
         ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'webm', 'mov'}
+        invalid_files = []
+        valid_files = []
 
         for file in files:
             if file and file.filename != '':
-                # Check extension
-                original_filename = file.filename
-                ext = original_filename.rsplit('.', 1)[-1].lower() if '.' in original_filename else ''
+                ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
                 if ext not in ALLOWED_EXTENSIONS:
-                    flash(f"Unsupported file type: {original_filename}. Only images and MP4/WebM/MOV videos are allowed.", "error")
-                    continue   # skip this file, continue with others
-                
-                filename = secure_filename(original_filename)
-                if not filename:
-                    filename = f"media_{uuid.uuid4().hex}.{ext}"
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(filepath)
-                saved_image_names.append(filename)
+                    invalid_files.append(file.filename)
+                else:
+                    valid_files.append(file)
+
+        # If any invalid file is found, abort the whole upload
+        if invalid_files:
+            flash(f"Unsupported file type(s): {', '.join(invalid_files)}. Only images and MP4/WebM/MOV videos are allowed.", "error")
+            return render_template('upload.html')
+
+        # Now save only valid files (all are valid)
+        saved_image_names = []
+        for file in valid_files:
+            original_filename = file.filename
+            ext = original_filename.rsplit('.', 1)[-1].lower()
+            filename = secure_filename(original_filename)
+            if not filename:
+                filename = f"media_{uuid.uuid4().hex}.{ext}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            saved_image_names.append(filename)
         
+            if ext in ['mp4', 'webm', 'mov']:
+                    thumb_filename = f"{os.path.splitext(filename)[0]}_thumb.jpg"
+                    thumb_path = os.path.join(app.config['UPLOAD_FOLDER'], thumb_filename)
+                    if generate_video_thumbnail(filepath, thumb_path):
+                        # Optionally store thumbnail filename; we'll deduce it later
+                        # For now, we'll just save it; the product page will use it as poster
+                        pass
+
         if not saved_image_names:
             errors.append("Please upload at least one photo.")
         
@@ -1357,8 +1405,8 @@ def product_detail(product_id):
     
     db = get_db()
     product = db.execute('''
-        SELECT p.*, u.username as seller_name, 
-                         u.id as seller_id, u.created_at as user_joined
+        SELECT p.*, u.username as seller_name, u.full_name as seller_full_name,
+            u.avatar as seller_avatar, u.id as seller_id, u.created_at as user_joined
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.id = ? AND p.status = 'approved'

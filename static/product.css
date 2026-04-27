@@ -6,11 +6,15 @@
     border-radius: 24px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
+.product-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
 .page-actions {
     display: flex;
-    justify-content: flex-end;
     gap: 12px;
-    margin-bottom: 20px;
 }
 .action-icon {
     width: 40px;
@@ -57,7 +61,6 @@
     border-radius: 40px;
     font-size: 0.9rem;
     cursor: pointer;
-    margin-bottom: 20px;
     transition: 0.2s;
 }
 .back-btn:hover {
@@ -87,7 +90,6 @@
     object-fit: contain;  /* scales without stretching, may have letterbox */
     background: #f4f4f4;
 }
-
 .image-counter {
     margin-top: 8px;
     text-align: center;
@@ -151,33 +153,51 @@
     align-items: center;
     flex-wrap: wrap;
 }
-.seller-left {
+.seller-details {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
 }
-.seller-avatar-link {
+.seller-link {
     text-decoration: none;
 }
 .seller-avatar {
-    width: 40px;
-    height: 40px;
-    background-color: #e6ded3;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
+    overflow: hidden;
+    background-color: #e6ded3;
+}
+.seller-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    text-transform: uppercase;
+    font-size: 1.2rem;
     color: #333;
-    transition: 0.2s;
 }
-.seller-avatar:hover {
-    background-color: #00381f;
-    color: white;
+.seller-text {
+    display: flex;
+    flex-direction: column;
 }
-.seller-name {
-    font-weight: 600;
+.seller-text-link {
+    text-decoration: none;
+    color: inherit;
+}
+.seller-fullname {
+    font-weight: 700;
+    font-size: 1rem;
+}
+.seller-username {
+    font-size: 0.8rem;
+    color: #888;
 }
 .upload-date {
     color: #888;
@@ -185,25 +205,23 @@
 }
 .action-buttons {
     display: flex;
+    flex-direction: column;
     gap: 12px;
     margin-top: 20px;
 }
-.buy-btn, .offer-btn {
+.double-buttons {
+    display: flex;
+    gap: 12px;
+}
+.offer-btn, .chat-btn {
     flex: 1;
     padding: 12px;
     border-radius: 40px;
     font-weight: 600;
-    cursor: pointer;
     text-align: center;
     border: none;
     font-size: 1rem;
-}
-.buy-btn {
-    background-color: #00381f;
-    color: white;
-}
-.buy-btn:hover {
-    background-color: #1a5c3a;
+    cursor: pointer;
 }
 .offer-btn {
     background: transparent;
@@ -213,6 +231,31 @@
 .offer-btn:hover {
     background: #00381f;
     color: white;
+}
+.chat-btn {
+    background: #f0f0f0;
+    color: #333;
+    text-decoration: none;
+    border: 1px solid #ddd;
+    display: inline-block;
+}
+.chat-btn:hover {
+    background: #e0e0e0;
+    color: #00381f;
+}
+.buy-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 40px;
+    font-weight: 600;
+    background-color: #00381f;
+    color: white;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+}
+.buy-btn:hover {
+    background-color: #1a5c3a;
 }
 /* Modal */
 .modal {

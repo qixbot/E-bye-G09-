@@ -392,17 +392,55 @@
 }
 
 .product-seller {
-    font-size: 0.85rem;
-    color: #777777;
     display: flex;
     align-items: center;
     gap: 5px;
     margin-top: 4px;
-    margin-bottom: 0;
 }
-
-.seller-icon {
-    font-size: 0.9rem;
+.seller-profile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    color: #777777;
+    font-size: 0.85rem;
+}
+.seller-profile-link:hover {
+    color: #00381f;
+}
+.seller-icon-img {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    object-fit: cover;
+    vertical-align: middle;
+}
+.seller-icon-placeholder {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background-color: #e6ded3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #333;
+    vertical-align: middle;
+}
+.seller-name {
+    font-size: 0.85rem;
+    color: #777777;
+}
+.seller-name-link {
+    text-decoration: none;
+    color: #777777;
+    font-size: 0.85rem;
+    transition: color 0.2s;
+}
+.seller-name-link:hover {
+    color: #00381f;
+    text-decoration: underline;
 }
 
 /* Empty State Styling - Updated to be subtle */

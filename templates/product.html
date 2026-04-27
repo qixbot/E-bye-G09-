@@ -4,13 +4,14 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='product.css') }}">
 
 <div class="product-page">
-    <div class="page-actions">
-        <button class="action-icon" id="copyLinkBtn" title="Copy link">🔗</button>
-        <button class="action-icon" id="reportBtn" title="Report item">⚠️</button>
+    <div class="product-header">
+        <button class="back-btn" onclick="goBack()">← Back</button>
+        <div class="page-actions">
+            <button class="action-icon" id="copyLinkBtn" title="Copy link">🔗</button>
+            <button class="action-icon" id="reportBtn" title="Report item">⚠️</button>
+        </div>
     </div>
     <div id="copyToast" class="copy-toast">Link copied to clipboard!</div>
-
-    <button class="back-btn" onclick="goBack()">← Back</button>
 
     <div class="product-grid">
         <!-- Left: Images -->
@@ -19,7 +20,7 @@
                 {% set first_media = images[0] %}
                 {% set ext = first_media.split('.')[-1].lower() if first_media else '' %}
                 {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
-                    <video id="main-product-video" controls autoplay muted loop>
+                    <video id="main-product-video" controls autoplay muted loop poster="{{ url_for('static', filename='uploads/' ~ first_media | replace('.mp4', '_thumb.jpg') | replace('.webm', '_thumb.jpg') | replace('.mov', '_thumb.jpg')) }}">
                         <source src="{{ url_for('static', filename='uploads/' ~ first_media) }}" type="video/{{ ext }}">
                         Your browser does not support the video tag.
                     </video>
@@ -31,10 +32,14 @@
             {% if images|length > 1 %}
             <div class="thumbnail-list">
                 {% for img in images %}
-                <img src="{{ url_for('static', filename='uploads/' ~ img) }}" 
-                    class="thumbnail" 
-                    data-index="{{ loop.index0 }}"
-                    onclick="changeMainMedia(this.src, {{ loop.index0 }})"                     alt="Thumbnail">
+                    {% set ext = img.split('.')[-1].lower() %}
+                    {% set thumb = img | replace(ext, 'jpg') if ext in ['mp4','webm','mov'] else img %}
+                    {% set thumb_path = img.replace(ext, 'jpg') if ext in ['mp4','webm','mov'] else img %}
+                    <img src="{{ url_for('static', filename='uploads/' ~ thumb_path) }}"
+                        class="thumbnail"
+                        data-index="{{ loop.index0 }}"
+                        onclick="changeMainMedia(this.src, {{ loop.index0 }})"
+                        alt="Thumbnail">
                 {% endfor %}
             </div>
             {% endif %}
@@ -48,13 +53,22 @@
             <div class="price">RM {{ "%.2f"|format(product.price) }}</div>
 
             <div class="seller-info">
-                <div class="seller-left">
-                    <a href="{{ url_for('user_profile', user_id=product.seller_id) }}" class="seller-avatar-link">
+                <div class="seller-details">
+                    <a href="{{ url_for('user_profile', user_id=product.seller_id) }}" class="seller-link">
                         <div class="seller-avatar">
-                            {{ product.seller_name[0].upper() }}
+                            {% if product.seller_avatar %}
+                                <img src="{{ url_for('static', filename='uploads/' + product.seller_avatar) }}" alt="Seller avatar">
+                            {% else %}
+                                <div class="avatar-placeholder">{{ product.seller_name[0].upper() }}</div>
+                            {% endif %}
                         </div>
                     </a>
-                    <span class="seller-name">{{ product.seller_name }}</span>
+                    <a href="{% if product.seller_id == session.user_id %}{{ url_for('edit_profile') }}{% else %}{{ url_for('user_profile', user_id=product.seller_id) }}{% endif %}" class="seller-text-link">
+                        <div class="seller-text">
+                            <div class="seller-fullname">{{ product.seller_full_name or product.seller_name }}</div>
+                            <div class="seller-username">@{{ product.seller_name }}</div>
+                        </div>
+                    </a>
                 </div>
                 <div class="upload-date">Posted on {{ product.created_at.split(' ')[0] }}</div>
             </div>
@@ -65,8 +79,11 @@
             </div>
 
             <div class="action-buttons">
-                <button class="buy-btn" onclick="alert('Purchase flow not implemented yet.')">Buy Now</button>
-                <button class="offer-btn" onclick="openOfferModal()">Make an Offer</button>
+                <div class="double-buttons">
+                    <button class="offer-btn" onclick="openOfferModal()">Make an Offer</button>
+                    <a href="#" class="chat-btn">💬 Chat with seller</a>
+                </div>
+                <button class="buy-btn" onclick="confirmPurchase()">Buy Now</button>
             </div>
         </div>
     </div>
@@ -80,7 +97,7 @@
         <p class="modal-caption">Current asking price: <strong>RM {{ "%.2f"|format(product.price) }}</strong> — suggest your price below</p>
         <div class="form-group">
             <label>Your offer (RM)</label>
-            <input type="number" id="offerAmount" class="offer-input" placeholder="0.00" step="0.01" min="0" max="9999999">
+            <input type="number" id="offerAmount" class="offer-input" placeholder="0.00" step="0.01" min="0" max="9999999" oninput="limitOfferPrice(this)" onblur="formatOfferPrice(this)">
             <small class="offer-hint">Max RM 9,999,999.99</small>
         </div>
         <div class="modal-buttons">
@@ -124,7 +141,7 @@
         navigator.clipboard.writeText(url).then(() => {
             showCopyToast();
         }).catch(() => {
-            alert('Failed to copy link.');
+            showGlobalToast('Failed to copy link.', 'error');
         });
     });
     function changeMainMedia(src, index) {
@@ -153,7 +170,11 @@
             if (thumb.src === src) thumb.classList.add('active');
         });
     }
-
+    function confirmPurchase() {
+        if (confirm("Are you sure you want to buy this item?")) {
+            alert("Purchase flow not implemented yet.");
+        }
+    }
     function openOfferModal() {
         document.getElementById('offerModal').style.display = 'flex';
     }
@@ -161,12 +182,16 @@
         document.getElementById('offerModal').style.display = 'none';
     }
     function sendOffer() {
-        let offer = document.getElementById('offerAmount').value;
+        const offerInput = document.getElementById('offerAmount');
+        const offer = offerInput.value;
+
         if (!offer || parseFloat(offer) <= 0) {
-            alert("Please enter a valid offer amount.");
+            showGlobalToast("Please enter a valid offer amount.", "error");
             return;
         }
-        alert(`Offer of RM ${parseFloat(offer).toFixed(2)} sent to seller.`);
+
+        showGlobalToast(`Offer of RM ${parseFloat(offer).toFixed(2)} sent to seller.`, "success");
+        offerInput.value = '';   // clear the input field
         closeOfferModal();
     }
     window.onclick = function(event) {
@@ -213,14 +238,14 @@
 
     document.getElementById('sendReportBtn').addEventListener('click', function() {
         if (!selectedReason) {
-            alert('Please select a reason.');
+            showGlobalToast('Please select a reason.', 'error');
             return;
         }
         let extraDetails = '';
         if (selectedReason === 'Others') {
             extraDetails = document.getElementById('otherReasonText').value.trim();
             if (!extraDetails) {
-                alert('Please describe the issue.');
+                showGlobalToast('Please describe the issue.', 'error');
                 return;
             }
         }
@@ -231,7 +256,7 @@
             details: extraDetails
         };
         console.log('Report sent:', reportData);
-        alert('Thank you. Your report has been sent to the admin.');
+        showGlobalToast('Thank you. Your report has been sent to the admin.', 'success');
         closeReportModal();
     });
 
@@ -239,6 +264,29 @@
     window.onclick = function(event) {
         const modal = document.getElementById('reportModal');
         if (event.target === modal) closeReportModal();
+    }
+
+    function limitOfferPrice(input) {
+        let val = parseFloat(input.value);
+        if (val > 9999999) {
+            input.value = 9999999;
+        }
+        if (input.value.includes('.')) {
+            let parts = input.value.split('.');
+            if (parts[1] && parts[1].length > 2) {
+                input.value = parseFloat(input.value).toFixed(2);
+            }
+        }
+    }
+
+    function formatOfferPrice(input) {
+        if (input.value !== '') {
+            let val = parseFloat(input.value);
+            if (!isNaN(val)) {
+                if (val > 9999999) val = 9999999;
+                input.value = val.toFixed(2);
+            }
+        }
     }
 </script>
 {% endblock %}

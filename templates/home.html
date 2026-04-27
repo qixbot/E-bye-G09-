@@ -109,7 +109,10 @@
                         <h4 class="product-name">{{ product.name }}</h4>
                         <div class="product-price">RM {{ "%.2f"|format(product.price) }}</div>
                         <div class="product-seller">
-                            <span class="seller-icon">👤</span> {{ product.seller_name }}
+                            <img src="{{ url_for('user_avatar', user_id=product.seller_id) }}" class="seller-icon-img"
+                                onerror="this.onerror=null; this.src=''; this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                            <span class="seller-icon-placeholder" style="display: none;">{{ product.seller_name[0].upper() }}</span>
+                            <span class="seller-name">{{ product.seller_full_name or product.seller_name }}</span>
                         </div>
                     </div>
                 </a>
