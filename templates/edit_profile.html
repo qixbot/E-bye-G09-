@@ -29,41 +29,35 @@
             </button>
         </div>
     </nav>
-
-    <!-- Background selection panel -->
-    <div class="ep-bg-panel" id="epBgPanel">
-        <div class="ep-bg-panel-header">
-            <span>🎨 Page Background</span>
-            <button class="ep-bg-close" onclick="toggleBgPanel()">✕</button>
-        </div>
-        <div class="theme-section">
-            <div class="theme-label">🌈 Rainbow</div>
-            <div class="color-grid" id="rainbowGrid"></div>
-        </div>
-        <div class="theme-section">
-            <div class="theme-label">🌸 Light Tones</div>
-            <div class="color-grid" id="lightGrid"></div>
-        </div>
-        <div class="theme-section">
-            <div class="theme-label">🌙 Dark Tones</div>
-            <div class="color-grid" id="darkGrid"></div>
-        </div>
-        <div class="theme-section">
-            <div class="theme-label">✨ Gradients</div>
-            <div class="color-grid" id="gradientGrid"></div>
-        </div>
-        <div class="custom-upload-row">
-            <label class="upload-square">
-                📷 Upload Custom Photo
-                <input type="file" id="customBgInput" accept="image/*" style="display:none">
-            </label>
-        </div>
-        <div id="currentBgPreview" class="bg-preview-current"></div>
-        <div class="bg-buttons">
-            <button class="bg-save-btn" id="bgSaveBtn">Save Changes</button>
-            <button class="bg-cancel-btn" id="bgCancelBtn">Cancel</button>
-        </div>
+<!-- Background selection panel -->
+<div class="ep-bg-panel" id="epBgPanel">
+    <div class="ep-bg-panel-header">
+        <span>🎨 Page Background</span>
+        <button class="ep-bg-close" onclick="toggleBgPanel()">✕</button>
     </div>
+    <div class="theme-section">
+        <div class="theme-label">🌈 Rainbow</div>
+        <div class="color-grid" id="rainbowGrid"></div>
+    </div>
+    <div class="theme-section">
+        <div class="theme-label">🌸 Light Tones</div>
+        <div class="color-grid" id="lightGrid"></div>
+    </div>
+    <div class="theme-section">
+        <div class="theme-label">🌙 Dark Tones</div>
+        <div class="color-grid" id="darkGrid"></div>
+    </div>
+    <div class="theme-section">
+        <div class="theme-label">✨ Gradients</div>
+        <div class="color-grid" id="gradientGrid"></div>
+    </div>
+    <div id="currentBgPreview" class="bg-preview-current"></div>
+    <div class="bg-buttons">
+        <button class="bg-save-btn" id="bgSaveBtn">Save Changes</button>
+        <button class="bg-cancel-btn" id="bgCancelBtn">Cancel</button>
+    </div>
+</div>
+
 
     <!-- Cover banner section - load from database BLOB -->
     <div class="ep-cover-container">
@@ -543,22 +537,22 @@ buildGrid('lightGrid', COLOR_CONFIG.light);
 buildGrid('darkGrid', COLOR_CONFIG.dark);
 buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
 
-let selectedBgValue = null;
-
-function previewBg(val) {
-    const $bgLayer = document.getElementById('epBgLayer');
-    const $bgPreview = document.getElementById('currentBgPreview');
-    if ($bgLayer) $bgLayer.style.background = val;
-    if ($bgPreview) $bgPreview.style.background = val;
-    selectedBgValue = val;
-}
-
 // ============================================================
 // DOM ELEMENT CACHING
 // ============================================================
 const $bgLayer = document.getElementById('epBgLayer');
 const $bgPreview = document.getElementById('currentBgPreview');
 const $bgPanel = document.getElementById('epBgPanel');
+let selectedBgValue = null;
+
+// ============================================================
+// PREVIEW FUNCTION
+// ============================================================
+function previewBg(val) {
+    if ($bgLayer) $bgLayer.style.background = val;
+    if ($bgPreview) $bgPreview.style.background = val;
+    selectedBgValue = val;
+}
 
 // ============================================================
 // BACKGROUND SYNCHRONIZATION - Load from database
@@ -574,9 +568,8 @@ function restoreBackgroundFromServer() {
                 
                 if (data.background_value) {
                     restoredBg = data.background_value;
-                    console.log('✅ Background loaded from database');
+                    console.log(' Background loaded');
                 } else {
-                    // Default background
                     restoredBg = 'linear-gradient(135deg,#f5f3ee,#e6ded3)';
                     console.log('🔄 Using default background');
                 }
@@ -584,11 +577,9 @@ function restoreBackgroundFromServer() {
                 if (restoredBg && $bgLayer) {
                     $bgLayer.style.background = restoredBg;
                 }
-                
                 if ($bgPreview) {
                     $bgPreview.style.background = restoredBg;
                 }
-                
                 selectedBgValue = restoredBg;
             }
         })
@@ -610,7 +601,7 @@ function saveBackgroundToServer(bgValue, bgType = 'custom') {
     })
     .then(data => {
         if (!data.success) throw new Error('Save failed');
-        console.log('✅ Background saved to database successfully');
+        console.log(' Background saved');
         return true;
     });
 }
@@ -623,17 +614,16 @@ document.getElementById('bgSaveBtn')?.addEventListener('click', async () => {
 
     const saveBtn = document.getElementById('bgSaveBtn');
     const originalText = saveBtn.textContent;
-    saveBtn.textContent = '💾 Saving...';
+    saveBtn.textContent = 'Saving...';
     saveBtn.disabled = true;
 
     try {
         await saveBackgroundToServer(selectedBgValue, 'custom');
-        if ($bgLayer) $bgLayer.style.background = selectedBgValue;
-        showToastMessage('✅ Background saved to database!', 'success');
+        showToastMessage('Background saved', 'success');
         if ($bgPanel) $bgPanel.classList.remove('open');
     } catch (err) {
         console.error('Save background error:', err);
-        showToastMessage('❌ Failed to save background', 'error');
+        showToastMessage('Failed to save background', 'error');
     } finally {
         saveBtn.textContent = originalText;
         saveBtn.disabled = false;
@@ -644,7 +634,7 @@ document.getElementById('bgCancelBtn')?.addEventListener('click', () => {
     restoreBackgroundFromServer();
     selectedBgValue = null;
     if ($bgPanel) $bgPanel.classList.remove('open');
-    showToastMessage('Reverted to saved background', 'info');
+    showToastMessage('Reverted', 'info');
 });
 
 function toggleBgPanel() {
@@ -653,47 +643,6 @@ function toggleBgPanel() {
 
 document.querySelector('.ep-bg-close')?.addEventListener('click', () => {
     if ($bgPanel) $bgPanel.classList.remove('open');
-});
-
-// Handle custom background image upload
-document.getElementById('customBgInput')?.addEventListener('change', function(e) {
-    if (!e.target.files[0]) return;
-
-    const file = e.target.files[0];
-    const maxSize = 5 * 1024 * 1024;
-
-    if (file.size > maxSize) {
-        showToastMessage('Image too large (max 5MB)', 'error');
-        this.value = '';
-        return;
-    }
-
-    showToastMessage('Uploading...', 'info');
-
-    const fd = new FormData();
-    fd.append('bg_image', file);
-
-    fetch('/upload-background', {method: 'POST', body: fd, credentials: 'same-origin'})
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                previewBg(data.bg_value);
-                selectedBgValue = data.bg_value;
-                return saveBackgroundToServer(data.bg_value, 'image');
-            } else {
-                throw new Error(data.error || 'Upload failed');
-            }
-        })
-        .then(() => {
-            showToastMessage('✅ Custom image saved to database!', 'success');
-            if ($bgPanel) $bgPanel.classList.remove('open');
-        })
-        .catch(err => {
-            console.error('Upload error:', err);
-            showToastMessage('Upload failed: ' + err.message, 'error');
-        });
-
-    this.value = '';
 });
 
 // ============================================================
@@ -766,14 +715,14 @@ document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click
                     const coverDiv = document.getElementById('coverImage');
                     if (coverDiv) coverDiv.style.backgroundImage = `url(${coverUrl})`;
                     closeCoverCrop();
-                    showToastMessage('✅ Cover saved to database!', 'success');
+                    showToastMessage('Cover updated', 'success');
                 } else {
                     throw new Error(data.error || 'Upload failed');
                 }
             })
             .catch(err => {
                 console.error('Cover upload error:', err);
-                showToastMessage('Cover update failed: ' + err.message, 'error');
+                showToastMessage('Cover update failed', 'error');
             });
     }, 'image/jpeg', 0.9);
 });
@@ -870,14 +819,14 @@ document.getElementById('avatarCropConfirm')?.addEventListener('click', () => {
                         if (avatarInit) avatarInit.style.display = 'none';
                     }
                     closeAvatarCrop();
-                    showToastMessage('✅ Avatar saved to database!', 'success');
+                    showToastMessage('Avatar updated', 'success');
                 } else {
                     throw new Error(data.error || 'Upload failed');
                 }
             })
             .catch(err => {
                 console.error('Avatar upload error:', err);
-                showToastMessage('Avatar update failed: ' + err.message, 'error');
+                showToastMessage('Avatar update failed', 'error');
             });
     }, 'image/jpeg', 0.9);
 });
@@ -1199,7 +1148,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     if (confPw) confPw.addEventListener('input', checkPwMatch);
 
-    console.log('✅ Profile page fully initialized');
+    console.log('Profile page fully initialized');
 });
 
 </script>

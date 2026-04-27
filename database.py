@@ -1,4 +1,5 @@
 import sqlite3
+
 from werkzeug.security import generate_password_hash
 
 DATABASE = 'ebyte.db'
@@ -14,7 +15,6 @@ def init_db():
     db = get_db()
 
     # Create users table with BLOB columns for storing ALL images directly in database
-    # This ensures images persist even if local files are deleted
     db.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,7 +59,7 @@ def init_db():
         )
     ''')
 
-    # Add missing columns for users table (safe migration)
+    # Add missing columns for existing databases (safe migration)
     columns_to_add = [
         ('full_name', 'TEXT'),
         ('contact', 'TEXT'),
@@ -104,7 +104,7 @@ def init_db():
         print("Admin user already exists")
 
     db.close()
-    print("Database ready with users and notifications tables")
+    print("Database ready")
 
 
 def init_products():
@@ -129,7 +129,7 @@ def init_products():
         )
     ''')
 
-    # Add missing columns for products table (safe migration)
+    # Add missing columns
     try:
         db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
         print("Added column: status")
@@ -144,9 +144,9 @@ def init_products():
 
     db.commit()
     db.close()
-    print("Database ready with products table")
+    print("Products table ready")
 
 
-# Initialize all tables
+# Initialize
 init_db()
 init_products()
