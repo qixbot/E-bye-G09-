@@ -1,292 +1,259 @@
-{% extends "base.html" %}
-{% block bottom_nav %}{% endblock %}
-{% block navbar %}{% endblock %}
+{% extends "base.html"%}
+<!-- eileen part -->
+{% block bottom_nav %}
+{% endblock %}
+
+{% block navbar %}
+{% endblock %}
 
 {% block content %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='edit_profile.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
 
-<div class="ep-page" id="epPage">
-    <!-- dynamic background layer -->
-    <div class="ep-bg-layer" id="epBgLayer"></div>
-
-    <!-- navbar (no brand) -->
-    <nav class="ep-navbar">
-        <button class="ep-nav-back" onclick='window.location.href="{{ url_for('home') }}";'>←</button>
-        <div class="nav-spacer"></div>
-        <div class="ep-nav-actions">
-            <button class="ep-nav-pill" onclick="toggleBgPanel()"><span class="icon">🎨</span><span>Background</span></button>
-            <button class="ep-nav-pill" onclick='window.location.href="{{ url_for('home') }}";'><span class="icon">🏠</span><span>Home</span></button>
-            <button class="ep-nav-pill danger" onclick='window.location.href="{{ url_for('login') }}";'><span class="icon">🚪</span><span>Logout</span></button>
-        </div>
-    </nav>
-
-    <!-- background panel with Save/Cancel -->
-    <div class="ep-bg-panel" id="epBgPanel">
-        <div class="ep-bg-panel-header">
-            <span>🎨 Page Background</span>
-            <button class="ep-bg-close" onclick="toggleBgPanel()">✕</button>
-        </div>
-        <div class="theme-section">
-            <div class="theme-label">🌈 Rainbow</div>
-            <div class="color-grid" id="rainbowGrid"></div>
-        </div>
-        <div class="theme-section">
-            <div class="theme-label">🌸 Light Tones</div>
-            <div class="color-grid" id="lightGrid"></div>
-        </div>
-        <div class="theme-section">
-            <div class="theme-label">🌙 Dark Tones</div>
-            <div class="color-grid" id="darkGrid"></div>
-        </div>
-        <div class="theme-section">
-            <div class="theme-label">✨ Gradients</div>
-            <div class="color-grid" id="gradientGrid"></div>
-        </div>
-        <div class="custom-upload-row">
-            <label class="upload-square">📷 Upload Custom Photo<input type="file" id="customBgInput" accept="image/*" style="display:none"></label>
-        </div>
-        <div id="currentBgPreview" class="bg-preview-current"></div>
-        <div class="bg-buttons">
-            <button class="bg-save-btn" id="bgSaveBtn">Save Changes</button>
-            <button class="bg-cancel-btn" id="bgCancelBtn">Cancel</button>
-        </div>
+<div class="ep-page">
+    <!-- hero -->
+    <div class="ep-hero">
+        <nav class="ep-breadcrumb">
+            <a href="{{ url_for('home') }}">Home</a>
+            <span class="ep-breadcrumb-sep">›</span>
+            <a href="#">Profile</a>
+            <span class="ep-breadcrumb-sep">›</span>
+            <span style="color:rgba(255,255,255,0.9)">Edit</span>
+        </nav>
     </div>
 
-    <!-- cover banner -->
-    <div class="ep-cover-container">
-        <div class="ep-cover-image" id="coverImage" style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) if user.cover_image else '' }}'; background-color: #00381f;">
-            <div class="ep-cover-overlay">
-                <button class="ep-cover-upload-btn" id="coverChangeBtn">📷 Change Cover</button>
-            </div>
-        </div>
-        <input type="file" id="coverFileInput" accept="image/*" style="display:none">
-    </div>
-
-    <!-- crop modals -->
-    <div class="crop-modal" id="coverCropModal">
-        <div class="crop-content">
-            <div class="crop-header"><span>Crop Cover Image</span><button class="crop-close">&times;</button></div>
-            <div class="crop-image-container"><img id="coverCropImage"></div>
-            <div class="crop-buttons"><button class="crop-cancel">Cancel</button><button class="crop-confirm">Save Changes</button></div>
-        </div>
-    </div>
-    <div class="crop-modal" id="avatarCropModal">
-        <div class="crop-content crop-avatar-content">
-            <div class="crop-header"><span>Crop Profile Picture</span><button class="avatar-crop-close">&times;</button></div>
-            <div class="crop-image-container"><img id="avatarCropImage"></div>
-            <div class="crop-buttons"><button class="crop-cancel" id="avatarCropCancel">Cancel</button><button class="crop-confirm" id="avatarCropConfirm">Save Changes</button></div>
-        </div>
-    </div>
-
-    <!-- main grid -->
     <div class="ep-wrap">
         <div class="ep-grid">
-            <!-- left column: profile card -->
+
+            <!-- left column -->
             <div class="ep-identity">
                 <div class="ep-avatar-card">
+                    <div class="ep-avatar-cover"></div>
                     <div class="ep-avatar-wrap">
-                        <div class="ep-av-ring" onclick="document.getElementById('avatarFileInput').click()">
+                        <div class="ep-av-ring" onclick="document.getElementById('av-input-side').click()">
                             {% if user.avatar %}
-                                <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" id="avatarImg">
+                                <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" id="side-av-img" alt="Avatar">
                             {% else %}
-                                <div class="ep-av-initials" id="avatarImg">{{ user.username[0].upper() if user.username else 'U' }}</div>
+                                <div class="ep-av-initials" id="side-av-img">{{ user.username[0].upper() if user.username else 'U' }}</div>
                             {% endif %}
                             <div class="ep-av-overlay">📷</div>
                         </div>
                     </div>
-                    <input type="file" id="avatarFileInput" accept="image/*" style="display:none">
+                    <input type="file" id="av-input-side" accept="image/*" style="display:none" onchange="syncAvatarPreview(this)">
+                    
                     <div class="ep-avatar-body">
                         <div class="ep-name">{{ user.full_name or user.username }}</div>
                         <div class="ep-handle">@{{ user.username }}</div>
-
-                    <div class="ep-account-status">
-                    <div class="ep-status-header">
-                        <span>⭐ Account Status</span>
-                        <span class="ep-status-badge verified">✓ Verified</span>
-                    </div>
-                    <div class="ep-status-metrics">
-                <div>
-                    <span class="ep-metric-value">{{ trust_score|default(0)|int }}%</span>
-                    <span class="ep-metric-label">Trust</span></div>
-                <div>
-                    <span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span>
-                    <span class="ep-metric-label">Member</span>
-                </div>
-                <div>
-                    <span class="ep-metric-value">{{ response_rate }}%</span>
-                    <span class="ep-metric-label">Response</span></div>
-                </div>
-                <div class="ep-status-progress">
-                     <div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div>
-                </div>
-
                         <div class="ep-stats">
-                            <div class="ep-stat"><span class="ep-stat-n">{{ listing_count or 0 }}</span><span class="ep-stat-l">Listings</span></div>
-                            <div class="ep-stat"><span class="ep-stat-n">{{ user.rating or '—' }}</span><span class="ep-stat-l">Rating</span></div>
+                            <div class="ep-stat">
+                                <div class="ep-stat-n">{{ listing_count or 0 }}</div>
+                                <div class="ep-stat-l">Listings</div>
+                            </div>
+                            <div class="ep-stat">
+                                <div class="ep-stat-n">{{ user.rating or '—' }}</div>
+                                <div class="ep-stat-l">Rating</div>
+                            </div>
                         </div>
                         <div class="ep-verified">✓ MMU Verified</div>
                     </div>
                 </div>
+
+                <div class="ep-nav-card">
+                    <button class="ep-nav-item on" id="nav-edit" onclick="switchTab('edit')">
+                        <span class="ep-nav-icon">✏️</span> Edit Profile
+                    </button>
+                    <button class="ep-nav-item" id="nav-password" onclick="switchTab('password')">
+                        <span class="ep-nav-icon">🔒</span> Change Password
+                    </button>
+                    <button class="ep-nav-item ep-danger" id="nav-delete" onclick="switchTab('delete')">
+                        <span class="ep-nav-icon">🗑️</span> Delete Account
+                    </button>
+                </div>
             </div>
-        </div>
 
-            <!-- right panel: tabs -->
+            <!-- right panel -->
             <div class="ep-panel">
-                <div class="ep-top-tabs">
-                    <button class="ep-top-tab" data-tab="purchases">🛍️ My Purchases</button>
-                    <button class="ep-top-tab" data-tab="listings">📦 My Listings</button>
-                    <button class="ep-top-tab active" data-tab="edit">✏️ Edit Profile</button>
+                <div class="ep-section-tabs">
+                    <button class="ep-tab-btn on" id="tab-edit" onclick="switchTab('edit')">Edit Profile</button>
+                    <button class="ep-tab-btn" id="tab-password" onclick="switchTab('password')">Password</button>
+                    <button class="ep-tab-btn" id="tab-delete" onclick="switchTab('delete')" style="color:var(--red)">Delete Account</button>
                 </div>
 
-                <!-- purchases pane -->
-                <div class="ep-tab-pane" id="pane-purchases">
-                    <div id="purchases-content"><div class="ep-empty">🛍️ No purchases yet</div></div>
-                </div>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div style="padding:20px 40px 0">
+                            {% for category, message in messages %}
+                                <div class="ep-flash {{ category }}">
+                                    {% if category == 'success' %}✅{% else %}⚠️{% endif %}
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
 
-                <!-- listings pane -->
-                <div class="ep-tab-pane" id="pane-listings">
-                    <div id="listings-content"><div class="ep-empty">📦 Loading listings...</div></div>
-                </div>
-
-                <!-- edit profile pane -->
-                <div class="ep-tab-pane active" id="pane-edit">
-                    <div class="ep-sub-tabs">
-                        <button class="ep-sub-tab active" data-subtab="edit-profile">✏️ Edit Profile</button>
-                        <button class="ep-sub-tab" data-subtab="password">🔒 Change Password</button>
-                        <button class="ep-sub-tab danger" data-subtab="delete">🗑️ Delete Account</button>
+                <!-- section 1: edit profile -->
+                <div class="ep-section on" id="section-edit">
+                    <div class="ep-section-head">
+                        <h2>Edit Profile</h2>
+                        <p>Update your public information visible to MMU students</p>
                     </div>
 
-                    <!-- edit profile form -->
-                    <div class="ep-subtab-content active" id="subtab-edit-profile">
-                        <form method="POST" action="{{ url_for('update_profile') }}" enctype="multipart/form-data" id="editProfileForm">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Full Name</label>
-                                    <input type="text" name="full_name" value="{{ user.full_name or '' }}" placeholder="e.g. Ahmad Danial">
-                                </div>
-                                <div class="form-group">
-                                    <label>Username</label>
-                                    <input type="text" name="username" value="{{ user.username or '' }}" placeholder="@ cool_username">
-                                </div>
+                    <form method="POST" action="{{ url_for('update_profile') }}" enctype="multipart/form-data" id="edit-form">
+                        <div class="ep-av-upload" onclick="document.getElementById('avatar-input').click()">
+                            <div class="ep-av-upload-thumb">
+                                {% if user.avatar %}
+                                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" id="avatar-preview-img">
+                                {% else %}
+                                    <div class="ep-av-upload-thumb-init" id="avatar-preview-img">{{ user.username[0].upper() if user.username else 'U' }}</div>
+                                {% endif %}
                             </div>
-                            <div class="form-group">
-                                <label>Bio</label>
-                                <textarea name="bio" rows="3" placeholder="Tell other MMU students about yourself… (e.g. your major, hobbies, what you love to sell)">{{ user.bio or '' }}</textarea>
-                                <div class="field-hint">✨ A friendly bio builds trust. Mention your course or favourite campus spot!</div>
+                            <div class="ep-av-upload-text">
+                                <p>Profile photo</p>
+                                <span>Click to upload · JPG, PNG · Max 2MB</span>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Phone Number</label>
-                                    <input type="tel" name="contact" value="{{ user.contact or '' }}" placeholder="+60 12-345 6789">
-                                    <div class="field-hint">📞 Buyers will use this to arrange meetups. Keep it reachable!</div>
-                                </div>
-                                <div class="form-group">
-                                    <label>Gender</label>
-                                    <select name="gender">
-                                        <option value="" {% if not user.gender %}selected{% endif %}>Prefer not to say</option>
-                                        <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>Female</option>
-                                        <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>Male</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Active Hours</label>
-                                <select name="active_hours">
-                                    <option value="" {% if not user.active_hours %}selected{% endif %}>Not set</option>
-                                    <option value="Morning (9am-12pm)" {% if user.active_hours == 'Morning (9am-12pm)' %}selected{% endif %}>🌅 Morning (9am – 12pm)</option>
-                                    <option value="Afternoon (2pm-5pm)" {% if user.active_hours == 'Afternoon (2pm-5pm)' %}selected{% endif %}>☀️ Afternoon (2pm – 5pm)</option>
-                                    <option value="Evening (8pm-11pm)" {% if user.active_hours == 'Evening (8pm-11pm)' %}selected{% endif %}>🌙 Evening (8pm – 11pm)</option>
-                                    <option value="Flexible" {% if user.active_hours == 'Flexible' %}selected{% endif %}>🔄 Flexible – I'll reply asap</option>
-                                </select>
-                                <div class="field-hint">💬 Choose when you're most likely to reply to messages.</div>
-                            </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn-primary">Save Changes</button>
-                                <button type="button" class="btn-secondary" onclick="window.location='{{ url_for('home') }}'">Cancel</button>
-                            </div>
-                        </form>
-                    </div>
+                            <div class="ep-av-upload-btn">Change</div>
+                        </div>
+                        <input type="file" id="avatar-input" name="avatar" accept="image/*" style="display:none" onchange="previewAvatar(this)">
 
-                    <!-- change password -->
-                    <div class="ep-subtab-content" id="subtab-password">
-                        <form method="POST" action="{{ url_for('change_password') }}" id="passwordForm">
-                            <div class="form-group">
-                                <label>Current Password</label>
-                                <div class="input-icon-wrapper">
-                                    <input type="password" name="current_password" id="currentPw" placeholder="Your current password" required>
-                                    <button type="button" class="toggle-eye" onclick="togglePassword('currentPw',this)">👀</button>
-                                </div>
+                        <div class="ep-grid-2">
+                            <div class="ep-fg">
+                                <label>Display Name</label>
+                                <input type="text" name="full_name" value="{{ user.full_name or '' }}" placeholder="Your full name">
                             </div>
-                            <div class="form-group">
-                                <label>New Password</label>
-                                <div class="input-icon-wrapper">
-                                    <input type="password" name="new_password" id="newPw" placeholder="Create a strong password" required oninput="checkStrength()">
-                                    <button type="button" class="toggle-eye" onclick="togglePassword('newPw',this)">👀</button>
-                                </div>
-                                <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
-                                <div class="strength-label" id="strengthLabel"></div>
-                                <div class="pw-requirements" id="pwReqs">
-                                    <small id="reqLen">✗ At least 8 characters</small>
-                                    <small id="reqUp">✗ 1 uppercase letter</small>
-                                    <small id="reqLow">✗ 1 lowercase letter</small>
-                                    <small id="reqNum">✗ 1 number</small>
-                                    <small id="reqSpec">✗ 1 special character (!@#$%^&amp;*)</small>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Confirm New Password</label>
-                                <div class="input-icon-wrapper">
-                                    <input type="password" name="confirm_password" id="confirmPw" placeholder="Re‑enter new password" required oninput="checkMatch()">
-                                    <button type="button" class="toggle-eye" onclick="togglePassword('confirmPw',this)">👀</button>
-                                </div>
-                                <div class="match-message" id="matchMsg"></div>
-                            </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn-primary" onclick="return validatePw()">Update Password</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- delete account -->
-                    <div class="ep-subtab-content" id="subtab-delete">
-                        <div class="delete-warning-card">
-                            <div class="delete-icon-wrapper">
-                                <span class="delete-icon">⚠️</span>
-                            </div>
-                            <div class="delete-content">
-                                <h4 class="delete-title">⚠️ This action cannot be undone</h4>
-                                <p class="delete-subtitle">Deleting your account will permanently remove:</p>
-                                <ul class="delete-list">
-                                    <li><span class="delete-list-icon">📄</span> Your profile and all personal information</li>
-                                    <li><span class="delete-list-icon">📦</span> All your listings and purchase history</li>
-                                    <li><span class="delete-list-icon">⭐</span> Your ratings and reviews</li>
-                                </ul>
+                            <div class="ep-fg">
+                                <label>Username</label>
+                                <input type="text" name="username" value="{{ user.username or '' }}" placeholder="@username">
                             </div>
                         </div>
 
-                        <form method="POST" action="{{ url_for('delete_account') }}" id="deleteForm" onsubmit="return confirmDelete()">
-                            <div class="form-group">
-                                <label>Enter your password to confirm</label>
-                                <div class="input-icon-wrapper">
-                                    <input type="password" name="password" id="deletePw" placeholder="Your current password" required oninput="checkDeletePasswordMatch()">
-                                    <button type="button" class="toggle-eye" onclick="togglePassword('deletePw', this)">👀</button>
-                                </div>
-                                <div class="delete-pw-match" id="deletePwMatch"></div>
+                        <div class="ep-fg">
+                            <label>Bio</label>
+                            <textarea name="bio" placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
+                        </div>
+
+                        <div class="ep-grid-2">
+                            <div class="ep-fg">
+                                <label>Phone Number</label>
+                                <input type="tel" name="contact" value="{{ user.contact or '' }}" placeholder="+60 12-345 6789">
                             </div>
-                            <div class="form-group">
-                                <label>Type <span class="delete-word">DELETE</span> to confirm</label>
-                                <input type="text" name="confirm_text" placeholder="DELETE" required oninput="this.value=this.value.toUpperCase(); checkDeleteConfirm()">
-                                <div class="delete-confirm-match" id="deleteConfirmMatch"></div>
+                            <div class="ep-fg">
+                                <label>Gender</label>
+                                <select name="gender">
+                                    <option value="" {% if not user.gender %}selected{% endif %}>Prefer not to say</option>
+                                    <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>Female</option>
+                                    <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>Male</option>
+                                </select>
                             </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn-danger">Permanently Delete Account</button>
-                            </div>
-                        </form>
+                        </div>
+
+                        <div class="ep-fg">
+                            <label>Active Hours</label>
+                            <select name="active_hours">
+                                <option value="" {% if not user.active_hours %}selected{% endif %}>Not set</option>
+                                <option value="Morning (9am-12pm)" {% if user.active_hours == 'Morning (9am-12pm)' %}selected{% endif %}>Morning (9am-12pm)</option>
+                                <option value="Afternoon (2pm-5pm)" {% if user.active_hours == 'Afternoon (2pm-5pm)' %}selected{% endif %}>Afternoon (2pm-5pm)</option>
+                                <option value="Evening (8pm-11pm)" {% if user.active_hours == 'Evening (8pm-11pm)' %}selected{% endif %}>Evening (8pm-11pm)</option>
+                                <option value="Flexible" {% if user.active_hours == 'Flexible' %}selected{% endif %}>Flexible</option>
+                            </select>
+                            <div class="ep-hint">Buyers will see when you're usually available to respond</div>
+                        </div>
+
+                        <div class="ep-divider"></div>
+                        <div class="ep-actions">
+                            <button type="submit" class="ep-btn-save">Save Changes</button>
+                            <button type="button" class="ep-btn-cancel" onclick="window.location='{{ url_for('home') }}'">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- section 2: change password -->
+                <div class="ep-section" id="section-password">
+                    <div class="ep-section-head">
+                        <h2>Change Password</h2>
+                        <p>Choose a strong password to keep your account secure</p>
                     </div>
+
+                    <form method="POST" action="{{ url_for('change_password') }}" id="pw-form">
+                        <div class="ep-fg">
+                            <label>Current Password</label>
+                            <div class="ep-input-wrap">
+                                <input type="password" name="current_password" id="current_password" placeholder="Enter your current password" required>
+                                <button type="button" class="ep-eye" onclick="togglePassword('current_password', this)">👀</button>
+                            </div>
+                        </div>
+
+                        <div class="ep-fg">
+                            <label>New Password</label>
+                            <div class="ep-input-wrap">
+                                <input type="password" name="new_password" id="new_password" placeholder="Create a strong new password" required oninput="checkPwStrength()">
+                                <button type="button" class="ep-eye" onclick="togglePassword('new_password', this)">👀</button>
+                            </div>
+                            <div class="ep-strength-wrap"><div class="ep-strength-bar" id="ep-strength-bar"></div></div>
+                            <div class="ep-strength-label" id="ep-strength-label"></div>
+                            <div class="ep-reqs" id="ep-reqs">
+                                <small id="ep-req-len" class="req-invalid"><em class="req-icon">✗</em> At least 8 characters</small>
+                                <small id="ep-req-up" class="req-invalid"><em class="req-icon">✗</em> At least 1 uppercase letter (A-Z)</small>
+                                <small id="ep-req-lo" class="req-invalid"><em class="req-icon">✗</em> At least 1 lowercase letter (a-z)</small>
+                                <small id="ep-req-num" class="req-invalid"><em class="req-icon">✗</em> At least 1 number (0-9)</small>
+                                <small id="ep-req-sp" class="req-invalid"><em class="req-icon">✗</em> At least 1 special character (! @ # $ % ^ &amp; *)</small>
+                            </div>
+                        </div>
+
+                        <div class="ep-fg">
+                            <label>Confirm New Password</label>
+                            <div class="ep-input-wrap">
+                                <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter new password" required oninput="checkPwMatch()">
+                                <button type="button" class="ep-eye" onclick="togglePassword('confirm_password', this)">👀</button>
+                            </div>
+                            <div class="ep-pw-match" id="ep-pw-match"></div>
+                        </div>
+
+                        <div class="ep-divider"></div>
+                        <div class="ep-actions">
+                            <button type="submit" class="ep-btn-save" onclick="return validatePwForm()">Update Password</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- section 3: delete account -->
+                <div id="section-delete" class="ep-section">
+                    <div class="ep-section-head">
+                        <h2>Delete Account</h2>
+                        <p>Permanently remove your account and all associated data</p>
+                    </div>
+
+                    <div class="ep-danger-box">
+                        <div class="ep-danger-icon">⚠️</div>
+                        <div>
+                            <div class="ep-danger-title">This action cannot be undone</div>
+                            <div class="ep-danger-desc">Deleting your account will permanently remove:</div>
+                            <ul class="ep-danger-list">
+                                <li>Your profile and all personal information</li>
+                                <li>All your listings</li>
+                                <li>Your purchase history</li>
+                                <li>Your ratings and reviews</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('delete_account') }}" id="delete-form" onsubmit="return confirmDelete()">
+                        <div class="ep-fg">
+                            <label>Enter your password to confirm</label>
+                            <div class="ep-input-wrap">
+                                <input type="password" name="password" id="delete_password" placeholder="Your current password" required>
+                                <button type="button" class="ep-eye" onclick="togglePassword('delete_password', this)">👀</button>
+                            </div>
+                        </div>
+                        <div class="ep-fg">
+                            <label>Type <span class="ep-confirm-word">DELETE</span> to confirm</label>
+                            <input type="text" name="confirm_text" placeholder="DELETE" required oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="ep-divider"></div>
+                        <div class="ep-actions">
+                            <button type="submit" class="ep-btn-danger">Permanently Delete Account</button>
+                            <button type="button" class="ep-btn-cancel" onclick="switchTab('edit')">Cancel</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -294,637 +261,130 @@
 </div>
 
 <script>
-//  DOM ELEMENT CACHING (Performance) 
-const $bgLayer = document.getElementById('epBgLayer');
-const $bgPreview = document.getElementById('currentBgPreview');
-const $bgPanel = document.getElementById('epBgPanel');
-
-//  COLOR PALETTE 
-const COLOR_CONFIG = {
-    rainbow: ['#FF0000','#FF4500','#FFA500','#FFD700','#FFFF00','#ADFF2F','#00FF00','#00FA9A','#00CED1','#1E90FF','#0000FF','#4B0082','#8A2BE2','#EE82EE','#FF69B4','#FFC0CB','#FFFFFF','#D3D3D3','#808080','#A0522D','#8B4513','#000000'],
-    light: ['#FFF0F0','#FFF5E6','#FFFFE0','#E8F5E9','#E3F2FD','#F3E5F5','#FCE4EC','#FFF9C4','#E0F7FA','#F1F8E9','#FFEBEE','#F9FBE7'],
-    dark: ['#5D1A1A','#6B2E00','#4A4A1A','#1A4A1A','#1A2B4A','#3A1A5D','#5D1A4A','#2B2B2B','#1E3A3A','#2E2E1E','#3A1A1A','#0F2B2B'],
-    gradient: ['linear-gradient(135deg,#FF6B6B,#FFE66D)','linear-gradient(135deg,#FBC2EB,#A6C1EE)','linear-gradient(135deg,#84FAB0,#8FD3F4)','linear-gradient(135deg,#FF9A9E,#FECFEF)','linear-gradient(135deg,#FFD26F,#FF6B6B)','linear-gradient(135deg,#A18CD1,#FBC2EB)','linear-gradient(135deg,#43C6AC,#191654)','linear-gradient(135deg,#FAD961,#F76B1C)','linear-gradient(135deg,#4CB8C4,#3CD3AD)','linear-gradient(135deg,#F53844,#42378F)','linear-gradient(135deg,#DD5E89,#F7BB97)','linear-gradient(135deg,#00B4DB,#0083B0)']
-};
-
-// Build color grid from palette
-function buildGrid(containerId, colors, isGradient=false) {
-    const c = document.getElementById(containerId);
-    if(!c) return;
-    c.innerHTML = '';
-    colors.forEach(col => {
-        const swatch = document.createElement('div');
-        swatch.className = 'color-swatch';
-        if(isGradient) { 
-            swatch.style.background = col; 
-            swatch.classList.add('gradient-swatch'); 
-        } else {
-            swatch.style.backgroundColor = col;
-        }
-        swatch.onclick = () => { selectedBgValue = col; previewBg(col); };
-        c.appendChild(swatch);
-    });
+function switchTab(name) {
+    document.querySelectorAll('.ep-section').forEach(s => s.classList.remove('on'));
+    document.getElementById('section-' + name).classList.add('on');
+    document.querySelectorAll('.ep-tab-btn').forEach(b => b.classList.remove('on'));
+    document.getElementById('tab-' + name).classList.add('on');
+    document.querySelectorAll('.ep-nav-item').forEach(b => b.classList.remove('on'));
+    document.getElementById('nav-' + name).classList.add('on');
 }
 
-// Initialize all color grids
-buildGrid('rainbowGrid', COLOR_CONFIG.rainbow);
-buildGrid('lightGrid', COLOR_CONFIG.light);
-buildGrid('darkGrid', COLOR_CONFIG.dark);
-buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
-
-let selectedBgValue = null;
-
-// Preview selected background
-function previewBg(val) {
-    $bgLayer.style.background = val;
-    $bgPreview.style.background = val;
-    selectedBgValue = val;
-}
-
-// RESTORE BACKGROUND FROM SERVER ON PAGE LOAD 
-// Priority 1: Load from server (database) - cross-device sync
-// Priority 2: Fallback to localStorage (for offline or cached scenarios)
-function restoreBackgroundFromServer() {
-    // Get background values passed from Flask backend
-    const serverBgImage = "{{ bg_image|default('') }}";      // Filename or CSS value
-    const serverBgType = "{{ bg_type|default('default') }}";
-    
-    let restoredBg = null;
-    
-    // Case 1: Custom uploaded image (bg_image contains filename)
-    if (serverBgImage && serverBgImage.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-        // It's a filename - build full URL
-        const imageUrl = "/static/uploads/" + serverBgImage;
-        restoredBg = `url(${imageUrl})`;
-    }
-    // Case 2: Preset color or gradient (bg_image contains CSS value)
-    else if (serverBgImage && (serverBgImage.startsWith('#') || serverBgImage.startsWith('linear-gradient'))) {
-        restoredBg = serverBgImage;
-    }
-    // Case 3: No custom background - use default
-    else {
-        const defaultBg = 'linear-gradient(135deg,#f5f3ee,#e6ded3)';
-        restoredBg = defaultBg;
-    }
-    
-    // Apply restored background
-    if (restoredBg) {
-        $bgLayer.style.background = restoredBg;
-        localStorage.setItem('profileBg', restoredBg);  // Sync to localStorage for future fallback
-    } else {
-        // Fallback to localStorage if server data is empty
-        const savedBg = localStorage.getItem('profileBg');
-        if (savedBg) {
-            $bgLayer.style.background = savedBg;
-        }
-    }
-}
-
-// Call restore function when page loads
-restoreBackgroundFromServer();
-
-//  SAVE BACKGROUND (with error handling & cross-device sync)
-document.getElementById('bgSaveBtn').onclick = () => {
-    if(selectedBgValue) {
-        // Save to localStorage for quick access
-        localStorage.setItem('profileBg', selectedBgValue);
-        
-        // Save to server (database) for cross-device persistence
-        fetch('/save-background-preset', {
-            method:'POST', 
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({ bg_type:'custom', bg_value:selectedBgValue }), 
-            credentials:'same-origin'
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('Server error');
-            return res.json();
-        })
-        .then(data => {
-            if (!data.success) throw new Error('Save failed');
-            showToastMessage('Background saved!', 'success');
-            $bgPanel.classList.remove('open');
-        })
-        .catch(err => {
-            console.error('Save background error:', err);
-            showToastMessage('Failed to save background', 'error');
-        });
-    } else {
-        showToastMessage('Select a background first', 'error');
-    }
-};
-
-// CANCEL BACKGROUND (sync preview area)
-document.getElementById('bgCancelBtn').onclick = () => {
-    const saved = localStorage.getItem('profileBg');
-    const defaultBg = 'linear-gradient(135deg,#f5f3ee,#e6ded3)';
-    
-    if(saved) {
-        $bgLayer.style.background = saved;
-        $bgPreview.style.background = saved;
-    } else {
-        $bgLayer.style.background = defaultBg;
-        $bgPreview.style.background = defaultBg;
-    }
-    selectedBgValue = null;
-    $bgPanel.classList.remove('open');
-};
-
-//  CUSTOM BACKGROUND UPLOAD (with loading, localStorage sync, error handling)
-document.getElementById('customBgInput').addEventListener('change', function(e) {
-    if(!e.target.files[0]) return;
-    
-    const file = e.target.files[0];
-    const maxSize = 5 * 1024 * 1024; // 5MB limit
-    
-    // Validate file size
-    if (file.size > maxSize) {
-        showToastMessage('Image too large (max 5MB)', 'error');
-        this.value = '';
-        return;
-    }
-    
-    showToastMessage('Uploading...', 'info');
-    
-    const fd = new FormData();
-    fd.append('bg_image', file);
-    
-    fetch('/upload-background', {method:'POST', body:fd, credentials:'same-origin'})
-        .then(r => {
-            if (!r.ok) throw new Error('Upload failed');
-            return r.json();
-        })
-        .then(data => {
-            if(data.success){
-                const url = data.image_url + '?t=' + Date.now();
-                const bgValue = `url(${url})`;
-                previewBg(bgValue);
-                selectedBgValue = bgValue;
-                localStorage.setItem('profileBg', bgValue);  // Sync to localStorage
-                showToastMessage('Custom image uploaded', 'success');
-                $bgPanel.classList.remove('open');
-            } else {
-                throw new Error(data.error || 'Upload failed');
-            }
-        })
-        .catch(err => {
-            console.error('Upload error:', err);
-            showToastMessage('Upload failed: ' + err.message, 'error');
-        });
-    
-    // Clear input to allow re-uploading the same file
-    this.value = '';
-});
-
-// Toggle background panel
-function toggleBgPanel() { 
-    $bgPanel.classList.toggle('open'); 
-}
-
-document.querySelector('.ep-bg-close').onclick = () => $bgPanel.classList.remove('open');
-
-// AVATAR + COVER CROP (with input reset on close) 
-let coverCropper = null;
-const $coverFileInput = document.getElementById('coverFileInput');
-const $coverCropModal = document.getElementById('coverCropModal');
-const $coverCropImage = document.getElementById('coverCropImage');
-
-// Trigger file input when change cover button is clicked
-document.getElementById('coverChangeBtn').onclick = () => $coverFileInput.click();
-
-// Handle cover image selection
-$coverFileInput.addEventListener('change', e => {
-    if(!e.target.files[0]) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-        $coverCropImage.src = ev.target.result;
-        $coverCropModal.classList.add('open');
-        if(coverCropper) coverCropper.destroy();
-        coverCropper = new Cropper($coverCropImage, { 
-            aspectRatio: 16/5, 
-            viewMode: 1, 
-            autoCropArea: 1 
-        });
-    };
-    reader.readAsDataURL(e.target.files[0]);
-});
-
-// Close cover crop modal and reset
-function closeCoverCrop() {
-    $coverCropModal.classList.remove('open');
-    if(coverCropper) {
-        coverCropper.destroy();
-        coverCropper = null;
-    }
-    $coverFileInput.value = ''; // Reset file input
-}
-
-// Bind close buttons
-document.querySelector('#coverCropModal .crop-close').onclick = closeCoverCrop;
-document.querySelector('#coverCropModal .crop-cancel').onclick = closeCoverCrop;
-
-// Save cropped cover image
-document.querySelector('#coverCropModal .crop-confirm').onclick = () => {
-    if(!coverCropper) return;
-    const canvas = coverCropper.getCroppedCanvas();
-    canvas.toBlob(blob => {
-        const fd = new FormData();
-        fd.append('cover_image', blob, 'cover.jpg');
-        fetch('/update-cover', {method:'POST', body:fd, credentials:'same-origin'})
-            .then(r => r.json())
-            .then(data => {
-                if(data.success) {
-                    document.getElementById('coverImage').style.backgroundImage = `url(${data.image_url}?t=${Date.now()})`;
-                    closeCoverCrop();
-                    showToastMessage('Cover updated!', 'success');
-                } else {
-                    throw new Error('Upload failed');
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                showToastMessage('Cover update failed', 'error');
-            });
-    }, 'image/jpeg', 0.9);
-};
-
-// AVATAR CROP (with input reset on close) 
-let avatarCropper = null;
-const $avatarFileInput = document.getElementById('avatarFileInput');
-const $avatarCropModal = document.getElementById('avatarCropModal');
-const $avatarCropImage = document.getElementById('avatarCropImage');
-
-// Trigger file input when avatar ring is clicked
-document.querySelector('.ep-av-ring').onclick = () => $avatarFileInput.click();
-
-// Handle avatar image selection
-$avatarFileInput.addEventListener('change', e => {
-    if(!e.target.files[0]) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-        $avatarCropImage.src = ev.target.result;
-        $avatarCropModal.classList.add('open');
-        if(avatarCropper) avatarCropper.destroy();
-        avatarCropper = new Cropper($avatarCropImage, { 
-            aspectRatio: 1, 
-            viewMode: 1, 
-            autoCropArea: 1 
-        });
-    };
-    reader.readAsDataURL(e.target.files[0]);
-});
-
-// Close avatar crop modal and reset
-function closeAvatarCrop() {
-    $avatarCropModal.classList.remove('open');
-    if(avatarCropper) {
-        avatarCropper.destroy();
-        avatarCropper = null;
-    }
-    $avatarFileInput.value = ''; // Reset file input
-}
-
-// Bind close buttons
-document.querySelector('.avatar-crop-close').onclick = closeAvatarCrop;
-document.getElementById('avatarCropCancel').onclick = closeAvatarCrop;
-
-// Save cropped avatar
-document.getElementById('avatarCropConfirm').onclick = () => {
-    if(!avatarCropper) return;
-    const canvas = avatarCropper.getCroppedCanvas();
-    canvas.toBlob(blob => {
-        const fd = new FormData();
-        fd.append('avatar', blob, 'avatar.jpg');
-        fetch('/update-profile-avatar', {method:'POST', body:fd, credentials:'same-origin'})
-            .then(r => r.json())
-            .then(data => {
-                if(data.success) {
-                    const img = document.getElementById('avatarImg');
-                    if(img.tagName === 'IMG') {
-                        img.src = data.image_url + '?t=' + Date.now();
-                    } else {
-                        const newImg = document.createElement('img');
-                        newImg.id = 'avatarImg';
-                        newImg.src = data.image_url + '?t=' + Date.now();
-                        img.parentNode.replaceChild(newImg, img);
-                    }
-                    closeAvatarCrop();
-                    showToastMessage('Profile picture updated!', 'success');
-                } else {
-                    throw new Error('Upload failed');
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                showToastMessage('Avatar update failed', 'error');
-            });
-    }, 'image/jpeg', 0.9);
-};
-
-//  PASSWORD FUNCTIONS 
-// Toggle password visibility (show/hide)
 function togglePassword(id, btn) {
-    const input = document.getElementById(id);
-    if (input.type === 'password') { 
-        input.type = 'text'; 
-        btn.textContent = '🫣'; 
-    } else { 
-        input.type = 'password'; 
-        btn.textContent = '👀'; 
-    }
+    const inp = document.getElementById(id);
+    if (!inp) return;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '👀' : '🫣';
 }
 
-// Check password strength and update UI
-function checkStrength() {
-    const pw = document.getElementById('newPw').value;
+function checkPwStrength() {
+    const pw = document.getElementById('new_password').value;
     const checks = {
         len: pw.length >= 8,
-        up: /[A-Z]/.test(pw),
-        low: /[a-z]/.test(pw),
-        num: /[0-9]/.test(pw),
-        spec: /[!@#$%^&*]/.test(pw)
+        upper: /[A-Z]/.test(pw),
+        lower: /[a-z]/.test(pw),
+        number: /[0-9]/.test(pw),
+        special: /[!@#$%^&*]/.test(pw)
     };
-    
-    // Update requirement icons
-    document.getElementById('reqLen').innerHTML = (checks.len ? '✓' : '✗') + ' At least 8 characters';
-    document.getElementById('reqUp').innerHTML = (checks.up ? '✓' : '✗') + ' 1 uppercase letter';
-    document.getElementById('reqLow').innerHTML = (checks.low ? '✓' : '✗') + ' 1 lowercase letter';
-    document.getElementById('reqNum').innerHTML = (checks.num ? '✓' : '✗') + ' 1 number';
-    document.getElementById('reqSpec').innerHTML = (checks.spec ? '✓' : '✗') + ' 1 special character (!@#$%^&*)';
-    
-    // Apply styling to requirements
-    const ids = ['reqLen','reqUp','reqLow','reqNum','reqSpec'];
-    const validArr = [checks.len, checks.up, checks.low, checks.num, checks.spec];
-    ids.forEach((id, i) => {
+    const score = Object.values(checks).filter(Boolean).length;
+    const colors = ['', '#e74c3c', '#e67e22', '#f1c40f', '#27ae60', '#00c986'];
+    const labels = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
+    const widths = ['0%', '20%', '40%', '60%', '80%', '100%'];
+    const bar = document.getElementById('ep-strength-bar');
+    if (bar) { bar.style.width = widths[score]; bar.style.background = colors[score]; }
+    const label = document.getElementById('ep-strength-label');
+    if (label) label.textContent = pw ? `Password strength: ${labels[score]}` : '';
+    const reqs = ['ep-req-len', 'ep-req-up', 'ep-req-lo', 'ep-req-num', 'ep-req-sp'];
+    const valid = [checks.len, checks.upper, checks.lower, checks.number, checks.special];
+    reqs.forEach((id, i) => {
         const el = document.getElementById(id);
-        if(validArr[i]) { 
-            el.classList.remove('req-invalid'); 
-            el.classList.add('req-valid'); 
-        } else { 
-            el.classList.remove('req-valid'); 
-            el.classList.add('req-invalid'); 
-        }
+        if (!el) return;
+        const ic = el.querySelector('.req-icon');
+        el.className = valid[i] ? 'req-valid' : 'req-invalid';
+        if (ic) ic.textContent = valid[i] ? '✓' : '✗';
     });
-    
-    // Update strength bar and label
-    const score = Object.values(checks).filter(v=>v).length;
-    const fill = document.getElementById('strengthFill');
-    const label = document.getElementById('strengthLabel');
-    fill.style.width = (score/5*100)+'%';
-    if(score <= 2) {
-        fill.style.background = '#d63c2c';
-        label.textContent = 'Weak password';
-        label.style.color = '#d63c2c';
-    } else if(score <= 4) {
-        fill.style.background = '#f5a623';
-        label.textContent = 'Fair password';
-        label.style.color = '#f5a623';
+    return score === 5;
+}
+
+function checkPwMatch() {
+    const pw = document.getElementById('new_password').value || '';
+    const cpw = document.getElementById('confirm_password').value || '';
+    const div = document.getElementById('ep-pw-match');
+    if (!div) return;
+    if (!cpw) { div.innerHTML = ''; div.className = 'ep-pw-match'; return; }
+    if (pw === cpw) {
+        div.innerHTML = '✓ Passwords match';
+        div.className = 'ep-pw-match pw-ok';
     } else {
-        fill.style.background = '#1eab6d';
-        label.textContent = 'Strong password';
-        label.style.color = '#1eab6d';
+        div.innerHTML = '✗ Passwords do not match';
+        div.className = 'ep-pw-match pw-bad';
     }
 }
 
-// Check if new password and confirmation match
-function checkMatch() {
-    const pw = document.getElementById('newPw').value;
-    const cpw = document.getElementById('confirmPw').value;
-    const msg = document.getElementById('matchMsg');
-    if(pw && cpw) {
-        if(pw === cpw) {
-            msg.textContent = '✓ Passwords match';
-            msg.classList.remove('match-error');
-            msg.classList.add('match-success');
-        } else {
-            msg.textContent = '✗ Passwords do not match';
-            msg.classList.remove('match-success');
-            msg.classList.add('match-error');
+function previewAvatar(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const thumb = document.getElementById('avatar-preview-img');
+        if (thumb) {
+            if (thumb.tagName === 'IMG') {
+                thumb.src = e.target.result;
+            } else {
+                const img = document.createElement('img');
+                img.id = 'avatar-preview-img';
+                img.src = e.target.result;
+                img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                thumb.parentNode.replaceChild(img, thumb);
+            }
         }
+        syncSideAv(e.target.result);
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+function syncAvatarPreview(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => syncSideAv(e.target.result);
+    reader.readAsDataURL(input.files[0]);
+}
+
+function syncSideAv(src) {
+    const side = document.getElementById('side-av-img');
+    if (!side) return;
+    if (side.tagName === 'IMG') {
+        side.src = src;
     } else {
-        msg.textContent = '';
+        const img = document.createElement('img');
+        img.id = 'side-av-img';
+        img.src = src;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+        side.parentNode.replaceChild(img, side);
     }
 }
 
-// Validate password before form submission
-function validatePw() {
-    if(!document.getElementById('currentPw').value) { 
-        showToastMessage('Enter current password', 'error'); 
-        return false; 
-    }
-    const pw = document.getElementById('newPw').value;
-    if(pw.length < 8 || !/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/[0-9]/.test(pw) || !/[!@#$%^&*]/.test(pw)) {
-        showToastMessage('Meet all password requirements', 'error'); 
-        return false;
-    }
-    if(pw !== document.getElementById('confirmPw').value) { 
-        showToastMessage('Passwords do not match', 'error'); 
-        return false; 
-    }
+function confirmDelete() {
+    const text = document.querySelector('#delete-form input[name="confirm_text"]').value;
+    if (text !== 'DELETE') { alert('Please type DELETE to confirm.'); return false; }
+    return confirm('⚠️ WARNING: This will permanently delete your account. This cannot be undone. Are you absolutely sure?');
+}
+
+function validatePwForm() {
+    const strong = checkPwStrength();
+    const pw = document.getElementById('new_password').value || '';
+    const cpw = document.getElementById('confirm_password').value || '';
+    const cur = document.getElementById('current_password').value || '';
+    if (!cur) { alert('Please enter your current password.'); return false; }
+    if (!strong) { alert('Please meet all password requirements.'); return false; }
+    if (pw !== cpw) { alert('Passwords do not match.'); return false; }
     return true;
 }
 
-// DELETE ACCOUNT REAL-TIME VALIDATION 
-let deletePasswordValid = false;
-let deleteConfirmValid = false;
-
-// Verify password for account deletion
-function checkDeletePasswordMatch() {
-    const enteredPw = document.getElementById('deletePw').value;
-    const msgDiv = document.getElementById('deletePwMatch');
-    
-    if (enteredPw.length === 0) {
-        msgDiv.innerHTML = '';
-        msgDiv.className = 'delete-pw-match';
-        deletePasswordValid = false;
-        return;
-    }
-    
-    if (enteredPw.length < 6) {
-        msgDiv.innerHTML = '✗ Password must be at least 6 characters';
-        msgDiv.className = 'delete-pw-match match-error';
-        deletePasswordValid = false;
-        return;
-    }
-    
-    fetch('/verify-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: enteredPw }),
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.valid) {
-            msgDiv.innerHTML = '✓ Password verified';
-            msgDiv.className = 'delete-pw-match match-success';
-            deletePasswordValid = true;
-        } else {
-            msgDiv.innerHTML = '✗ Incorrect password';
-            msgDiv.className = 'delete-pw-match match-error';
-            deletePasswordValid = false;
-        }
-    })
-    .catch(() => {
-        msgDiv.innerHTML = '✗ Could not verify password';
-        msgDiv.className = 'delete-pw-match match-error';
-        deletePasswordValid = false;
-    });
-}
-
-// Check if user typed DELETE correctly
-function checkDeleteConfirm() {
-    const confirmText = document.querySelector('#deleteForm input[name="confirm_text"]').value;
-    const msgDiv = document.getElementById('deleteConfirmMatch');
-    if (confirmText === 'DELETE') {
-        msgDiv.innerHTML = '✓ Confirmation correct';
-        msgDiv.className = 'delete-confirm-match match-success';
-        deleteConfirmValid = true;
-    } else if (confirmText.length > 0) {
-        msgDiv.innerHTML = '✗ Please type DELETE exactly';
-        msgDiv.className = 'delete-confirm-match match-error';
-        deleteConfirmValid = false;
-    } else {
-        msgDiv.innerHTML = '';
-        msgDiv.className = 'delete-confirm-match';
-        deleteConfirmValid = false;
-    }
-}
-
-// Final confirmation before account deletion
-function confirmDelete() {
-    const pw = document.getElementById('deletePw').value;
-    const confirmText = document.querySelector('#deleteForm input[name="confirm_text"]').value;
-    
-    if (!pw) {
-        showToastMessage('Please enter your password', 'error');
-        return false;
-    }
-    if (!deletePasswordValid) {
-        showToastMessage('Please enter a valid password', 'error');
-        return false;
-    }
-    if (confirmText !== 'DELETE') {
-        showToastMessage('Type DELETE to confirm', 'error');
-        return false;
-    }
-    
-    return confirm('⚠️ Permanent deletion. Are you sure?');
-}
-
-// TOAST NOTIFICATION FUNCTION 
-// Display temporary popup message
-function showToastMessage(message, type) {
-    const existing = document.querySelector('.toast-container');
-    if(existing) existing.remove();
-    const container = document.createElement('div');
-    container.className = 'toast-container';
-    const toastDiv = document.createElement('div');
-    toastDiv.className = `toast toast-${type}`;
-    toastDiv.innerHTML = `<span>${message}</span>`;
-    container.appendChild(toastDiv);
-    document.body.appendChild(container);
-    setTimeout(() => container.remove(), 3500);
-}
-
-// TAB SWITCHING & API LOADS
-// Top tab switching (Purchases / Listings / Edit Profile)
-document.querySelectorAll('.ep-top-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        document.querySelectorAll('.ep-top-tab').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.ep-tab-pane').forEach(p=>p.classList.remove('active'));
-        document.getElementById(`pane-${tab}`).classList.add('active');
-        if(tab === 'listings') loadListings();
-        if(tab === 'purchases') loadPurchases();
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    const newPw = document.getElementById('new_password');
+    const confPw = document.getElementById('confirm_password');
+    if (newPw) newPw.addEventListener('input', function() { checkPwStrength(); checkPwMatch(); });
+    if (confPw) confPw.addEventListener('input', checkPwMatch);
 });
-
-// Sub-tab switching (Edit Profile / Change Password / Delete Account)
-document.querySelectorAll('.ep-sub-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const subtab = btn.dataset.subtab;
-        document.querySelectorAll('.ep-sub-tab').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.ep-subtab-content').forEach(c=>c.classList.remove('active'));
-        document.getElementById(`subtab-${subtab}`).classList.add('active');
-    });
-});
-
-// Load user's product listings from API
-function loadListings() {
-    const container = document.getElementById('listings-content');
-    container.innerHTML = '<div class="ep-empty">📦 Loading your listings...</div>';
-    fetch('/api/user/listings', { credentials:'same-origin' })
-        .then(r => r.json())
-        .then(data => {
-            if(!data.length) { 
-                container.innerHTML = '<div class="ep-empty">📦 You haven\'t listed any items yet.<br><small>Click "Post" to sell something!</small></div>'; 
-                return; 
-            }
-            container.innerHTML = data.map(p => `
-                <div class="listing-item">
-                    <span class="listing-emoji">${escapeHtml(p.emoji || '📦')}</span>
-                    <div style="flex:1">
-                        <div class="listing-name">${escapeHtml(p.name)}</div>
-                        <div class="listing-price">RM ${parseFloat(p.price).toFixed(2)}</div>
-                    </div>
-                    <span class="listing-status">${escapeHtml(p.status || 'Active')}</span>
-                    <button class="edit-listing-btn" onclick="editListing(${p.id})">✏️ Edit</button>
-                </div>
-            `).join('');
-        })
-        .catch(() => container.innerHTML = '<div class="ep-empty">⚠️ Could not load listings. Try again later.</div>');
-}
-
-// Load user's purchase history from API
-function loadPurchases() {
-    const container = document.getElementById('purchases-content');
-    container.innerHTML = '<div class="ep-empty">🛍️ Loading your purchases...</div>';
-    fetch('/api/user/purchases', { credentials:'same-origin' })
-        .then(r => r.json())
-        .then(data => {
-            if(!data.length) { 
-                container.innerHTML = '<div class="ep-empty">🛍️ You haven\'t purchased anything yet.<br><small>Explore the marketplace!</small></div>'; 
-                return; 
-            }
-            container.innerHTML = `<div class="purchases-list">${data.map(p => `
-                <div class="listing-item">
-                    <span>${escapeHtml(p.emoji || '📦')}</span>
-                    <div style="flex:1">
-                        <div class="listing-name">${escapeHtml(p.name)}</div>
-                        <div class="listing-seller">from @${escapeHtml(p.seller)}</div>
-                    </div>
-                    <span class="listing-price">RM ${parseFloat(p.price).toFixed(2)}</span>
-                    <span class="listing-status ${escapeHtml(p.status)}">${escapeHtml(p.status)}</span>
-                </div>
-            `).join('')}</div>`;
-        })
-        .catch(() => container.innerHTML = '<div class="ep-empty">⚠️ Could not load purchases.</div>');
-}
-
-// Escape HTML special characters to prevent XSS
-function escapeHtml(str) { 
-    if(!str) return ''; 
-    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); 
-}
-
-// Redirect to edit listing page
-function editListing(id) { 
-    window.location.href = `/edit-listing/${id}`; 
-}
-
-// PASSWORD INPUT REAL-TIME LISTENERS 
-const newPwInput = document.getElementById('newPw');
-const confirmPwInput = document.getElementById('confirmPw');
-if (newPwInput) {
-    newPwInput.addEventListener('input', () => { 
-        checkStrength(); 
-        checkMatch(); 
-    });
-}
-if (confirmPwInput) {
-    confirmPwInput.addEventListener('input', checkMatch);
-}
 </script>
+{% endblock %}

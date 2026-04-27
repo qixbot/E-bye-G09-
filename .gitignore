@@ -2,4 +2,3 @@ ebyte.db
 *db
 __pycache__/
 venv/
-database.py

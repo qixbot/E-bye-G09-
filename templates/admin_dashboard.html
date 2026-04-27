@@ -1,105 +1,52 @@
 {% extends "base.html" %}
+{% block bottom_nav %}
+{% endblock %}
+
+{% block navbar %}
+{% endblock %}
 
 {% block content %}
+<div class="container mt-5">
+    <h1>Admin Dashboard</h1>
+    <hr>
+    <p class="lead">Welcome to E-Bye Admin Control Panel</p>
 
-<!-- 顶部按钮栏 -->
-<div style="
-    background-color: #ffffff;
-    padding:12px 30px;
-    margin-bottom:40px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-">
-    <div style="display:flex; gap:12px;">
-        <a href="{{ url_for('admin_users') }}" 
-           style="background-color:#205c30; color:white; border:none; border-radius:22px; padding:8px 22px; text-decoration:none;">
-            Manage Users
-        </a>
-        <a href="{{ url_for('admin_products') }}" 
-           style="background-color:#205c30; color:white; border:none; border-radius:22px; padding:8px 22px; text-decoration:none;">
-            Manage Products
-        </a>
-        <a href="{{ url_for('logout') }}" 
-           style="background-color:#205c30; color:white; border:none; border-radius:22px; padding:8px 22px; text-decoration:none;">
-            Logout
-        </a>
-    </div>
-</div>
-
-
-<!-- 主体内容 -->
-<div style="padding:0 30px; max-width:1200px; margin: 0 auto;">
-
-    <h2>Admin Dashboard</h2>
-    <p style="color:#555; margin-bottom:35px;">
-        Platform overview — monitor users, products, and pending approvals at a glance.
-    </p>
-    <hr style="margin-bottom:40px;">
-
-    <!-- 4个卡片 -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 30px;">
-
-        <!-- 卡片1：Total Products（已通过审核的商品） -->
-        <div style="
-            background-color:#205c30;
-            color:white;
-            border-radius:16px;
-            padding:30px;
-            position: relative;
-            overflow: hidden;
-        ">
-            <div style="position: absolute; top: -20px; right: -15px; font-size: 80px; opacity: 0.12;">📦</div>
-            <h5 style="margin:0 0 10px 0; font-size:15px; font-weight:500; position: relative; z-index:1;">Total Products</h5>
-            <p style="font-size:44px; font-weight:700; margin:0; line-height:1.2; position: relative; z-index:1;">{{ approved_count }}</p>
-            <small style="opacity:0.85; position: relative; z-index:1;">Approved & live on marketplace</small>
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Registered Users</h5>
+                    <p class="card-text display-4">{{ total_users }}</p>
+                </div>
+            </div>
         </div>
-
-        <!-- 卡片2：Pending Approval（待审核商品） -->
-        <div style="
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            color:white;
-            border-radius:16px;
-            padding:30px;
-            position: relative;
-            overflow: hidden;
-        ">
-            <div style="position: absolute; top: -20px; right: -15px; font-size: 80px; opacity: 0.12;">⏳</div>
-            <h5 style="margin:0 0 10px 0; font-size:15px; font-weight:500; position: relative; z-index:1;">Pending Approval</h5>
-            <p style="font-size:44px; font-weight:700; margin:0; line-height:1.2; position: relative; z-index:1;">{{ pending_count }}</p>
-            <small style="opacity:0.85; position: relative; z-index:1;">Needs review</small>
+        <div class="col-md-4">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Products</h5>
+                    <p class="card-text display-4">0</p>
+                    <small>Coming soon (product system)</small>
+                </div>
+            </div>
         </div>
-
-        <!-- 卡片3：Registered Users（总注册用户） -->
-        <div style="
-            background-color:#2c3e50;
-            color:white;
-            border-radius:16px;
-            padding:30px;
-            position: relative;
-            overflow: hidden;
-        ">
-            <div style="position: absolute; top: -20px; right: -15px; font-size: 80px; opacity: 0.12;">👥</div>
-            <h5 style="margin:0 0 10px 0; font-size:15px; font-weight:500; position: relative; z-index:1;">Registered Users</h5>
-            <p style="font-size:44px; font-weight:700; margin:0; line-height:1.2; position: relative; z-index:1;">{{ total_users }}</p>
-            <small style="opacity:0.85; position: relative; z-index:1;">Platform members</small>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Notifications</h5>
+                    <p class="card-text display-4">0</p>
+                    <small>Coming soon (notification system)</small>
+                </div>
+            </div>
         </div>
-
-        <!-- 卡片4：Active Sellers（活跃卖家数） -->
-        <div style="
-            background-color:#8e44ad;
-            color:white;
-            border-radius:16px;
-            padding:30px;
-            position: relative;
-            overflow: hidden;
-        ">
-            <div style="position: absolute; top: -20px; right: -15px; font-size: 80px; opacity: 0.12;">🛒</div>
-            <h5 style="margin:0 0 10px 0; font-size:15px; font-weight:500; position: relative; z-index:1;">Active Sellers</h5>
-            <p style="font-size:44px; font-weight:700; margin:0; line-height:1.2; position: relative; z-index:1;">{{ seller_count }}</p>
-            <small style="opacity:0.85; position: relative; z-index:1;">Users with listings</small>
-        </div>
-
     </div>
 
+    <div class="mt-5">
+        <h3>Quick Actions</h3>
+        <div class="d-flex gap-3 mt-3">
+            <a href="{{ url_for('admin_users') }}" class="btn btn-lg btn-outline-dark">Manage Users</a>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-lg btn-outline-dark">Manage Products</a>
+            <a href="{{ url_for('admin_login') }}?logout=1" class="btn btn-lg btn-danger">Logout</a>
+        </div>
+    </div>
 </div>
-
 {% endblock %}
