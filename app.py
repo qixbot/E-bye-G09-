@@ -65,9 +65,11 @@ def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
         thumbnail_path
     ]
     try:
-        subprocess.run(cmd, check=True, capture_output=True)
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        print(f"Thumbnail generated for {video_path}")
         return True
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        print(f"FFmpeg error for {video_path}: {e.stderr}")
         return False
 
 # --- Setup folder for uploaded product images ---

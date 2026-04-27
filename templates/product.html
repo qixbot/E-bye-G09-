@@ -20,7 +20,7 @@
                 {% set first_media = images[0] %}
                 {% set ext = first_media.split('.')[-1].lower() if first_media else '' %}
                 {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
-                    <video id="main-product-video" controls autoplay muted loop poster="{{ url_for('static', filename='uploads/' ~ first_media | replace('.mp4', '_thumb.jpg') | replace('.webm', '_thumb.jpg') | replace('.mov', '_thumb.jpg')) }}">
+                    <video id="main-product-video" controls autoplay muted loop poster="{{ url_for('static', filename='uploads/' ~ first_media.split('.')[0] + '_thumb.jpg') }}">
                         <source src="{{ url_for('static', filename='uploads/' ~ first_media) }}" type="video/{{ ext }}">
                         Your browser does not support the video tag.
                     </video>
@@ -33,13 +33,17 @@
             <div class="thumbnail-list">
                 {% for img in images %}
                     {% set ext = img.split('.')[-1].lower() %}
-                    {% set thumb = img | replace(ext, 'jpg') if ext in ['mp4','webm','mov'] else img %}
-                    {% set thumb_path = img.replace(ext, 'jpg') if ext in ['mp4','webm','mov'] else img %}
+                    {% if ext in ['mp4','webm','mov','avi','mkv'] %}
+                        {% set thumb_path = img.split('.')[0] + '_thumb.jpg' %}
+                    {% else %}
+                        {% set thumb_path = img %}
+                    {% endif %}
                     <img src="{{ url_for('static', filename='uploads/' ~ thumb_path) }}"
                         class="thumbnail"
                         data-index="{{ loop.index0 }}"
                         onclick="changeMainMedia(this.src, {{ loop.index0 }})"
-                        alt="Thumbnail">
+                        alt="Thumbnail"
+                        onerror="this.onerror=null; this.src='{{ url_for('static', filename='uploads/' ~ img) }}';">
                 {% endfor %}
             </div>
             {% endif %}
@@ -151,20 +155,19 @@
         const total = {{ images|length }};
 
         if (ext === 'mp4' || ext === 'webm' || ext === 'mov') {
-            // Replace content with video
+            // Build thumbnail filename from the video source (e.g., video.mp4 -> video_thumb.jpg)
+            const thumb = src.replace(/\.(mp4|webm|mov)$/, '_thumb.jpg');
             mainContainer.innerHTML = `
-                <video id="main-product-video" controls autoplay muted loop>
+                <video id="main-product-video" controls autoplay muted loop poster="${thumb}">
                     <source src="${src}" type="video/${ext}">
                     Your browser does not support the video tag.
                 </video>
             `;
         } else {
-            // Replace with image
             mainContainer.innerHTML = `<img id="main-product-img" src="${src}" alt="Product image">`;
         }
         if (currentCounter) currentCounter.textContent = (index + 1) + ' / ' + total;
         
-        // Update active thumbnail highlight
         document.querySelectorAll('.thumbnail').forEach(thumb => {
             thumb.classList.remove('active');
             if (thumb.src === src) thumb.classList.add('active');
