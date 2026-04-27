@@ -15,12 +15,12 @@
 
     <!-- navbar (no brand) -->
     <nav class="ep-navbar">
-        <button class="ep-nav-back" onclick="window.location.href='{{ url_for('home') }}'">←</button>
+        <button class="ep-nav-back" onclick='window.location.href="{{ url_for('home') }}";'>←</button>
         <div class="nav-spacer"></div>
         <div class="ep-nav-actions">
             <button class="ep-nav-pill" onclick="toggleBgPanel()"><span class="icon">🎨</span><span>Background</span></button>
-            <button class="ep-nav-pill" onclick="window.location.href='{{ url_for('home') }}'"><span class="icon">🏠</span><span>Home</span></button>
-            <button class="ep-nav-pill danger" onclick="window.location.href='{{ url_for('login') }}'"><span class="icon">🚪</span><span>Logout</span></button>
+            <button class="ep-nav-pill" onclick='window.location.href="{{ url_for('home') }}";'><span class="icon">🏠</span><span>Home</span></button>
+            <button class="ep-nav-pill danger" onclick='window.location.href="{{ url_for('login') }}";'><span class="icon">🚪</span><span>Logout</span></button>
         </div>
     </nav>
 
@@ -58,7 +58,7 @@
 
     <!-- cover banner -->
     <div class="ep-cover-container">
-        <div class="ep-cover-image" id="coverImage" style="background-color: #00381f;{% if user.cover_image %} background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) }}');{% endif %}">
+        <div class="ep-cover-image" id="coverImage" style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) if user.cover_image else '' }}'; background-color: #00381f;">
             <div class="ep-cover-overlay">
                 <button class="ep-cover-upload-btn" id="coverChangeBtn">📷 Change Cover</button>
             </div>
@@ -114,7 +114,8 @@
                                 <div><span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span><span class="ep-metric-label">Member</span></div>
                                 <div><span class="ep-metric-value">{{ response_rate }}%</span><span class="ep-metric-label">Response</span></div>
                             </div>
-                            <div class="ep-status-progress"><div class="ep-progress-bar" style="width: {{ trust_score }}%"></div></div>
+                        <div class="ep-status-progress">
+                                <div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div>
                         </div>
 
                         <div class="ep-stats">

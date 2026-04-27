@@ -118,10 +118,28 @@ def init_products():
             category TEXT,
             images TEXT, 
             status TEXT DEFAULT 'pending',
+            reject_reason TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (seller_id) REFERENCES users(id)
         )
     ''')
+
+    cursor = db.execute("PRAGMA table_info(products)")
+    existing_columns = [col[1] for col in cursor.fetchall()]
+
+    if 'status' not in existing_columns:
+        try:
+            db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
+            print("✅ Added missing column: status")
+        except Exception as e:
+            print(f"⚠️ Could not add column status: {e}")
+
+    if 'reject_reason' not in existing_columns:
+        try:
+            db.execute("ALTER TABLE products ADD COLUMN reject_reason TEXT DEFAULT ''")
+            print("✅ Added missing column: reject_reason")
+        except Exception as e:
+            print(f"⚠️ Could not add column reject_reason: {e}")
 
     db.commit()
     db.close()
