@@ -65,10 +65,10 @@
         </div>
     </div>
 
-    <!-- Cover banner section -->
+    <!-- Cover banner section - load from database BLOB -->
     <div class="ep-cover-container">
         <div class="ep-cover-image" id="coverImage"
-             style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) if user.cover_image else '' }}'); background-color: #00381f;">
+             style="background-image: url('{{ url_for('cover_image') }}?t={{ range(1, 10000) | random }}'); background-color: #00381f;">
             <div class="ep-cover-overlay">
                 <button class="ep-cover-upload-btn" id="coverChangeBtn">📷 Change Cover</button>
             </div>
@@ -495,25 +495,6 @@
 
 <script>
 // ============================================================
-// CROSS-DEVICE SYNCHRONIZATION DATA FROM SERVER
-// ============================================================
-const SERVER_DATA = {
-    coverImage: "{{ cover_image|default('')|safe }}",
-    avatar: "{{ avatar|default('')|safe }}",
-    bgImage: "{{ bg_image|default('')|safe }}",
-    bgType: "{{ bg_type|default('default')|safe }}"
-};
-
-console.log('🔄 Server data loaded for cross-device sync:', SERVER_DATA);
-
-// ============================================================
-// DOM ELEMENT CACHING
-// ============================================================
-const $bgLayer = document.getElementById('epBgLayer');
-const $bgPreview = document.getElementById('currentBgPreview');
-const $bgPanel = document.getElementById('epBgPanel');
-
-// ============================================================
 // COLOR PALETTE CONFIGURATION
 // ============================================================
 const COLOR_CONFIG = {
@@ -571,46 +552,55 @@ buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
 let selectedBgValue = null;
 
 function previewBg(val) {
+    const $bgLayer = document.getElementById('epBgLayer');
+    const $bgPreview = document.getElementById('currentBgPreview');
     if ($bgLayer) $bgLayer.style.background = val;
     if ($bgPreview) $bgPreview.style.background = val;
     selectedBgValue = val;
 }
 
 // ============================================================
-// BACKGROUND SYNCHRONIZATION
+// DOM ELEMENT CACHING
+// ============================================================
+const $bgLayer = document.getElementById('epBgLayer');
+const $bgPreview = document.getElementById('currentBgPreview');
+const $bgPanel = document.getElementById('epBgPanel');
+
+// ============================================================
+// BACKGROUND SYNCHRONIZATION - Load from database
 // ============================================================
 function restoreBackgroundFromServer() {
-    const serverBgImage = SERVER_DATA.bgImage;
-    const serverBgType = SERVER_DATA.bgType;
-
-    console.log('🎨 Loading background from server:', {serverBgImage, serverBgType});
-
-    let restoredBg = null;
-
-    if (serverBgImage && serverBgImage.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-        const imageUrl = "/static/uploads/" + serverBgImage;
-        restoredBg = `url(${imageUrl})`;
-        console.log('📷 Restoring uploaded background image:', imageUrl);
-    } else if (serverBgImage && (serverBgImage.startsWith('#') ||
-               serverBgImage.startsWith('linear-gradient') ||
-               serverBgImage.startsWith('url('))) {
-        restoredBg = serverBgImage;
-        console.log('🎨 Restoring color/gradient background:', restoredBg);
-    } else {
-        const defaultBg = 'linear-gradient(135deg,#f5f3ee,#e6ded3)';
-        restoredBg = defaultBg;
-        console.log('🔄 Using default background');
-    }
-
-    if (restoredBg && $bgLayer) {
-        $bgLayer.style.background = restoredBg;
-        localStorage.setItem('profileBg', restoredBg);
-        localStorage.setItem('profileBgSource', 'server');
-    }
-
-    if ($bgPreview) {
-        $bgPreview.style.background = restoredBg;
-    }
+    console.log('🎨 Loading background from database...');
+    
+    fetch('/api/user/background', { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                let restoredBg = null;
+                
+                if (data.background_value) {
+                    restoredBg = data.background_value;
+                    console.log('✅ Background loaded from database');
+                } else {
+                    // Default background
+                    restoredBg = 'linear-gradient(135deg,#f5f3ee,#e6ded3)';
+                    console.log('🔄 Using default background');
+                }
+                
+                if (restoredBg && $bgLayer) {
+                    $bgLayer.style.background = restoredBg;
+                }
+                
+                if ($bgPreview) {
+                    $bgPreview.style.background = restoredBg;
+                }
+                
+                selectedBgValue = restoredBg;
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load background:', err);
+        });
 }
 
 function saveBackgroundToServer(bgValue, bgType = 'custom') {
@@ -626,10 +616,7 @@ function saveBackgroundToServer(bgValue, bgType = 'custom') {
     })
     .then(data => {
         if (!data.success) throw new Error('Save failed');
-        localStorage.setItem('profileBg', bgValue);
-        localStorage.setItem('profileBgSource', 'server');
-        localStorage.setItem('profileBgSavedAt', new Date().toISOString());
-        console.log('✅ Background saved to server successfully');
+        console.log('✅ Background saved to database successfully');
         return true;
     });
 }
@@ -648,7 +635,7 @@ document.getElementById('bgSaveBtn')?.addEventListener('click', async () => {
     try {
         await saveBackgroundToServer(selectedBgValue, 'custom');
         if ($bgLayer) $bgLayer.style.background = selectedBgValue;
-        showToastMessage('✅ Background saved across all devices!', 'success');
+        showToastMessage('✅ Background saved to database!', 'success');
         if ($bgPanel) $bgPanel.classList.remove('open');
     } catch (err) {
         console.error('Save background error:', err);
@@ -674,6 +661,7 @@ document.querySelector('.ep-bg-close')?.addEventListener('click', () => {
     if ($bgPanel) $bgPanel.classList.remove('open');
 });
 
+// Handle custom background image upload
 document.getElementById('customBgInput')?.addEventListener('change', function(e) {
     if (!e.target.files[0]) return;
 
@@ -695,17 +683,15 @@ document.getElementById('customBgInput')?.addEventListener('change', function(e)
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                const imageUrl = `/static/uploads/${data.filename}`;
-                const bgValue = `url(${imageUrl})`;
-                previewBg(bgValue);
-                selectedBgValue = bgValue;
-                return saveBackgroundToServer(bgValue, 'image');
+                previewBg(data.bg_value);
+                selectedBgValue = data.bg_value;
+                return saveBackgroundToServer(data.bg_value, 'image');
             } else {
                 throw new Error(data.error || 'Upload failed');
             }
         })
         .then(() => {
-            showToastMessage('✅ Custom image saved across all devices!', 'success');
+            showToastMessage('✅ Custom image saved to database!', 'success');
             if ($bgPanel) $bgPanel.classList.remove('open');
         })
         .catch(err => {
@@ -717,26 +703,19 @@ document.getElementById('customBgInput')?.addEventListener('change', function(e)
 });
 
 // ============================================================
-// COVER IMAGE SYNCHRONIZATION
+// COVER IMAGE SYNCHRONIZATION - Load from database BLOB
 // ============================================================
 let coverCropper = null;
 const $coverFileInput = document.getElementById('coverFileInput');
 const $coverCropModal = document.getElementById('coverCropModal');
 
 function loadCoverFromServer() {
-    if (SERVER_DATA.coverImage && SERVER_DATA.coverImage.trim() !== '') {
-        const coverUrl = `/static/uploads/${SERVER_DATA.coverImage}?t=${Date.now()}`;
-        const coverDiv = document.getElementById('coverImage');
-        if (coverDiv) coverDiv.style.backgroundImage = `url(${coverUrl})`;
-        console.log('🖼️ Cover loaded from server:', coverUrl);
-        localStorage.setItem('coverImage', SERVER_DATA.coverImage);
-    } else {
-        const coverDiv = document.getElementById('coverImage');
-        if (coverDiv) {
-            coverDiv.style.backgroundImage = '';
-            coverDiv.style.backgroundColor = '#00381f';
-        }
-        console.log('🖼️ Using default cover');
+    const coverDiv = document.getElementById('coverImage');
+    const coverUrl = '/cover-image?t=' + Date.now();
+    
+    if (coverDiv) {
+        coverDiv.style.backgroundImage = `url(${coverUrl})`;
+        console.log('🖼️ Cover loaded from database BLOB');
     }
 }
 
@@ -789,13 +768,11 @@ document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    const coverUrl = `/static/uploads/${data.filename}?t=${Date.now()}`;
+                    const coverUrl = '/cover-image?t=' + Date.now();
                     const coverDiv = document.getElementById('coverImage');
                     if (coverDiv) coverDiv.style.backgroundImage = `url(${coverUrl})`;
-                    SERVER_DATA.coverImage = data.filename;
-                    localStorage.setItem('coverImage', data.filename);
                     closeCoverCrop();
-                    showToastMessage('✅ Cover saved across all devices!', 'success');
+                    showToastMessage('✅ Cover saved to database!', 'success');
                 } else {
                     throw new Error(data.error || 'Upload failed');
                 }
@@ -808,7 +785,7 @@ document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click
 });
 
 // ============================================================
-// AVATAR SYNCHRONIZATION WITH BLOB STORAGE
+// AVATAR SYNCHRONIZATION - Load from database BLOB
 // ============================================================
 let avatarCropper = null;
 const $avatarFileInput = document.getElementById('avatarFileInput');
@@ -910,32 +887,6 @@ document.getElementById('avatarCropConfirm')?.addEventListener('click', () => {
             });
     }, 'image/jpeg', 0.9);
 });
-
-// ============================================================
-// VERIFY CROSS-DEVICE SYNC
-// ============================================================
-function verifyCrossDeviceSync() {
-    console.log('🔍 Verifying cross-device synchronization...');
-
-    const localCover = localStorage.getItem('coverImage');
-    if (SERVER_DATA.coverImage && SERVER_DATA.coverImage !== localCover) {
-        console.log('🔄 Server cover differs from cache, using server version');
-        loadCoverFromServer();
-    }
-
-    const localAvatar = localStorage.getItem('avatar');
-    if (SERVER_DATA.avatar && SERVER_DATA.avatar !== localAvatar) {
-        console.log('🔄 Server avatar differs from cache, using server version');
-    }
-
-    const localBg = localStorage.getItem('profileBg');
-    if (SERVER_DATA.bgImage && SERVER_DATA.bgImage !== localBg) {
-        console.log('🔄 Server background differs from cache, using server version');
-        restoreBackgroundFromServer();
-    }
-
-    console.log('✅ Cross-device sync verification complete');
-}
 
 // ============================================================
 // MAIN TAB SWITCHING
@@ -1240,12 +1191,11 @@ function showToastMessage(message, type) {
 // PAGE INITIALIZATION
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Initializing profile page with cross-device sync...');
+    console.log('🚀 Initializing profile page with database BLOB storage...');
 
     loadCoverFromServer();
     loadAvatarFromServer();
     restoreBackgroundFromServer();
-    verifyCrossDeviceSync();
 
     const newPw = document.getElementById('new_password');
     const confPw = document.getElementById('confirm_password');
