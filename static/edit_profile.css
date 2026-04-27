@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Instrument+Serif:ital@0;1&display=swap');
 
 /* ============================================================
    GLOBAL VARIABLES & RESET
@@ -542,6 +542,59 @@ body {
 }
 
 /* ============================================================
+   LEFT NAVIGATION CARD
+   ============================================================ */
+.ep-nav-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 10px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255,255,255,0.8);
+}
+
+.ep-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-radius: var(--radius-md);
+    color: var(--ink2);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ep-nav-item:hover {
+    background: var(--bone);
+    color: var(--ink);
+}
+
+.ep-nav-item.on {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+}
+
+.ep-nav-item.ep-danger {
+    color: var(--red);
+}
+
+.ep-nav-item.ep-danger:hover {
+    background: #fdf2f1;
+}
+
+.ep-nav-icon {
+    font-size: 18px;
+    width: 22px;
+    flex-shrink: 0;
+}
+
+/* ============================================================
    RIGHT PANEL
    ============================================================ */
 .ep-panel {
@@ -551,7 +604,57 @@ body {
     overflow: hidden;
 }
 
-/* Main top tabs */
+/* MAIN TABS (My Purchases, My Listings, Edit Profile) */
+.ep-main-tabs {
+    display: flex;
+    background: var(--bone);
+    border-bottom: 1px solid var(--parch);
+    padding: 0 24px;
+    gap: 8px;
+}
+
+.ep-main-tab {
+    padding: 16px 24px;
+    background: none;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+}
+
+.ep-main-tab:hover {
+    color: var(--ink);
+}
+
+.ep-main-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+/* MAIN PANES */
+.ep-main-pane {
+    display: none;
+    padding: 28px 32px;
+}
+
+.ep-main-pane.active {
+    display: block;
+}
+
+/* SUB PANES (inside Edit Profile) */
+.ep-sub-pane {
+    display: none;
+}
+
+.ep-sub-pane.active {
+    display: block;
+}
+
+/* Top tabs (legacy - kept for compatibility) */
 .ep-top-tabs {
     display: flex;
     background: var(--bone);
@@ -581,6 +684,7 @@ body {
     border-bottom-color: var(--primary);
 }
 
+/* Tab panes (legacy) */
 .ep-tab-pane {
     display: none;
     padding: 28px 32px;
@@ -640,32 +744,169 @@ body {
 }
 
 /* ============================================================
+   MY LISTINGS & MY PURCHASES STYLES
+   ============================================================ */
+.listing-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--bone);
+    border-radius: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+
+.listing-item:hover {
+    transform: translateX(4px);
+    background: #f0ede8;
+}
+
+.listing-emoji {
+    font-size: 28px;
+}
+
+.listing-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    margin-bottom: 4px;
+}
+
+.listing-price {
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.listing-seller {
+    font-size: 12px;
+    color: var(--ink3);
+    margin-top: 2px;
+}
+
+.listing-status {
+    background: white;
+    padding: 4px 14px;
+    border-radius: 40px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.listing-status.sold {
+    background: #e0e0e0;
+    color: #666;
+}
+
+.listing-status.pending {
+    background: #fff3e0;
+    color: #f5a623;
+}
+
+.listing-status.active {
+    background: #d1f5e4;
+    color: #0d6e3e;
+}
+
+.listing-status.completed {
+    background: #d1f5e4;
+    color: #0d6e3e;
+}
+
+.listing-status.cancelled {
+    background: #f0e0e0;
+    color: var(--red);
+}
+
+.edit-listing-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 30px;
+    transition: all 0.1s;
+}
+
+.edit-listing-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.purchases-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Empty state */
+.ep-empty {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--ink3);
+    font-size: 14px;
+}
+
+.ep-empty br {
+    display: block;
+    margin: 4px 0;
+}
+
+.ep-empty small {
+    font-size: 12px;
+    color: var(--sand);
+}
+
+/* Flash messages */
+.ep-flash {
+    padding: 13px 18px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ep-flash.success {
+    background: rgba(45,184,122,0.1);
+    color: #1a8a55;
+    border: 1px solid rgba(45,184,122,0.2);
+}
+
+.ep-flash.error {
+    background: rgba(217,79,61,0.08);
+    color: var(--red);
+    border: 1px solid rgba(217,79,61,0.15);
+}
+
+/* ============================================================
    FORMS & INPUTS
    ============================================================ */
-.form-row {
-    display: flex;
+.ep-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 20px;
-    margin-bottom: 20px;
 }
 
-.form-group {
-    flex: 1;
-    margin-bottom: 20px;
+.ep-fg {
+    margin-bottom: 22px;
 }
 
-.form-group label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--ink3);
+.ep-fg label {
     display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink3);
     margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.ep-fg input,
+.ep-fg select,
+.ep-fg textarea {
     width: 100%;
     padding: 12px 16px;
     border: 1.5px solid var(--parch);
@@ -681,91 +922,103 @@ body {
 .form-group textarea:focus {
     border-color: var(--primary);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 56, 31, 0.08);
-    background: white;
 }
 
-.form-group input::placeholder,
-.form-group textarea::placeholder {
-    color: #c0c0c0;
-    font-weight: 400;
+.ep-fg input:focus,
+.ep-fg select:focus,
+.ep-fg textarea:focus {
+    border-color: var(--primary);
+    background: var(--white);
+    box-shadow: 0 0 0 4px rgba(0, 56, 31, 0.1);
 }
 
-.field-hint {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--ink3);
-    margin-top: 6px;
-    line-height: 1.4;
-    letter-spacing: -0.2px;
+.ep-fg select {
+    cursor: pointer;
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 14px;
+    padding-right: 42px;
 }
 
-.input-icon-wrapper {
+.ep-fg textarea {
+    resize: vertical;
+    min-height: 96px;
+    line-height: 1.6;
+}
+
+.ep-input-wrap {
     position: relative;
 }
 
-.input-icon-wrapper input {
-    padding-right: 44px;
+.ep-input-wrap input {
+    padding-right: 50px;
 }
 
-.toggle-eye {
+.ep-eye {
     position: absolute;
-    right: 12px;
+    right: 14px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 17px;
     color: var(--sand);
-    transition: color 0.2s;
+    transition: color .2s;
+    padding: 4px;
 }
 
-.toggle-eye:hover {
+.ep-eye:hover {
     color: var(--primary);
 }
 
-.form-actions {
+.ep-hint {
+    font-size: 11px;
+    color: var(--ink3);
+    margin-top: 6px;
+}
+
+.ep-divider {
+    height: 1px;
+    background: var(--parch);
+    margin: 28px 0;
+}
+
+.ep-actions {
     display: flex;
     gap: 12px;
-    margin-top: 20px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
-/* Buttons (matching auth.css) */
-.btn-primary,
-.btn-secondary,
-.btn-danger,
-.bg-save-btn,
-.bg-cancel-btn,
-.upload-square,
-.ep-cover-upload-btn {
-    transition: all 0.2s ease;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #00381f, #1a5c3a);
-    color: white;
+.ep-btn-save {
+    padding: 13px 32px;
+    background: var(--primary);
+    color: #fff;
     border: none;
-    border-radius: 40px;
-    padding: 10px 24px;
+    border-radius: 99px;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.25s;
+    box-shadow: 0 4px 16px rgba(0, 56, 31, 0.28);
 }
 
-.btn-primary:hover {
-    transform: translateY(-1px);
-    background: linear-gradient(135deg, #1a5c3a, #00381f);
-    box-shadow: 0 4px 12px rgba(0, 56, 31, 0.3);
+.ep-btn-save:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 56, 31, 0.35);
 }
 
-.btn-secondary {
-    background: #f0ede8;
-    color: var(--ink);
-    border: none;
-    border-radius: 40px;
-    padding: 10px 24px;
-    font-weight: 600;
+.ep-btn-cancel {
+    padding: 13px 24px;
+    background: transparent;
+    color: var(--ink2);
+    border: 1.5px solid var(--parch);
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
 }
 
@@ -774,157 +1027,158 @@ body {
     transform: translateY(-1px);
 }
 
-.btn-danger {
-    background: linear-gradient(135deg, #d63c2c, #b32d1e);
-    color: white;
-    border: none;
-    border-radius: 40px;
-    padding: 10px 24px;
-    font-weight: 700;
-    cursor: pointer;
+.ep-btn-cancel:hover {
+    border-color: var(--sand);
+    color: var(--ink);
+    background: var(--bone);
 }
 
-.btn-danger:hover {
-    transform: translateY(-1px);
-    background: linear-gradient(135deg, #b32d1e, #d63c2c);
-    box-shadow: 0 4px 12px rgba(214, 60, 44, 0.3);
+.ep-btn-danger {
+    padding: 13px 28px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 99px;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .25s;
+    box-shadow: 0 4px 16px rgba(217, 79, 61, 0.25);
+}
+
+.ep-btn-danger:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(217, 79, 61, 0.35);
 }
 
 /* ============================================================
    PASSWORD STRENGTH & VALIDATION
    ============================================================ */
-.strength-bar {
-    height: 4px;
-    background: #e0e0e0;
-    border-radius: 4px;
+.ep-strength-wrap {
     margin-top: 10px;
+    height: 4px;
+    border-radius: 99px;
+    background: var(--parch);
     overflow: hidden;
 }
 
-.strength-fill {
+.ep-strength-bar {
     height: 100%;
+    border-radius: 99px;
     width: 0%;
-    border-radius: 4px;
-    transition: width 0.2s, background 0.2s;
+    transition: width .4s ease, background-color .4s ease;
 }
 
-.strength-label {
+.ep-strength-label {
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     margin-top: 6px;
-    min-height: 18px;
-    letter-spacing: -0.2px;
+    min-height: 16px;
 }
 
-.pw-requirements {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-top: 12px;
-    background: #f9f7f3;
+.ep-reqs {
+    margin-top: 10px;
+    background: var(--bone);
+    backdrop-filter: blur(6px);
     padding: 12px 16px;
-    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    border: 1px solid rgba(212, 214, 213, 0.55);
 }
 
-.pw-requirements small {
-    font-size: 11px;
+.ep-reqs small {
+    font-size: 12px;
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-weight: 500;
-    transition: color 0.15s;
-}
-
-.req-valid {
-    color: #1eab6d;
-}
-
-.req-invalid {
-    color: #d63c2c;
-}
-
-.match-message {
-    font-size: 12px;
-    margin-top: 8px;
+    gap: 8px;
     font-weight: 500;
 }
 
-.match-success {
-    color: #1eab6d;
-}
-
-.match-error {
-    color: #d63c2c;
-}
-
-/* ============================================================
-   DELETE ACCOUNT CARD (Beautified - NO double icons)
-   ============================================================ */
-.delete-warning-card {
-    display: flex;
-    gap: 20px;
-    background: linear-gradient(145deg, #fff8f7, #fff1ef);
-    border-radius: 24px;
-    padding: 24px;
-    margin-bottom: 28px;
-    border: 1px solid rgba(214, 60, 44, 0.15);
-    box-shadow: 0 4px 14px rgba(214, 60, 44, 0.06);
-}
-
-.delete-icon-wrapper {
+.req-icon {
+    font-style: normal;
+    font-size: 13px;
+    width: 14px;
     flex-shrink: 0;
 }
 
-.delete-icon {
-    font-size: 42px;
-    display: block;
+.req-valid {
+    color: var(--success);
 }
 
-.delete-content {
-    flex: 1;
+.req-invalid {
+    color: var(--red);
 }
 
-.delete-title {
-    font-size: 18px;
-    font-weight: 800;
-    color: #b91c1c;
-    margin-bottom: 8px;
-    letter-spacing: -0.3px;
-}
-
-.delete-subtitle {
-    font-size: 13px;
-    color: #5a2e28;
-    margin-bottom: 12px;
-    font-weight: 500;
-}
-
-.delete-list {
-    list-style: none;
-    padding-left: 0;
-}
-
-.delete-list li {
+.ep-pw-match {
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 0;
+    gap: 6px;
+    min-height: 18px;
+}
+
+.pw-ok {
+    color: var(--success);
+}
+
+.pw-bad {
+    color: var(--red);
+}
+
+/* ============================================================
+   DELETE ACCOUNT CARD
+   ============================================================ */
+.ep-danger-box {
+    background: #fdf6f5;
+    border: 1.5px solid #f5dbd8;
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    display: flex;
+    gap: 18px;
+    margin-bottom: 28px;
+}
+
+.ep-danger-icon {
+    font-size: 26px;
+    flex-shrink: 0;
+}
+
+.ep-danger-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--red);
+    margin-bottom: 6px;
+}
+
+.ep-danger-desc {
     font-size: 13px;
-    color: #4a2a25;
-    border-bottom: 1px dashed rgba(214, 60, 44, 0.08);
+    color: var(--ink3);
+    line-height: 1.6;
+    margin-bottom: 10px;
 }
 
-.delete-list li:last-child {
-    border-bottom: none;
+.ep-danger-list {
+    padding-left: 18px;
+    font-size: 12px;
+    color: var(--ink3);
 }
 
-.delete-list-icon {
-    font-size: 14px;
-    width: 24px;
-    opacity: 0.7;
+.ep-danger-list li {
+    margin-bottom: 3px;
 }
 
-/* Delete password real-time validation - NO ::before pseudo-elements */
+.ep-confirm-word {
+    font-weight: 800;
+    color: var(--red);
+    letter-spacing: 1px;
+}
+
 .delete-pw-match,
 .delete-confirm-match {
     font-size: 12px;
@@ -941,97 +1195,6 @@ body {
 .delete-pw-match.match-error,
 .delete-confirm-match.match-error {
     color: #d63c2c;
-}
-
-.delete-word {
-    font-weight: 800;
-    color: var(--red);
-    letter-spacing: 1px;
-}
-
-/* ============================================================
-   EMPTY STATES & LISTINGS
-   ============================================================ */
-.ep-empty {
-    text-align: center;
-    padding: 60px 24px;
-    color: var(--ink3);
-}
-
-.ep-empty-icon {
-    font-size: 42px;
-    margin-bottom: 12px;
-    display: block;
-}
-
-.ep-empty-text {
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 4px;
-}
-
-.ep-empty-sub {
-    font-size: 12px;
-    color: var(--sand);
-}
-
-.listing-item {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 18px;
-    background: var(--bone);
-    border-radius: 16px;
-    margin-bottom: 10px;
-    transition: all 0.2s;
-}
-
-.listing-item:hover {
-    transform: translateX(4px);
-    background: #f0ede8;
-}
-
-.listing-name {
-    font-weight: 700;
-    margin-bottom: 3px;
-    letter-spacing: -0.2px;
-}
-
-.listing-price {
-    color: var(--primary);
-    font-weight: 700;
-}
-
-.listing-status {
-    background: white;
-    padding: 4px 12px;
-    border-radius: 40px;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.listing-status.sold {
-    background: #e0e0e0;
-    color: #666;
-}
-
-.listing-status.pending {
-    background: #fff3e0;
-    color: #f5a623;
-}
-
-.edit-listing-btn {
-    background: none;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    padding: 6px 10px;
-    border-radius: 30px;
-    transition: all 0.1s;
-}
-
-.edit-listing-btn:hover {
-    background: rgba(0, 0, 0, 0.08);
 }
 
 /* ============================================================
@@ -1140,6 +1303,84 @@ body {
 }
 
 /* ============================================================
+   EP AVATAR UPLOAD
+   ============================================================ */
+.ep-av-upload {
+    display: flex;
+    gap: 20px;
+    background: linear-gradient(145deg, #fff8f7, #fff1ef);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 28px;
+    border: 1px solid rgba(214, 60, 44, 0.15);
+    box-shadow: 0 4px 14px rgba(214, 60, 44, 0.06);
+}
+
+.delete-icon-wrapper {
+    flex-shrink: 0;
+}
+
+.ep-av-upload:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.ep-av-upload-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(26, 23, 20, 0.06);
+}
+
+.ep-av-upload-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ep-av-upload-thumb-init {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+
+.ep-av-upload-text p {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 2px;
+}
+
+.ep-av-upload-text span {
+    font-size: 11px;
+    color: var(--ink3);
+}
+
+.ep-av-upload-btn {
+    margin-left: auto;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 800px) {
@@ -1152,24 +1393,20 @@ body {
         height: 160px;
     }
 
-    .form-row {
-        flex-direction: column;
-    }
-
-    .pw-requirements {
+    .ep-grid-2 {
         grid-template-columns: 1fr;
     }
 
-    .ep-top-tabs {
+    .ep-main-tabs {
         overflow-x: auto;
     }
 
-    .delete-warning-card {
+    .ep-danger-box {
         flex-direction: column;
         text-align: center;
     }
 
-    .delete-list li {
+    .ep-danger-list li {
         justify-content: center;
     }
 }
@@ -1191,7 +1428,7 @@ body {
         flex-wrap: wrap;
     }
 
-    .ep-top-tab {
+    .ep-main-tab {
         padding: 12px 14px;
         font-size: 12px;
     }

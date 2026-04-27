@@ -8,9 +8,11 @@ from datetime import datetime, timedelta
 
 import uuid
 
+import base64
+
 from flask import (
     Flask, render_template, request, redirect,
-    url_for, session, flash, jsonify
+    url_for, session, flash, jsonify, make_response
 )
 from database import init_db, get_db, init_products
 
@@ -65,6 +67,7 @@ init_products()
 def index():
     return redirect(url_for('login'))
 
+
 @app.template_filter('time_since')
 
 def time_since_filter(date_str):
@@ -91,6 +94,7 @@ def time_since_filter(date_str):
             return 'New'
     except:
         return 'New'
+
 
 # Eileen's Route - Login
 @app.route('/login', methods=['GET', 'POST'])
@@ -129,7 +133,6 @@ def login():
                 except Exception:
                     pass
 
-                # Account still frozen
                 if expire_time and now < expire_time:
                     time_diff = expire_time - now
                     remain_days = time_diff.days
@@ -178,6 +181,7 @@ def login():
             flash('Invalid email or password', 'error')
 
     return render_template('login.html')
+
 
 # Eileen's Route - Register
 @app.route('/register', methods=['GET', 'POST'])
@@ -282,6 +286,7 @@ def register():
 
     return render_template('register.html')
 
+
 # Xingru's Route - Homepage
 @app.route('/home')
 
@@ -337,685 +342,209 @@ def logout():
     flash('Logged out', 'info')
     return redirect(url_for('login'))
 
-# Eileen's Route - Forgot Password
-@app.route('/forgot-password', methods=['GET', 'POST'])
 
-def forgot_password():
-    if request.method == 'POST':
-        step = request.form.get('step')
+# ============================================================
+# AVATAR ROUTES - Store as BLOB in database
+# ============================================================
 
-        # Step 1: verify email
-        if step == '1':
-            email = request.form.get('fp_email', '').strip()
-            if not email:
-                flash('Please enter your email.', 'error')
-                return render_template('forgot_password.html')
-            if not email.endswith('@student.mmu.edu.my'):
-                flash('Only @student.mmu.edu.my emails are allowed.', 'error')
-                return render_template('forgot_password.html')
+@app.route('/avatar-image')
 
-            db = get_db()
-            user = db.execute(
-                'SELECT id, security_q1, security_q2 FROM users WHERE email = ?',
-                (email,)
-            ).fetchone()
-            db.close()
-
-            if not user:
-                flash('No account found with that email.', 'error')
-                return render_template('forgot_password.html')
-
-            session['fp_email'] = email
-            session['fp_q1'] = user['security_q1']
-            session['fp_q2'] = user['security_q2']
-            return render_template(
-                'forgot_password.html',
-                step=2,
-                q1=user['security_q1'],
-                q2=user['security_q2']
-            )
-
-        # Step 2: verify security answers
-        elif step == '2':
-            email = session.get('fp_email')
-            if not email:
-                flash('Session expired. Please start again.', 'error')
-                return render_template('forgot_password.html')
-
-            a1_input = request.form.get('fp_a1', '').strip().lower()
-            a2_input = request.form.get('fp_a2', '').strip().lower()
-
-            db = get_db()
-            user = db.execute(
-                'SELECT id, security_a1, security_a2 FROM users WHERE email = ?',
-                (email,)
-            ).fetchone()
-            db.close()
-
-            if not user:
-                flash('User not found.', 'error')
-                return render_template('forgot_password.html')
-
-            if (a1_input != user['security_a1'] or
-                a2_input != user['security_a2']):
-                flash('One or both answers are incorrect.', 'error')
-                return render_template(
-                    'forgot_password.html',
-                    step=2,
-                    q1=session.get('fp_q1'),
-                    q2=session.get('fp_q2')
-                )
-
-            session['fp_verified'] = True
-            return render_template('forgot_password.html', step=3)
-
-        # Step 3: save new password
-        elif step == '3':
-            if not session.get('fp_verified'):
-                flash('Please complete identity verification first.', 'error')
-                return render_template('forgot_password.html')
-
-            email = session.get('fp_email')
-            new_password = request.form.get('fp_pw', '')
-            confirm_password = request.form.get('fp_cpw', '')
-
-            errors = []
-            if len(new_password) < 8:
-                errors.append('Password must be at least 8 characters')
-            if not re.search(r'[A-Z]', new_password):
-                err = 'Password must contain at least 1 uppercase letter'
-                errors.append(err)
-            if not re.search(r'[a-z]', new_password):
-                err = 'Password must contain at least 1 lowercase letter'
-                errors.append(err)
-            if not re.search(r'[0-9]', new_password):
-                errors.append('Password must contain at least 1 number')
-            if not re.search(r'[!@#$%^&*]', new_password):
-                err = 'Password must contain at least 1 special character'
-                errors.append(err)
-            if new_password != confirm_password:
-                errors.append('Passwords do not match')
-
-            if errors:
-                for e in errors:
-                    flash(e, 'error')
-                return render_template('forgot_password.html', step=3)
-
-            hashed = generate_password_hash(new_password)
-            db = get_db()
-            db.execute(
-                'UPDATE users SET password = ? WHERE email = ?',
-                (hashed, email)
-            )
-            db.commit()
-            db.close()
-
-            session.pop('fp_email', None)
-            session.pop('fp_q1', None)
-            session.pop('fp_q2', None)
-            session.pop('fp_verified', None)
-
-            flash('Password reset successfully!', 'success')
-            return redirect(url_for('login'))
-
-    return render_template('forgot_password.html')
-
-# Eileen's Route - Admin Login
-@app.route('/admin/login', methods=['GET', 'POST'])
-
-def admin_login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-
-        db = get_db()
-        user = db.execute(
-            'SELECT * FROM users WHERE email = ? AND is_admin = 1',
-            (email,)
-        ).fetchone()
-        db.close()
-
-        if user and check_password_hash(user['password'], password):
-            session['admin_logged_in'] = True
-            session['admin_email'] = user['email']
-            session['admin_username'] = user['username']
-            flash('Admin login successful!', 'success')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Invalid admin credentials', 'error')
-
-    return render_template('admin_login.html')
-
-# Eileen's Route - Edit Profile
-@app.route('/edit_profile', methods=['GET'])
-
-def edit_profile():
+def avatar_image():
+    """Serve avatar image from database BLOB - PERSISTENT storage"""
     if 'user_id' not in session:
-        return redirect(url_for('login'))
-
+        return '', 404
+    
     db = get_db()
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
-
-    listing_count = db.execute(
-        'SELECT COUNT(*) FROM products WHERE seller_id = ?',
-        (session['user_id'],)
-    ).fetchone()[0]
-
-    # Calculate trust score
-    trust_score = 60
-    if user['avatar']:
-        trust_score += 8
-    if user['bio']:
-        trust_score += 8
-    if user['contact']:
-        trust_score += 7
-    if user['full_name']:
-        trust_score += 7
-
-    if user['created_at']:
-        try:
-            created_date = datetime.strptime(
-                user['created_at'], '%Y-%m-%d %H:%M:%S'
-            )
-            days_since_join = (datetime.now() - created_date).days
-            if days_since_join >= 365:
-                trust_score += 20
-            elif days_since_join >= 180:
-                trust_score += 15
-            elif days_since_join >= 30:
-                trust_score += 10
-            elif days_since_join >= 7:
-                trust_score += 5
-        except:
-            pass
-
-    trust_score += min(25, (listing_count // 2) * 2)
-
-    if user['active_hours'] and user['active_hours'] != 'Not set':
-        trust_score += 10
-    if user['gender']:
-        trust_score += 5
-
-    trust_score = min(trust_score, 100)
-    trust_score = max(trust_score, 30)
-
-    # Calculate response rate
-    response_rate = 50
-
-    if listing_count > 0:
-        response_rate += 15
-
-    if user['bio'] and user['contact']:
-        response_rate += 10
-    if user['active_hours'] and user['active_hours'] != 'Not set':
-        response_rate += 10
-    if user['avatar']:
-        response_rate += 5
-
-    response_rate = min(response_rate, 98)
-    response_rate = max(response_rate, 40)
-
-    # Extract image filenames for cross-device sync
-    if user:
-        user_dict = dict(user)
-        cover_image_value = user_dict.get('cover_image')
-        avatar_value = user_dict.get('avatar')
-        bg_image_value = user_dict.get('bg_image')
-        bg_type_value = user_dict.get('bg_type', 'default')
-    else:
-        cover_image_value = None
-        avatar_value = None
-        bg_image_value = None
-        bg_type_value = 'default'
-
+    user = db.execute('SELECT avatar_blob FROM users WHERE id = ?', 
+                      (session['user_id'],)).fetchone()
     db.close()
+    
+    if user and user['avatar_blob']:
+        response = make_response(user['avatar_blob'])
+        response.headers.set('Content-Type', 'image/jpeg')
+        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+        return response
+    return '', 404
 
-    return render_template(
-        'edit_profile.html',
-        user=user,
-        listing_count=listing_count,
-        sold_count=0,
-        trust_score=trust_score,
-        response_rate=response_rate,
-        cover_image=cover_image_value,
-        avatar=avatar_value,
-        bg_image=bg_image_value,
-        bg_type=bg_type_value
-    )
 
-# Eileen's Route - Update Profile
-@app.route('/update-profile', methods=['POST'])
+@app.route('/update-profile-avatar', methods=['POST'])
 
-def update_profile():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    username = request.form.get('username')
-    full_name = request.form.get('full_name')
-    bio = request.form.get('bio')
-    contact = request.form.get('contact')
-    gender = request.form.get('gender')
-    active_hours = request.form.get('active_hours')
-
-    db = get_db()
-
-    # Check if username already taken
-    existing = db.execute(
-        'SELECT id FROM users WHERE username = ? AND id != ?',
-        (username, session['user_id'])
-    ).fetchone()
-    if existing:
-        db.close()
-        flash('Username already taken', 'error')
-        return redirect(url_for('edit_profile'))
-
-    # Handle avatar upload
-    avatar = request.files.get('avatar')
-    if avatar and avatar.filename:
-        filename = secure_filename(
-            f"avatar_{session['user_id']}_{avatar.filename}"
-        )
-        avatar.save(os.path.join('static/uploads', filename))
-        db.execute(
-            'UPDATE users SET avatar = ? WHERE id = ?',
-            (filename, session['user_id'])
-        )
-
-    # Handle cover image upload
-    cover = request.files.get('cover_image')
-    if cover and cover.filename:
-        filename = secure_filename(
-            f"cover_{session['user_id']}_{cover.filename}"
-        )
-        cover.save(os.path.join('static/uploads', filename))
-        db.execute(
-            'UPDATE users SET cover_image = ? WHERE id = ?',
-            (filename, session['user_id'])
-        )
-
-    # Handle background image upload
-    bg_image = request.files.get('bg_image')
-    if bg_image and bg_image.filename:
-        if '.' in bg_image.filename:
-            ext = bg_image.filename.rsplit('.', 1)[-1].lower()
-        else:
-            ext = 'jpg'
-        if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
-            bg_filename = secure_filename(
-                f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}"
-            )
-            bg_image.save(os.path.join('static/uploads', bg_filename))
-            db.execute(
-                'UPDATE users SET bg_image = ? WHERE id = ?',
-                (bg_filename, session['user_id'])
-            )
-
-    # Update other fields
-    db.execute("""
-        UPDATE users
-        SET username = ?, full_name = ?, bio = ?,
-            contact = ?, gender = ?, active_hours = ?
-        WHERE id = ?
-    """, (username, full_name, bio, contact, gender,
-          active_hours, session['user_id']))
-
-    db.commit()
-    db.close()
-
-    session['username'] = username
-    flash('Profile updated successfully!', 'success')
-    return redirect(url_for('edit_profile'))
-
-# Eileen's Route - Background Upload
-@app.route('/upload-background', methods=['POST'])
-
-def upload_background():
+def update_profile_avatar():
+    """Upload avatar and store directly as BLOB in database"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    if 'bg_image' not in request.files:
+    
+    if 'avatar' not in request.files:
         return jsonify({'success': False, 'error': 'No file uploaded'}), 400
-
-    file = request.files['bg_image']
+    
+    file = request.files['avatar']
     if file.filename == '':
-        return jsonify({'success': False, 'error': 'No file selected'}), 400
-
-    if file:
-        if '.' in file.filename:
-            ext = file.filename.rsplit('.', 1)[-1].lower()
-        else:
-            ext = 'jpg'
-
-        if ext not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
-            return jsonify(
-                {'success': False, 'error': 'Unsupported file format'}
-            ), 400
-
-        filename = f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}"
-        filepath = os.path.join('static/uploads', filename)
-        file.save(filepath)
-
-        db = get_db()
-        db.execute("""
-            UPDATE users SET bg_image = ?, bg_type = ? WHERE id = ?
-        """, (filename, 'image', session['user_id']))
-        db.commit()
-        db.close()
-
-        return jsonify({
-            'success': True,
-            'filename': filename,
-            'image_url': url_for('static', filename=f'uploads/{filename}')
-        })
-
-    return jsonify({'success': False, 'error': 'Upload failed'}), 500
-
-@app.route('/save-background', methods=['POST'])
-
-def save_background():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    bg_filename = request.form.get('bg_image_filename')
-    if not bg_filename:
-        return jsonify(
-            {'success': False, 'error': 'No filename provided'}
-        ), 400
-
+        return jsonify({'success': False, 'error': 'Empty filename'}), 400
+    
+    # Read image as binary data directly into database
+    image_data = file.read()
+    
+    # Limit image size to 2MB
+    if len(image_data) > 2 * 1024 * 1024:
+        return jsonify({'success': False, 'error': 'Image too large (max 2MB)'}), 400
+    
     db = get_db()
-    db.execute(
-        'UPDATE users SET bg_image = ? WHERE id = ?',
-        (bg_filename, session['user_id'])
-    )
+    db.execute('UPDATE users SET avatar_blob = ? WHERE id = ?', 
+               (image_data, session['user_id']))
     db.commit()
     db.close()
-
+    
     return jsonify({'success': True})
 
+
+# ============================================================
+# COVER ROUTES - Store as BLOB in database
+# ============================================================
+
+@app.route('/cover-image')
+
+def cover_image():
+    """Serve cover image from database BLOB - PERSISTENT storage"""
+    if 'user_id' not in session:
+        return '', 404
+    
+    db = get_db()
+    user = db.execute('SELECT cover_blob FROM users WHERE id = ?', 
+                      (session['user_id'],)).fetchone()
+    db.close()
+    
+    if user and user['cover_blob']:
+        response = make_response(user['cover_blob'])
+        response.headers.set('Content-Type', 'image/jpeg')
+        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+        return response
+    return '', 404
+
+
+@app.route('/update-cover', methods=['POST'])
+
+def update_cover():
+    """Upload cover and store directly as BLOB in database"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    if 'cover_image' not in request.files:
+        return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+    
+    file = request.files['cover_image']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'}), 400
+    
+    # Read image as binary data directly into database
+    image_data = file.read()
+    
+    # Limit image size to 5MB
+    if len(image_data) > 5 * 1024 * 1024:
+        return jsonify({'success': False, 'error': 'Image too large (max 5MB)'}), 400
+    
+    db = get_db()
+    db.execute('UPDATE users SET cover_blob = ? WHERE id = ?', 
+               (image_data, session['user_id']))
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+
+# ============================================================
+# BACKGROUND ROUTES - Store as TEXT in database
+# ============================================================
 
 @app.route('/save-background-preset', methods=['POST'])
 
 def save_background_preset():
+    """Save background preset (color/gradient) - PERSISTENT storage"""
     if 'user_id' not in session:
         return jsonify({'success': False}), 401
-
+    
     data = request.get_json()
     bg_type = data.get('bg_type', 'default')
     bg_value = data.get('bg_value')
-
+    
     db = get_db()
-
-    if bg_value:
-        db.execute("""
-            UPDATE users SET bg_type = ?, bg_image = ? WHERE id = ?
-        """, (bg_type, bg_value, session['user_id']))
-    else:
-        db.execute(
-            'UPDATE users SET bg_type = ? WHERE id = ?',
-            (bg_type, session['user_id'])
-        )
-
+    db.execute('''
+        UPDATE users SET background_type = ?, background_value = ? WHERE id = ?
+    ''', (bg_type, bg_value, session['user_id']))
     db.commit()
     db.close()
-
+    
     return jsonify({'success': True})
 
-# Eileen's Route - Change Password
-@app.route('/change-password', methods=['POST'])
 
-def change_password():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+@app.route('/upload-background', methods=['POST'])
 
-    current_password = request.form.get('current_password')
-    new_password = request.form.get('new_password')
-    confirm_password = request.form.get('confirm_password')
-
-    db = get_db()
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
-
-    if not user:
-        db.close()
-        flash('User not found', 'error')
-        return redirect(url_for('edit_profile'))
-
-    if not check_password_hash(user['password'], current_password):
-        db.close()
-        flash('Current password is incorrect', 'error')
-        return redirect(url_for('edit_profile'))
-
-    if new_password != confirm_password:
-        db.close()
-        flash('New passwords do not match', 'error')
-        return redirect(url_for('edit_profile'))
-
-    hashed = generate_password_hash(new_password)
-    db.execute(
-        'UPDATE users SET password = ? WHERE id = ?',
-        (hashed, session['user_id'])
-    )
-    db.commit()
-    db.close()
-
-    flash('Password changed successfully!', 'success')
-    return redirect(url_for('edit_profile'))
-
-# Eileen's Route - Delete Account
-@app.route('/delete-account', methods=['POST'])
-
-def delete_account():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    password = request.form.get('password')
-    confirm_text = request.form.get('confirm_text')
-
-    if confirm_text != 'DELETE':
-        flash('Please type DELETE to confirm', 'error')
-        return redirect(url_for('edit_profile'))
-
-    db = get_db()
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
-
-    if not check_password_hash(user['password'], password):
-        flash('Password is incorrect', 'error')
-        return redirect(url_for('edit_profile'))
-
-    db.execute('DELETE FROM products WHERE seller_id = ?', (session['user_id'],))
-    db.execute("""
-        DELETE FROM orders WHERE buyer_id = ? OR seller_id = ?
-    """, (session['user_id'], session['user_id']))
-    db.execute('DELETE FROM notifications WHERE user_id = ?', (session['user_id'],))
-    db.execute('DELETE FROM users WHERE id = ?', (session['user_id'],))
-    db.commit()
-    db.close()
-
-    session.clear()
-    flash('Your account has been permanently deleted', 'info')
-    return redirect(url_for('login'))
-
-# Eileen's Route - Verify Password
-@app.route('/verify-password', methods=['POST'])
-
-def verify_password():
-    if 'user_id' not in session:
-        return jsonify({'valid': False}), 401
-
-    data = request.get_json()
-    password = data.get('password', '')
-
-    db = get_db()
-    user = db.execute(
-        'SELECT password FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
-    db.close()
-
-    if user and check_password_hash(user['password'], password):
-        return jsonify({'valid': True})
-    else:
-        return jsonify({'valid': False})
-
-# Eileen's Route - Update Cover
-@app.route('/update-cover', methods=['POST'])
-
-def update_cover():
+def upload_background():
+    """Upload custom background image and store as data URL in database"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    if 'cover_image' not in request.files:
+    
+    if 'bg_image' not in request.files:
         return jsonify({'success': False, 'error': 'No file uploaded'}), 400
-
-    file = request.files['cover_image']
+    
+    file = request.files['bg_image']
     if file.filename == '':
         return jsonify({'success': False, 'error': 'No file selected'}), 400
-
-    if file:
-        if '.' in file.filename:
-            ext = file.filename.rsplit('.', 1)[-1].lower()
-        else:
-            ext = 'jpg'
-
-        if ext not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
-            return jsonify(
-                {'success': False, 'error': 'Unsupported file format'}
-            ), 400
-
-        filename = f"cover_{session['user_id']}_{uuid.uuid4().hex}.{ext}"
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
-        try:
-            file.save(filepath)
-            print(f"Cover saved: {filepath}")
-        except Exception as e:
-            print(f"Error saving cover: {e}")
-            return jsonify(
-                {'success': False, 'error': 'Failed to save file'}
-            ), 500
-
-        db = get_db()
-        try:
-            db.execute(
-                'UPDATE users SET cover_image = ? WHERE id = ?',
-                (filename, session['user_id'])
-            )
-            db.commit()
-            print(f"Cover filename saved to DB: {filename}")
-        except Exception as e:
-            print(f"Database error: {e}")
-            db.close()
-            return jsonify(
-                {'success': False, 'error': 'Database update failed'}
-            ), 500
-        db.close()
-
-        return jsonify({
-            'success': True,
-            'filename': filename,
-            'image_url': url_for('static', filename=f'uploads/{filename}')
-        })
-
-    return jsonify({'success': False, 'error': 'Upload failed'}), 500
-
-# Eileen's Route - Update Avatar
-@app.route('/update-profile-avatar', methods=['POST'])
-
-def update_profile_avatar():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    if 'avatar' not in request.files:
-        return jsonify({'success': False, 'error': 'No file uploaded'}), 400
-
-    file = request.files['avatar']
-    if file.filename == '':
-        return jsonify({'success': False, 'error': 'Empty filename'}), 400
-
-    if '.' in file.filename:
-        ext = file.filename.rsplit('.', 1)[-1].lower()
-    else:
-        ext = 'jpg'
-
-    if ext not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
-        return jsonify(
-            {'success': False, 'error': 'Unsupported file format'}
-        ), 400
-
-    filename = f"avatar_{session['user_id']}_{uuid.uuid4().hex}.{ext}"
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
-    try:
-        file.save(filepath)
-        print(f"Avatar saved: {filepath}")
-    except Exception as e:
-        print(f"Error saving avatar: {e}")
-        return jsonify(
-            {'success': False, 'error': 'Failed to save file'}
-        ), 500
-
+    
+    # Read image as binary data
+    image_data = file.read()
+    
+    if len(image_data) > 5 * 1024 * 1024:
+        return jsonify({'success': False, 'error': 'Image too large (max 5MB)'}), 400
+    
+    # Convert binary to data URL for storage
+    mime_type = file.content_type or 'image/jpeg'
+    bg_value = f"data:{mime_type};base64,{base64.b64encode(image_data).decode('utf-8')}"
+    
     db = get_db()
-    try:
-        db.execute(
-            'UPDATE users SET avatar = ? WHERE id = ?',
-            (filename, session['user_id'])
-        )
-        db.commit()
-        print(f"Avatar filename saved to DB: {filename}")
-    except Exception as e:
-        print(f"Database error: {e}")
-        db.close()
-        return jsonify(
-            {'success': False, 'error': 'Database update failed'}
-        ), 500
+    db.execute('''
+        UPDATE users SET background_type = ?, background_value = ? WHERE id = ?
+    ''', ('image', bg_value, session['user_id']))
+    db.commit()
     db.close()
-
+    
     return jsonify({
         'success': True,
-        'filename': filename,
-        'image_url': url_for('static', filename=f'uploads/{filename}')
+        'bg_value': bg_value
     })
 
 
-# Eileen's Route - API Endpoints
 @app.route('/api/user/background')
 
 def api_user_background():
+    """Get user background data for cross-device sync"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
+    
     db = get_db()
-    user = db.execute("""
-        SELECT bg_image, bg_type, cover_image, avatar
+    user = db.execute('''
+        SELECT background_type, background_value
         FROM users WHERE id = ?
-    """, (session['user_id'],)).fetchone()
+    ''', (session['user_id'],)).fetchone()
     db.close()
-
+    
     if user:
         return jsonify({
             'success': True,
-            'bg_image': user['bg_image'],
-            'bg_type': user['bg_type'],
-            'cover_image': user['cover_image'],
-            'avatar': user['avatar']
+            'background_type': user['background_type'],
+            'background_value': user['background_value']
         })
     return jsonify({'success': False, 'error': 'User not found'}), 404
 
+
+# ============================================================
+# API ENDPOINTS
+# ============================================================
 
 @app.route('/api/user/purchases')
 
 def api_user_purchases():
     if 'user_id' not in session:
         return jsonify([])
-    # TODO: Implement purchases logic
     return jsonify([])
 
 
@@ -1024,7 +553,7 @@ def api_user_purchases():
 def api_user_listings():
     if 'user_id' not in session:
         return jsonify([])
-
+    
     db = get_db()
     rows = db.execute("""
         SELECT id, name, price, status, created_at,
@@ -1042,8 +571,392 @@ def api_user_listings():
         ORDER BY created_at DESC
     """, (session['user_id'],)).fetchall()
     db.close()
-
+    
     return jsonify([dict(row) for row in rows])
+
+
+# Eileen's Route - Edit Profile
+@app.route('/edit_profile', methods=['GET'])
+
+def edit_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+    
+    listing_count = db.execute(
+        'SELECT COUNT(*) FROM products WHERE seller_id = ?',
+        (session['user_id'],)
+    ).fetchone()[0]
+    
+    # Calculate trust score
+    trust_score = 60
+    if user['avatar_blob']:
+        trust_score += 8
+    if user['bio']:
+        trust_score += 8
+    if user['contact']:
+        trust_score += 7
+    if user['full_name']:
+        trust_score += 7
+    
+    if user['created_at']:
+        try:
+            created_date = datetime.strptime(
+                user['created_at'], '%Y-%m-%d %H:%M:%S'
+            )
+            days_since_join = (datetime.now() - created_date).days
+            if days_since_join >= 365:
+                trust_score += 20
+            elif days_since_join >= 180:
+                trust_score += 15
+            elif days_since_join >= 30:
+                trust_score += 10
+            elif days_since_join >= 7:
+                trust_score += 5
+        except:
+            pass
+    
+    trust_score += min(25, (listing_count // 2) * 2)
+    
+    if user['active_hours'] and user['active_hours'] != 'Not set':
+        trust_score += 10
+    if user['gender']:
+        trust_score += 5
+    
+    trust_score = min(trust_score, 100)
+    trust_score = max(trust_score, 30)
+    
+    # Calculate response rate
+    response_rate = 50
+    
+    if listing_count > 0:
+        response_rate += 15
+    
+    if user['bio'] and user['contact']:
+        response_rate += 10
+    if user['active_hours'] and user['active_hours'] != 'Not set':
+        response_rate += 10
+    if user['avatar_blob']:
+        response_rate += 5
+    
+    response_rate = min(response_rate, 98)
+    response_rate = max(response_rate, 40)
+    
+    db.close()
+    
+    return render_template(
+        'edit_profile.html',
+        user=user,
+        listing_count=listing_count,
+        sold_count=0,
+        trust_score=trust_score,
+        response_rate=response_rate
+    )
+
+
+# Eileen's Route - Update Profile
+@app.route('/update-profile', methods=['POST'])
+
+def update_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    username = request.form.get('username')
+    full_name = request.form.get('full_name')
+    bio = request.form.get('bio')
+    contact = request.form.get('contact')
+    gender = request.form.get('gender')
+    active_hours = request.form.get('active_hours')
+    
+    db = get_db()
+    
+    # Check if username already taken
+    existing = db.execute(
+        'SELECT id FROM users WHERE username = ? AND id != ?',
+        (username, session['user_id'])
+    ).fetchone()
+    if existing:
+        db.close()
+        flash('Username already taken', 'error')
+        return redirect(url_for('edit_profile'))
+    
+    # Update all fields
+    db.execute("""
+        UPDATE users
+        SET username = ?, full_name = ?, bio = ?,
+            contact = ?, gender = ?, active_hours = ?
+        WHERE id = ?
+    """, (username, full_name, bio, contact, gender,
+          active_hours, session['user_id']))
+    
+    db.commit()
+    db.close()
+    
+    session['username'] = username
+    flash('Profile updated successfully!', 'success')
+    return redirect(url_for('edit_profile'))
+
+
+# Eileen's Route - Change Password
+@app.route('/change-password', methods=['POST'])
+
+def change_password():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+    
+    if not user:
+        db.close()
+        flash('User not found', 'error')
+        return redirect(url_for('edit_profile'))
+    
+    if not check_password_hash(user['password'], current_password):
+        db.close()
+        flash('Current password is incorrect', 'error')
+        return redirect(url_for('edit_profile'))
+    
+    if new_password != confirm_password:
+        db.close()
+        flash('New passwords do not match', 'error')
+        return redirect(url_for('edit_profile'))
+    
+    hashed = generate_password_hash(new_password)
+    db.execute(
+        'UPDATE users SET password = ? WHERE id = ?',
+        (hashed, session['user_id'])
+    )
+    db.commit()
+    db.close()
+    
+    flash('Password changed successfully!', 'success')
+    return redirect(url_for('edit_profile'))
+
+
+# Eileen's Route - Delete Account
+@app.route('/delete-account', methods=['POST'])
+
+def delete_account():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    password = request.form.get('password')
+    confirm_text = request.form.get('confirm_text')
+    
+    if confirm_text != 'DELETE':
+        flash('Please type DELETE to confirm', 'error')
+        return redirect(url_for('edit_profile'))
+    
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+    
+    if not check_password_hash(user['password'], password):
+        flash('Password is incorrect', 'error')
+        return redirect(url_for('edit_profile'))
+    
+    db.execute('DELETE FROM products WHERE seller_id = ?', (session['user_id'],))
+    db.execute("""
+        DELETE FROM orders WHERE buyer_id = ? OR seller_id = ?
+    """, (session['user_id'], session['user_id']))
+    db.execute('DELETE FROM notifications WHERE user_id = ?', (session['user_id'],))
+    db.execute('DELETE FROM users WHERE id = ?', (session['user_id'],))
+    db.commit()
+    db.close()
+    
+    session.clear()
+    flash('Your account has been permanently deleted', 'info')
+    return redirect(url_for('login'))
+
+
+# Eileen's Route - Verify Password
+@app.route('/verify-password', methods=['POST'])
+
+def verify_password():
+    if 'user_id' not in session:
+        return jsonify({'valid': False}), 401
+    
+    data = request.get_json()
+    password = data.get('password', '')
+    
+    db = get_db()
+    user = db.execute(
+        'SELECT password FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+    db.close()
+    
+    if user and check_password_hash(user['password'], password):
+        return jsonify({'valid': True})
+    else:
+        return jsonify({'valid': False})
+
+
+# Eileen's Route - Forgot Password
+@app.route('/forgot-password', methods=['GET', 'POST'])
+
+def forgot_password():
+    if request.method == 'POST':
+        step = request.form.get('step')
+        
+        # Step 1: verify email
+        if step == '1':
+            email = request.form.get('fp_email', '').strip()
+            if not email:
+                flash('Please enter your email.', 'error')
+                return render_template('forgot_password.html')
+            if not email.endswith('@student.mmu.edu.my'):
+                flash('Only @student.mmu.edu.my emails are allowed.', 'error')
+                return render_template('forgot_password.html')
+            
+            db = get_db()
+            user = db.execute(
+                'SELECT id, security_q1, security_q2 FROM users WHERE email = ?',
+                (email,)
+            ).fetchone()
+            db.close()
+            
+            if not user:
+                flash('No account found with that email.', 'error')
+                return render_template('forgot_password.html')
+            
+            session['fp_email'] = email
+            session['fp_q1'] = user['security_q1']
+            session['fp_q2'] = user['security_q2']
+            return render_template(
+                'forgot_password.html',
+                step=2,
+                q1=user['security_q1'],
+                q2=user['security_q2']
+            )
+        
+        # Step 2: verify security answers
+        elif step == '2':
+            email = session.get('fp_email')
+            if not email:
+                flash('Session expired. Please start again.', 'error')
+                return render_template('forgot_password.html')
+            
+            a1_input = request.form.get('fp_a1', '').strip().lower()
+            a2_input = request.form.get('fp_a2', '').strip().lower()
+            
+            db = get_db()
+            user = db.execute(
+                'SELECT id, security_a1, security_a2 FROM users WHERE email = ?',
+                (email,)
+            ).fetchone()
+            db.close()
+            
+            if not user:
+                flash('User not found.', 'error')
+                return render_template('forgot_password.html')
+            
+            if (a1_input != user['security_a1'] or
+                a2_input != user['security_a2']):
+                flash('One or both answers are incorrect.', 'error')
+                return render_template(
+                    'forgot_password.html',
+                    step=2,
+                    q1=session.get('fp_q1'),
+                    q2=session.get('fp_q2')
+                )
+            
+            session['fp_verified'] = True
+            return render_template('forgot_password.html', step=3)
+        
+        # Step 3: save new password
+        elif step == '3':
+            if not session.get('fp_verified'):
+                flash('Please complete identity verification first.', 'error')
+                return render_template('forgot_password.html')
+            
+            email = session.get('fp_email')
+            new_password = request.form.get('fp_pw', '')
+            confirm_password = request.form.get('fp_cpw', '')
+            
+            errors = []
+            if len(new_password) < 8:
+                errors.append('Password must be at least 8 characters')
+            if not re.search(r'[A-Z]', new_password):
+                err = 'Password must contain at least 1 uppercase letter'
+                errors.append(err)
+            if not re.search(r'[a-z]', new_password):
+                err = 'Password must contain at least 1 lowercase letter'
+                errors.append(err)
+            if not re.search(r'[0-9]', new_password):
+                errors.append('Password must contain at least 1 number')
+            if not re.search(r'[!@#$%^&*]', new_password):
+                err = 'Password must contain at least 1 special character'
+                errors.append(err)
+            if new_password != confirm_password:
+                errors.append('Passwords do not match')
+            
+            if errors:
+                for e in errors:
+                    flash(e, 'error')
+                return render_template('forgot_password.html', step=3)
+            
+            hashed = generate_password_hash(new_password)
+            db = get_db()
+            db.execute(
+                'UPDATE users SET password = ? WHERE email = ?',
+                (hashed, email)
+            )
+            db.commit()
+            db.close()
+            
+            session.pop('fp_email', None)
+            session.pop('fp_q1', None)
+            session.pop('fp_q2', None)
+            session.pop('fp_verified', None)
+            
+            flash('Password reset successfully!', 'success')
+            return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html')
+
+
+# Eileen's Route - Admin Login
+@app.route('/admin/login', methods=['GET', 'POST'])
+
+def admin_login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        db = get_db()
+        user = db.execute(
+            'SELECT * FROM users WHERE email = ? AND is_admin = 1',
+            (email,)
+        ).fetchone()
+        db.close()
+        
+        if user and check_password_hash(user['password'], password):
+            session['admin_logged_in'] = True
+            session['admin_email'] = user['email']
+            session['admin_username'] = user['username']
+            flash('Admin login successful!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid admin credentials', 'error')
+    
+    return render_template('admin_login.html')
+
 
 # Keting's Route - Admin Dashboard
 @app.route('/admin/dashboard')
@@ -1053,7 +966,7 @@ def admin_dashboard():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
-
+    
     db = get_db()
 
     total_products = db.execute("SELECT COUNT(*) FROM products").fetchone()[0]
@@ -1182,7 +1095,7 @@ def reject_product(pid):
     if not reject_reason:
         flash("Please provide a reason for rejection", "error")
         return redirect(url_for('admin_products'))
-
+    
     db = get_db()
     db.execute('''
         UPDATE products 
@@ -1217,11 +1130,10 @@ def admin_get_product_info(pid):
         WHERE p.id = ?
     ''', (pid,)).fetchone()
     db.close()
-
+    
     if not product:
-        return {"error":"not found"},404
-
-    # 直接转字典给前端弹窗用
+        return {"error": "not found"}, 404
+    
     return dict(product)
 
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
@@ -1230,12 +1142,12 @@ def freeze_7day(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
         return redirect(url_for("admin_login"))
-
+    
     reason = request.form.get('reason', 'No reason provided').strip()
     now = datetime.now()
     frozen_end_time = now + timedelta(days=7)
     time_str = frozen_end_time.strftime("%Y-%m-%d %H:%M:%S")
-
+    
     db = get_db()
     db.execute("""
         UPDATE users
@@ -1244,7 +1156,7 @@ def freeze_7day(user_id):
             freeze_reason = ?
         WHERE id = ?
     """, (time_str, reason, user_id))
-
+    
     db.execute("""
         INSERT INTO notifications (user_id, message, created_at)
         VALUES (?, ?, ?)
@@ -1253,7 +1165,7 @@ def freeze_7day(user_id):
         f"Your account has been frozen for 7 days.\nReason: {reason}\nAuto unfreeze: {time_str}",
         now.strftime("%Y-%m-%d %H:%M:%S")
     ))
-
+    
     db.commit()
     db.close()
     flash("User successfully frozen for 7 days.", "success")
@@ -1297,7 +1209,7 @@ def unfreeze_user(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized")
         return redirect(url_for("admin_login"))
-
+    
     db = get_db()
     db.execute("""
         UPDATE users 
@@ -1306,7 +1218,7 @@ def unfreeze_user(user_id):
     """, (user_id,))
     db.commit()
     db.close()
-
+    
     flash("User has been unfrozen successfully.", "success")
     return redirect(url_for("admin_users"))
 
@@ -1316,7 +1228,7 @@ def unblock_user(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized")
         return redirect(url_for("admin_login"))
-
+    
     db = get_db()
     db.execute("""
         UPDATE users 
@@ -1325,10 +1237,12 @@ def unblock_user(user_id):
     """, (user_id,))
     db.commit()
     db.close()
-
+    
     flash("User ban has been lifted successfully.", "success")
     return redirect(url_for("admin_users"))
 
+
+# Chat List Route
 @app.route('/chatlist')
 
 
@@ -1347,7 +1261,7 @@ def upload_product():
     if 'user_id' not in session:
         flash("You must be logged in to post an item.", "error")
         return redirect(url_for('login'))
-
+    
     if request.method == 'POST':
         name = request.form.get('item_name', '').strip()
         price = request.form.get('item_price', '').strip()
@@ -1355,7 +1269,7 @@ def upload_product():
         condition = request.form.get('item_condition')
         category = request.form.get('item_category')
         seller_id = session['user_id']
-
+        
         errors = []
         if not name:
             errors.append("Item name is required.")
@@ -1369,7 +1283,7 @@ def upload_product():
             errors.append("Please select a category.")
         if not condition:
             errors.append("Please select a condition.")
-
+        
         price_val = None
         try:
             price_val = float(price)
@@ -1381,7 +1295,7 @@ def upload_product():
                 price_val = round(price_val, 2)
         except ValueError:
             errors.append("Please enter a valid price.")
-
+        
         # Validate images
         files = request.files.getlist('product_images')
         saved_image_names = []
@@ -1402,15 +1316,15 @@ def upload_product():
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
                 saved_image_names.append(filename)
-
+        
         if not saved_image_names:
             errors.append("Please upload at least one photo.")
-
+        
         if errors:
             for err in errors:
                 flash(err, "error")
             return render_template('upload.html')
-
+        
         images_string = ",".join(saved_image_names)
         db = get_db()
         db.execute('''
@@ -1426,7 +1340,7 @@ def upload_product():
         flash("Your item has been submitted for admin approval."
               " It will appear once approved.", "success")
         return redirect(url_for('home'))
-
+    
     return render_template('upload.html')
 
 #(Xingru) For testing purposes only - clear all products from database
@@ -1450,7 +1364,7 @@ def product_detail(product_id):
     if 'user_id' not in session:
         flash('Please login to view product details.', 'error')
         return redirect(url_for('login'))
-
+    
     db = get_db()
     product = db.execute('''
         SELECT p.*, u.username as seller_name, 
@@ -1460,11 +1374,11 @@ def product_detail(product_id):
         WHERE p.id = ? AND p.status = 'approved'
     """, (product_id,)).fetchone()
     db.close()
-
+    
     if not product:
         flash('Product not found or not yet approved.', 'error')
         return redirect(url_for('home'))
-
+    
     images = product['images'].split(',') if product['images'] else []
 
 
