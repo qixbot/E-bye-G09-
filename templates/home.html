@@ -81,7 +81,7 @@
                     <div class="product-image-container" 
                         data-images='{{ product.images_list[:3] | tojson }}'
                         data-total="{{ product.images_list[:3]|length }}"
-                        data-actual-total="{{ product.images_list|length }}">
+                        data-actual-total="{{ product.actual_total }}">
 
                         <span class="condition-badge">{{ product.condition }}</span>
                         
@@ -101,7 +101,7 @@
                             <div class="overlay-text">👆 Tap to see more →</div>
                         </div>
                         
-                        <div class="image-counter">1/{{ product.images_list|length }}</div>
+                        <div class="image-counter">1/{{ product.actual_total }}</div>
                     </div>
                     <div class="product-info">
                         <h4 class="product-name">{{ product.name }}</h4>
@@ -238,8 +238,6 @@
             hideOverlay();
             goToSlide(0, false);
         }
-
-        goToSlide(0, false);
 
         card.addEventListener('mouseenter', () => {
             if (isHovering) return;

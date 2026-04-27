@@ -277,11 +277,16 @@ def home():
         images_str = product.get('images', '')
         if images_str:
             img_list = images_str.split(',')
-            product['images_list'] = img_list   # full list
-            product['image_1'] = img_list[0] if len(img_list) > 0 else None
-            product['image_2'] = img_list[1] if len(img_list) > 1 else None
+            # Filter only image files for carousel (max 3)
+            image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+            image_only = [f for f in img_list if f.split('.')[-1].lower() in image_extensions]
+            product['images_list'] = image_only[:3]      # for carousel (only images)
+            product['actual_total'] = len(img_list)      # total media (including videos)
+            product['image_1'] = image_only[0] if len(image_only) > 0 else None
+            product['image_2'] = image_only[1] if len(image_only) > 1 else None
         else:
             product['images_list'] = []
+            product['actual_total'] = 0
             product['image_1'] = None
             product['image_2'] = None
         products.append(product)
@@ -1196,11 +1201,20 @@ def upload_product():
         # Validate images
         files = request.files.getlist('product_images')
         saved_image_names = []
+        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'webm', 'mov'}
+
         for file in files:
             if file and file.filename != '':
-                filename = secure_filename(file.filename)
+                # Check extension
+                original_filename = file.filename
+                ext = original_filename.rsplit('.', 1)[-1].lower() if '.' in original_filename else ''
+                if ext not in ALLOWED_EXTENSIONS:
+                    flash(f"Unsupported file type: {original_filename}. Only images and MP4/WebM/MOV videos are allowed.", "error")
+                    continue   # skip this file, continue with others
+                
+                filename = secure_filename(original_filename)
                 if not filename:
-                    filename = f"image_{uuid.uuid4().hex}.jpg"
+                    filename = f"media_{uuid.uuid4().hex}.{ext}"
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
                 saved_image_names.append(filename)
