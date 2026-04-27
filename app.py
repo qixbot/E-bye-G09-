@@ -1101,17 +1101,13 @@ def reject_product(pid):
         UPDATE products 
         SET status = 'rejected', reject_reason = ?
         WHERE id = ?
-    ''', (reject_reason, pid))
+    """, (reject_reason, pid))
 
-    prod = db.execute('SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
-    seller_id = prod['seller_id']
-    prod_name = prod['name']
-
+    prod = db.execute(
+        'SELECT seller_id, name FROM products WHERE id = ?', (pid,)
+    ).fetchone()
     db.commit()
     db.close()
-
-    # 【之后对接ChatList通知在这里加】
-    # 通知文案：❌ 你的商品【{prod_name}】审核驳回，原因：{reject_reason}，修改后可重新上传
 
     flash("Product rejected successfully", "success")
     return redirect(url_for('admin_products'))
@@ -1120,7 +1116,7 @@ def reject_product(pid):
 @app.route('/admin/api/product/<int:pid>')
 def admin_get_product_info(pid):
     if not session.get('admin_logged_in'):
-        return {"error":"no permission"},403
+        return {"error": "no permission"}, 403
 
     db = get_db()
     product = db.execute('''
@@ -1133,7 +1129,7 @@ def admin_get_product_info(pid):
     
     if not product:
         return {"error": "not found"}, 404
-    
+
     return dict(product)
 
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
@@ -1180,18 +1176,15 @@ def block_user(user_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
 
-
     reason = request.form.get('reason', 'No reason provided')
     db = get_db()
 
-    # 1.Add a "permanent ban mark" to the user
     db.execute("UPDATE users SET is_blocked = 1 WHERE id = ?", (user_id,))
-
-    # 2.Send a "Ban Notice" to this user
-    db.execute(
-        "INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)",
-        (user_id, f"Your account has been PERMANENTLY blocked. Reason: {reason}")
-    )
+    db.execute("""
+        INSERT INTO notifications (user_id, message, is_read)
+        VALUES (?, ?, 0)
+    """, (user_id, f"Your account has been PERMANENTLY blocked. "
+                   f"Reason: {reason}"))
 
     db.commit()
     db.close()
@@ -1240,7 +1233,6 @@ def unblock_user(user_id):
     
     flash("User ban has been lifted successfully.", "success")
     return redirect(url_for("admin_users"))
-
 
 # Chat List Route
 @app.route('/chatlist')
@@ -1337,14 +1329,12 @@ def upload_product():
         db.commit()
         db.close()
 
-        flash("Your item has been submitted for admin approval."
-              " It will appear once approved.", "success")
+        flash("Your item has been submitted for admin approval.", "success")
         return redirect(url_for('home'))
     
     return render_template('upload.html')
 
-#(Xingru) For testing purposes only - clear all products from database
-#This route is not linked from anywhere in the UI and should be used with caution.
+# Xingru's Route - Testing (Clear products)
 @app.route('/clear-products')
 
 
@@ -1356,7 +1346,7 @@ def clear_products():
     db.close()
     return "All products deleted."
 
-#Xingru's Route ------Product details page
+# Xingru's Route - Product Details
 @app.route('/product/<int:product_id>')
 
 
@@ -1380,7 +1370,6 @@ def product_detail(product_id):
         return redirect(url_for('home'))
     
     images = product['images'].split(',') if product['images'] else []
-
 
     return render_template('product.html', product=product, images=images)
 
