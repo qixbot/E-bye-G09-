@@ -58,7 +58,7 @@
 
     <!-- cover banner -->
     <div class="ep-cover-container">
-        <div class="ep-cover-image" id="coverImage" style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) if user.cover_image else '' }}'); background-color: #00381f;">
+        <div class="ep-cover-image" id="coverImage" style="background-color: #00381f;{% if user.cover_image %} background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) }}');{% endif %}">
             <div class="ep-cover-overlay">
                 <button class="ep-cover-upload-btn" id="coverChangeBtn">📷 Change Cover</button>
             </div>

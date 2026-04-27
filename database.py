@@ -1,4 +1,5 @@
 import sqlite3
+
 from werkzeug.security import generate_password_hash
 
 DATABASE = 'ebyte.db'
@@ -63,6 +64,7 @@ def init_db():
     cursor = db.execute("PRAGMA table_info(users)")
     existing_columns = [col[1] for col in cursor.fetchall()]
 
+    # 需要确保存在的列及其默认值
     required_columns = {
         'cover_image': 'TEXT',
         'bg_type': "TEXT DEFAULT 'default'",
@@ -103,7 +105,6 @@ def init_db():
     db.close()
     print("Database ready with all required tables and columns.")
 
-
 def init_products():
     db = get_db()
     db.execute('''
@@ -117,29 +118,10 @@ def init_products():
             category TEXT,
             images TEXT, 
             status TEXT DEFAULT 'pending',
-            reject_reason TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (seller_id) REFERENCES users(id)
         )
     ''')
-    
-    # 为已存在的 products 表添加缺失的列
-    cursor = db.execute("PRAGMA table_info(products)")
-    existing_columns = [col[1] for col in cursor.fetchall()]
-
-    if 'status' not in existing_columns:
-        try:
-            db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
-            print("✅ Added missing column: status")
-        except Exception as e:
-            print(f"⚠️ Could not add column status: {e}")
-
-    if 'reject_reason' not in existing_columns:
-        try:
-            db.execute("ALTER TABLE products ADD COLUMN reject_reason TEXT DEFAULT ''")
-            print("✅ Added missing column: reject_reason")
-        except Exception as e:
-            print(f"⚠️ Could not add column reject_reason: {e}")
 
     db.commit()
     db.close()

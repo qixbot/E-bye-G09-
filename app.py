@@ -8,8 +8,7 @@ import sqlite3
 
 from datetime import datetime, timedelta
 
-from flask import (
-    Flask,
+from flask import (Flask,
     render_template,
     request, redirect,
     url_for, session, flash, jsonify
@@ -959,6 +958,7 @@ def admin_products():
                            rejected_list=rejected)
 # 审核通过商品
 @app.route('/admin/product/approve/<int:pid>')
+
 def approve_product(pid):
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
@@ -989,6 +989,7 @@ def approve_product(pid):
 
 # 驳回商品 + 填写理由
 @app.route('/admin/product/reject/<int:pid>', methods=['POST'])
+           
 def reject_product(pid):
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
@@ -1021,6 +1022,7 @@ def reject_product(pid):
 
 # Admin 弹窗专用 拿商品完整信息
 @app.route('/admin/api/product/<int:pid>')
+
 def admin_get_product_info(pid):
     if not session.get('admin_logged_in'):
         return {"error":"no permission"},403
