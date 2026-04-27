@@ -16,17 +16,25 @@
         <!-- Left: Images -->
         <div>
             <div class="main-image">
-                <img id="main-product-img" src="{{ url_for('static', filename='uploads/' ~ images[0]) }}" alt="{{ product.name }}">
+                {% set first_media = images[0] %}
+                {% set ext = first_media.split('.')[-1].lower() if first_media else '' %}
+                {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
+                    <video id="main-product-video" controls autoplay muted loop>
+                        <source src="{{ url_for('static', filename='uploads/' ~ first_media) }}" type="video/{{ ext }}">
+                        Your browser does not support the video tag.
+                    </video>
+                {% else %}
+                    <img id="main-product-img" src="{{ url_for('static', filename='uploads/' ~ first_media) }}" alt="{{ product.name }}">
+                {% endif %}
             </div>
             <div class="image-counter" id="image-counter">1 / {{ images|length }}</div>
             {% if images|length > 1 %}
             <div class="thumbnail-list">
                 {% for img in images %}
                 <img src="{{ url_for('static', filename='uploads/' ~ img) }}" 
-                     class="thumbnail" 
-                     data-index="{{ loop.index0 }}"
-                     onclick="changeMainImage(this.src, {{ loop.index0 }})"
-                     alt="Thumbnail">
+                    class="thumbnail" 
+                    data-index="{{ loop.index0 }}"
+                    onclick="changeMainMedia(this.src, {{ loop.index0 }})"                     alt="Thumbnail">
                 {% endfor %}
             </div>
             {% endif %}
@@ -119,13 +127,27 @@
             alert('Failed to copy link.');
         });
     });
-    function changeMainImage(src, index) {
-        const mainImg = document.getElementById('main-product-img');
-        mainImg.src = src;
-        const counter = document.getElementById('image-counter');
+    function changeMainMedia(src, index) {
+        const ext = src.split('.').pop().toLowerCase();
+        const mainContainer = document.querySelector('.main-image');
+        const currentCounter = document.getElementById('image-counter');
         const total = {{ images|length }};
-        counter.textContent = (index + 1) + ' / ' + total;
+
+        if (ext === 'mp4' || ext === 'webm' || ext === 'mov') {
+            // Replace content with video
+            mainContainer.innerHTML = `
+                <video id="main-product-video" controls autoplay muted loop>
+                    <source src="${src}" type="video/${ext}">
+                    Your browser does not support the video tag.
+                </video>
+            `;
+        } else {
+            // Replace with image
+            mainContainer.innerHTML = `<img id="main-product-img" src="${src}" alt="Product image">`;
+        }
+        if (currentCounter) currentCounter.textContent = (index + 1) + ' / ' + total;
         
+        // Update active thumbnail highlight
         document.querySelectorAll('.thumbnail').forEach(thumb => {
             thumb.classList.remove('active');
             if (thumb.src === src) thumb.classList.add('active');

@@ -81,18 +81,20 @@
                     <div class="product-image-container" 
                         data-images='{{ product.images_list[:3] | tojson }}'
                         data-total="{{ product.images_list[:3]|length }}"
-                        data-actual-total="{{ product.images_list|length }}">
+                        data-actual-total="{{ product.actual_total }}">
 
                         <span class="condition-badge">{{ product.condition }}</span>
                         
                         <!-- Carousel track -->
                         <div class="carousel-window">
                             <div class="carousel-track">
-                                {% for img in product.images_list[:3] %}
-                                    <img src="{{ url_for('static', filename='uploads/' ~ img) }}" 
-                                        class="carousel-img" 
-                                        alt="{{ product.name }}">
-                                {% endfor %}
+                                {% if product.images_list[:3] %}
+                                    {% for img in product.images_list[:3] %}
+                                        <img src="{{ url_for('static', filename='uploads/' ~ img) }}" class="carousel-img" alt="{{ product.name }}">
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="carousel-placeholder">No preview available</div>
+                                {% endif %}
                             </div>
                         </div>
                         
@@ -101,7 +103,7 @@
                             <div class="overlay-text">👆 Tap to see more →</div>
                         </div>
                         
-                        <div class="image-counter">1/{{ product.images_list|length }}</div>
+                        <div class="image-counter">1/{{ product.actual_total }}</div>
                     </div>
                     <div class="product-info">
                         <h4 class="product-name">{{ product.name }}</h4>
@@ -156,7 +158,12 @@
         } catch(e) { images = []; }
         const total = parseInt(container.dataset.total);          // images in carousel (max 3)
         const actualTotal = parseInt(container.dataset.actualTotal); // real total uploaded
-        if (total <= 1) return;
+
+        // If there are 0 images in carousel, nothing to show
+        if (total === 0) return;
+
+        // Determine if we have a slideshow (more than one image in carousel)
+        const hasSlideshow = total > 1;
 
         let currentIndex = 0;
         let hoverTimeout = null;
@@ -206,6 +213,7 @@
         function nextSlide() {
             if (!isHovering) return;
             if (overlayActive) return;
+            if (!hasSlideshow) return;  // should not be called for single‑image cards
             
             const next = currentIndex + 1;
             if (next < total) {
@@ -218,10 +226,11 @@
         }
 
         function startSlideshow() {
+            if (!hasSlideshow) return;
             if (slideInterval) clearInterval(slideInterval);
             slideInterval = setInterval(() => {
                 if (isHovering && !overlayActive) nextSlide();
-            }, 2500);
+            }, 2500); // adjust delay as needed
         }
 
         function stopSlideshow() {
@@ -231,22 +240,33 @@
             }
         }
 
+        // Reset to first image and hide overlay
         function resetToFirst() {
             stopSlideshow();
             isHovering = false;
             clearTimeout(hoverTimeout);
             hideOverlay();
-            goToSlide(0, false);
+            if (total > 0) goToSlide(0, false);
         }
 
+        // Hover handler
         card.addEventListener('mouseenter', () => {
             if (isHovering) return;
             isHovering = true;
+            // Reset to first image and hide overlay
             if (currentIndex !== 0) goToSlide(0, false);
             hideOverlay();
+            // After a short delay, either start slideshow or directly show overlay
             hoverTimeout = setTimeout(() => {
-                if (isHovering) startSlideshow();
-            }, 0);
+                if (isHovering) {
+                    if (hasSlideshow) {
+                        startSlideshow();
+                    } else {
+                        // For single‑image cards, show overlay immediately
+                        showOverlay();
+                    }
+                }
+            }, 1000); // 1 second delay before showing overlay (or starting slideshow)
         });
 
         card.addEventListener('mouseleave', () => {

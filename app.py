@@ -16,14 +16,42 @@ from flask import (
 )
 from database import init_db, get_db, init_products
 
+
 from werkzeug.security import generate_password_hash, check_password_hash
+
 
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026-new'
 
-# Setup folder for uploaded product images (products still use files)
+# jinja2 time filter
+@app.template_filter('time_since')
+
+def time_since(date):
+
+    if not date:
+        return 'New'
+    now = datetime.now()
+    if isinstance(date, str):
+        try:
+            date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+        except:
+            return 'New'
+    diff = now - date
+    if diff.days > 365:
+        return f"{diff.days//365}y"
+    elif diff.days > 30:
+        return f"{diff.days//30}m"
+    elif diff.days > 0:
+        return f"{diff.days}d"
+    elif diff.seconds > 3600:
+        return f"{diff.seconds//3600}h"
+    elif diff.seconds > 60:
+        return f"{diff.seconds//60}m"
+    return 'Just now'
+
+# --- Setup folder for uploaded product images ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -35,9 +63,8 @@ init_products()
 
 @app.route('/')
 
+
 def index():
-    if 'user_id' in session:
-        return redirect(url_for('home'))
     return redirect(url_for('login'))
 
 
@@ -80,11 +107,12 @@ def login():
 
         db = get_db()
         user = db.execute(
-            "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
+            'SELECT * FROM users WHERE LOWER(email) = LOWER(?)',
             (email,)
         ).fetchone()
         db.close()
 
+        # Account+password check vakidation if correct then will pass to verify
         if user and check_password_hash(user['password'], password):
             # Permanently blocked check
             if user['is_blocked'] == 1:
@@ -147,6 +175,8 @@ def login():
 
             flash('Login successful!', 'success')
             return redirect(url_for('home'))
+
+        # Account/password error fallback
         else:
             flash('Invalid email or password', 'error')
 
@@ -260,9 +290,11 @@ def register():
 # Xingru's Route - Homepage
 @app.route('/home')
 
+
 def home():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+
 
     db = get_db()
     products_data = db.execute('''
@@ -280,23 +312,30 @@ def home():
         images_str = product.get('images', '')
         if images_str:
             img_list = images_str.split(',')
-            product['images_list'] = img_list
-            product['image_1'] = img_list[0] if len(img_list) > 0 else None
-            product['image_2'] = img_list[1] if len(img_list) > 1 else None
+            # Filter only image files for carousel (max 3)
+            image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
+            image_only = []
+            for f in img_list:
+                f = f.strip()          # remove accidental spaces
+                ext = f.split('.')[-1].lower()
+                if ext in image_extensions:
+                    image_only.append(f)
+            product['images_list'] = image_only[:3]      # for carousel (only images)
+            product['actual_total'] = len(img_list)      # total media (including videos)
+            product['image_1'] = image_only[0] if len(image_only) > 0 else None
+            product['image_2'] = image_only[1] if len(image_only) > 1 else None
         else:
             product['images_list'] = []
+            product['actual_total'] = 0
             product['image_1'] = None
             product['image_2'] = None
         products.append(product)
 
-    return render_template(
-        'home.html',
-        username=session.get('username'),
-        latest_products=products
-    )
-
+    return render_template('home.html',
+                           username=session.get('username'), latest_products=products)
 
 @app.route('/logout')
+
 
 def logout():
     session.clear()
@@ -922,25 +961,53 @@ def admin_login():
 # Keting's Route - Admin Dashboard
 @app.route('/admin/dashboard')
 
+
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
     
     db = get_db()
+
+    total_products = db.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+    
+    # 总注册用户数
     total_users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    
+    # 已通过审核的商品数
+    approved_count = db.execute(
+        "SELECT COUNT(*) FROM products WHERE status = 'approved'"
+    ).fetchone()[0]
+    
+    # 待审核商品数
+    pending_count = db.execute(
+        "SELECT COUNT(*) FROM products WHERE status = 'pending'"
+    ).fetchone()[0]
+    
+    # 活跃卖家数（有至少一个商品的用户）
+    seller_count = db.execute(
+        "SELECT COUNT(DISTINCT seller_id) FROM products"
+    ).fetchone()[0]
+    
     db.close()
     
-    return render_template("admin_dashboard.html", total_users=total_users)
+    return render_template("admin_dashboard.html",
+                           total_users=total_users,
+                           approved_count=approved_count,
+                           pending_count=pending_count,
+                           seller_count=seller_count)
+
 
 
 @app.route('/admin/users')
 
 def admin_users():
+
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
-    
+
+
     db = get_db()
     users = db.execute("SELECT * FROM users").fetchall()
     db.close()
@@ -949,90 +1016,122 @@ def admin_users():
 
 @app.route('/admin/products')
 
+
 def admin_products():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
-    
-    return render_template("admin_products.html")
 
+    db = get_db()
+    pending = db.execute('''
+        SELECT p.*, u.username as seller_name
+        FROM products p JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'pending' ORDER BY p.created_at DESC
+    ''').fetchall()
 
-# Approve product
-@app.route('/admin/product/approve/<int:pid>', methods=['POST'])
+    approved = db.execute('''
+        SELECT p.*, u.username as seller_name
+        FROM products p JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'approved' ORDER BY p.created_at DESC
+    ''').fetchall()
 
+    rejected = db.execute('''
+        SELECT p.*, u.username as seller_name
+        FROM products p JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'rejected' ORDER BY p.created_at DESC
+    ''').fetchall()
+    # 把数据库原生Row，全部转成Python标准字典
+    pending = [dict(row) for row in pending]
+    approved = [dict(row) for row in approved]
+    rejected = [dict(row) for row in rejected]
+
+    db.close()
+
+    # 这里三个参数一个都不能少！
+    return render_template("admin_product.html",
+                           pending_list=pending,
+                           approved_list=approved,
+                           rejected_list=rejected)
+# 审核通过商品
+@app.route('/admin/product/approve/<int:pid>')
 def approve_product(pid):
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
+        flash('Unauthorized', 'error')
         return redirect(url_for('admin_login'))
-    
+
+
     db = get_db()
-    db.execute("""
-        UPDATE products SET status = 'approved', reject_reason = ''
+    # 更新商品状态+清空驳回理由
+    db.execute('''
+        UPDATE products 
+        SET status = 'approved', reject_reason = ''
         WHERE id = ?
-    """, (pid,))
-    
-    prod = db.execute(
-        'SELECT seller_id, name FROM products WHERE id = ?', (pid,)
-    ).fetchone()
+    ''', (pid,))
+
+    # 获取商品和卖家信息，用于发通知
+    prod = db.execute('SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
+    seller_id = prod['seller_id']
+    prod_name = prod['name']
+
     db.commit()
     db.close()
-    
+
+    # 【之后对接ChatList通知在这里加】
+    # 通知文案：✅ 你的商品【{prod_name}】审核已通过，现已上架展示！
+
     flash("Product approved successfully, now visible on homepage", "success")
     return redirect(url_for('admin_products'))
 
 
-# Reject product
+# 驳回商品 + 填写理由
 @app.route('/admin/product/reject/<int:pid>', methods=['POST'])
-
 def reject_product(pid):
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
         return redirect(url_for('admin_login'))
-    
-    reject_reason = request.form.get('reject_reason', '').strip()
+
+    reject_reason = request.form.get('reject_reason','').strip()
     if not reject_reason:
         flash("Please provide a reason for rejection", "error")
         return redirect(url_for('admin_products'))
     
     db = get_db()
-    db.execute("""
-        UPDATE products SET status = 'rejected', reject_reason = ?
+    db.execute('''
+        UPDATE products 
+        SET status = 'rejected', reject_reason = ?
         WHERE id = ?
-    """, (reject_reason, pid))
-    
+    ''', (reject_reason, pid))
+
     prod = db.execute(
         'SELECT seller_id, name FROM products WHERE id = ?', (pid,)
     ).fetchone()
     db.commit()
     db.close()
-    
+
     flash("Product rejected successfully", "success")
     return redirect(url_for('admin_products'))
 
-
-# Admin API - Get product info for modal
+# Admin 弹窗专用 拿商品完整信息
 @app.route('/admin/api/product/<int:pid>')
-
 def admin_get_product_info(pid):
     if not session.get('admin_logged_in'):
         return {"error": "no permission"}, 403
-    
+
     db = get_db()
-    product = db.execute("""
+    product = db.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.id = ?
-    """, (pid,)).fetchone()
+    ''', (pid,)).fetchone()
     db.close()
     
     if not product:
         return {"error": "not found"}, 404
-    
+
     return dict(product)
 
-
-# Freeze user for 7 days
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
 
 def freeze_7day(user_id):
@@ -1048,7 +1147,9 @@ def freeze_7day(user_id):
     db = get_db()
     db.execute("""
         UPDATE users
-        SET is_frozen = 1, frozen_until = ?, freeze_reason = ?
+        SET is_frozen = 1, 
+            frozen_until = ?, 
+            freeze_reason = ?
         WHERE id = ?
     """, (time_str, reason, user_id))
     
@@ -1057,8 +1158,7 @@ def freeze_7day(user_id):
         VALUES (?, ?, ?)
     """, (
         user_id,
-        f"Account frozen for 7 days.\nReason: {reason}\n"
-        f"Auto unfreeze: {time_str}",
+        f"Your account has been frozen for 7 days.\nReason: {reason}\nAuto unfreeze: {time_str}",
         now.strftime("%Y-%m-%d %H:%M:%S")
     ))
     
@@ -1071,37 +1171,41 @@ def freeze_7day(user_id):
 # Block user permanently
 @app.route('/admin/user/<int:user_id>/block', methods=['POST'])
 
+
 def block_user(user_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    
+
     reason = request.form.get('reason', 'No reason provided')
     db = get_db()
-    
+
     db.execute("UPDATE users SET is_blocked = 1 WHERE id = ?", (user_id,))
     db.execute("""
         INSERT INTO notifications (user_id, message, is_read)
         VALUES (?, ?, 0)
     """, (user_id, f"Your account has been PERMANENTLY blocked. "
                    f"Reason: {reason}"))
-    
+
     db.commit()
     db.close()
-    flash(f"User {user_id} has been permanently blocked", "success")
+    flash(
+        f"User {user_id} has been permanently blocked, notification sent.",
+        "success"
+    )
+
     return redirect(url_for('admin_users'))
 
-
-# Unfreeze user
 @app.route("/admin/unfreeze/<int:user_id>", methods=["POST"])
 
 def unfreeze_user(user_id):
+
     if not session.get("admin_logged_in"):
-        flash("Unauthorized", "error")
+        flash("Unauthorized")
         return redirect(url_for("admin_login"))
     
     db = get_db()
     db.execute("""
-        UPDATE users
+        UPDATE users 
         SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
         WHERE id = ?
     """, (user_id,))
@@ -1111,26 +1215,28 @@ def unfreeze_user(user_id):
     flash("User has been unfrozen successfully.", "success")
     return redirect(url_for("admin_users"))
 
-
-# Unblock user
 @app.route("/admin/unblock/<int:user_id>", methods=["POST"])
 
 def unblock_user(user_id):
     if not session.get("admin_logged_in"):
-        flash("Unauthorized", "error")
+        flash("Unauthorized")
         return redirect(url_for("admin_login"))
     
     db = get_db()
-    db.execute("UPDATE users SET is_blocked = 0 WHERE id = ?", (user_id,))
+    db.execute("""
+        UPDATE users 
+        SET is_blocked = 0 
+        WHERE id = ?
+    """, (user_id,))
     db.commit()
     db.close()
     
     flash("User ban has been lifted successfully.", "success")
     return redirect(url_for("admin_users"))
 
-
 # Chat List Route
 @app.route('/chatlist')
+
 
 def user_chatlist():
     if 'user_id' not in session:
@@ -1141,6 +1247,7 @@ def user_chatlist():
 
 # Xingru's Route - Upload Product
 @app.route('/upload', methods=['GET', 'POST'])
+
 
 def upload_product():
     if 'user_id' not in session:
@@ -1184,14 +1291,21 @@ def upload_product():
         # Validate images
         files = request.files.getlist('product_images')
         saved_image_names = []
+        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'webm', 'mov'}
+
         for file in files:
             if file and file.filename != '':
-                filename = secure_filename(file.filename)
+                # Check extension
+                original_filename = file.filename
+                ext = original_filename.rsplit('.', 1)[-1].lower() if '.' in original_filename else ''
+                if ext not in ALLOWED_EXTENSIONS:
+                    flash(f"Unsupported file type: {original_filename}. Only images and MP4/WebM/MOV videos are allowed.", "error")
+                    continue   # skip this file, continue with others
+                
+                filename = secure_filename(original_filename)
                 if not filename:
-                    filename = f"image_{uuid.uuid4().hex}.jpg"
-                filepath = os.path.join(
-                    app.config['UPLOAD_FOLDER'], filename
-                )
+                    filename = f"media_{uuid.uuid4().hex}.{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
                 saved_image_names.append(filename)
         
@@ -1205,24 +1319,24 @@ def upload_product():
         
         images_string = ",".join(saved_image_names)
         db = get_db()
-        db.execute("""
-            INSERT INTO products (
-                seller_id, name, price, description,
-                condition, category, images, created_at, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
-        """, (seller_id, name, price_val, description,
+        db.execute('''
+            INSERT INTO products (seller_id, name, price,
+                    description, condition, category, images, created_at, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+        ''', (seller_id, name,
+              price_val, description,
               condition, category, images_string, 'pending'))
         db.commit()
         db.close()
-        
+
         flash("Your item has been submitted for admin approval.", "success")
         return redirect(url_for('home'))
     
     return render_template('upload.html')
 
-
 # Xingru's Route - Testing (Clear products)
 @app.route('/clear-products')
+
 
 def clear_products():
     db = get_db()
@@ -1232,9 +1346,9 @@ def clear_products():
     db.close()
     return "All products deleted."
 
-
 # Xingru's Route - Product Details
 @app.route('/product/<int:product_id>')
+
 
 def product_detail(product_id):
     if 'user_id' not in session:
@@ -1242,13 +1356,13 @@ def product_detail(product_id):
         return redirect(url_for('login'))
     
     db = get_db()
-    product = db.execute("""
-        SELECT p.*, u.username as seller_name,
-               u.id as seller_id, u.created_at as user_joined
+    product = db.execute('''
+        SELECT p.*, u.username as seller_name, 
+                         u.id as seller_id, u.created_at as user_joined
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.id = ? AND p.status = 'approved'
-    """, (product_id,)).fetchone()
+    ''', (product_id,)).fetchone()
     db.close()
     
     if not product:
@@ -1256,9 +1370,18 @@ def product_detail(product_id):
         return redirect(url_for('home'))
     
     images = product['images'].split(',') if product['images'] else []
-    
+
     return render_template('product.html', product=product, images=images)
 
+
+#Xingru's Route ------Temporary route for testing product page only
+@app.route('/user/<int:user_id>')
+def user_profile(user_id):
+    if 'user_id' not in session:
+        flash('Please login to view profiles.', 'error')
+        return redirect(url_for('login'))
+    flash('Profile page is under construction.', 'info')
+    return redirect(url_for('home'))
 
 if __name__ == '__main__':
     app.run(debug=True)

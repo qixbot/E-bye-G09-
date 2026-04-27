@@ -70,16 +70,24 @@
 }
 /* Image gallery */
 .main-image {
+    position: relative;
     width: 100%;
+    padding-top: 100%;  /* 1:1 aspect ratio */
+    background-color: #f4f4f4;
     border-radius: 16px;
     overflow: hidden;
+}
+.main-image img,
+.main-image video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;  /* scales without stretching, may have letterbox */
     background: #f4f4f4;
 }
-.main-image img {
-    width: 100%;
-    height: auto;
-    object-fit: cover;
-}
+
 .image-counter {
     margin-top: 8px;
     text-align: center;

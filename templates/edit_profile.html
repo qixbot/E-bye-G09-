@@ -108,7 +108,6 @@
             <!-- Left column: profile card -->
             <div class="ep-identity">
                 <div class="ep-avatar-card">
-                    <div class="ep-avatar-cover"></div>
                     <div class="ep-avatar-wrap">
                         <!-- Avatar ring with BLOB image from database -->
                         <div class="ep-av-ring" id="avatarRing">
@@ -158,10 +157,17 @@
                                 <div class="ep-stat-n">{{ listing_count or 0 }}</div>
                                 <div class="ep-stat-l">Listings</div>
                             </div>
-                            <div class="ep-stat">
-                                <div class="ep-stat-n">{{ user.rating or '—' }}</div>
-                                <div class="ep-stat-l">Rating</div>
+                            <div class="ep-status-metrics">
+                                <div><span class="ep-metric-value">{{ trust_score }}%</span><span class="ep-metric-label">Trust</span></div>
+                                <div><span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span><span class="ep-metric-label">Member</span></div>
+                                <div><span class="ep-metric-value">{{ response_rate }}%</span><span class="ep-metric-label">Response</span></div>
                             </div>
+                            <div class="ep-status-progress"><div class="ep-progress-bar" style="width: {{ trust_score }}%"></div></div>
+                        </div>
+
+                        <div class="ep-stats">
+                            <div class="ep-stat"><span class="ep-stat-n">{{ listing_count or 0 }}</span><span class="ep-stat-l">Listings</span></div>
+                            <div class="ep-stat"><span class="ep-stat-n">{{ user.rating or '—' }}</span><span class="ep-stat-l">Rating</span></div>
                         </div>
                         <div class="ep-verified">✓ MMU Verified</div>
                     </div>
@@ -934,20 +940,19 @@ function escapeHtml(str) {
 // PASSWORD FUNCTIONS
 // ============================================================
 function togglePassword(id, btn) {
-    const inp = document.getElementById(id);
-    if (!inp) return;
-    inp.type = inp.type === 'password' ? 'text' : 'password';
-    btn.textContent = inp.type === 'password' ? '👀' : '🫣';
+    const input = document.getElementById(id);
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🫣'; }
+    else { input.type = 'password'; btn.textContent = '👀'; }
 }
 
-function checkPwStrength() {
-    const pw = document.getElementById('new_password').value;
+function checkStrength() {
+    const pw = document.getElementById('newPw').value;
     const checks = {
         len: pw.length >= 8,
-        upper: /[A-Z]/.test(pw),
-        lower: /[a-z]/.test(pw),
-        number: /[0-9]/.test(pw),
-        special: /[!@#$%^&*]/.test(pw)
+        up: /[A-Z]/.test(pw),
+        low: /[a-z]/.test(pw),
+        num: /[0-9]/.test(pw),
+        spec: /[!@#$%^&*]/.test(pw)
     };
     const score = Object.values(checks).filter(Boolean).length;
     const colors = ['', '#e74c3c', '#e67e22', '#f1c40f', '#27ae60', '#00c986'];
@@ -986,8 +991,9 @@ function checkPwMatch() {
         div.innerHTML = '✓ Passwords match';
         div.className = 'ep-pw-match pw-ok';
     } else {
-        div.innerHTML = '✗ Passwords do not match';
-        div.className = 'ep-pw-match pw-bad';
+        fill.style.background = '#1eab6d';
+        label.textContent = 'Strong password';
+        label.style.color = '#1eab6d';
     }
 }
 

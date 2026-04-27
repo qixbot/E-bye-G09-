@@ -908,13 +908,19 @@ body {
 .ep-fg select,
 .ep-fg textarea {
     width: 100%;
-    padding: 13px 18px;
-    background: var(--bone);
+    padding: 12px 16px;
     border: 1.5px solid var(--parch);
-    border-radius: var(--radius-md);
+    border-radius: 12px;
+    font-family: inherit;
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
-    transition: all 0.25s;
+    background: #fefefc;
+    transition: all 0.15s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--primary);
     outline: none;
 }
 
@@ -1014,7 +1020,11 @@ body {
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all .2s;
+}
+
+.btn-secondary:hover {
+    background: #e4e0d9;
+    transform: translateY(-1px);
 }
 
 .ep-btn-cancel:hover {
@@ -1297,15 +1307,17 @@ body {
    ============================================================ */
 .ep-av-upload {
     display: flex;
-    align-items: center;
     gap: 20px;
-    padding: 18px 20px;
-    background: var(--bone);
-    border-radius: var(--radius-md);
-    border: 1.5px dashed var(--sand);
-    cursor: pointer;
-    transition: all .2s;
-    margin-bottom: 22px;
+    background: linear-gradient(145deg, #fff8f7, #fff1ef);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 28px;
+    border: 1px solid rgba(214, 60, 44, 0.15);
+    box-shadow: 0 4px 14px rgba(214, 60, 44, 0.06);
+}
+
+.delete-icon-wrapper {
+    flex-shrink: 0;
 }
 
 .ep-av-upload:hover {

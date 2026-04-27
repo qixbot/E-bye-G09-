@@ -88,12 +88,12 @@ def init_db():
     # Create default admin user
     admin_email = 'admin@student.mmu.edu.my'
     admin_password = generate_password_hash('Admin123!')
-
-    existing = db.execute(
+    
+    existing_admin = db.execute(
         'SELECT * FROM users WHERE email = ?', (admin_email,)
     ).fetchone()
-
-    if not existing:
+    
+    if not existing_admin:
         db.execute('''
             INSERT INTO users (student_id, email, username, password, is_admin)
             VALUES (?, ?, ?, ?, ?)
@@ -122,6 +122,8 @@ def init_products():
             condition TEXT,
             category TEXT,
             images TEXT,
+            status TEXT DEFAULT 'pending',
+            reject_reason TEXT DEFAULT '',
             status TEXT DEFAULT 'pending',
             reject_reason TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
