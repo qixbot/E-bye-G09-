@@ -118,6 +118,31 @@
 .thumbnail.active {
     border-color: #00381f;
 }
+/* Scrollable thumbnail list */
+.thumbnail-list {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+.thumbnail-list::-webkit-scrollbar {
+    height: 6px;
+}
+.thumbnail-list::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 3px;
+}
+.thumbnail-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+.thumbnail-list::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
 /* Product info */
 .condition-badge {
     background-color: #00381f;

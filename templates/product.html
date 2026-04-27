@@ -41,7 +41,8 @@
                     <img src="{{ url_for('static', filename='uploads/' ~ thumb_path) }}"
                         class="thumbnail"
                         data-index="{{ loop.index0 }}"
-                        onclick="changeMainMedia(this.src, {{ loop.index0 }})"
+                        data-original="{{ url_for('static', filename='uploads/' ~ img) }}"
+                        onclick="changeMainMedia(this.getAttribute('data-original'), {{ loop.index0 }})"
                         alt="Thumbnail"
                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='uploads/' ~ img) }}';">
                 {% endfor %}
