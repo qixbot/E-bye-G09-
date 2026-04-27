@@ -1,18 +1,22 @@
 import sqlite3
+
 from werkzeug.security import generate_password_hash
 
 DATABASE = 'ebyte.db'
 
+
 def get_db():
+    """Get database connection with row factory"""
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def init_db():
+    """Initialize database with all required tables and columns"""
     db = get_db()
 
-    # 1. 创建 users 表（如果不存在）
+    # Create users table
     db.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,8 +30,6 @@ def init_db():
             bio TEXT,
             avatar TEXT,
             cover_image TEXT,
-            bg_type TEXT DEFAULT 'default',
-            bg_image TEXT,
             active_hours TEXT,
             security_q1 TEXT,
             security_a1 TEXT,
@@ -35,17 +37,19 @@ def init_db():
             security_a2 TEXT,
             is_admin INTEGER DEFAULT 0,
             is_frozen INTEGER DEFAULT 0,
-            is_blocked INTEGER DEFAULT 0,  
+            is_blocked INTEGER DEFAULT 0,
             frozen_until TIMESTAMP,
             freeze_reason TEXT,
-            rating TEXT DEFAULT '—',
+            bg_type TEXT DEFAULT 'default',
+            bg_image TEXT,
             trust_score INTEGER DEFAULT 85,
             response_rate INTEGER DEFAULT 98,
+            rating TEXT DEFAULT '—',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
-    # 2. 创建 notifications 表（如果不存在）
+    # Create notifications table
     db.execute('''
         CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,32 +61,31 @@ def init_db():
         )
     ''')
 
+    # Add missing columns for users table (safe migration)
+    columns_to_add = [
+        ('full_name', 'TEXT'),
+        ('contact', 'TEXT'),
+        ('bio', 'TEXT'),
+        ('cover_image', 'TEXT'),
+        ('bg_type', "TEXT DEFAULT 'default'"),
+        ('bg_image', 'TEXT'),
+        ('frozen_until', 'TIMESTAMP'),
+        ('freeze_reason', 'TEXT'),
+        ('trust_score', 'INTEGER DEFAULT 85'),
+        ('response_rate', 'INTEGER DEFAULT 98'),
+        ('rating', "TEXT DEFAULT '—'")
+    ]
+
+    for col_name, col_def in columns_to_add:
+        try:
+            db.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}")
+            print(f"Added column: {col_name}")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
     db.commit()
 
-    # ========== 3. 数据库迁移：为已存在的数据库添加缺失的列 ==========
-    cursor = db.execute("PRAGMA table_info(users)")
-    existing_columns = [col[1] for col in cursor.fetchall()]
-
-    required_columns = {
-        'cover_image': 'TEXT',
-        'bg_type': "TEXT DEFAULT 'default'",
-        'bg_image': 'TEXT',
-        'trust_score': "INTEGER DEFAULT 85",
-        'response_rate': "INTEGER DEFAULT 98",
-        'rating': "TEXT DEFAULT '—'"
-    }
-
-    for col_name, col_def in required_columns.items():
-        if col_name not in existing_columns:
-            try:
-                db.execute(f'ALTER TABLE users ADD COLUMN {col_name} {col_def}')
-                print(f"✅ Added missing column: {col_name}")
-            except Exception as e:
-                print(f"⚠️ Could not add column {col_name}: {e}")
-
-    db.commit()
-
-    # 4. 创建默认管理员（如果不存在）
+    # Create default admin user
     admin_email = 'admin@student.mmu.edu.my'
     admin_password = generate_password_hash('Admin123!')
     
@@ -96,16 +99,19 @@ def init_db():
             VALUES (?, ?, ?, ?, ?)
         ''', ('ADMIN001', admin_email, 'Administrator', admin_password, 1))
         db.commit()
-        print("✅ Default admin created: admin@student.mmu.edu.my / Admin123!")
+        print("Default admin created: admin@student.mmu.edu.my / Admin123!")
     else:
         print("Admin user already exists")
-    
+
     db.close()
-    print("Database ready with all required tables and columns.")
+    print("Database ready with users and notifications tables")
 
 
 def init_products():
+    """Initialize products table with all required columns"""
     db = get_db()
+
+    # Create products table
     db.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,7 +121,9 @@ def init_products():
             description TEXT,
             condition TEXT,
             category TEXT,
-            images TEXT, 
+            images TEXT,
+            status TEXT DEFAULT 'pending',
+            reject_reason TEXT DEFAULT '',
             status TEXT DEFAULT 'pending',
             reject_reason TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -143,4 +151,9 @@ def init_products():
 
     db.commit()
     db.close()
-    print("Database ready WITH products table.")
+    print("Database ready with products table")
+
+
+# Initialize all tables
+init_db()
+init_products()
