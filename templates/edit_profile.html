@@ -1,10 +1,6 @@
 {% extends "base.html"%}
-<!-- eileen part -->
-{% block bottom_nav %}
-{% endblock %}
-
-{% block navbar %}
-{% endblock %}
+{% block bottom_nav %}{% endblock %}
+{% block navbar %}{% endblock %}
 
 {% block content %}
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='edit_profile.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
-
 
 <div class="ep-page" id="epPage">
     <!-- Dynamic background layer -->
@@ -121,20 +116,19 @@
                 <div class="ep-avatar-card">
                     <div class="ep-avatar-cover"></div>
                     <div class="ep-avatar-wrap">
-                        <div class="ep-av-ring" onclick="document.getElementById('av-input-side').click()">
-                            {% if user.avatar %}
-                                <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}"
-                                     id="side-av-img" alt="Avatar">
-                            {% else %}
-                                <div class="ep-av-initials" id="side-av-img">
-                                    {{ user.username[0].upper() if user.username else 'U' }}
-                                </div>
-                            {% endif %}
+                        <!-- Avatar ring with BLOB image from database -->
+                        <div class="ep-av-ring" id="avatarRing">
+                            <img src="{{ url_for('avatar_image') }}?t={{ range(1, 10000) | random }}"
+                                 id="side-av-img" alt="Avatar"
+                                 onerror="this.style.display='none'; document.getElementById('side-av-init').style.display='flex';">
+                            <div class="ep-av-initials" id="side-av-init" style="display: none;">
+                                {{ user.username[0].upper() if user.username else 'U' }}
+                            </div>
                             <div class="ep-av-overlay">📷</div>
                         </div>
                     </div>
-                    <input type="file" id="av-input-side" accept="image/*"
-                           style="display:none" onchange="syncAvatarPreview(this)">
+                    <!-- Hidden file input for avatar upload -->
+                    <input type="file" id="avatarFileInput" accept="image/*" style="display:none">
 
                     <div class="ep-avatar-body">
                         <div class="ep-name">{{ user.full_name or user.username }}</div>
@@ -178,41 +172,29 @@
                         <div class="ep-verified">✓ MMU Verified</div>
                     </div>
                 </div>
-
-                <div class="ep-nav-card">
-                    <button class="ep-nav-item on" id="nav-edit" onclick="switchTab('edit')">
-                        <span class="ep-nav-icon">✏️</span> Edit Profile
-                    </button>
-                    <button class="ep-nav-item" id="nav-password" onclick="switchTab('password')">
-                        <span class="ep-nav-icon">🔒</span> Change Password
-                    </button>
-                    <button class="ep-nav-item ep-danger" id="nav-delete" onclick="switchTab('delete')">
-                        <span class="ep-nav-icon">🗑️</span> Delete Account
-                    </button>
-                </div>
             </div>
 
             <!-- Right panel -->
             <div class="ep-panel">
-                <div class="ep-section-tabs">
-                    <button class="ep-tab-btn on" id="tab-edit" onclick="switchTab('edit')">
-                        Edit Profile
+                <!-- MAIN TABS (My Purchases, My Listings, Edit Profile) -->
+                <div class="ep-main-tabs">
+                    <button class="ep-main-tab" data-main-tab="purchases" onclick="switchMainTab('purchases')">
+                        🛍️ My Purchases
                     </button>
-                    <button class="ep-tab-btn" id="tab-password" onclick="switchTab('password')">
-                        Password
+                    <button class="ep-main-tab" data-main-tab="listings" onclick="switchMainTab('listings')">
+                        📦 My Listings
                     </button>
-                    <button class="ep-tab-btn" id="tab-delete" onclick="switchTab('delete')"
-                            style="color:var(--red)">
-                        Delete Account
+                    <button class="ep-main-tab active" data-main-tab="edit" onclick="switchMainTab('edit')">
+                        ✏️ Edit Profile
                     </button>
                 </div>
 
+                <!-- Flash messages -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         <div style="padding:20px 40px 0">
                             {% for category, message in messages %}
                                 <div class="ep-flash {{ category }}">
-                                    {% if category == 'success' %}✅{% else %}⚠️{% endif %}
                                     {{ message }}
                                 </div>
                             {% endfor %}
@@ -220,250 +202,295 @@
                     {% endif %}
                 {% endwith %}
 
-                <!-- section 1: edit profile -->
-                <div class="ep-section on" id="section-edit">
-                    <div class="ep-section-head">
-                        <h2>Edit Profile</h2>
-                        <p>Update your public information visible to MMU students</p>
+                <!-- MAIN PANE 1: My Purchases -->
+                <div class="ep-main-pane" id="main-pane-purchases">
+                    <div id="purchases-content">
+                        <div class="ep-empty">🛍️ Loading your purchases...</div>
+                    </div>
+                </div>
+
+                <!-- MAIN PANE 2: My Listings -->
+                <div class="ep-main-pane" id="main-pane-listings">
+                    <div id="listings-content">
+                        <div class="ep-empty">📦 Loading your listings...</div>
+                    </div>
+                </div>
+
+                <!-- MAIN PANE 3: Edit Profile (with 3 sub-tabs) -->
+                <div class="ep-main-pane active" id="main-pane-edit">
+                    <!-- Sub tabs (Edit Profile, Change Password, Delete Account) -->
+                    <div class="ep-sub-tabs">
+                        <button class="ep-sub-tab active" data-subtab="edit-profile" onclick="switchSubTab('edit-profile')">
+                            ✏️ Edit Profile
+                        </button>
+                        <button class="ep-sub-tab" data-subtab="password" onclick="switchSubTab('password')">
+                            🔒 Change Password
+                        </button>
+                        <button class="ep-sub-tab danger" data-subtab="delete" onclick="switchSubTab('delete')">
+                            🗑️ Delete Account
+                        </button>
                     </div>
 
-                    <form method="POST" action="{{ url_for('update_profile') }}"
-                          enctype="multipart/form-data" id="edit-form">
-                        <div class="ep-av-upload" onclick="document.getElementById('avatar-input').click()">
-                            <div class="ep-av-upload-thumb">
-                                {% if user.avatar %}
-                                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}"
-                                         id="avatar-preview-img">
-                                {% else %}
-                                    <div class="ep-av-upload-thumb-init" id="avatar-preview-img">
-                                        {{ user.username[0].upper() if user.username else 'U' }}
-                                    </div>
-                                {% endif %}
+                    <!-- Sub pane 1: Edit Profile Form -->
+                    <div class="ep-sub-pane active" id="sub-pane-edit-profile">
+                        <form method="POST" action="{{ url_for('update_profile') }}"
+                              enctype="multipart/form-data" id="edit-form">
+                            <div class="ep-grid-2">
+                                <div class="ep-fg">
+                                    <label>Display Name</label>
+                                    <input type="text" name="full_name"
+                                           value="{{ user.full_name or '' }}" placeholder="Your full name">
+                                </div>
+                                <div class="ep-fg">
+                                    <label>Username</label>
+                                    <input type="text" name="username"
+                                           value="{{ user.username or '' }}" placeholder="@username">
+                                </div>
                             </div>
-                            <div class="ep-av-upload-text">
-                                <p>Profile photo</p>
-                                <span>Click to upload · JPG, PNG · Max 2MB</span>
-                            </div>
-                            <div class="ep-av-upload-btn">Change</div>
-                        </div>
-                        <input type="file" id="avatar-input" name="avatar" accept="image/*"
-                               style="display:none" onchange="previewAvatar(this)">
 
-                        <div class="ep-grid-2">
                             <div class="ep-fg">
-                                <label>Display Name</label>
-                                <input type="text" name="full_name"
-                                       value="{{ user.full_name or '' }}" placeholder="Your full name">
+                                <label>Bio</label>
+                                <textarea name="bio" placeholder="Tell other students about yourself...">
+                                    {{- user.bio or '' -}}
+                                </textarea>
                             </div>
-                            <div class="ep-fg">
-                                <label>Username</label>
-                                <input type="text" name="username"
-                                       value="{{ user.username or '' }}" placeholder="@username">
-                            </div>
-                        </div>
 
-                        <div class="ep-fg">
-                            <label>Bio</label>
-                            <textarea name="bio" placeholder="Tell other students about yourself...">
-                                {{- user.bio or '' -}}
-                            </textarea>
-                        </div>
-
-                        <div class="ep-grid-2">
-                            <div class="ep-fg">
-                                <label>Phone Number</label>
-                                <input type="tel" name="contact"
-                                       value="{{ user.contact or '' }}" placeholder="+60 12-345 6789">
+                            <div class="ep-grid-2">
+                                <div class="ep-fg">
+                                    <label>Phone Number</label>
+                                    <input type="tel" name="contact"
+                                           value="{{ user.contact or '' }}" placeholder="+60 12-345 6789">
+                                </div>
+                                <div class="ep-fg">
+                                    <label>Gender</label>
+                                    <select name="gender">
+                                        <option value="" {% if not user.gender %}selected{% endif %}>
+                                            Prefer not to say
+                                        </option>
+                                        <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>
+                                            Female
+                                        </option>
+                                        <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>
+                                            Male
+                                        </option>
+                                    </select>
+                                </div>
                             </div>
+
                             <div class="ep-fg">
-                                <label>Gender</label>
-                                <select name="gender">
-                                    <option value="" {% if not user.gender %}selected{% endif %}>
-                                        Prefer not to say
+                                <label>Active Hours</label>
+                                <select name="active_hours">
+                                    <option value="" {% if not user.active_hours %}selected{% endif %}>
+                                        ⏰ Not set
                                     </option>
-                                    <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>
-                                        Female
+                                    <option value="Morning (9am-12pm)"
+                                            {% if user.active_hours == 'Morning (9am-12pm)' %}selected{% endif %}>
+                                        🌅 Morning (9am–12pm)
                                     </option>
-                                    <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>
-                                        Male
+                                    <option value="Afternoon (2pm-5pm)"
+                                            {% if user.active_hours == 'Afternoon (2pm-5pm)' %}selected{% endif %}>
+                                        ☀️ Afternoon (2pm–5pm)
+                                    </option>
+                                    <option value="Evening (8pm-11pm)"
+                                            {% if user.active_hours == 'Evening (8pm-11pm)' %}selected{% endif %}>
+                                        🌙 Evening (8pm–11pm)
+                                    </option>
+                                    <option value="Flexible"
+                                            {% if user.active_hours == 'Flexible' %}selected{% endif %}>
+                                        🔄 Flexible
                                     </option>
                                 </select>
+                                <div class="ep-hint">
+                                    💬 Buyers will see when you're usually available to respond
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="ep-fg">
-                        <label>Active Hours</label>
-                                 <select name="active_hours">
-                        <option value="" {% if not user.active_hours %}selected{% endif %}>
-                            ⏰ Not set
-                        </option>
-                        <option value="Morning (9am-12pm)"
-                            {% if user.active_hours == 'Morning (9am-12pm)' %}selected{% endif %}>
-                            🌅 Morning (9am–12pm)
-                        </option>
-                        <option value="Afternoon (2pm-5pm)"
-                            {% if user.active_hours == 'Afternoon (2pm-5pm)' %}selected{% endif %}>
-                            ☀️ Afternoon (2pm–5pm)
-                        </option>
-                        <option value="Evening (8pm-11pm)"
-                            {% if user.active_hours == 'Evening (8pm-11pm)' %}selected{% endif %}>
-                            🌙 Evening (8pm–11pm)
-                        </option>
-                        <option value="Flexible"
-                            {% if user.active_hours == 'Flexible' %}selected{% endif %}>
-                            🔄 Flexible
-                        </option>
-                                 </select>
-                        <div class="ep-hint">
-                                💬 Buyers will see when you're usually available to respond
-                             </div>
-                        </div>
-
-                        <div class="ep-divider"></div>
-                        <div class="ep-actions">
-                            <button type="submit" class="ep-btn-save">Save Changes</button>
-                            <button type="button" class="ep-btn-cancel"
-                                    onclick="window.location='{{ url_for('home') }}'">Cancel
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- section 2: change password -->
-                <div class="ep-section" id="section-password">
-                    <div class="ep-section-head">
-                        <h2>Change Password</h2>
-                        <p>Choose a strong password to keep your account secure</p>
+                            <div class="ep-divider"></div>
+                            <div class="ep-actions">
+                                <button type="submit" class="ep-btn-save">Save Changes</button>
+                                <button type="button" class="ep-btn-cancel"
+                                        onclick="window.location='{{ url_for('home') }}'">Cancel
+                                </button>
+                            </div>
+                        </form>
                     </div>
 
-                    <form method="POST" action="{{ url_for('change_password') }}" id="pw-form">
-                        <div class="ep-fg">
-                            <label>Current Password</label>
-                            <div class="ep-input-wrap">
-                                <input type="password" name="current_password" id="current_password"
-                                       placeholder="Enter your current password" required>
-                                <button type="button" class="ep-eye"
-                                        onclick="togglePassword('current_password', this)">👀
+                    <!-- Sub pane 2: Change Password -->
+                    <div class="ep-sub-pane" id="sub-pane-password">
+                        <form method="POST" action="{{ url_for('change_password') }}" id="pw-form">
+                            <div class="ep-fg">
+                                <label>Current Password</label>
+                                <div class="ep-input-wrap">
+                                    <input type="password" name="current_password" id="current_password"
+                                           placeholder="Enter your current password" required>
+                                    <button type="button" class="ep-eye"
+                                            onclick="togglePassword('current_password', this)">👀
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="ep-fg">
+                                <label>New Password</label>
+                                <div class="ep-input-wrap">
+                                    <input type="password" name="new_password" id="new_password"
+                                           placeholder="Create a strong new password" required
+                                           oninput="checkPwStrength()">
+                                    <button type="button" class="ep-eye"
+                                            onclick="togglePassword('new_password', this)">👀
+                                    </button>
+                                </div>
+                                <div class="ep-strength-wrap">
+                                    <div class="ep-strength-bar" id="ep-strength-bar"></div>
+                                </div>
+                                <div class="ep-strength-label" id="ep-strength-label"></div>
+                                <div class="ep-reqs" id="ep-reqs">
+                                    <small id="ep-req-len" class="req-invalid">
+                                        <em class="req-icon">✗</em> At least 8 characters
+                                    </small>
+                                    <small id="ep-req-up" class="req-invalid">
+                                        <em class="req-icon">✗</em> At least 1 uppercase letter (A-Z)
+                                    </small>
+                                    <small id="ep-req-lo" class="req-invalid">
+                                        <em class="req-icon">✗</em> At least 1 lowercase letter (a-z)
+                                    </small>
+                                    <small id="ep-req-num" class="req-invalid">
+                                        <em class="req-icon">✗</em> At least 1 number (0-9)
+                                    </small>
+                                    <small id="ep-req-sp" class="req-invalid">
+                                        <em class="req-icon">✗</em> At least 1 special character (! @ # $ % ^ &amp; *)
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="ep-fg">
+                                <label>Confirm New Password</label>
+                                <div class="ep-input-wrap">
+                                    <input type="password" name="confirm_password" id="confirm_password"
+                                           placeholder="Re-enter new password" required oninput="checkPwMatch()">
+                                    <button type="button" class="ep-eye"
+                                            onclick="togglePassword('confirm_password', this)">👀
+                                    </button>
+                                </div>
+                                <div class="ep-pw-match" id="ep-pw-match"></div>
+                            </div>
+
+                            <div class="ep-divider"></div>
+                            <div class="ep-actions">
+                                <button type="submit" class="ep-btn-save" onclick="return validatePwForm()">
+                                    Update Password
                                 </button>
                             </div>
-                        </div>
-
-                        <div class="ep-fg">
-                            <label>New Password</label>
-                            <div class="ep-input-wrap">
-                                <input type="password" name="new_password" id="new_password"
-                                       placeholder="Create a strong new password" required
-                                       oninput="checkPwStrength()">
-                                <button type="button" class="ep-eye"
-                                        onclick="togglePassword('new_password', this)">👀
-                                </button>
-                            </div>
-                            <div class="ep-strength-wrap">
-                                <div class="ep-strength-bar" id="ep-strength-bar"></div>
-                            </div>
-                            <div class="ep-strength-label" id="ep-strength-label"></div>
-                            <div class="ep-reqs" id="ep-reqs">
-                                <small id="ep-req-len" class="req-invalid">
-                                    <em class="req-icon">✗</em> At least 8 characters
-                                </small>
-                                <small id="ep-req-up" class="req-invalid">
-                                    <em class="req-icon">✗</em> At least 1 uppercase letter (A-Z)
-                                </small>
-                                <small id="ep-req-lo" class="req-invalid">
-                                    <em class="req-icon">✗</em> At least 1 lowercase letter (a-z)
-                                </small>
-                                <small id="ep-req-num" class="req-invalid">
-                                    <em class="req-icon">✗</em> At least 1 number (0-9)
-                                </small>
-                                <small id="ep-req-sp" class="req-invalid">
-                                    <em class="req-icon">✗</em> At least 1 special character (! @ # $ % ^ &amp; *)
-                                </small>
-                            </div>
-                        </div>
-
-                        <div class="ep-fg">
-                            <label>Confirm New Password</label>
-                            <div class="ep-input-wrap">
-                                <input type="password" name="confirm_password" id="confirm_password"
-                                       placeholder="Re-enter new password" required oninput="checkPwMatch()">
-                                <button type="button" class="ep-eye"
-                                        onclick="togglePassword('confirm_password', this)">👀
-                                </button>
-                            </div>
-                            <div class="ep-pw-match" id="ep-pw-match"></div>
-                        </div>
-
-                        <div class="ep-divider"></div>
-                        <div class="ep-actions">
-                            <button type="submit" class="ep-btn-save" onclick="return validatePwForm()">
-                                Update Password
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- section 3: delete account -->
-                <div id="section-delete" class="ep-section">
-                    <div class="ep-section-head">
-                        <h2>Delete Account</h2>
-                        <p>Permanently remove your account and all associated data</p>
+                        </form>
                     </div>
 
-                    <div class="ep-danger-box">
-                        <div class="ep-danger-icon">⚠️</div>
-                        <div>
-                            <div class="ep-danger-title">This action cannot be undone</div>
-                            <div class="ep-danger-desc">
-                                Deleting your account will permanently remove:
+                    <!-- Sub pane 3: Delete Account -->
+                    <div class="ep-sub-pane" id="sub-pane-delete">
+                        <div class="ep-danger-box">
+                            <div class="ep-danger-icon">⚠️</div>
+                            <div>
+                                <div class="ep-danger-title">This action cannot be undone</div>
+                                <div class="ep-danger-desc">
+                                    Deleting your account will permanently remove:
+                                </div>
+                                <ul class="ep-danger-list">
+                                    <li>Your profile and all personal information</li>
+                                    <li>All your listings</li>
+                                    <li>Your purchase history</li>
+                                    <li>Your ratings and reviews</li>
+                                </ul>
                             </div>
-                            <ul class="ep-danger-list">
-                                <li>Your profile and all personal information</li>
-                                <li>All your listings</li>
-                                <li>Your purchase history</li>
-                                <li>Your ratings and reviews</li>
-                            </ul>
                         </div>
-                    </div>
 
-                    <form method="POST" action="{{ url_for('delete_account') }}"
-                          id="delete-form" onsubmit="return confirmDelete()">
-                        <div class="ep-fg">
-                            <label>Enter your password to confirm</label>
-                            <div class="ep-input-wrap">
-                                <input type="password" name="password" id="delete_password"
-                                       placeholder="Your current password" required>
-                                <button type="button" class="ep-eye"
-                                        onclick="togglePassword('delete_password', this)">👀
+                        <form method="POST" action="{{ url_for('delete_account') }}"
+                              id="delete-form" onsubmit="return confirmDelete()">
+                            <div class="ep-fg">
+                                <label>Enter your password to confirm</label>
+                                <div class="ep-input-wrap">
+                                    <input type="password" name="password" id="delete_password"
+                                           placeholder="Your current password" required>
+                                    <button type="button" class="ep-eye"
+                                            onclick="togglePassword('delete_password', this)">👀
+                                    </button>
+                                </div>
+                                <div id="deletePwMatch" class="delete-pw-match"></div>
+                            </div>
+                            <div class="ep-fg">
+                                <label>Type <span class="ep-confirm-word">DELETE</span> to confirm</label>
+                                <input type="text" name="confirm_text" placeholder="DELETE" required
+                                       oninput="this.value = this.value.toUpperCase()">
+                                <div id="deleteConfirmMatch" class="delete-confirm-match"></div>
+                            </div>
+                            <div class="ep-divider"></div>
+                            <div class="ep-actions">
+                                <button type="submit" class="ep-btn-danger">
+                                    Permanently Delete Account
+                                </button>
+                                <button type="button" class="ep-btn-cancel" onclick="switchSubTab('edit-profile')">
+                                    Cancel
                                 </button>
                             </div>
-                            <div id="deletePwMatch" class="delete-pw-match"></div>
-                        </div>
-                        <div class="ep-fg">
-                            <label>Type <span class="ep-confirm-word">DELETE</span> to confirm</label>
-                            <input type="text" name="confirm_text" placeholder="DELETE" required
-                                   oninput="this.value = this.value.toUpperCase()">
-                            <div id="deleteConfirmMatch" class="delete-confirm-match"></div>
-                        </div>
-                        <div class="ep-divider"></div>
-                        <div class="ep-actions">
-                            <button type="submit" class="ep-btn-danger">
-                                Permanently Delete Account
-                            </button>
-                            <button type="button" class="ep-btn-cancel" onclick="switchTab('edit')">
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+/* Additional styles for main tabs and sub tabs */
+.ep-main-tabs {
+    display: flex;
+    background: var(--bone);
+    border-bottom: 1px solid var(--parch);
+    padding: 0 24px;
+    gap: 8px;
+}
+
+.ep-main-tab {
+    padding: 16px 24px;
+    background: none;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+}
+
+.ep-main-tab:hover {
+    color: var(--ink);
+}
+
+.ep-main-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.ep-main-pane {
+    display: none;
+    padding: 28px 32px;
+}
+
+.ep-main-pane.active {
+    display: block;
+}
+
+.ep-sub-pane {
+    display: none;
+}
+
+.ep-sub-pane.active {
+    display: block;
+}
+</style>
+
 <script>
-
+// ============================================================
 // CROSS-DEVICE SYNCHRONIZATION DATA FROM SERVER
-
+// ============================================================
 const SERVER_DATA = {
     coverImage: "{{ cover_image|default('')|safe }}",
     avatar: "{{ avatar|default('')|safe }}",
@@ -473,15 +500,16 @@ const SERVER_DATA = {
 
 console.log('🔄 Server data loaded for cross-device sync:', SERVER_DATA);
 
-
+// ============================================================
 // DOM ELEMENT CACHING
-
+// ============================================================
 const $bgLayer = document.getElementById('epBgLayer');
 const $bgPreview = document.getElementById('currentBgPreview');
 const $bgPanel = document.getElementById('epBgPanel');
 
+// ============================================================
 // COLOR PALETTE CONFIGURATION
-
+// ============================================================
 const COLOR_CONFIG = {
     rainbow: ['#FF0000','#FF4500','#FFA500','#FFD700','#FFFF00',
               '#ADFF2F','#00FF00','#00FA9A','#00CED1','#1E90FF',
@@ -529,7 +557,6 @@ function buildGrid(containerId, colors, isGradient = false) {
     });
 }
 
-
 buildGrid('rainbowGrid', COLOR_CONFIG.rainbow);
 buildGrid('lightGrid', COLOR_CONFIG.light);
 buildGrid('darkGrid', COLOR_CONFIG.dark);
@@ -537,16 +564,15 @@ buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
 
 let selectedBgValue = null;
 
-
 function previewBg(val) {
     if ($bgLayer) $bgLayer.style.background = val;
     if ($bgPreview) $bgPreview.style.background = val;
     selectedBgValue = val;
 }
 
-
+// ============================================================
 // BACKGROUND SYNCHRONIZATION
-
+// ============================================================
 function restoreBackgroundFromServer() {
     const serverBgImage = SERVER_DATA.bgImage;
     const serverBgType = SERVER_DATA.bgType;
@@ -684,9 +710,9 @@ document.getElementById('customBgInput')?.addEventListener('change', function(e)
     this.value = '';
 });
 
-
+// ============================================================
 // COVER IMAGE SYNCHRONIZATION
-
+// ============================================================
 let coverCropper = null;
 const $coverFileInput = document.getElementById('coverFileInput');
 const $coverCropModal = document.getElementById('coverCropModal');
@@ -775,36 +801,38 @@ document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click
     }, 'image/jpeg', 0.9);
 });
 
-
-// AVATAR SYNCHRONIZATION
-
+// ============================================================
+// AVATAR SYNCHRONIZATION WITH BLOB STORAGE
+// ============================================================
 let avatarCropper = null;
-const $avatarFileInput = document.getElementById('av-input-side');
+const $avatarFileInput = document.getElementById('avatarFileInput');
 const $avatarCropModal = document.getElementById('avatarCropModal');
 
 function loadAvatarFromServer() {
     const avatarImg = document.getElementById('side-av-img');
-    if (SERVER_DATA.avatar && SERVER_DATA.avatar.trim() !== '') {
-        const avatarUrl = `/static/uploads/${SERVER_DATA.avatar}?t=${Date.now()}`;
-        if (avatarImg && avatarImg.tagName === 'IMG') {
-            avatarImg.src = avatarUrl;
-        } else if (avatarImg && avatarImg.tagName === 'DIV') {
-            const newImg = document.createElement('img');
-            newImg.id = 'side-av-img';
-            newImg.src = avatarUrl;
-            avatarImg.parentNode.replaceChild(newImg, avatarImg);
-        }
-        console.log('👤 Avatar loaded from server:', avatarUrl);
-        localStorage.setItem('avatar', SERVER_DATA.avatar);
-    } else {
-        console.log('👤 Using default avatar (initials)');
+    const avatarInit = document.getElementById('side-av-init');
+    const imgUrl = '/avatar-image?t=' + Date.now();
+    
+    if (avatarImg) {
+        avatarImg.src = imgUrl;
+        avatarImg.onload = function() {
+            avatarImg.style.display = 'block';
+            if (avatarInit) avatarInit.style.display = 'none';
+        };
+        avatarImg.onerror = function() {
+            avatarImg.style.display = 'none';
+            if (avatarInit) avatarInit.style.display = 'flex';
+        };
     }
+    console.log('👤 Avatar loaded from database BLOB');
 }
 
-document.querySelector('.ep-av-ring')?.addEventListener('click', () => {
+// Click on avatar ring to trigger file upload
+document.getElementById('avatarRing')?.addEventListener('click', () => {
     if ($avatarFileInput) $avatarFileInput.click();
 });
 
+// Handle avatar file selection and open crop modal
 if ($avatarFileInput) {
     $avatarFileInput.addEventListener('change', e => {
         if (!e.target.files[0]) return;
@@ -826,6 +854,7 @@ if ($avatarFileInput) {
     });
 }
 
+// Close avatar crop modal
 function closeAvatarCrop() {
     if ($avatarCropModal) $avatarCropModal.classList.remove('open');
     if (avatarCropper) {
@@ -835,8 +864,11 @@ function closeAvatarCrop() {
     if ($avatarFileInput) $avatarFileInput.value = '';
 }
 
+// Bind close buttons for avatar crop modal
 document.querySelector('.avatar-crop-close')?.addEventListener('click', closeAvatarCrop);
 document.getElementById('avatarCropCancel')?.addEventListener('click', closeAvatarCrop);
+
+// Save cropped avatar to server as BLOB
 document.getElementById('avatarCropConfirm')?.addEventListener('click', () => {
     if (!avatarCropper) return;
     const canvas = avatarCropper.getCroppedCanvas();
@@ -850,20 +882,18 @@ document.getElementById('avatarCropConfirm')?.addEventListener('click', () => {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    const avatarUrl = `/static/uploads/${data.filename}?t=${Date.now()}`;
-                    const img = document.getElementById('side-av-img');
-                    if (img && img.tagName === 'IMG') {
-                        img.src = avatarUrl;
-                    } else if (img && img.tagName === 'DIV') {
-                        const newImg = document.createElement('img');
-                        newImg.id = 'side-av-img';
-                        newImg.src = avatarUrl;
-                        img.parentNode.replaceChild(newImg, img);
+                    // Refresh avatar from database BLOB
+                    const imgUrl = '/avatar-image?t=' + Date.now();
+                    const avatarImg = document.getElementById('side-av-img');
+                    const avatarInit = document.getElementById('side-av-init');
+                    
+                    if (avatarImg) {
+                        avatarImg.src = imgUrl;
+                        avatarImg.style.display = 'block';
+                        if (avatarInit) avatarInit.style.display = 'none';
                     }
-                    SERVER_DATA.avatar = data.filename;
-                    localStorage.setItem('avatar', data.filename);
                     closeAvatarCrop();
-                    showToastMessage('✅ Avatar saved across all devices!', 'success');
+                    showToastMessage('✅ Avatar saved to database!', 'success');
                 } else {
                     throw new Error(data.error || 'Upload failed');
                 }
@@ -875,9 +905,9 @@ document.getElementById('avatarCropConfirm')?.addEventListener('click', () => {
     }, 'image/jpeg', 0.9);
 });
 
-
+// ============================================================
 // VERIFY CROSS-DEVICE SYNC
-
+// ============================================================
 function verifyCrossDeviceSync() {
     console.log('🔍 Verifying cross-device synchronization...');
 
@@ -890,7 +920,6 @@ function verifyCrossDeviceSync() {
     const localAvatar = localStorage.getItem('avatar');
     if (SERVER_DATA.avatar && SERVER_DATA.avatar !== localAvatar) {
         console.log('🔄 Server avatar differs from cache, using server version');
-        loadAvatarFromServer();
     }
 
     const localBg = localStorage.getItem('profileBg');
@@ -902,21 +931,108 @@ function verifyCrossDeviceSync() {
     console.log('✅ Cross-device sync verification complete');
 }
 
+// ============================================================
+// MAIN TAB SWITCHING
+// ============================================================
+function switchMainTab(tabName) {
+    document.querySelectorAll('.ep-main-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.ep-main-tab[data-main-tab="${tabName}"]`).classList.add('active');
 
-// TAB SWITCHING
+    document.querySelectorAll('.ep-main-pane').forEach(pane => pane.classList.remove('active'));
+    document.getElementById(`main-pane-${tabName}`).classList.add('active');
 
-function switchTab(name) {
-    document.querySelectorAll('.ep-section').forEach(s => s.classList.remove('on'));
-    document.getElementById('section-' + name).classList.add('on');
-    document.querySelectorAll('.ep-tab-btn').forEach(b => b.classList.remove('on'));
-    document.getElementById('tab-' + name).classList.add('on');
-    document.querySelectorAll('.ep-nav-item').forEach(b => b.classList.remove('on'));
-    document.getElementById('nav-' + name).classList.add('on');
+    if (tabName === 'listings') loadListings();
+    if (tabName === 'purchases') loadPurchases();
+
+    if (tabName === 'edit') {
+        switchSubTab('edit-profile');
+    }
 }
 
+// ============================================================
+// SUB TAB SWITCHING
+// ============================================================
+function switchSubTab(subtabName) {
+    document.querySelectorAll('.ep-sub-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.ep-sub-tab[data-subtab="${subtabName}"]`).classList.add('active');
 
+    document.querySelectorAll('.ep-sub-pane').forEach(pane => pane.classList.remove('active'));
+    document.getElementById(`sub-pane-${subtabName}`).classList.add('active');
+}
+
+// ============================================================
+// API LOADS
+// ============================================================
+function loadListings() {
+    const container = document.getElementById('listings-content');
+    container.innerHTML = '<div class="ep-empty">📦 Loading your listings...</div>';
+
+    fetch('/api/user/listings', { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.length) {
+                container.innerHTML = '<div class="ep-empty">📦 You haven\'t listed any items yet.<br><small>Click "Post" to sell something!</small></div>';
+                return;
+            }
+
+            container.innerHTML = data.map(p => `
+                <div class="listing-item">
+                    <span class="listing-emoji">${escapeHtml(p.emoji || '📦')}</span>
+                    <div style="flex:1">
+                        <div class="listing-name">${escapeHtml(p.name)}</div>
+                        <div class="listing-price">RM ${parseFloat(p.price).toFixed(2)}</div>
+                    </div>
+                    <span class="listing-status">${escapeHtml(p.status || 'Active')}</span>
+                    <button class="edit-listing-btn" onclick="editListing(${p.id})">✏️ Edit</button>
+                </div>
+            `).join('');
+        })
+        .catch(() => {
+            container.innerHTML = '<div class="ep-empty">⚠️ Could not load listings. Try again later.</div>';
+        });
+}
+
+function loadPurchases() {
+    const container = document.getElementById('purchases-content');
+    container.innerHTML = '<div class="ep-empty">🛍️ Loading your purchases...</div>';
+
+    fetch('/api/user/purchases', { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.length) {
+                container.innerHTML = '<div class="ep-empty">🛍️ You haven\'t purchased anything yet.<br><small>Explore the marketplace!</small></div>';
+                return;
+            }
+
+            container.innerHTML = `<div class="purchases-list">${data.map(p => `
+                <div class="listing-item">
+                    <span>${escapeHtml(p.emoji || '📦')}</span>
+                    <div style="flex:1">
+                        <div class="listing-name">${escapeHtml(p.name)}</div>
+                        <div class="listing-seller">from @${escapeHtml(p.seller_name || 'Unknown')}</div>
+                    </div>
+                    <span class="listing-price">RM ${parseFloat(p.price).toFixed(2)}</span>
+                    <span class="listing-status ${escapeHtml(p.status)}">${escapeHtml(p.status || 'Completed')}</span>
+                </div>
+            `).join('')}</div>`;
+        })
+        .catch(() => {
+            container.innerHTML = '<div class="ep-empty">⚠️ Could not load purchases.</div>';
+        });
+}
+
+function editListing(id) {
+    window.location.href = `/edit-listing/${id}`;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
+}
+
+// ============================================================
 // PASSWORD FUNCTIONS
-
+// ============================================================
 function togglePassword(id, btn) {
     const inp = document.getElementById(id);
     if (!inp) return;
@@ -975,57 +1091,6 @@ function checkPwMatch() {
     }
 }
 
-function previewAvatar(input) {
-    if (!input.files || !input.files[0]) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const thumb = document.getElementById('avatar-preview-img');
-        if (thumb) {
-            if (thumb.tagName === 'IMG') {
-                thumb.src = e.target.result;
-            } else {
-                const img = document.createElement('img');
-                img.id = 'avatar-preview-img';
-                img.src = e.target.result;
-                img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-                thumb.parentNode.replaceChild(img, thumb);
-            }
-        }
-        syncSideAv(e.target.result);
-    };
-    reader.readAsDataURL(input.files[0]);
-}
-
-function syncAvatarPreview(input) {
-    if (!input.files || !input.files[0]) return;
-    const reader = new FileReader();
-    reader.onload = e => syncSideAv(e.target.result);
-    reader.readAsDataURL(input.files[0]);
-}
-
-function syncSideAv(src) {
-    const side = document.getElementById('side-av-img');
-    if (!side) return;
-    if (side.tagName === 'IMG') {
-        side.src = src;
-    } else {
-        const img = document.createElement('img');
-        img.id = 'side-av-img';
-        img.src = src;
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
-        side.parentNode.replaceChild(img, side);
-    }
-}
-
-function confirmDelete() {
-    const text = document.querySelector('#delete-form input[name="confirm_text"]').value;
-    if (text !== 'DELETE') {
-        alert('Please type DELETE to confirm.');
-        return false;
-    }
-    return confirm('⚠️ WARNING: This will permanently delete your account. This cannot be undone. Are you absolutely sure?');
-}
-
 function validatePwForm() {
     const strong = checkPwStrength();
     const pw = document.getElementById('new_password').value || '';
@@ -1046,8 +1111,9 @@ function validatePwForm() {
     return true;
 }
 
+// ============================================================
 // DELETE ACCOUNT REAL-TIME VALIDATION
-
+// ============================================================
 let deletePasswordValid = false;
 let deleteConfirmValid = false;
 
@@ -1102,7 +1168,6 @@ function checkDeletePasswordMatch() {
     });
 }
 
-
 function checkDeleteConfirm() {
     const confirmText = document.querySelector('#delete-form input[name="confirm_text"]').value;
     const msgDiv = document.getElementById('deleteConfirmMatch');
@@ -1127,12 +1192,31 @@ function checkDeleteConfirm() {
     }
 }
 
+function confirmDelete() {
+    const pw = document.getElementById('delete_password').value;
+    const confirmText = document.querySelector('#delete-form input[name="confirm_text"]').value;
+
+    if (!pw) {
+        showToastMessage('Please enter your password', 'error');
+        return false;
+    }
+    if (!deletePasswordValid) {
+        showToastMessage('Please enter a valid password', 'error');
+        return false;
+    }
+    if (confirmText !== 'DELETE') {
+        showToastMessage('Type DELETE to confirm', 'error');
+        return false;
+    }
+    return confirm('⚠️ Permanent deletion. Are you sure?');
+}
+
 document.getElementById('delete_password')?.addEventListener('input', checkDeletePasswordMatch);
 document.querySelector('#delete-form input[name="confirm_text"]')?.addEventListener('input', checkDeleteConfirm);
 
-
+// ============================================================
 // TOAST NOTIFICATION FUNCTION
-
+// ============================================================
 function showToastMessage(message, type) {
     const existing = document.querySelector('.toast-container');
     if (existing) existing.remove();
@@ -1146,7 +1230,9 @@ function showToastMessage(message, type) {
     setTimeout(() => container.remove(), 3500);
 }
 
+// ============================================================
 // PAGE INITIALIZATION
+// ============================================================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Initializing profile page with cross-device sync...');
 

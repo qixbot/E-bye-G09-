@@ -1,9 +1,7 @@
 import sqlite3
-
 from werkzeug.security import generate_password_hash
 
 DATABASE = 'ebyte.db'
-
 
 def get_db():
     """Get database connection with row factory"""
@@ -11,12 +9,12 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-
 def init_db():
     """Initialize database with all required tables and columns"""
     db = get_db()
 
-    # Create users table
+    # Create users table with BLOB columns for storing ALL images directly in database
+    # This ensures images persist even if local files are deleted
     db.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,8 +26,10 @@ def init_db():
             gender TEXT,
             contact TEXT,
             bio TEXT,
-            avatar TEXT,
-            cover_image TEXT,
+            avatar_blob BLOB,
+            cover_blob BLOB,
+            background_type TEXT DEFAULT 'default',
+            background_value TEXT,
             active_hours TEXT,
             security_q1 TEXT,
             security_a1 TEXT,
@@ -40,8 +40,6 @@ def init_db():
             is_blocked INTEGER DEFAULT 0,
             frozen_until TIMESTAMP,
             freeze_reason TEXT,
-            bg_type TEXT DEFAULT 'default',
-            bg_image TEXT,
             trust_score INTEGER DEFAULT 85,
             response_rate INTEGER DEFAULT 98,
             rating TEXT DEFAULT '—',
@@ -66,9 +64,11 @@ def init_db():
         ('full_name', 'TEXT'),
         ('contact', 'TEXT'),
         ('bio', 'TEXT'),
-        ('cover_image', 'TEXT'),
-        ('bg_type', "TEXT DEFAULT 'default'"),
-        ('bg_image', 'TEXT'),
+        ('avatar_blob', 'BLOB'),
+        ('cover_blob', 'BLOB'),
+        ('background_type', "TEXT DEFAULT 'default'"),
+        ('background_value', 'TEXT'),
+        ('active_hours', 'TEXT'),
         ('frozen_until', 'TIMESTAMP'),
         ('freeze_reason', 'TEXT'),
         ('trust_score', 'INTEGER DEFAULT 85'),
@@ -129,19 +129,18 @@ def init_products():
         )
     ''')
 
-
     # Add missing columns for products table (safe migration)
     try:
         db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
         print("Added column: status")
     except sqlite3.OperationalError:
-        pass  # Column already exists
+        pass
 
     try:
         db.execute("ALTER TABLE products ADD COLUMN reject_reason TEXT DEFAULT ''")
         print("Added column: reject_reason")
     except sqlite3.OperationalError:
-        pass  # Column already exists
+        pass
 
     db.commit()
     db.close()
