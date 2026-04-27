@@ -11,9 +11,10 @@ def get_db():
 
 
 def init_db():
+    """Initialize database with all required tables and columns for cross-device sync"""
     db = get_db()
 
-    # 1. 创建 users 表（如果不存在）
+    # 1. Create users table (if not exists)
     db.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +47,7 @@ def init_db():
         )
     ''')
 
-    # 2. 创建 notifications 表（如果不存在）
+    # 2. Create notifications table (if not exists)
     db.execute('''
         CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,20 +61,22 @@ def init_db():
 
     db.commit()
 
-    # ========== 3. 数据库迁移：为已存在的数据库添加缺失的列 ==========
+    # ========== 3. Database Migration: Add missing columns ==========
     cursor = db.execute("PRAGMA table_info(users)")
     existing_columns = [col[1] for col in cursor.fetchall()]
 
-    # 需要确保存在的列及其默认值
+    # All required columns for cross-device synchronization
     required_columns = {
-        'cover_image': 'TEXT',
+        'cover_image': 'TEXT',         
+        'avatar': 'TEXT',          
         'bg_type': "TEXT DEFAULT 'default'",
-        'bg_image': 'TEXT',
+        'bg_image': 'TEXT',             
         'trust_score': "INTEGER DEFAULT 85",
         'response_rate': "INTEGER DEFAULT 98",
         'rating': "TEXT DEFAULT '—'"
     }
 
+    # Add missing columns one by one
     for col_name, col_def in required_columns.items():
         if col_name not in existing_columns:
             try:
@@ -84,7 +87,7 @@ def init_db():
 
     db.commit()
 
-    # 4. 创建默认管理员（如果不存在）
+    # 4. Create default admin user (if not exists)
     admin_email = 'admin@student.mmu.edu.my'
     admin_password = generate_password_hash('Admin123!')
     
@@ -100,12 +103,14 @@ def init_db():
         db.commit()
         print("✅ Default admin created: admin@student.mmu.edu.my / Admin123!")
     else:
-        print("Admin user already exists")
+        print("✅ Admin user already exists")
     
     db.close()
-    print("Database ready with all required tables and columns.")
+    print("✅ Database ready with all required tables and columns for cross-device sync.")
+
 
 def init_products():
+    """Initialize products table"""
     db = get_db()
     db.execute('''
         CREATE TABLE IF NOT EXISTS products (
@@ -124,6 +129,7 @@ def init_products():
         )
     ''')
 
+    # Check and add missing columns
     cursor = db.execute("PRAGMA table_info(products)")
     existing_columns = [col[1] for col in cursor.fetchall()]
 
@@ -143,4 +149,4 @@ def init_products():
 
     db.commit()
     db.close()
-    print("Database ready WITH products table.")
+    print("✅ Database ready with products table.")

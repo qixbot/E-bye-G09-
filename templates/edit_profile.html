@@ -10,10 +10,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
 
 <div class="ep-page" id="epPage">
-    <!-- dynamic background layer -->
+    <!-- Dynamic background layer -->
     <div class="ep-bg-layer" id="epBgLayer"></div>
 
-    <!-- navbar (no brand) -->
+    <!-- Navigation bar -->
     <nav class="ep-navbar">
         <button class="ep-nav-back" onclick='window.location.href="{{ url_for('home') }}";'>←</button>
         <div class="nav-spacer"></div>
@@ -24,7 +24,7 @@
         </div>
     </nav>
 
-    <!-- background panel with Save/Cancel -->
+    <!-- Background selection panel -->
     <div class="ep-bg-panel" id="epBgPanel">
         <div class="ep-bg-panel-header">
             <span>🎨 Page Background</span>
@@ -56,7 +56,7 @@
         </div>
     </div>
 
-    <!-- cover banner -->
+    <!-- Cover banner section -->
     <div class="ep-cover-container">
         <div class="ep-cover-image" id="coverImage" style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_image) if user.cover_image else '' }}'; background-color: #00381f;">
             <div class="ep-cover-overlay">
@@ -66,7 +66,7 @@
         <input type="file" id="coverFileInput" accept="image/*" style="display:none">
     </div>
 
-    <!-- crop modals -->
+    <!-- Crop modals for cover and avatar -->
     <div class="crop-modal" id="coverCropModal">
         <div class="crop-content">
             <div class="crop-header"><span>Crop Cover Image</span><button class="crop-close">&times;</button></div>
@@ -82,10 +82,10 @@
         </div>
     </div>
 
-    <!-- main grid -->
+    <!-- Main grid layout -->
     <div class="ep-wrap">
         <div class="ep-grid">
-            <!-- left column: profile card -->
+            <!-- Left column: profile card -->
             <div class="ep-identity">
                 <div class="ep-avatar-card">
                     <div class="ep-avatar-wrap">
@@ -134,7 +134,7 @@
             </div>
         </div>
 
-            <!-- right panel: tabs -->
+            <!-- Right panel: tabs -->
             <div class="ep-panel">
                 <div class="ep-top-tabs">
                     <button class="ep-top-tab" data-tab="purchases">🛍️ My Purchases</button>
@@ -142,17 +142,17 @@
                     <button class="ep-top-tab active" data-tab="edit">✏️ Edit Profile</button>
                 </div>
 
-                <!-- purchases pane -->
+                <!-- Purchases pane -->
                 <div class="ep-tab-pane" id="pane-purchases">
                     <div id="purchases-content"><div class="ep-empty">🛍️ No purchases yet</div></div>
                 </div>
 
-                <!-- listings pane -->
+                <!-- Listings pane -->
                 <div class="ep-tab-pane" id="pane-listings">
                     <div id="listings-content"><div class="ep-empty">📦 Loading listings...</div></div>
                 </div>
 
-                <!-- edit profile pane -->
+                <!-- Edit profile pane -->
                 <div class="ep-tab-pane active" id="pane-edit">
                     <div class="ep-sub-tabs">
                         <button class="ep-sub-tab active" data-subtab="edit-profile">✏️ Edit Profile</button>
@@ -160,7 +160,7 @@
                         <button class="ep-sub-tab danger" data-subtab="delete">🗑️ Delete Account</button>
                     </div>
 
-                    <!-- edit profile form -->
+                    <!-- Edit profile form -->
                     <div class="ep-subtab-content active" id="subtab-edit-profile">
                         <form method="POST" action="{{ url_for('update_profile') }}" enctype="multipart/form-data" id="editProfileForm">
                             <div class="form-row">
@@ -211,7 +211,7 @@
                         </form>
                     </div>
 
-                    <!-- change password -->
+                    <!-- Change password form -->
                     <div class="ep-subtab-content" id="subtab-password">
                         <form method="POST" action="{{ url_for('change_password') }}" id="passwordForm">
                             <div class="form-group">
@@ -251,7 +251,7 @@
                         </form>
                     </div>
 
-                    <!-- delete account -->
+                    <!-- Delete account section -->
                     <div class="ep-subtab-content" id="subtab-delete">
                         <div class="delete-warning-card">
                             <div class="delete-icon-wrapper">
@@ -294,12 +294,24 @@
 </div>
 
 <script>
-//  DOM ELEMENT CACHING (Performance) 
+// CROSS-DEVICE SYNCHRONIZATION - COVER, AVATAR & BACKGROUND
+// Server data injected from Flask backend for cross-device persistence
+const SERVER_DATA = {
+    coverImage: "{{ cover_image|default('')|safe }}",     
+    avatar: "{{ avatar|default('')|safe }}",               
+    bgImage: "{{ bg_image|default('')|safe }}",            
+    bgType: "{{ bg_type|default('default')|safe }}"         
+};
+
+console.log('🔄 Server data loaded for cross-device sync:', SERVER_DATA);
+
+// DOM Element Caching (Performance optimization)
 const $bgLayer = document.getElementById('epBgLayer');
 const $bgPreview = document.getElementById('currentBgPreview');
 const $bgPanel = document.getElementById('epBgPanel');
 
-//  COLOR PALETTE 
+// COLOR PALETTE CONFIGURATION
+
 const COLOR_CONFIG = {
     rainbow: ['#FF0000','#FF4500','#FFA500','#FFD700','#FFFF00','#ADFF2F','#00FF00','#00FA9A','#00CED1','#1E90FF','#0000FF','#4B0082','#8A2BE2','#EE82EE','#FF69B4','#FFC0CB','#FFFFFF','#D3D3D3','#808080','#A0522D','#8B4513','#000000'],
     light: ['#FFF0F0','#FFF5E6','#FFFFE0','#E8F5E9','#E3F2FD','#F3E5F5','#FCE4EC','#FFF9C4','#E0F7FA','#F1F8E9','#FFEBEE','#F9FBE7'],
@@ -307,7 +319,7 @@ const COLOR_CONFIG = {
     gradient: ['linear-gradient(135deg,#FF6B6B,#FFE66D)','linear-gradient(135deg,#FBC2EB,#A6C1EE)','linear-gradient(135deg,#84FAB0,#8FD3F4)','linear-gradient(135deg,#FF9A9E,#FECFEF)','linear-gradient(135deg,#FFD26F,#FF6B6B)','linear-gradient(135deg,#A18CD1,#FBC2EB)','linear-gradient(135deg,#43C6AC,#191654)','linear-gradient(135deg,#FAD961,#F76B1C)','linear-gradient(135deg,#4CB8C4,#3CD3AD)','linear-gradient(135deg,#F53844,#42378F)','linear-gradient(135deg,#DD5E89,#F7BB97)','linear-gradient(135deg,#00B4DB,#0083B0)']
 };
 
-// Build color grid from palette
+// Build color grids from palette
 function buildGrid(containerId, colors, isGradient=false) {
     const c = document.getElementById(containerId);
     if(!c) return;
@@ -341,103 +353,133 @@ function previewBg(val) {
     selectedBgValue = val;
 }
 
-// RESTORE BACKGROUND FROM SERVER ON PAGE LOAD 
-// Priority 1: Load from server (database) - cross-device sync
-// Priority 2: Fallback to localStorage (for offline or cached scenarios)
+// BACKGROUND SYNCHRONIZATION (Cross-device)
+
+/**
+ * Restore background from server database (cross-device sync)
+ * Priority 1: Server database (ensures consistency across all devices)
+ * Priority 2: localStorage cache (fallback for offline scenarios)
+ */
+
 function restoreBackgroundFromServer() {
-    // Get background values passed from Flask backend
-    const serverBgImage = "{{ bg_image|default('') }}";      // Filename or CSS value
-    const serverBgType = "{{ bg_type|default('default') }}";
+    const serverBgImage = SERVER_DATA.bgImage;
+    const serverBgType = SERVER_DATA.bgType;
+    
+    console.log('🎨 Loading background from server:', { serverBgImage, serverBgType });
     
     let restoredBg = null;
     
-    // Case 1: Custom uploaded image (bg_image contains filename)
+    // Case 1: Custom uploaded image file
     if (serverBgImage && serverBgImage.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-        // It's a filename - build full URL
         const imageUrl = "/static/uploads/" + serverBgImage;
         restoredBg = `url(${imageUrl})`;
+        console.log('📷 Restoring uploaded background image:', imageUrl);
     }
-    // Case 2: Preset color or gradient (bg_image contains CSS value)
-    else if (serverBgImage && (serverBgImage.startsWith('#') || serverBgImage.startsWith('linear-gradient'))) {
+    // Case 2: Preset color or gradient
+    else if (serverBgImage && (serverBgImage.startsWith('#') || serverBgImage.startsWith('linear-gradient') || serverBgImage.startsWith('url('))) {
         restoredBg = serverBgImage;
+        console.log('🎨 Restoring color/gradient background:', restoredBg);
     }
-    // Case 3: No custom background - use default
+    // Case 3: No saved background - use default gradient
     else {
         const defaultBg = 'linear-gradient(135deg,#f5f3ee,#e6ded3)';
         restoredBg = defaultBg;
+        console.log('🔄 Using default background');
     }
     
     // Apply restored background
-    if (restoredBg) {
+    if (restoredBg && $bgLayer) {
         $bgLayer.style.background = restoredBg;
-        localStorage.setItem('profileBg', restoredBg);  // Sync to localStorage for future fallback
-    } else {
-        // Fallback to localStorage if server data is empty
-        const savedBg = localStorage.getItem('profileBg');
-        if (savedBg) {
-            $bgLayer.style.background = savedBg;
-        }
+        // Update localStorage cache for faster future loads
+        localStorage.setItem('profileBg', restoredBg);
+        localStorage.setItem('profileBgSource', 'server');
+    }
+    
+    // Update preview panel if it exists
+    if ($bgPreview) {
+        $bgPreview.style.background = restoredBg;
     }
 }
 
-// Call restore function when page loads
-restoreBackgroundFromServer();
+/**
+ * Save background to server for cross-device synchronization
+ * @param {string} bgValue - Background CSS value (color, gradient, or url)
+ * @param {string} bgType - Type of background ('custom', 'image', 'default')
+ * @returns {Promise} - Resolves when save is complete
+ */
+function saveBackgroundToServer(bgValue, bgType = 'custom') {
+    return fetch('/save-background-preset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            bg_type: bgType, 
+            bg_value: bgValue 
+        }),
+        credentials: 'same-origin'
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Server error');
+        return res.json();
+    })
+    .then(data => {
+        if (!data.success) throw new Error('Save failed');
+        // Update localStorage cache after successful server save
+        localStorage.setItem('profileBg', bgValue);
+        localStorage.setItem('profileBgSource', 'server');
+        localStorage.setItem('profileBgSavedAt', new Date().toISOString());
+        console.log('✅ Background saved to server successfully');
+        return true;
+    });
+}
 
-//  SAVE BACKGROUND (with error handling & cross-device sync)
-document.getElementById('bgSaveBtn').onclick = () => {
-    if(selectedBgValue) {
-        // Save to localStorage for quick access
-        localStorage.setItem('profileBg', selectedBgValue);
-        
-        // Save to server (database) for cross-device persistence
-        fetch('/save-background-preset', {
-            method:'POST', 
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({ bg_type:'custom', bg_value:selectedBgValue }), 
-            credentials:'same-origin'
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('Server error');
-            return res.json();
-        })
-        .then(data => {
-            if (!data.success) throw new Error('Save failed');
-            showToastMessage('Background saved!', 'success');
-            $bgPanel.classList.remove('open');
-        })
-        .catch(err => {
-            console.error('Save background error:', err);
-            showToastMessage('Failed to save background', 'error');
-        });
-    } else {
-        showToastMessage('Select a background first', 'error');
+// Save background button handler
+document.getElementById('bgSaveBtn').onclick = async () => {
+    if (!selectedBgValue) {
+        showToastMessage('Please select a background first', 'error');
+        return;
+    }
+    
+    const saveBtn = document.getElementById('bgSaveBtn');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = '💾 Saving...';
+    saveBtn.disabled = true;
+    
+    try {
+        await saveBackgroundToServer(selectedBgValue, 'custom');
+        $bgLayer.style.background = selectedBgValue;
+        showToastMessage('✅ Background saved across all devices!', 'success');
+        $bgPanel.classList.remove('open');
+    } catch (err) {
+        console.error('Save background error:', err);
+        showToastMessage('❌ Failed to save background', 'error');
+    } finally {
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
     }
 };
 
-// CANCEL BACKGROUND (sync preview area)
+// Cancel background button - revert to server-saved version
 document.getElementById('bgCancelBtn').onclick = () => {
-    const saved = localStorage.getItem('profileBg');
-    const defaultBg = 'linear-gradient(135deg,#f5f3ee,#e6ded3)';
-    
-    if(saved) {
-        $bgLayer.style.background = saved;
-        $bgPreview.style.background = saved;
-    } else {
-        $bgLayer.style.background = defaultBg;
-        $bgPreview.style.background = defaultBg;
-    }
+    restoreBackgroundFromServer();
     selectedBgValue = null;
     $bgPanel.classList.remove('open');
+    showToastMessage('Reverted to saved background', 'info');
 };
 
-//  CUSTOM BACKGROUND UPLOAD (with loading, localStorage sync, error handling)
+// Toggle background panel
+function toggleBgPanel() { 
+    $bgPanel.classList.toggle('open'); 
+}
+
+document.querySelector('.ep-bg-close').onclick = () => $bgPanel.classList.remove('open');
+
+// Custom background upload handler
 document.getElementById('customBgInput').addEventListener('change', function(e) {
     if(!e.target.files[0]) return;
     
     const file = e.target.files[0];
     const maxSize = 5 * 1024 * 1024; // 5MB limit
     
-    // Validate file size
     if (file.size > maxSize) {
         showToastMessage('Image too large (max 5MB)', 'error');
         this.value = '';
@@ -450,44 +492,55 @@ document.getElementById('customBgInput').addEventListener('change', function(e) 
     fd.append('bg_image', file);
     
     fetch('/upload-background', {method:'POST', body:fd, credentials:'same-origin'})
-        .then(r => {
-            if (!r.ok) throw new Error('Upload failed');
-            return r.json();
-        })
+        .then(r => r.json())
         .then(data => {
             if(data.success){
-                const url = data.image_url + '?t=' + Date.now();
-                const bgValue = `url(${url})`;
+                const imageUrl = `/static/uploads/${data.filename}`;
+                const bgValue = `url(${imageUrl})`;
                 previewBg(bgValue);
                 selectedBgValue = bgValue;
-                localStorage.setItem('profileBg', bgValue);  // Sync to localStorage
-                showToastMessage('Custom image uploaded', 'success');
-                $bgPanel.classList.remove('open');
+                return saveBackgroundToServer(bgValue, 'image');
             } else {
                 throw new Error(data.error || 'Upload failed');
             }
+        })
+        .then(() => {
+            showToastMessage('✅ Custom image saved across all devices!', 'success');
+            $bgPanel.classList.remove('open');
         })
         .catch(err => {
             console.error('Upload error:', err);
             showToastMessage('Upload failed: ' + err.message, 'error');
         });
     
-    // Clear input to allow re-uploading the same file
     this.value = '';
 });
 
-// Toggle background panel
-function toggleBgPanel() { 
-    $bgPanel.classList.toggle('open'); 
-}
+// COVER IMAGE SYNCHRONIZATION (Cross-device)
 
-document.querySelector('.ep-bg-close').onclick = () => $bgPanel.classList.remove('open');
-
-// AVATAR + COVER CROP (with input reset on close) 
 let coverCropper = null;
 const $coverFileInput = document.getElementById('coverFileInput');
 const $coverCropModal = document.getElementById('coverCropModal');
 const $coverCropImage = document.getElementById('coverCropImage');
+
+/**
+ * Load cover image from server database
+ * Automatically syncs across all devices when user logs in
+ */
+function loadCoverFromServer() {
+    if (SERVER_DATA.coverImage && SERVER_DATA.coverImage.trim() !== '') {
+        const coverUrl = `/static/uploads/${SERVER_DATA.coverImage}?t=${Date.now()}`;
+        document.getElementById('coverImage').style.backgroundImage = `url(${coverUrl})`;
+        console.log('🖼️ Cover loaded from server:', coverUrl);
+        // Cache to localStorage for performance
+        localStorage.setItem('coverImage', SERVER_DATA.coverImage);
+    } else {
+        // Default cover style
+        document.getElementById('coverImage').style.backgroundImage = '';
+        document.getElementById('coverImage').style.backgroundColor = '#00381f';
+        console.log('🖼️ Using default cover');
+    }
+}
 
 // Trigger file input when change cover button is clicked
 document.getElementById('coverChangeBtn').onclick = () => $coverFileInput.click();
@@ -501,7 +554,7 @@ $coverFileInput.addEventListener('change', e => {
         $coverCropModal.classList.add('open');
         if(coverCropper) coverCropper.destroy();
         coverCropper = new Cropper($coverCropImage, { 
-            aspectRatio: 16/5, 
+            aspectRatio: 16/5,  // 16:5 aspect ratio for cover banner
             viewMode: 1, 
             autoCropArea: 1 
         });
@@ -516,43 +569,75 @@ function closeCoverCrop() {
         coverCropper.destroy();
         coverCropper = null;
     }
-    $coverFileInput.value = ''; // Reset file input
+    $coverFileInput.value = '';
 }
 
 // Bind close buttons
 document.querySelector('#coverCropModal .crop-close').onclick = closeCoverCrop;
 document.querySelector('#coverCropModal .crop-cancel').onclick = closeCoverCrop;
 
-// Save cropped cover image
+// Save cropped cover image to server
 document.querySelector('#coverCropModal .crop-confirm').onclick = () => {
     if(!coverCropper) return;
     const canvas = coverCropper.getCroppedCanvas();
     canvas.toBlob(blob => {
         const fd = new FormData();
         fd.append('cover_image', blob, 'cover.jpg');
+        
+        showToastMessage('Uploading cover...', 'info');
+        
         fetch('/update-cover', {method:'POST', body:fd, credentials:'same-origin'})
             .then(r => r.json())
             .then(data => {
                 if(data.success) {
-                    document.getElementById('coverImage').style.backgroundImage = `url(${data.image_url}?t=${Date.now()})`;
+                    const coverUrl = `/static/uploads/${data.filename}?t=${Date.now()}`;
+                    document.getElementById('coverImage').style.backgroundImage = `url(${coverUrl})`;
+                    // Update server data cache
+                    SERVER_DATA.coverImage = data.filename;
+                    localStorage.setItem('coverImage', data.filename);
                     closeCoverCrop();
-                    showToastMessage('Cover updated!', 'success');
+                    showToastMessage('✅ Cover saved across all devices!', 'success');
                 } else {
-                    throw new Error('Upload failed');
+                    throw new Error(data.error || 'Upload failed');
                 }
             })
             .catch(err => {
-                console.error(err);
-                showToastMessage('Cover update failed', 'error');
+                console.error('Cover upload error:', err);
+                showToastMessage('Cover update failed: ' + err.message, 'error');
             });
     }, 'image/jpeg', 0.9);
 };
 
-// AVATAR CROP (with input reset on close) 
+// AVATAR SYNCHRONIZATION (Cross-device)
+
 let avatarCropper = null;
 const $avatarFileInput = document.getElementById('avatarFileInput');
 const $avatarCropModal = document.getElementById('avatarCropModal');
 const $avatarCropImage = document.getElementById('avatarCropImage');
+
+/**
+ * Load avatar image from server database
+ * Automatically syncs across all devices when user logs in
+ */
+function loadAvatarFromServer() {
+    const avatarImg = document.getElementById('avatarImg');
+    if (SERVER_DATA.avatar && SERVER_DATA.avatar.trim() !== '') {
+        const avatarUrl = `/static/uploads/${SERVER_DATA.avatar}?t=${Date.now()}`;
+        if (avatarImg.tagName === 'IMG') {
+            avatarImg.src = avatarUrl;
+        } else {
+            // Replace initial letter display with actual image
+            const newImg = document.createElement('img');
+            newImg.id = 'avatarImg';
+            newImg.src = avatarUrl;
+            avatarImg.parentNode.replaceChild(newImg, avatarImg);
+        }
+        console.log('👤 Avatar loaded from server:', avatarUrl);
+        localStorage.setItem('avatar', SERVER_DATA.avatar);
+    } else {
+        console.log('👤 Using default avatar (initials)');
+    }
+}
 
 // Trigger file input when avatar ring is clicked
 document.querySelector('.ep-av-ring').onclick = () => $avatarFileInput.click();
@@ -566,7 +651,7 @@ $avatarFileInput.addEventListener('change', e => {
         $avatarCropModal.classList.add('open');
         if(avatarCropper) avatarCropper.destroy();
         avatarCropper = new Cropper($avatarCropImage, { 
-            aspectRatio: 1, 
+            aspectRatio: 1,  // 1:1 square for avatar
             viewMode: 1, 
             autoCropArea: 1 
         });
@@ -581,47 +666,87 @@ function closeAvatarCrop() {
         avatarCropper.destroy();
         avatarCropper = null;
     }
-    $avatarFileInput.value = ''; // Reset file input
+    $avatarFileInput.value = '';
 }
 
 // Bind close buttons
 document.querySelector('.avatar-crop-close').onclick = closeAvatarCrop;
 document.getElementById('avatarCropCancel').onclick = closeAvatarCrop;
 
-// Save cropped avatar
+// Save cropped avatar to server
 document.getElementById('avatarCropConfirm').onclick = () => {
     if(!avatarCropper) return;
     const canvas = avatarCropper.getCroppedCanvas();
     canvas.toBlob(blob => {
         const fd = new FormData();
         fd.append('avatar', blob, 'avatar.jpg');
+        
+        showToastMessage('Uploading avatar...', 'info');
+        
         fetch('/update-profile-avatar', {method:'POST', body:fd, credentials:'same-origin'})
             .then(r => r.json())
             .then(data => {
                 if(data.success) {
+                    const avatarUrl = `/static/uploads/${data.filename}?t=${Date.now()}`;
                     const img = document.getElementById('avatarImg');
                     if(img.tagName === 'IMG') {
-                        img.src = data.image_url + '?t=' + Date.now();
+                        img.src = avatarUrl;
                     } else {
                         const newImg = document.createElement('img');
                         newImg.id = 'avatarImg';
-                        newImg.src = data.image_url + '?t=' + Date.now();
+                        newImg.src = avatarUrl;
                         img.parentNode.replaceChild(newImg, img);
                     }
+                    // Update server data cache
+                    SERVER_DATA.avatar = data.filename;
+                    localStorage.setItem('avatar', data.filename);
                     closeAvatarCrop();
-                    showToastMessage('Profile picture updated!', 'success');
+                    showToastMessage('✅ Avatar saved across all devices!', 'success');
                 } else {
-                    throw new Error('Upload failed');
+                    throw new Error(data.error || 'Upload failed');
                 }
             })
             .catch(err => {
-                console.error(err);
-                showToastMessage('Avatar update failed', 'error');
+                console.error('Avatar upload error:', err);
+                showToastMessage('Avatar update failed: ' + err.message, 'error');
             });
     }, 'image/jpeg', 0.9);
 };
 
-//  PASSWORD FUNCTIONS 
+// CROSS-DEVICE SYNC VERIFICATION ON PAGE LOAD
+
+/**
+ * Verify that local cache matches server data on page load
+ * Ensures consistency across multiple devices
+ */
+function verifyCrossDeviceSync() {
+    console.log('🔍 Verifying cross-device synchronization...');
+    
+    // Check cover consistency
+    const localCover = localStorage.getItem('coverImage');
+    if (SERVER_DATA.coverImage && SERVER_DATA.coverImage !== localCover) {
+        console.log('🔄 Server cover differs from cache, using server version');
+        loadCoverFromServer();
+    }
+    
+    // Check avatar consistency
+    const localAvatar = localStorage.getItem('avatar');
+    if (SERVER_DATA.avatar && SERVER_DATA.avatar !== localAvatar) {
+        console.log('🔄 Server avatar differs from cache, using server version');
+        loadAvatarFromServer();
+    }
+    
+    // Check background consistency
+    const localBg = localStorage.getItem('profileBg');
+    if (SERVER_DATA.bgImage && SERVER_DATA.bgImage !== localBg) {
+        console.log('🔄 Server background differs from cache, using server version');
+        restoreBackgroundFromServer();
+    }
+    
+    console.log('✅ Cross-device sync verification complete');
+}
+
+// PASSWORD FUNCTIONS
 // Toggle password visibility (show/hide)
 function togglePassword(id, btn) {
     const input = document.getElementById(id);
@@ -724,7 +849,8 @@ function validatePw() {
     return true;
 }
 
-// DELETE ACCOUNT REAL-TIME VALIDATION 
+// DELETE ACCOUNT REAL-TIME VALIDATION
+
 let deletePasswordValid = false;
 let deleteConfirmValid = false;
 
@@ -812,8 +938,13 @@ function confirmDelete() {
     return confirm('⚠️ Permanent deletion. Are you sure?');
 }
 
-// TOAST NOTIFICATION FUNCTION 
-// Display temporary popup message
+
+// TOAST NOTIFICATION FUNCTION
+/**
+ * Display temporary popup message
+ * @param {string} message - Message to display
+ * @param {string} type - Message type ('success', 'error', 'info')
+ */
 function showToastMessage(message, type) {
     const existing = document.querySelector('.toast-container');
     if(existing) existing.remove();
@@ -915,7 +1046,8 @@ function editListing(id) {
     window.location.href = `/edit-listing/${id}`; 
 }
 
-// PASSWORD INPUT REAL-TIME LISTENERS 
+// PASSWORD INPUT REAL-TIME LISTENERS
+
 const newPwInput = document.getElementById('newPw');
 const confirmPwInput = document.getElementById('confirmPw');
 if (newPwInput) {
@@ -927,4 +1059,22 @@ if (newPwInput) {
 if (confirmPwInput) {
     confirmPwInput.addEventListener('input', checkMatch);
 }
+
+// PAGE INITIALIZATION - Load all cross-device data
+
+// Initialize all components on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Initializing profile page with cross-device sync...');
+    
+    // Load all images from server database
+    loadCoverFromServer();      // Cross-device cover sync
+    loadAvatarFromServer();     // Cross-device avatar sync
+    restoreBackgroundFromServer(); // Cross-device background sync
+    
+    // Verify consistency across devices
+    verifyCrossDeviceSync();
+    
+    console.log('✅ Profile page fully initialized');
+});
 </script>
+{% endblock %}

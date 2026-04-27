@@ -97,8 +97,7 @@ def login():
 
                 # Security analysis time
                 try:
-                    expire_time = datetime.strptime
-                    (frozen_end_time, "%Y-%m-%d %H:%M:%S")
+                    expire_time = datetime.strptime(frozen_end_time, "%Y-%m-%d %H:%M:%S")
                 except Exception:
                     pass
 
@@ -446,8 +445,8 @@ def admin_login():
     return render_template('admin_login.html')
 
 # Eileen's Route ------EDIT profile
-@app.route('/edit_profile', methods=['GET'])
 
+@app.route('/edit_profile', methods=['GET'])
 def edit_profile():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -463,9 +462,7 @@ def edit_profile():
         (session['user_id'],)
     ).fetchone()[0]
 
-    # Gain trust score and response rate
-    # Basic mark=60. the below is 5 mark
-    # 10 listing can go up to 20 marks
+    # Calculate trust score and response rate
     trust_score = 60
     if user['avatar']:        trust_score += 8
     if user['bio']:           trust_score += 8
@@ -474,8 +471,7 @@ def edit_profile():
 
     if user['created_at']:
         try:
-            created_date = datetime.strptime
-            (user['created_at'], '%Y-%m-%d %H:%M:%S')
+            created_date = datetime.strptime(user['created_at'], '%Y-%m-%d %H:%M:%S')
             days_since_join = (datetime.now() - created_date).days
             if days_since_join >= 365:
                 trust_score += 20
@@ -488,10 +484,8 @@ def edit_profile():
         except:
             pass
 
-    # 商品数量加分（最多25分）
-    trust_score += min(25, (listing_count // 2) * 2)  # 每2个商品加2分，最高25分
+    trust_score += min(25, (listing_count // 2) * 2)
 
-    # 活跃度加分（最多15分）
     if user['active_hours'] and user['active_hours'] != 'Not set':
         trust_score += 10
     if user['gender']:
@@ -500,39 +494,42 @@ def edit_profile():
     trust_score = min(trust_score, 100)
     trust_score = max(trust_score, 30)
 
-    # 修复 Response Rate（如果没有聊天功能，暂时用商品活跃度代替）==========
-    # 真正的响应率需要聊天数据，这里先用商品和活跃度估算
-    response_rate = 50  # 基础分
+    # Calculate response rate
+    response_rate = 50
 
-    # 有商品在售加10分
     if listing_count > 0:
         response_rate += 15
 
-    # 有完善资料加10分
+
     if user['bio'] and user['contact']:
         response_rate += 10
 
-    # 有活跃时间加10分
+
     if user['active_hours'] and user['active_hours'] != 'Not set':
         response_rate += 10
 
-    # 有头像加5分
+
     if user['avatar']:
         response_rate += 5
 
     response_rate = min(response_rate, 98)
     response_rate = max(response_rate, 40)
 
-
+    # Extract image filenames for cross-device synchronization
     if user:
-            user_dict = dict(user)
-            bg_image_value = user_dict.get('bg_image')
-            bg_type_value = user_dict.get('bg_type', 'default')
+        user_dict = dict(user)
+        cover_image_value = user_dict.get('cover_image')  
+        avatar_value = user_dict.get('avatar')         
+        bg_image_value = user_dict.get('bg_image')       
+        bg_type_value = user_dict.get('bg_type', 'default')
     else:
-            bg_image_value = None
-            bg_type_value = 'default'
+        cover_image_value = None
+        avatar_value = None
+        bg_image_value = None
+        bg_type_value = 'default'
 
     db.close()
+    
     return render_template(
         'edit_profile.html',
         user=user,
@@ -540,7 +537,9 @@ def edit_profile():
         sold_count=0,
         trust_score=trust_score,
         response_rate=response_rate,
-        bg_image=bg_image_value,
+        cover_image=cover_image_value, 
+        avatar=avatar_value,             
+        bg_image=bg_image_value,       
         bg_type=bg_type_value
     )
 
@@ -593,11 +592,9 @@ def update_profile():
     # Handle background image upload
     bg_image = request.files.get('bg_image')
     if bg_image and bg_image.filename:
-        ext = bg_image.filename.rsplit
-        ('.', 1)[-1].lower() if '.' in bg_image.filename else 'jpg'
+        ext = bg_image.filename.rsplit('.', 1)[-1].lower() if '.' in bg_image.filename else 'jpg'
         if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
-            bg_filename = secure_filename
-            (f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
+            bg_filename = secure_filename(f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
             bg_image.save(os.path.join('static/uploads', bg_filename))
             db.execute(
                 'UPDATE users SET bg_image = ? WHERE id = ?',
@@ -625,6 +622,7 @@ def update_profile():
 @app.route('/upload-background', methods=['POST'])
 
 def upload_background():
+    """Upload custom background image - supports cross-device synchronization"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
@@ -636,30 +634,28 @@ def upload_background():
         return jsonify({'success': False, 'error': 'No file selected'}), 400
 
     if file:
-        ext = file.filename.rsplit
-        ('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
         
         if ext not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
-            return jsonify
-        ({'success': False, 'error': 'Unsupported file format'}), 400
+            return jsonify({'success': False, 'error': 'Unsupported file format'}), 400
 
-        filename = secure_filename
-        (f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
-        
+        # Generate unique filename
+        filename = f"bg_{session['user_id']}_{uuid.uuid4().hex}.{ext}"
         filepath = os.path.join('static/uploads', filename)
         file.save(filepath)
 
-        # ✅ 直接保存到数据库，不需要额外调用 /save-background
+        # Save filename to database
         db = get_db()
         db.execute(
-            'UPDATE users SET bg_image = ? WHERE id = ?',
-            (filename, session['user_id'])
+            'UPDATE users SET bg_image = ?, bg_type = ? WHERE id = ?',
+            (filename, 'image', session['user_id'])
         )
         db.commit()
         db.close()
 
         return jsonify({
             'success': True,
+            'filename': filename,  # ← Critical for cross-device sync
             'image_url': url_for('static', filename=f'uploads/{filename}')
         })
 
@@ -668,7 +664,7 @@ def upload_background():
 @app.route('/save-background', methods=['POST'])
 
 def save_background():
-    # 保留此接口以兼容旧版前端，但新代码已不再需要
+
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
@@ -686,22 +682,20 @@ def save_background():
 
     return jsonify({'success': True})
 
-# 保存预设背景到数据库（修复版：同时保存 bg_type 和 bg_value）
 @app.route('/save-background-preset', methods=['POST'])
 
 def save_background_preset():
-
+    """Save color/gradient background preset - supports cross-device synchronization"""
     if 'user_id' not in session:
         return jsonify({'success': False}), 401
     
     data = request.get_json()
     bg_type = data.get('bg_type', 'default')
-    bg_value = data.get('bg_value')  # ✅ 新增：获取背景的具体值
+    bg_value = data.get('bg_value')  # CSS color or gradient value
 
     db = get_db()
     
     if bg_value:
-        # 如果有具体的背景值（颜色或渐变），同时保存到 bg_image 字段
         db.execute(
             'UPDATE users SET bg_type = ?, bg_image = ? WHERE id = ?', 
             (bg_type, bg_value, session['user_id'])
@@ -716,7 +710,6 @@ def save_background_preset():
     db.close()
     
     return jsonify({'success': True})
-
 
 # Eileen's Route ------CHANGE password
 @app.route('/change-password', methods=['POST'])
@@ -821,6 +814,7 @@ def verify_password():
 @app.route('/update-cover', methods=['POST'])
 
 def update_cover():
+    """Upload and update cover image - supports cross-device synchronization"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
@@ -832,22 +826,45 @@ def update_cover():
         return jsonify({'success': False, 'error': 'No file selected'}), 400
 
     if file:
-        original_filename = secure_filename(file.filename)
-        if not original_filename:
-            original_filename = f"cover_{uuid.uuid4().hex}.jpg"
-        filepath = os.path.join('static/uploads', original_filename)
-        file.save(filepath)
+        # Get file extension
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+        
+        # Validate file format
+        if ext not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+            return jsonify({'success': False, 'error': 'Unsupported file format'}), 400
+        
+        # Generate unique filename (without secure_filename to avoid empty string issues)
+        filename = f"cover_{session['user_id']}_{uuid.uuid4().hex}.{ext}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        try:
+            file.save(filepath)
+            print(f"✅ Cover saved: {filepath}")
+        except Exception as e:
+            print(f"❌ Error saving cover: {e}")
+            return jsonify({'success': False, 'error': 'Failed to save file'}), 500
 
+        # Save filename to database
         db = get_db()
-        db.execute(
-            'UPDATE users SET cover_image = ? WHERE id = ?',
-            (original_filename, session['user_id']))
-        db.commit()
+        try:
+            db.execute(
+                'UPDATE users SET cover_image = ? WHERE id = ?',
+                (filename, session['user_id'])
+            )
+            db.commit()
+            print(f"✅ Cover filename saved to DB: {filename}")
+        except Exception as e:
+            print(f"❌ Database error: {e}")
+            db.close()
+            return jsonify({'success': False, 'error': 'Database update failed'}), 500
         db.close()
 
-        return jsonify(
-          {'success': True, 
-           'image_url': url_for('static',filename=f'uploads/{original_filename}')})
+        # Return filename so frontend can construct URL (cross-device compatible)
+        return jsonify({
+            'success': True,
+            'filename': filename,  # ← Critical for cross-device sync
+            'image_url': url_for('static', filename=f'uploads/{filename}')
+        })
 
     return jsonify({'success': False, 'error': 'Upload failed'}), 500
 
@@ -855,27 +872,80 @@ def update_cover():
 @app.route('/update-profile-avatar', methods=['POST'])
 
 def update_profile_avatar():
+    """Upload and update profile avatar - supports cross-device synchronization"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
+        
     if 'avatar' not in request.files:
-        return jsonify({'success': False, 'error': 'No file'}), 400
+        return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+        
     file = request.files['avatar']
     if file.filename == '':
         return jsonify({'success': False, 'error': 'Empty filename'}), 400
-    ext = file.filename.rsplit
-    ('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
-    filename = secure_filename(
-        f"avatar_{session['user_id']}_{uuid.uuid4().hex}.{ext}")
-    filepath = os.path.join('static/uploads', filename)
-    file.save(filepath)
+        
+    # Get file extension
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+    
+    # Validate file format
+    if ext not in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+        return jsonify({'success': False, 'error': 'Unsupported file format'}), 400
+    
+    # Generate unique filename
+    filename = f"avatar_{session['user_id']}_{uuid.uuid4().hex}.{ext}"
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    try:
+        file.save(filepath)
+        print(f"✅ Avatar saved: {filepath}")
+    except Exception as e:
+        print(f"❌ Error saving avatar: {e}")
+        return jsonify({'success': False, 'error': 'Failed to save file'}), 500
+    
+    # Save filename to database
     db = get_db()
-    db.execute(
-        'UPDATE users SET avatar = ? WHERE id = ?', 
-        (filename, session['user_id']))
-    db.commit()
+    try:
+        db.execute(
+            'UPDATE users SET avatar = ? WHERE id = ?', 
+            (filename, session['user_id'])
+        )
+        db.commit()
+        print(f"✅ Avatar filename saved to DB: {filename}")
+    except Exception as e:
+        print(f"❌ Database error: {e}")
+        db.close()
+        return jsonify({'success': False, 'error': 'Database update failed'}), 500
     db.close()
-    return jsonify
-({'success': True, 'image_url': url_for('static', filename=f'uploads/{filename}')})
+    
+    # Return filename so frontend can construct URL (cross-device compatible)
+    return jsonify({
+        'success': True,
+        'filename': filename,  # ← Critical for cross-device sync
+        'image_url': url_for('static', filename=f'uploads/{filename}')
+    })
+
+@app.route('/api/user/background')
+def api_user_background():
+    """API endpoint to get user's background settings - for cross-device sync verification"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    user = db.execute(
+        'SELECT bg_image, bg_type, cover_image, avatar FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+    db.close()
+    
+    if user:
+        return jsonify({
+            'success': True,
+            'bg_image': user['bg_image'],
+            'bg_type': user['bg_type'],
+            'cover_image': user['cover_image'],
+            'avatar': user['avatar']
+        })
+    return jsonify({'success': False, 'error': 'User not found'}), 404
+
 
 #Eileen's Route ------ api
 @app.route('/api/user/purchases')
@@ -1017,8 +1087,7 @@ def approve_product(pid):
     ''', (pid,))
 
     # 获取商品和卖家信息，用于发通知
-    prod = db.execute(
-        'SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
+    prod = db.execute('SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
     seller_id = prod['seller_id']
     prod_name = prod['name']
 
@@ -1052,8 +1121,7 @@ def reject_product(pid):
         WHERE id = ?
     ''', (reject_reason, pid))
 
-    prod = db.execute(
-        'SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
+    prod = db.execute('SELECT seller_id, name FROM products WHERE id = ?',(pid,)).fetchone()
     seller_id = prod['seller_id']
     prod_name = prod['name']
 
