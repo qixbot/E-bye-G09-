@@ -2,7 +2,7 @@ import sqlite3
 from werkzeug.security import generate_password_hash
 
 DATABASE = 'ebyte.db'
-# Eileen Part
+
 def get_db():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
@@ -12,87 +12,85 @@ def get_db():
 def init_db():
     db = get_db()
 
-#  Create users table
+    # 1. 创建 users 表（如果不存在）
     db.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             student_id TEXT UNIQUE NOT NULL,
             email TEXT UNIQUE NOT NULL,
             username TEXT NOT NULL,
+            full_name TEXT,
             password TEXT NOT NULL,
             gender TEXT,
+            contact TEXT,
+            bio TEXT,
+            avatar TEXT,
+            cover_image TEXT,
+            bg_type TEXT DEFAULT 'default',
+            bg_image TEXT,
+            active_hours TEXT,
             security_q1 TEXT,
             security_a1 TEXT,
             security_q2 TEXT,
             security_a2 TEXT,
-            active_hours TEXT,
-            avatar TEXT,
             is_admin INTEGER DEFAULT 0,
             is_frozen INTEGER DEFAULT 0,
-            is_blocked INTEGER DEFAULT 0,   
+            is_blocked INTEGER DEFAULT 0,  
+            frozen_until TIMESTAMP,
+            freeze_reason TEXT,
+            rating TEXT DEFAULT '—',
+            trust_score INTEGER DEFAULT 85,
+            response_rate INTEGER DEFAULT 98,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
-    try:
-          db.execute("ALTER TABLE users ADD COLUMN contact TEXT")
-    except sqlite3.OperationalError:
-        pass
-
-    try:
-      db.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
-    except sqlite3.OperationalError:
-        pass
-    
-    try:
-       db.execute("ALTER TABLE users ADD COLUMN bio TEXT")
-    except sqlite3.OperationalError:
-        pass
-
-    try:
-       db.execute("ALTER TABLE users ADD COLUMN active_hours TEXT")
-    except sqlite3.OperationalError:
-        pass
-
-    db.commit()
-
-    # Add columns if they don't exist yet (safe for existing databases)
-    try:
-        db.execute("ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass   # column already exists
-    
-    try:
-        db.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass    # column already exists
-
-    db.commit()
-
-    #keting part
-    # Create Notification Table= Stores notifications for all users (freeze/ban/bargain/order)
+    # 2. 创建 notifications 表（如果不存在）
     db.execute('''
-    CREATE TABLE IF NOT EXISTS notifications (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        message TEXT NOT NULL,
-        is_read INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     ''')
+
     db.commit()
 
-    # Eileen Part
-    #CREATE DEFAULT ADMIN
+    # ========== 3. 数据库迁移：为已存在的数据库添加缺失的列 ==========
+    cursor = db.execute("PRAGMA table_info(users)")
+    existing_columns = [col[1] for col in cursor.fetchall()]
+
+    required_columns = {
+        'cover_image': 'TEXT',
+        'bg_type': "TEXT DEFAULT 'default'",
+        'bg_image': 'TEXT',
+        'trust_score': "INTEGER DEFAULT 85",
+        'response_rate': "INTEGER DEFAULT 98",
+        'rating': "TEXT DEFAULT '—'"
+    }
+
+    for col_name, col_def in required_columns.items():
+        if col_name not in existing_columns:
+            try:
+                db.execute(f'ALTER TABLE users ADD COLUMN {col_name} {col_def}')
+                print(f"✅ Added missing column: {col_name}")
+            except Exception as e:
+                print(f"⚠️ Could not add column {col_name}: {e}")
+
+    db.commit()
+
+    # 4. 创建默认管理员（如果不存在）
     admin_email = 'admin@student.mmu.edu.my'
     admin_password = generate_password_hash('Admin123!')
     
-    existing = db.execute(
+    existing_admin = db.execute(
         'SELECT * FROM users WHERE email = ?', (admin_email,)
-        ).fetchone()
+    ).fetchone()
     
-    if not existing:
+    if not existing_admin:
         db.execute('''
             INSERT INTO users (student_id, email, username, password, is_admin)
             VALUES (?, ?, ?, ?, ?)
@@ -103,43 +101,11 @@ def init_db():
         print("Admin user already exists")
     
     db.close()
-    print("Database ready WITH user table")
+    print("Database ready with all required tables and columns.")
 
-def init_notifications():
-    db = get_db()
-    #Notification Table: Stores notifications for all users (freeze/ban/bargain/order)
-    db.execute('''
-    CREATE TABLE IF NOT EXISTS notifications (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        message TEXT NOT NULL,
-        is_read INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-    ''')
-    #Add freeze/ban fields to the users table）
-    try:
-        db.execute("ALTER TABLE users ADD COLUMN is_frozen INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
 
-        pass
-    
-    try:
-        db.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-
-        pass
-    
-    db.commit()
-    db.close()
-
-init_notifications()
-
-#Xingru's part
 def init_products():
     db = get_db()
-    
     db.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -150,17 +116,31 @@ def init_products():
             condition TEXT,
             category TEXT,
             images TEXT, 
+            status TEXT DEFAULT 'pending',
+            reject_reason TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (seller_id) REFERENCES users(id)
         )
     ''')
     
-    # Add status column if not exists (for approval workflow)
-    try:
-        db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
-    except sqlite3.OperationalError:
-        pass  # column already exists
-    
+    # 为已存在的 products 表添加缺失的列
+    cursor = db.execute("PRAGMA table_info(products)")
+    existing_columns = [col[1] for col in cursor.fetchall()]
+
+    if 'status' not in existing_columns:
+        try:
+            db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
+            print("✅ Added missing column: status")
+        except Exception as e:
+            print(f"⚠️ Could not add column status: {e}")
+
+    if 'reject_reason' not in existing_columns:
+        try:
+            db.execute("ALTER TABLE products ADD COLUMN reject_reason TEXT DEFAULT ''")
+            print("✅ Added missing column: reject_reason")
+        except Exception as e:
+            print(f"⚠️ Could not add column reject_reason: {e}")
+
     db.commit()
     db.close()
-    print("Database ready WITH products table")
+    print("Database ready WITH products table.")

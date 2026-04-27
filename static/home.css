@@ -322,13 +322,13 @@
 /* Text directly on white cast – no dark box */
 .overlay-text {
     color: #f7f6f2;
-    font-size: 1rem;
+    font-size: 0.8rem;
     font-weight: 600;
     text-align: center;
     background: transparent;
     padding: 0;
     white-space: nowrap;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.9), 
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.348), 
                  0 0 2px rgba(0, 0, 0, 0.3);
 }
 
