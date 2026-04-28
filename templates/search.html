@@ -2,10 +2,10 @@
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='_product_card.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='search.css') }}">
 
 <div class="search-page-wrapper">
-    <!-- Header with filter button -->
     <div class="search-header">
         <h2>Search Results</h2>
         <button class="filter-btn" id="openFilterBtn">🔍 Filters</button>
@@ -19,26 +19,29 @@
                 <button class="close-drawer" id="closeFilterBtn">&times;</button>
             </div>
             <form method="GET" action="{{ url_for('search') }}" id="filterForm">
-                <!-- Preserve the search keyword -->
                 <input type="hidden" name="q" value="{{ request.args.get('q', '') }}">
-                
-                <!-- Category (multi‑select checkboxes) -->
+                <!-- Hidden input to store selected categories (comma-separated) -->
+                <input type="hidden" name="category" id="selectedCategories" value="">
+
+                <!-- Category pills -->
                 <div class="filter-group">
                     <label>Categories</label>
-                    <div class="category-checkboxes">
-                        {% set categories = ['books','gadgets','dorm','fashion','beauty','sports','groceries','stationery','music','others'] %}
-                        {% set selected_cats = request.args.getlist('category') %}
-                        {% for cat in categories %}
-                            <label>
-                                <input type="checkbox" name="category" value="{{ cat }}"
-                                       {% if cat in selected_cats %}checked{% endif %}>
-                                {{ cat | capitalize }}
-                            </label>
-                        {% endfor %}
+                    <div class="category-pills" id="categoryPills">
+                        <button type="button" class="category-pill" data-cat="all">🌐 All Items</button>
+                        <button type="button" class="category-pill" data-cat="books">📚 Books</button>
+                        <button type="button" class="category-pill" data-cat="gadgets">💻 Gadgets</button>
+                        <button type="button" class="category-pill" data-cat="dorm">🛏️ Dorm Items</button>
+                        <button type="button" class="category-pill" data-cat="fashion">👕 Fashion</button>
+                        <button type="button" class="category-pill" data-cat="beauty">💄 Beauty</button>
+                        <button type="button" class="category-pill" data-cat="sports">⚽ Sports</button>
+                        <button type="button" class="category-pill" data-cat="groceries">🛒 Groceries</button>
+                        <button type="button" class="category-pill" data-cat="stationery">✏️ Stationery</button>
+                        <button type="button" class="category-pill" data-cat="music">🎸 Music</button>
+                        <button type="button" class="category-pill" data-cat="others">📦 Others</button>
                     </div>
                 </div>
 
-                <!-- Condition (radio) -->
+                <!-- Condition -->
                 <div class="filter-group">
                     <label>Condition</label>
                     <select name="condition">
@@ -49,9 +52,9 @@
                     </select>
                 </div>
 
-                <!-- Date range (radio) -->
+                <!-- Date range (quick) -->
                 <div class="filter-group">
-                    <label>Posted within</label>
+                    <label>Date range (quick)</label>
                     <select name="date_range">
                         <option value="">Any time</option>
                         <option value="7" {% if request.args.get('date_range') == '7' %}selected{% endif %}>Last 7 days</option>
@@ -60,13 +63,27 @@
                     </select>
                 </div>
 
+                <!-- Custom date range -->
+                <div class="filter-group">
+                    <label>Custom date range</label>
+                    <div class="date-range-custom">
+                        <input type="date" name="date_from" value="{{ request.args.get('date_from', '') }}" placeholder="From">
+                        <span>to</span>
+                        <input type="date" name="date_to" value="{{ request.args.get('date_to', '') }}" placeholder="To">
+                    </div>
+                </div>
+
                 <!-- Price range -->
                 <div class="filter-group">
                     <label>Price range (RM)</label>
                     <div class="price-range">
-                        <input type="number" name="min_price" placeholder="Min" step="0.01" value="{{ request.args.get('min_price', '') }}">
+                        <input type="number" name="min_price" placeholder="Min" step="0.01" min="0" max="9999999"
+                               value="{{ request.args.get('min_price', '') }}"
+                               oninput="limitPrice(this)" onblur="formatPrice(this)">
                         <span>–</span>
-                        <input type="number" name="max_price" placeholder="Max" step="0.01" value="{{ request.args.get('max_price', '') }}">
+                        <input type="number" name="max_price" placeholder="Max" step="0.01" min="0" max="9999999"
+                               value="{{ request.args.get('max_price', '') }}"
+                               oninput="limitPrice(this)" onblur="formatPrice(this)">
                     </div>
                 </div>
 
@@ -79,7 +96,7 @@
     </div>
 
     <!-- Products grid -->
-    <div class="product-grid search-product-grid">
+    <div class="product-grid">
         {% if products %}
             {% for product in products %}
                 {% include '_product_card.html' %}
@@ -93,32 +110,26 @@
 </div>
 
 <script>
-    // Carousel script (copy exactly from home.html)
+    // ========== Carousel script (same as home.html) ==========
     document.querySelectorAll('.product-card').forEach(card => {
         const container = card.querySelector('.product-image-container');
         if (!container) return;
-
         let images = [];
         try { images = JSON.parse(container.dataset.images); } catch(e) { images = []; }
         const total = parseInt(container.dataset.total);
         const actualTotal = parseInt(container.dataset.actualTotal);
         if (total === 0) return;
         const hasSlideshow = total > 1;
-
         let currentIndex = 0;
         let hoverTimeout = null;
         let slideInterval = null;
         let isHovering = false;
         let overlayActive = false;
-
         const track = container.querySelector('.carousel-track');
         const overlay = container.querySelector('.image-overlay');
         const counter = container.querySelector('.image-counter');
-
         function updateCounter() {
-            if (counter && !overlayActive) {
-                counter.textContent = `${currentIndex+1}/${actualTotal}`;
-            }
+            if (counter && !overlayActive) counter.textContent = `${currentIndex+1}/${actualTotal}`;
         }
         function goToSlide(index, animate = true) {
             if (!track) return;
@@ -179,7 +190,6 @@
             hideOverlay();
             if (total > 0) goToSlide(0, false);
         }
-
         card.addEventListener('mouseenter', () => {
             if (isHovering) return;
             isHovering = true;
@@ -197,21 +207,83 @@
         });
     });
 
-    // Filter drawer toggle (slide-in from right)
+    // ========== Filter drawer toggle ==========
     const filterDrawer = document.getElementById('filterDrawer');
     const openBtn = document.getElementById('openFilterBtn');
     const closeBtn = document.getElementById('closeFilterBtn');
-
-    openBtn.addEventListener('click', () => {
-        filterDrawer.classList.add('open');
-    });
-    closeBtn.addEventListener('click', () => {
-        filterDrawer.classList.remove('open');
-    });
-    // Close drawer when clicking outside (optional)
+    openBtn.addEventListener('click', () => filterDrawer.classList.add('open'));
+    closeBtn.addEventListener('click', () => filterDrawer.classList.remove('open'));
     filterDrawer.addEventListener('click', (e) => {
         if (e.target === filterDrawer) filterDrawer.classList.remove('open');
     });
-</script>
 
+    // ========== Category pills handling ==========
+    const categoryPills = document.querySelectorAll('.category-pill');
+    const selectedCategoriesInput = document.getElementById('selectedCategories');
+    let selectedCats = [];
+
+    function updateSelectedCategoriesInput() {
+        selectedCategoriesInput.value = selectedCats.join(',');
+    }
+    function setActivePills() {
+        categoryPills.forEach(pill => {
+            const cat = pill.getAttribute('data-cat');
+            if (cat === 'all') {
+                if (selectedCats.length === 0) pill.classList.add('active');
+                else pill.classList.remove('active');
+            } else {
+                if (selectedCats.includes(cat)) pill.classList.add('active');
+                else pill.classList.remove('active');
+            }
+        });
+    }
+    categoryPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            const cat = pill.getAttribute('data-cat');
+            if (cat === 'all') {
+                selectedCats = [];
+            } else {
+                if (selectedCats.includes(cat)) {
+                    selectedCats = selectedCats.filter(c => c !== cat);
+                } else {
+                    selectedCats.push(cat);
+                }
+            }
+            updateSelectedCategoriesInput();
+            setActivePills();
+        });
+    });
+    // Initialize from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoryParams = urlParams.getAll('category');
+    if (categoryParams.length > 0) {
+        selectedCats = categoryParams;
+    } else {
+        selectedCats = [];
+    }
+    updateSelectedCategoriesInput();
+    setActivePills();
+
+    // ========== Price formatting functions ==========
+    function limitPrice(input) {
+        let val = parseFloat(input.value);
+        if (isNaN(val)) return;
+        if (val > 9999999) input.value = 9999999;
+        if (input.value.includes('.')) {
+            let parts = input.value.split('.');
+            if (parts[1] && parts[1].length > 2) {
+                input.value = parseFloat(input.value).toFixed(2);
+            }
+        }
+    }
+    function formatPrice(input) {
+        if (input.value !== '') {
+            let val = parseFloat(input.value);
+            if (!isNaN(val)) {
+                if (val > 9999999) val = 9999999;
+                input.value = val.toFixed(2);
+            }
+        }
+    }
+</script>
 {% endblock %}

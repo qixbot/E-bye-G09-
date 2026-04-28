@@ -361,15 +361,18 @@ def search():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    # Get query parameters
     keyword = request.args.get('q', '').strip()
-    categories = request.args.getlist('category')
+    # categories can be comma-separated string (from hidden input) or multiple params
+    categories_raw = request.args.get('category', '')
+    categories = [c for c in categories_raw.split(',') if c] if categories_raw else []
     condition = request.args.get('condition')
     date_range = request.args.get('date_range')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
     min_price = request.args.get('min_price', type=float)
     max_price = request.args.get('max_price', type=float)
 
-    # Build the base query (only approved products)
+    # Base query
     query = """
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
@@ -378,28 +381,35 @@ def search():
     """
     params = []
 
-    # Keyword search (name or description)
+    # Keyword search
     if keyword:
         query += " AND (p.name LIKE ? OR p.description LIKE ?)"
-        like_term = f"%{keyword}%"
-        params.extend([like_term, like_term])
+        like = f"%{keyword}%"
+        params.extend([like, like])
 
-    # Category filter (multiple)
+    # Category filter
     if categories:
         placeholders = ','.join('?' for _ in categories)
         query += f" AND p.category IN ({placeholders})"
         params.extend(categories)
 
-    # Condition filter
+    # Condition
     if condition:
         query += " AND p.condition = ?"
         params.append(condition)
 
-    # Date range filter
+    # Date range – prioritise date_range if provided, else use custom dates
     if date_range and date_range.isdigit():
         days = int(date_range)
         query += " AND p.created_at >= datetime('now', ?)"
         params.append(f"-{days} days")
+    else:
+        if date_from:
+            query += " AND p.created_at >= ?"
+            params.append(date_from)
+        if date_to:
+            query += " AND p.created_at <= ?"
+            params.append(date_to + " 23:59:59")
 
     # Price range
     if min_price is not None:
@@ -415,7 +425,7 @@ def search():
     products_data = db.execute(query, params).fetchall()
     db.close()
 
-    # Process each product to get image list (same as home route)
+    # Process each product (same as home route)
     products = []
     for row in products_data:
         product = dict(row)
@@ -423,12 +433,7 @@ def search():
         if images_str:
             img_list = images_str.split(',')
             image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
-            image_only = []
-            for f in img_list:
-                f = f.strip()
-                ext = f.split('.')[-1].lower()
-                if ext in image_extensions:
-                    image_only.append(f)
+            image_only = [f for f in img_list if f.split('.')[-1].lower() in image_extensions]
             product['images_list'] = image_only[:3]
             product['actual_total'] = len(img_list)
             product['image_1'] = image_only[0] if image_only else None

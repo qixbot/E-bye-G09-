@@ -26,7 +26,7 @@
     background: #1a5c3a;
 }
 
-/* Slide-in drawer from right */
+/* Slide-in drawer that does NOT cover top navbar */
 .filter-drawer {
     position: fixed;
     top: 0;
@@ -35,7 +35,7 @@
     max-width: 450px;
     height: 100%;
     background: rgba(0,0,0,0.5);
-    z-index: 2000;
+    z-index: 1000;
     visibility: hidden;
     opacity: 0;
     transition: visibility 0.3s, opacity 0.3s;
@@ -46,10 +46,10 @@
 }
 .filter-drawer-content {
     position: absolute;
-    top: 0;
+    top: 90px;          /* below top navbar (height 90px) */
     right: 0;
     width: 100%;
-    height: 100%;
+    height: calc(100% - 90px);
     background: white;
     padding: 30px;
     overflow-y: auto;
@@ -81,23 +81,48 @@
     margin-bottom: 10px;
     color: #333;
 }
-.category-checkboxes {
+
+/* Category pills */
+.category-pills {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+    margin-bottom: 15px;
 }
-.category-checkboxes label {
-    font-weight: normal;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+.category-pill {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 50px;
+    padding: 8px 18px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #333;
 }
+.category-pill.active {
+    background-color: #00381f;
+    border-color: #00381f;
+    color: white;
+}
+
+/* Price range & custom date range */
 .price-range {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 .price-range input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+.date-range-custom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.date-range-custom input {
     flex: 1;
     padding: 8px 12px;
     border: 1px solid #ccc;
@@ -127,14 +152,16 @@
     color: #333;
     border: none;
 }
-.search-product-grid {
-    margin-top: 20px;
+.empty-products-state {
+    text-align: center;
+    margin-top: 40px;
+    margin-bottom: 20px;
 }
-/* Keep same product grid styles as home */
-.product-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+.empty-products-state p {
+    font-size: 0.95rem;
+    color: #777777;
+    line-height: 1.6;
+    margin: 0;
 }
 @media (max-width: 768px) {
     .product-grid {
