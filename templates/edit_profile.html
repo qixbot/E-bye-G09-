@@ -771,6 +771,7 @@ function switchSubTab(subtabName) {
 function loadListings() {
     const container = document.getElementById('listings-content');
     container.innerHTML = '<div class="ep-empty">📦 Loading your listings...</div>';
+    
     fetch('/api/user/listings', { credentials: 'same-origin' })
         .then(r => r.json())
         .then(data => {
@@ -780,11 +781,16 @@ function loadListings() {
             }
             container.innerHTML = data.map(p => `
                 <div class="listing-item">
-                    <span class="listing-emoji">${escapeHtml(p.emoji || '📦')}</span>
+                    <div class="listing-thumb">
+                        ${p.first_image ? 
+                            `<img src="/static/uploads/${p.first_image}" class="listing-img" alt="${escapeHtml(p.name)}">` : 
+                            `<div class="listing-emoji">${escapeHtml(p.emoji || '📦')}</div>`
+                        }
+                    </div>
                     <div style="flex:1">
                         <div class="listing-name">${escapeHtml(p.name)}</div>
                         <div class="listing-price">RM ${parseFloat(p.price).toFixed(2)}</div>
-                        <span class="listing-status ${escapeHtml(p.status)}">${escapeHtml(p.status || 'Active')}</span>
+                        <div class="listing-status ${escapeHtml(p.status)}">${escapeHtml(p.status || 'Active')}</div>
                     </div>
                     <div class="listing-actions">
                         <button class="edit-listing-btn" onclick="editListing(${p.id})">✏️ Edit</button>
@@ -793,9 +799,7 @@ function loadListings() {
                 </div>
             `).join('');
         })
-        .catch(() => {
-            container.innerHTML = '<div class="ep-empty">⚠️ Could not load listings.</div>';
-        });
+        
 }
 
 function loadPurchases() {

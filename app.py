@@ -693,10 +693,10 @@ def api_user_purchases():
 def api_user_listings():
     if 'user_id' not in session:
         return jsonify([])
-
+    
     db = get_db()
     rows = db.execute("""
-        SELECT id, name, price, status, created_at,
+        SELECT id, name, price, status, created_at, images,
                CASE category
                    WHEN 'books' THEN '📚'
                    WHEN 'gadgets' THEN '💻'
@@ -711,9 +711,19 @@ def api_user_listings():
         ORDER BY created_at DESC
     """, (session['user_id'],)).fetchall()
     db.close()
-
-    return jsonify([dict(row) for row in rows])
-
+    
+    listings = []
+    for row in rows:
+        item = dict(row)
+        images_str = item.get('images', '')
+        if images_str:
+            img_list = images_str.split(',')
+            item['first_image'] = img_list[0]  # Get first image
+        else:
+            item['first_image'] = None
+        listings.append(item)
+    
+    return jsonify(listings)
 
 # ============================================================
 # PRODUCT API FOR EDIT/DELETE

@@ -58,24 +58,20 @@
             <div class="price">RM {{ "%.2f"|format(product.price) }}</div>
 
             <div class="seller-info">
-                <div class="seller-details">
-                    <a href="{{ url_for('user_profile', user_id=product.seller_id) }}" class="seller-link">
-                        <div class="seller-avatar">
-                            {% if product.seller_avatar %}
-                                <img src="{{ url_for('static', filename='uploads/' + product.seller_avatar) }}" alt="Seller avatar">
-                            {% else %}
-                                <div class="avatar-placeholder">{{ product.seller_name[0].upper() }}</div>
-                            {% endif %}
-                        </div>
-                    </a>
-                    <a href="{% if product.seller_id == session.user_id %}{{ url_for('edit_profile') }}{% else %}{{ url_for('user_profile', user_id=product.seller_id) }}{% endif %}" class="seller-text-link">
-                        <div class="seller-text">
-                            <div class="seller-fullname">{{ product.seller_full_name or product.seller_name }}</div>
-                            <div class="seller-username">@{{ product.seller_name }}</div>
-                        </div>
-                    </a>
-                </div>
-                <div class="upload-date">Posted on {{ product.created_at.split(' ')[0] }}</div>
+            <div class="seller-details">
+                 <a href="{{ url_for('user_profile', user_id=product.seller_id) }}" class="seller-link">
+                 <div class="seller-avatar">
+                 <img src="{{ url_for('user_avatar', user_id=product.seller_id) }}" alt="Seller avatar">
+             </div>
+             </a>
+             <a href="{% if product.seller_id == session.user_id %}{{ url_for('edit_profile') }}{% else %}{{ url_for('user_profile', user_id=product.seller_id) }}{% endif %}" class="seller-text-link">
+             <div class="seller-text">
+                <div class="seller-fullname">{{ product.seller_full_name or product.seller_name }}</div>
+                <div class="seller-username">@{{ product.seller_name }}</div>
+            </div>
+        </a>
+    </div>
+            <div class="upload-date">Posted on {{ product.created_at.split(' ')[0] }}</div>
             </div>
 
             <div class="description">

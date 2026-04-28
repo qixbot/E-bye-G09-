@@ -1968,6 +1968,28 @@ body {
     color: #d63c2c;
 }
 
+.listing-thumb {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--parch);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.listing-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.listing-emoji {
+    font-size: 28px;
+}
+
 .edit-listing-btn,
 .delete-listing-btn {
     background: none;
