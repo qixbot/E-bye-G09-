@@ -44,32 +44,34 @@
                 <!-- Condition -->
                 <div class="filter-group">
                     <label>Condition</label>
-                    <select name="condition">
-                        <option value="">Any</option>
-                        <option value="like_new" {% if request.args.get('condition') == 'like_new' %}selected{% endif %}>Like New</option>
-                        <option value="good" {% if request.args.get('condition') == 'good' %}selected{% endif %}>Good</option>
-                        <option value="fair" {% if request.args.get('condition') == 'fair' %}selected{% endif %}>Fair</option>
-                    </select>
+                    <div class="condition-pills" id="conditionPills">
+                        <button type="button" class="pill" data-condition="">Any</button>
+                        <button type="button" class="pill" data-condition="like_new">Like New</button>
+                        <button type="button" class="pill" data-condition="good">Good</button>
+                        <button type="button" class="pill" data-condition="fair">Fair</button>
+                    </div>
+                    <input type="hidden" name="condition" id="selectedCondition" value="">
                 </div>
 
                 <!-- Date range (quick) -->
                 <div class="filter-group">
                     <label>Date range (quick)</label>
-                    <select name="date_range">
-                        <option value="">Any time</option>
-                        <option value="7" {% if request.args.get('date_range') == '7' %}selected{% endif %}>Last 7 days</option>
-                        <option value="30" {% if request.args.get('date_range') == '30' %}selected{% endif %}>Last 30 days</option>
-                        <option value="365" {% if request.args.get('date_range') == '365' %}selected{% endif %}>Last year</option>
-                    </select>
+                    <div class="daterange-pills" id="daterangePills">
+                        <button type="button" class="pill" data-days="">Any time</button>
+                        <button type="button" class="pill" data-days="7">Last 7 days</button>
+                        <button type="button" class="pill" data-days="30">Last 30 days</button>
+                        <button type="button" class="pill" data-days="365">Last year</button>
+                    </div>
+                    <input type="hidden" name="date_range" id="selectedDateRange" value="">
                 </div>
 
                 <!-- Custom date range -->
                 <div class="filter-group">
                     <label>Custom date range</label>
                     <div class="date-range-custom">
-                        <input type="date" name="date_from" value="{{ request.args.get('date_from', '') }}" placeholder="From">
+                        <input type="text" name="date_from" placeholder="DD/MM/YYYY" value="{{ request.args.get('date_from', '') }}" class="date-input">
                         <span>to</span>
-                        <input type="date" name="date_to" value="{{ request.args.get('date_to', '') }}" placeholder="To">
+                        <input type="text" name="date_to" placeholder="DD/MM/YYYY" value="{{ request.args.get('date_to', '') }}" class="date-input">
                     </div>
                 </div>
 
@@ -263,6 +265,115 @@
     }
     updateSelectedCategoriesInput();
     setActivePills();
+
+    // Condition pills handling
+    const conditionPills = document.querySelectorAll('#conditionPills .pill');
+    const conditionInput = document.getElementById('selectedCondition');
+    let selectedCondition = '{{ request.args.get('condition', '') }}';
+
+    function updateConditionPills() {
+        conditionPills.forEach(pill => {
+            const val = pill.getAttribute('data-condition');
+            if (val === selectedCondition) pill.classList.add('active');
+            else pill.classList.remove('active');
+        });
+    }
+    conditionPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            const val = pill.getAttribute('data-condition');
+            selectedCondition = val;
+            conditionInput.value = val;
+            updateConditionPills();
+        });
+    });
+    // Initialize from URL
+    conditionInput.value = selectedCondition;
+    updateConditionPills();
+
+    // Date range pills handling + clear custom date inputs
+    const daterangePills = document.querySelectorAll('#daterangePills .pill');
+    const daterangeInput = document.getElementById('selectedDateRange');
+    const dateFromInput = document.querySelector('input[name="date_from"]');
+    const dateToInput = document.querySelector('input[name="date_to"]');
+
+    let selectedDays = '{{ request.args.get('date_range', '') }}';
+
+    function updateDateRangePills() {
+        daterangePills.forEach(pill => {
+            const days = pill.getAttribute('data-days');
+            if (days === selectedDays) pill.classList.add('active');
+            else pill.classList.remove('active');
+        });
+    }
+    daterangePills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            const days = pill.getAttribute('data-days');
+            selectedDays = days;
+            daterangeInput.value = days;
+            // Clear custom date inputs when a quick range is selected
+            if (dateFromInput) dateFromInput.value = '';
+            if (dateToInput) dateToInput.value = '';
+            updateDateRangePills();
+        });
+    });
+    // Initialize from URL
+    daterangeInput.value = selectedDays;
+    updateDateRangePills();
+
+    // When custom date inputs change, clear the quick range selection
+    if (dateFromInput && dateToInput) {
+        const clearQuickRange = () => {
+            selectedDays = '';
+            daterangeInput.value = '';
+            updateDateRangePills();
+        };
+        dateFromInput.addEventListener('change', clearQuickRange);
+        dateToInput.addEventListener('change', clearQuickRange);
+    }
+
+    // Convert DD/MM/YYYY to YYYY-MM-DD
+    function convertToISO(dateStr) {
+        if (!dateStr) return '';
+        let parts = dateStr.split('/');
+        if (parts.length === 3) {
+            let day = parts[0].padStart(2, '0');
+            let month = parts[1].padStart(2, '0');
+            let year = parts[2];
+            if (year.length === 4 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                return `${year}-${month}-${day}`;
+            }
+        }
+        return '';
+    }
+
+    // Intercept form submission to convert date fields
+    const filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+        filterForm.addEventListener('submit', function(e) {
+            const fromInput = document.querySelector('input[name="date_from"]');
+            const toInput = document.querySelector('input[name="date_to"]');
+            
+            if (fromInput && fromInput.value) {
+                const iso = convertToISO(fromInput.value);
+                // Replace the original input with a hidden one in ISO format
+                const hiddenFrom = document.createElement('input');
+                hiddenFrom.type = 'hidden';
+                hiddenFrom.name = 'date_from';
+                hiddenFrom.value = iso;
+                fromInput.removeAttribute('name');
+                this.appendChild(hiddenFrom);
+            }
+            if (toInput && toInput.value) {
+                const iso = convertToISO(toInput.value);
+                const hiddenTo = document.createElement('input');
+                hiddenTo.type = 'hidden';
+                hiddenTo.name = 'date_to';
+                hiddenTo.value = iso;
+                toInput.removeAttribute('name');
+                this.appendChild(hiddenTo);
+            }
+        });
+    }
 
     // ========== Price formatting functions ==========
     function limitPrice(input) {
