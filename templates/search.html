@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='search.css') }}">
+
+<div class="search-page-wrapper">
+    <!-- Header with filter button -->
+    <div class="search-header">
+        <h2>Search Results</h2>
+        <button class="filter-btn" id="openFilterBtn">🔍 Filters</button>
+    </div>
+
+    <!-- Filter drawer (slide-in from right) -->
+    <div id="filterDrawer" class="filter-drawer">
+        <div class="filter-drawer-content">
+            <div class="filter-drawer-header">
+                <h3>Filter Products</h3>
+                <button class="close-drawer" id="closeFilterBtn">&times;</button>
+            </div>
+            <form method="GET" action="{{ url_for('search') }}" id="filterForm">
+                <!-- Preserve the search keyword -->
+                <input type="hidden" name="q" value="{{ request.args.get('q', '') }}">
+                
+                <!-- Category (multi‑select checkboxes) -->
+                <div class="filter-group">
+                    <label>Categories</label>
+                    <div class="category-checkboxes">
+                        {% set categories = ['books','gadgets','dorm','fashion','beauty','sports','groceries','stationery','music','others'] %}
+                        {% set selected_cats = request.args.getlist('category') %}
+                        {% for cat in categories %}
+                            <label>
+                                <input type="checkbox" name="category" value="{{ cat }}"
+                                       {% if cat in selected_cats %}checked{% endif %}>
+                                {{ cat | capitalize }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Condition (radio) -->
+                <div class="filter-group">
+                    <label>Condition</label>
+                    <select name="condition">
+                        <option value="">Any</option>
+                        <option value="like_new" {% if request.args.get('condition') == 'like_new' %}selected{% endif %}>Like New</option>
+                        <option value="good" {% if request.args.get('condition') == 'good' %}selected{% endif %}>Good</option>
+                        <option value="fair" {% if request.args.get('condition') == 'fair' %}selected{% endif %}>Fair</option>
+                    </select>
+                </div>
+
+                <!-- Date range (radio) -->
+                <div class="filter-group">
+                    <label>Posted within</label>
+                    <select name="date_range">
+                        <option value="">Any time</option>
+                        <option value="7" {% if request.args.get('date_range') == '7' %}selected{% endif %}>Last 7 days</option>
+                        <option value="30" {% if request.args.get('date_range') == '30' %}selected{% endif %}>Last 30 days</option>
+                        <option value="365" {% if request.args.get('date_range') == '365' %}selected{% endif %}>Last year</option>
+                    </select>
+                </div>
+
+                <!-- Price range -->
+                <div class="filter-group">
+                    <label>Price range (RM)</label>
+                    <div class="price-range">
+                        <input type="number" name="min_price" placeholder="Min" step="0.01" value="{{ request.args.get('min_price', '') }}">
+                        <span>–</span>
+                        <input type="number" name="max_price" placeholder="Max" step="0.01" value="{{ request.args.get('max_price', '') }}">
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn-apply">Apply Filters</button>
+                    <a href="{{ url_for('search') }}" class="btn-reset">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Products grid -->
+    <div class="product-grid search-product-grid">
+        {% if products %}
+            {% for product in products %}
+                {% include '_product_card.html' %}
+            {% endfor %}
+        {% else %}
+            <div class="empty-products-state">
+                <p>No products found. Try different keywords or filters.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Carousel script (copy exactly from home.html)
+    document.querySelectorAll('.product-card').forEach(card => {
+        const container = card.querySelector('.product-image-container');
+        if (!container) return;
+
+        let images = [];
+        try { images = JSON.parse(container.dataset.images); } catch(e) { images = []; }
+        const total = parseInt(container.dataset.total);
+        const actualTotal = parseInt(container.dataset.actualTotal);
+        if (total === 0) return;
+        const hasSlideshow = total > 1;
+
+        let currentIndex = 0;
+        let hoverTimeout = null;
+        let slideInterval = null;
+        let isHovering = false;
+        let overlayActive = false;
+
+        const track = container.querySelector('.carousel-track');
+        const overlay = container.querySelector('.image-overlay');
+        const counter = container.querySelector('.image-counter');
+
+        function updateCounter() {
+            if (counter && !overlayActive) {
+                counter.textContent = `${currentIndex+1}/${actualTotal}`;
+            }
+        }
+        function goToSlide(index, animate = true) {
+            if (!track) return;
+            track.style.transition = animate ? 'transform 0.4s ease-in-out' : 'none';
+            const offset = - (index * 100);
+            track.style.transform = `translateX(${offset}%)`;
+            currentIndex = index;
+            updateCounter();
+        }
+        function showOverlay() {
+            if (overlay) {
+                overlay.classList.add('show');
+                overlayActive = true;
+                if (counter) counter.style.display = 'none';
+            }
+        }
+        function hideOverlay() {
+            if (overlay) {
+                overlay.style.transition = 'none';
+                overlay.classList.remove('show');
+                overlayActive = false;
+                if (counter) counter.style.display = '';
+                updateCounter();
+                void overlay.offsetHeight;
+                overlay.style.transition = '';
+            }
+        }
+        function nextSlide() {
+            if (!isHovering) return;
+            if (overlayActive) return;
+            if (!hasSlideshow) return;
+            const next = currentIndex + 1;
+            if (next < total) {
+                goToSlide(next, true);
+            } else if (next === total) {
+                showOverlay();
+                if (slideInterval) clearInterval(slideInterval);
+                slideInterval = null;
+            }
+        }
+        function startSlideshow() {
+            if (!hasSlideshow) return;
+            if (slideInterval) clearInterval(slideInterval);
+            slideInterval = setInterval(() => {
+                if (isHovering && !overlayActive) nextSlide();
+            }, 2500);
+        }
+        function stopSlideshow() {
+            if (slideInterval) {
+                clearInterval(slideInterval);
+                slideInterval = null;
+            }
+        }
+        function resetToFirst() {
+            stopSlideshow();
+            isHovering = false;
+            clearTimeout(hoverTimeout);
+            hideOverlay();
+            if (total > 0) goToSlide(0, false);
+        }
+
+        card.addEventListener('mouseenter', () => {
+            if (isHovering) return;
+            isHovering = true;
+            if (currentIndex !== 0) goToSlide(0, false);
+            hideOverlay();
+            hoverTimeout = setTimeout(() => {
+                if (isHovering) {
+                    if (hasSlideshow) startSlideshow();
+                    else showOverlay();
+                }
+            }, 1000);
+        });
+        card.addEventListener('mouseleave', () => {
+            resetToFirst();
+        });
+    });
+
+    // Filter drawer toggle (slide-in from right)
+    const filterDrawer = document.getElementById('filterDrawer');
+    const openBtn = document.getElementById('openFilterBtn');
+    const closeBtn = document.getElementById('closeFilterBtn');
+
+    openBtn.addEventListener('click', () => {
+        filterDrawer.classList.add('open');
+    });
+    closeBtn.addEventListener('click', () => {
+        filterDrawer.classList.remove('open');
+    });
+    // Close drawer when clicking outside (optional)
+    filterDrawer.addEventListener('click', (e) => {
+        if (e.target === filterDrawer) filterDrawer.classList.remove('open');
+    });
+</script>
+
+{% endblock %}

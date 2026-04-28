@@ -75,49 +75,9 @@
         {% if latest_products %}
             
             <div class="product-grid">
-                
                 {% for product in latest_products %}
-                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-card">
-                    <div class="product-image-container" 
-                        data-images='{{ product.images_list[:3] | tojson }}'
-                        data-total="{{ product.images_list[:3]|length }}"
-                        data-actual-total="{{ product.actual_total }}">
-
-                        <span class="condition-badge">{{ product.condition }}</span>
-                        
-                        <!-- Carousel track -->
-                        <div class="carousel-window">
-                            <div class="carousel-track">
-                                {% if product.images_list[:3] %}
-                                    {% for img in product.images_list[:3] %}
-                                        <img src="{{ url_for('static', filename='uploads/' ~ img) }}" class="carousel-img" alt="{{ product.name }}">
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="carousel-placeholder">No preview available</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <!-- Overlay that slides in after last image -->
-                        <div class="image-overlay">
-                            <div class="overlay-text">👆 Tap to see more →</div>
-                        </div>
-                        
-                        <div class="image-counter">1/{{ product.actual_total }}</div>
-                    </div>
-                    <div class="product-info">
-                        <h4 class="product-name">{{ product.name }}</h4>
-                        <div class="product-price">RM {{ "%.2f"|format(product.price) }}</div>
-                        <div class="product-seller">
-                            <img src="{{ url_for('user_avatar', user_id=product.seller_id) }}" class="seller-icon-img"
-                                onerror="this.onerror=null; this.src=''; this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-                            <span class="seller-icon-placeholder" style="display: none;">{{ product.seller_name[0].upper() }}</span>
-                            <span class="seller-name">{{ product.seller_full_name or product.seller_name }}</span>
-                        </div>
-                    </div>
-                </a>
+                    {% include '_product_card.html' %}
                 {% endfor %}
-
             </div>
 
             <div class="bottom-search-link">

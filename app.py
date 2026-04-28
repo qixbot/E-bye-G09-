@@ -355,6 +355,93 @@ def home():
     return render_template('home.html',
                            username=session.get('username'), latest_products=products)
 
+#Xingru's Route - Search with filters
+@app.route('/search')
+def search():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # Get query parameters
+    keyword = request.args.get('q', '').strip()
+    categories = request.args.getlist('category')
+    condition = request.args.get('condition')
+    date_range = request.args.get('date_range')
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
+
+    # Build the base query (only approved products)
+    query = """
+        SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
+        FROM products p
+        JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'approved'
+    """
+    params = []
+
+    # Keyword search (name or description)
+    if keyword:
+        query += " AND (p.name LIKE ? OR p.description LIKE ?)"
+        like_term = f"%{keyword}%"
+        params.extend([like_term, like_term])
+
+    # Category filter (multiple)
+    if categories:
+        placeholders = ','.join('?' for _ in categories)
+        query += f" AND p.category IN ({placeholders})"
+        params.extend(categories)
+
+    # Condition filter
+    if condition:
+        query += " AND p.condition = ?"
+        params.append(condition)
+
+    # Date range filter
+    if date_range and date_range.isdigit():
+        days = int(date_range)
+        query += " AND p.created_at >= datetime('now', ?)"
+        params.append(f"-{days} days")
+
+    # Price range
+    if min_price is not None:
+        query += " AND p.price >= ?"
+        params.append(min_price)
+    if max_price is not None:
+        query += " AND p.price <= ?"
+        params.append(max_price)
+
+    query += " ORDER BY p.created_at DESC"
+
+    db = get_db()
+    products_data = db.execute(query, params).fetchall()
+    db.close()
+
+    # Process each product to get image list (same as home route)
+    products = []
+    for row in products_data:
+        product = dict(row)
+        images_str = product.get('images', '')
+        if images_str:
+            img_list = images_str.split(',')
+            image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
+            image_only = []
+            for f in img_list:
+                f = f.strip()
+                ext = f.split('.')[-1].lower()
+                if ext in image_extensions:
+                    image_only.append(f)
+            product['images_list'] = image_only[:3]
+            product['actual_total'] = len(img_list)
+            product['image_1'] = image_only[0] if image_only else None
+            product['image_2'] = image_only[1] if len(image_only) > 1 else None
+        else:
+            product['images_list'] = []
+            product['actual_total'] = 0
+            product['image_1'] = None
+            product['image_2'] = None
+        products.append(product)
+
+    return render_template('search.html', products=products)
+
 @app.route('/logout')
 
 

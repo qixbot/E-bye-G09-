@@ -18,9 +18,9 @@
             <span class="site-name">E-bye</span>
         </a>
         
-        <form action="#" method="GET" class="nav-search">
+        <form action="{{ url_for('search') }}" method="GET" class="nav-search">
             <span class="search-icon">🔍</span>
-            <input type="text" name="query" placeholder="Search textbooks, dorm items, gadgets..." class="search-input">
+            <input type="text" name="q" placeholder="Search textbooks, dorm items, gadgets..." class="search-input" value="{{ request.args.get('q', '') }}">
         </form>
         
         <div class="nav-profile">
