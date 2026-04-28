@@ -26,7 +26,7 @@
     background: #1a5c3a;
 }
 
-/* Slide-in drawer that does NOT cover top navbar */
+/* Slide-in drawer */
 .filter-drawer {
     position: fixed;
     top: 0;
@@ -34,17 +34,16 @@
     width: 100%;
     max-width: 450px;
     height: 100%;
-    background: transparent;   /* no dark overlay – navbar remains clickable */
+    background: transparent;
     z-index: 1000;
     visibility: hidden;
     opacity: 0;
     transition: visibility 0.3s, opacity 0.3s;
-    pointer-events: none;      /* allow clicking through the transparent area */
+    pointer-events: none;    /* allow clicks to pass through to navbar */
 }
 .filter-drawer.open {
     visibility: visible;
     opacity: 1;
-    pointer-events: auto;
 }
 .filter-drawer-content {
     position: absolute;
@@ -176,20 +175,19 @@
     color: #333;
     border: none;
 }
-.empty-products-state {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: calc(100vh - 150px); /* 90px top navbar + 60px bottom navbar = 150px */
+.search-page-wrapper .empty-state-full {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
     text-align: center;
+    z-index: 10;
+    pointer-events: none;
+}
+.empty-products-state {
     font-size: 1.2rem;
     color: #777;
-}
-.empty-products-state p {
-    font-size: 0.95rem;
-    color: #777777;
-    line-height: 1.6;
-    margin: 0;
 }
 @media (max-width: 768px) {
     .product-grid {
