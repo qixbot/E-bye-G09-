@@ -340,13 +340,21 @@ def search():
         return redirect(url_for('login'))
 
     keyword = request.args.get('q', '').strip()
-    # categories can be comma-separated string (from hidden input) or multiple params
+    
+    # Categories (comma-separated from hidden input)
     categories_raw = request.args.get('category', '')
     if categories_raw:
         categories = [c.strip() for c in categories_raw.split(',') if c.strip()]
     else:
         categories = []
-    condition = request.args.get('condition')
+    
+    # Condition (multi-select, comma-separated)
+    condition_raw = request.args.get('condition', '')
+    if condition_raw:
+        conditions = [c.strip() for c in condition_raw.split(',') if c.strip()]
+    else:
+        conditions = []
+    
     date_range = request.args.get('date_range')
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
@@ -374,10 +382,11 @@ def search():
         query += f" AND p.category IN ({placeholders})"
         params.extend(categories)
 
-    # Condition
-    if condition:
-        query += " AND p.condition = ?"
-        params.append(condition)
+    # Condition filter (multi)
+    if conditions:
+        placeholders = ','.join('?' for _ in conditions)
+        query += f" AND p.condition IN ({placeholders})"
+        params.extend(conditions)
 
     # Date range – prioritise date_range if provided, else use custom dates
     if date_range and date_range.isdigit():
@@ -400,15 +409,8 @@ def search():
         query += " AND p.price <= ?"
         params.append(max_price)
 
+    # Sorting
     sort_by = request.args.get('sort', 'newest')
-
-    # Condition mapping for custom order
-    condition_order = {
-        'like_new': 1,
-        'good': 2,
-        'fair': 3
-    }
-
     if sort_by == 'newest':
         order_clause = "ORDER BY p.created_at DESC"
     elif sort_by == 'oldest':
@@ -418,19 +420,17 @@ def search():
     elif sort_by == 'price_desc':
         order_clause = "ORDER BY p.price DESC, p.created_at DESC"
     elif sort_by == 'condition_asc':
-        # Custom order: like_new (1) → good (2) → fair (3)
-        order_clause = "ORDER BY CASE p.condition " + \
-                    "WHEN 'like_new' THEN 1 " + \
-                    "WHEN 'good' THEN 2 " + \
-                    "WHEN 'fair' THEN 3 END ASC, p.created_at DESC"
+        order_clause = "ORDER BY CASE p.condition " \
+                       "WHEN 'like_new' THEN 1 " \
+                       "WHEN 'good' THEN 2 " \
+                       "WHEN 'fair' THEN 3 END ASC, p.created_at DESC"
     elif sort_by == 'condition_desc':
-        order_clause = "ORDER BY CASE p.condition " + \
-                    "WHEN 'like_new' THEN 1 " + \
-                    "WHEN 'good' THEN 2 " + \
-                    "WHEN 'fair' THEN 3 END DESC, p.created_at DESC"
+        order_clause = "ORDER BY CASE p.condition " \
+                       "WHEN 'like_new' THEN 1 " \
+                       "WHEN 'good' THEN 2 " \
+                       "WHEN 'fair' THEN 3 END DESC, p.created_at DESC"
     else:
         order_clause = "ORDER BY p.created_at DESC"
-
     query += " " + order_clause
 
     db = get_db()

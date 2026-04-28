@@ -10,7 +10,17 @@
         {% set filters = [] %}
         {% if request.args.get('q') %}{% set _ = filters.append('Keyword: ' + request.args.get('q')) %}{% endif %}
         {% if request.args.get('category') %}{% set _ = filters.append('Category: ' + request.args.get('category')) %}{% endif %}
-        {% if request.args.get('condition') %}{% set _ = filters.append('Condition: ' + request.args.get('condition')|replace('_', ' ')|title) %}{% endif %}
+        {% if request.args.get('condition') %}
+            {% set condition_vals = request.args.get('condition').split(',') %}
+            {% set condition_labels = [] %}
+            {% for c in condition_vals %}
+                {% if c == 'like_new' %}{% set _ = condition_labels.append('Like New') %}
+                {% elif c == 'good' %}{% set _ = condition_labels.append('Good') %}
+                {% elif c == 'fair' %}{% set _ = condition_labels.append('Fair') %}
+                {% endif %}
+            {% endfor %}
+            {% set _ = filters.append('Condition: ' + condition_labels | join(', ')) %}
+        {% endif %}
         {% if request.args.get('date_range') %}
             {% set days = request.args.get('date_range') %}
             {% if days == '7' %}{% set _ = filters.append('Last 7 days') %}
@@ -83,12 +93,12 @@
                 <div class="filter-group">
                     <label>Condition</label>
                     <div class="condition-pills" id="conditionPills">
-                        <button type="button" class="pill" data-condition="">Any</button>
+                        <button type="button" class="pill" data-condition="all">All Conditions</button>
                         <button type="button" class="pill" data-condition="like_new">Like New</button>
                         <button type="button" class="pill" data-condition="good">Good</button>
                         <button type="button" class="pill" data-condition="fair">Fair</button>
                     </div>
-                    <input type="hidden" name="condition" id="selectedCondition" value="">
+                    <input type="hidden" name="condition" id="selectedConditions" value="">
                 </div>
 
                 <!-- Date range (quick) -->
@@ -312,28 +322,59 @@
     updateSelectedCategoriesInput();
     setActivePills();
 
-    // Condition pills handling
+    // Condition pills handling (multi-select with "All Conditions")
     const conditionPills = document.querySelectorAll('#conditionPills .pill');
-    const conditionInput = document.getElementById('selectedCondition');
-    let selectedCondition = '{{ request.args.get('condition', '') }}';
+    const conditionsInput = document.getElementById('selectedConditions');
+    let selectedConditions = [];
 
     function updateConditionPills() {
         conditionPills.forEach(pill => {
             const val = pill.getAttribute('data-condition');
-            if (val === selectedCondition) pill.classList.add('active');
-            else pill.classList.remove('active');
+            if (val === 'all') {
+                // 'All Conditions' is active only when no other condition is selected
+                if (selectedConditions.length === 0) {
+                    pill.classList.add('active');
+                } else {
+                    pill.classList.remove('active');
+                }
+            } else {
+                if (selectedConditions.includes(val)) {
+                    pill.classList.add('active');
+                } else {
+                    pill.classList.remove('active');
+                }
+            }
         });
+        conditionsInput.value = selectedConditions.join(',');
     }
+
     conditionPills.forEach(pill => {
         pill.addEventListener('click', () => {
             const val = pill.getAttribute('data-condition');
-            selectedCondition = val;
-            conditionInput.value = val;
+            if (val === 'all') {
+                // Clear all selected conditions
+                selectedConditions = [];
+            } else {
+                // If 'All Conditions' is active, deactivate it first
+                if (selectedConditions.length === 0) {
+                    selectedConditions = [val];
+                } else {
+                    if (selectedConditions.includes(val)) {
+                        selectedConditions = selectedConditions.filter(c => c !== val);
+                    } else {
+                        selectedConditions.push(val);
+                    }
+                }
+            }
             updateConditionPills();
         });
     });
-    // Initialize from URL
-    conditionInput.value = selectedCondition;
+
+    // Initialize from URL (parse comma-separated condition parameter)
+    const urlCondition = '{{ request.args.get('condition', '') }}';
+    if (urlCondition) {
+        selectedConditions = urlCondition.split(',');
+    }
     updateConditionPills();
 
     // Date range pills handling + clear custom date inputs
