@@ -341,8 +341,10 @@ def home():
                 ext = f.split('.')[-1].lower()
                 if ext in image_extensions:
                     image_only.append(f)
-            product['images_list'] = image_only[:3]      # for carousel (only images)
-            product['actual_total'] = len(img_list)      # total media (including videos)
+            product['images_list'] = image_only[:3]     
+            # for carousel (only images)
+            product['actual_total'] = len(img_list)      
+            # total media (including videos)
             product['image_1'] = image_only[0] if len(image_only) > 0 else None
             product['image_2'] = image_only[1] if len(image_only) > 1 else None
         else:
@@ -367,7 +369,7 @@ def logout():
 # ============================================================
 # AVATAR ROUTES - Store as BLOB in database
 # ============================================================
-
+# Eileen's Route - Avatar image
 @app.route('/avatar-image')
 
 def avatar_image():
@@ -389,7 +391,7 @@ def avatar_image():
 
 
 @app.route('/update-profile-avatar', methods=['POST'])
-
+# Eileen's Route - Update avatar image
 def update_profile_avatar():
     """Upload avatar and store directly as BLOB in database"""
     if 'user_id' not in session:
@@ -419,6 +421,7 @@ def update_profile_avatar():
 
 #added by Xingru - public route to serve avatar by user_id (for displaying other users' avatars)
 @app.route('/user-avatar/<int:user_id>')
+
 def user_avatar(user_id):
     db = get_db()
     user = db.execute('SELECT avatar_blob FROM users WHERE id = ?', (user_id,)).fetchone()
@@ -435,7 +438,7 @@ def user_avatar(user_id):
 # ============================================================
 
 @app.route('/cover-image')
-
+# Eileen's Route - Upload custom cover image
 def cover_image():
     """Serve cover image from database BLOB - PERSISTENT storage"""
     if 'user_id' not in session:
@@ -487,9 +490,8 @@ def update_cover():
 # ============================================================
 # BACKGROUND ROUTES - Store as TEXT in database
 # ============================================================
-
+# Eileen's Route - Save custom background image
 @app.route('/save-background-preset', methods=['POST'])
-
 def save_background_preset():
     """Save background preset (color/gradient) - PERSISTENT storage"""
     if 'user_id' not in session:
@@ -510,7 +512,7 @@ def save_background_preset():
 
 
 @app.route('/upload-background', methods=['POST'])
-
+# Eileen's Route - Upload custom background image 
 def upload_background():
     """Upload custom background image and store as data URL in database"""
     if 'user_id' not in session:
@@ -572,7 +574,7 @@ def api_user_background():
 # ============================================================
 # API ENDPOINTS
 # ============================================================
-
+# Eileen's Route - Api for purchase
 @app.route('/api/user/purchases')
 
 def api_user_purchases():
@@ -582,7 +584,7 @@ def api_user_purchases():
 
 
 @app.route('/api/user/listings')
-
+# Eileen's Route - Api for listing
 def api_user_listings():
     if 'user_id' not in session:
         return jsonify([])
@@ -607,6 +609,111 @@ def api_user_listings():
     
     return jsonify([dict(row) for row in rows])
 
+# ============================================================
+# PRODUCT API FOR EDIT/DELETE
+# ============================================================
+
+@app.route('/api/product/<int:product_id>')
+# Eileen's Route - Get product
+def api_get_product(product_id):
+    """Get product details for editing"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    product = db.execute('''
+        SELECT id, name, price, description, condition, category, status
+        FROM products 
+        WHERE id = ? AND seller_id = ?
+    ''', (product_id, session['user_id'])).fetchone()
+    db.close()
+    
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+    
+    return jsonify(dict(product))
+
+
+@app.route('/api/product/<int:product_id>/update', methods=['PUT'])
+# Eileen's Route - Update product 
+def api_update_product(product_id):
+    """Update product details"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    
+    name = data.get('name', '').strip()
+    price = data.get('price', 0)
+    description = data.get('description', '').strip()
+    condition = data.get('condition', '')
+    category = data.get('category', '')
+    
+    errors = []
+    if not name:
+        errors.append('Name is required')
+    if price <= 0:
+        errors.append('Valid price is required')
+    if not description:
+        errors.append('Description is required')
+    
+    if errors:
+        return jsonify({'success': False, 'error': ', '.join(errors)}), 400
+    
+    db = get_db()
+    
+    # Verify product belongs to user
+    product = db.execute('SELECT id FROM products WHERE id = ? AND seller_id = ?', 
+                         (product_id, session['user_id'])).fetchone()
+    if not product:
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # Update product (status becomes pending again for admin review)
+    db.execute('''
+        UPDATE products 
+        SET name = ?, price = ?, description = ?, condition = ?, category = ?, status = 'pending'
+        WHERE id = ?
+    ''', (name, price, description, condition, category, product_id))
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+
+@app.route('/api/product/<int:product_id>/delete', methods=['DELETE'])
+# Eileen's Route - Delete product
+def api_delete_product(product_id):
+    """Delete a product listing"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    
+    # Verify product belongs to user
+    product = db.execute('SELECT id, name, images FROM products WHERE id = ? AND seller_id = ?', 
+                         (product_id, session['user_id'])).fetchone()
+    if not product:
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # Delete associated images from filesystem
+    if product['images']:
+        import os
+        for img in product['images'].split(','):
+            img_path = os.path.join('static/uploads', img)
+            if os.path.exists(img_path):
+                try:
+                    os.remove(img_path)
+                except:
+                    pass
+    
+    # Delete product from database
+    db.execute('DELETE FROM products WHERE id = ?', (product_id,))
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
 
 # Eileen's Route - Edit Profile
 @app.route('/edit_profile', methods=['GET'])
@@ -1087,6 +1194,7 @@ def admin_products():
                            rejected_list=rejected)
 # 审核通过商品
 @app.route('/admin/product/approve/<int:pid>')
+
 def approve_product(pid):
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
@@ -1119,6 +1227,7 @@ def approve_product(pid):
 
 # 驳回商品 + 填写理由
 @app.route('/admin/product/reject/<int:pid>', methods=['POST'])
+
 def reject_product(pid):
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
@@ -1147,6 +1256,7 @@ def reject_product(pid):
 
 # Admin 弹窗专用 拿商品完整信息
 @app.route('/admin/api/product/<int:pid>')
+
 def admin_get_product_info(pid):
     if not session.get('admin_logged_in'):
         return {"error": "no permission"}, 403
@@ -1426,6 +1536,7 @@ def product_detail(product_id):
 
 #Xingru's Route ------Temporary route for testing product page only
 @app.route('/user/<int:user_id>')
+
 def user_profile(user_id):
     if 'user_id' not in session:
         flash('Please login to view profiles.', 'error')

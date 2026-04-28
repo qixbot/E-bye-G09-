@@ -105,66 +105,67 @@
     <!-- Main grid layout -->
     <div class="ep-wrap">
         <div class="ep-grid">
-            <!-- Left column: profile card -->
-            <div class="ep-identity">
-                <div class="ep-avatar-card">
-                    <div class="ep-avatar-wrap">
-                        <!-- Avatar ring with BLOB image from database -->
-                        <div class="ep-av-ring" id="avatarRing">
-                            <img src="{{ url_for('avatar_image') }}?t={{ range(1, 10000) | random }}"
-                                 id="side-av-img" alt="Avatar"
-                                 onerror="this.style.display='none'; document.getElementById('side-av-init').style.display='flex';">
-                            <div class="ep-av-initials" id="side-av-init" style="display: none;">
-                                {{ user.username[0].upper() if user.username else 'U' }}
-                            </div>
-                            <div class="ep-av-overlay">📷</div>
-                        </div>
+    <!-- Left column: profile card -->
+    <div class="ep-identity">
+        <div class="ep-avatar-card">
+            <div class="ep-avatar-wrap">
+                <!-- Avatar ring -->
+                <div class="ep-av-ring" id="avatarRing">
+                    <img src="{{ url_for('avatar_image') }}?t={{ range(1, 10000) | random }}"
+                         id="side-av-img" alt="Avatar"
+                         onerror="this.style.display='none'; document.getElementById('side-av-init').style.display='flex';">
+                    <div class="ep-av-initials" id="side-av-init" style="display: none;">
+                        {{ user.username[0].upper() if user.username else 'U' }}
                     </div>
-                    <!-- Hidden file input for avatar upload -->
-                    <input type="file" id="avatarFileInput" accept="image/*" style="display:none">
+                    <div class="ep-av-overlay">📷</div>
+                </div>
+            </div>
+            <input type="file" id="avatarFileInput" accept="image/*" style="display:none">
 
-                    <div class="ep-avatar-body">
-                    <div class="ep-name">{{ user.full_name or user.username }}</div>
-                    <div class="ep-handle">@{{ user.username }}</div>
+            <div class="ep-avatar-body">
+                <div class="ep-name">{{ user.full_name or user.username }}</div>
+                <div class="ep-handle">@{{ user.username }}</div>
 
-                    <!-- Account Status Card -->
-                    <div class="ep-account-status">
-                        <div class="ep-status-header">
-                             <span>⭐ Account Status</span>
-                             <span class="ep-status-badge verified">✓ Verified</span>
+                <!-- Account Status Card -->
+                <div class="ep-account-status">
+                    <div class="ep-status-header">
+                        <span>⭐ Account Status</span>
+                        <span class="ep-status-badge verified">✓ Verified</span>
                     </div>
                     <div class="ep-status-metrics">
-                    <div>
-                    <span class="ep-metric-value">{{ trust_score|default(0)|int }}%</span>
-                             <span class="ep-metric-label">Trust</span>
+                        <div>
+                            <span class="ep-metric-value">{{ trust_score|default(0)|int }}%</span>
+                            <span class="ep-metric-label">Trust</span>
+                        </div>
+                        <div>
+                            <span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span>
+                            <span class="ep-metric-label">Member</span>
+                        </div>
+                        <div>
+                            <span class="ep-metric-value">{{ response_rate|default(98) }}%</span>
+                            <span class="ep-metric-label">Response</span>
+                        </div>
                     </div>
-                <div>
-                <span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span>
-                <span class="ep-metric-label">Member</span>
-            </div>
-            <div>
-                <span class="ep-metric-value">{{ response_rate|default(98) }}%</span>
-                <span class="ep-metric-label">Response</span>
-            </div>
-        </div>
-        <div class="ep-status-progress">
-            <div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div>
-        </div>
-    </div>
+                    <div class="ep-status-progress">
+                        <div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div>
+                    </div>
+                </div>
 
-    <div class="ep-stats">
-        <div class="ep-stat">
-            <div class="ep-stat-n">{{ listing_count or 0 }}</div>
-            <div class="ep-stat-l">Listings</div>
-        </div>
-        <div class="ep-stat">
-            <div class="ep-stat-n">{{ user.rating or '—' }}</div>
-            <div class="ep-stat-l">Rating</div>
+                <div class="ep-stats">
+                    <div class="ep-stat">
+                        <div class="ep-stat-n">{{ listing_count or 0 }}</div>
+                        <div class="ep-stat-l">Listings</div>
+                    </div>
+                    <div class="ep-stat">
+                        <div class="ep-stat-n">{{ user.rating or '—' }}</div>
+                        <div class="ep-stat-l">Rating</div>
+                    </div>
+                </div>
+                
+                <div class="ep-verified">✓ MMU Verified</div>
+            </div>
         </div>
     </div>
-    
-    <div class="ep-verified">✓ MMU Verified</div>
-</div>
 
             <!-- Right panel -->
             <div class="ep-panel">
@@ -879,9 +880,12 @@ function loadListings() {
                     <div style="flex:1">
                         <div class="listing-name">${escapeHtml(p.name)}</div>
                         <div class="listing-price">RM ${parseFloat(p.price).toFixed(2)}</div>
+                        <div class="listing-status ${escapeHtml(p.status)}">${escapeHtml(p.status || 'Active')}</div>
                     </div>
-                    <span class="listing-status">${escapeHtml(p.status || 'Active')}</span>
-                    <button class="edit-listing-btn" onclick="editListing(${p.id})">✏️ Edit</button>
+                    <div class="listing-actions">
+                        <button class="edit-listing-btn" onclick="editListing(${p.id})">✏️ Edit</button>
+                        <button class="delete-listing-btn" onclick="deleteListing(${p.id}, '${escapeHtml(p.name)}')">🗑️ Delete</button>
+                    </div>
                 </div>
             `).join('');
         })
@@ -926,6 +930,173 @@ function editListing(id) {
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
+}
+
+// ============================================================
+// EDIT LISTING - Open edit modal
+// ============================================================
+function editListing(productId) {
+    // Fetch product details and show edit modal
+    fetch(`/api/product/${productId}`, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(product => {
+            showEditListingModal(product);
+        })
+        .catch(err => {
+            showToastMessage('Failed to load product details', 'error');
+        });
+}
+
+// ============================================================
+// DELETE LISTING
+// ============================================================
+function deleteListing(productId, productName) {
+    if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
+        fetch(`/api/product/${productId}/delete`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToastMessage(`"${productName}" deleted`, 'success');
+                loadListings(); // Refresh the list
+            } else {
+                throw new Error(data.error || 'Delete failed');
+            }
+        })
+        .catch(err => {
+            showToastMessage('Failed to delete product', 'error');
+        });
+    }
+}
+
+// ============================================================
+// SHOW EDIT MODAL
+// ============================================================
+function showEditListingModal(product) {
+    // Check if modal exists, create if not
+    let modal = document.getElementById('editListingModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'editListingModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content edit-listing-modal">
+                <span class="close" onclick="closeEditModal()">&times;</span>
+                <h2>Edit Product</h2>
+                <form id="editListingForm" onsubmit="saveListingChanges(event)">
+                    <input type="hidden" id="edit_product_id">
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" id="edit_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Price (RM)</label>
+                        <input type="number" id="edit_price" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="edit_description" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Condition</label>
+                        <select id="edit_condition">
+                            <option value="new">New</option>
+                            <option value="like_new">Like New</option>
+                            <option value="good">Good</option>
+                            <option value="fair">Fair</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="edit_category">
+                            <option value="books">📚 Books</option>
+                            <option value="gadgets">💻 Gadgets</option>
+                            <option value="dorm">🛏 Dorm Essentials</option>
+                            <option value="fashion">👕 Fashion</option>
+                            <option value="stationery">✏️ Stationery</option>
+                            <option value="sports">⚽ Sports</option>
+                        </select>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="modal-cancel" onclick="closeEditModal()">Cancel</button>
+                        <button type="submit" class="modal-save">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Add styles for modal
+        const style = document.createElement('style');
+        style.textContent = `
+            .edit-listing-modal { width: 500px; max-width: 90%; }
+            .edit-listing-modal .form-group { margin-bottom: 15px; }
+            .edit-listing-modal label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; }
+            .edit-listing-modal input, .edit-listing-modal select, .edit-listing-modal textarea {
+                width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;
+                font-family: inherit; font-size: 14px;
+            }
+            .edit-listing-modal textarea { resize: vertical; }
+            .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+            .modal-cancel { padding: 10px 20px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; }
+            .modal-save { padding: 10px 20px; background: #00381f; color: white; border: none; border-radius: 8px; cursor: pointer; }
+            .modal-save:hover { background: #002b17; }
+            .listing-actions { display: flex; gap: 8px; }
+            .delete-listing-btn { background: none; border: none; font-size: 18px; cursor: pointer; padding: 6px 12px; border-radius: 30px; transition: all 0.1s; color: #d63c2c; }
+            .delete-listing-btn:hover { background: rgba(214, 60, 44, 0.1); }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Fill modal with product data
+    document.getElementById('edit_product_id').value = product.id;
+    document.getElementById('edit_name').value = product.name;
+    document.getElementById('edit_price').value = product.price;
+    document.getElementById('edit_description').value = product.description || '';
+    document.getElementById('edit_condition').value = product.condition || 'good';
+    document.getElementById('edit_category').value = product.category || 'books';
+    
+    modal.style.display = 'flex';
+}
+
+function closeEditModal() {
+    const modal = document.getElementById('editListingModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function saveListingChanges(event) {
+    event.preventDefault();
+    
+    const productId = document.getElementById('edit_product_id').value;
+    const data = {
+        name: document.getElementById('edit_name').value,
+        price: parseFloat(document.getElementById('edit_price').value),
+        description: document.getElementById('edit_description').value,
+        condition: document.getElementById('edit_condition').value,
+        category: document.getElementById('edit_category').value
+    };
+    
+    fetch(`/api/product/${productId}/update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'same-origin'
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            showToastMessage('Product updated successfully', 'success');
+            closeEditModal();
+            loadListings(); // Refresh the list
+        } else {
+            throw new Error(result.error || 'Update failed');
+        }
+    })
+    .catch(err => {
+        showToastMessage('Failed to update product', 'error');
+    });
 }
 
 // ============================================================
