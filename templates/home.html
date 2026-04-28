@@ -48,20 +48,20 @@
         </div>
 
         <div class="categories-container initial-categories">
-            <a href="#" class="category-pill"><span>🌐</span> All Items</a>
-            <a href="#" class="category-pill"><span>📚</span> Books</a>
-            <a href="#" class="category-pill"><span>💻</span> Gadgets</a>
-            <a href="#" class="category-pill"><span>🛏️</span> Dorm Items</a>
-            <a href="#" class="category-pill"><span>👕</span> Fashion</a>
-            <a href="#" class="category-pill"><span>💄</span> Beauty</a>
+            <a href="{{ url_for('search') }}" class="category-pill"><span>🌐</span> All Items</a>
+            <a href="{{ url_for('search', category='books') }}" class="category-pill"><span>📚</span> Books</a>
+            <a href="{{ url_for('search', category='gadgets') }}" class="category-pill"><span>💻</span> Gadgets</a>
+            <a href="{{ url_for('search', category='dorm') }}" class="category-pill"><span>🛏️</span> Dorm Items</a>
+            <a href="{{ url_for('search', category='fashion') }}" class="category-pill"><span>👕</span> Fashion</a>
+            <a href="{{ url_for('search', category='beauty') }}" class="category-pill"><span>💄</span> Beauty</a>
         </div>
 
         <div id="more-categories" class="categories-container more-categories" style="display: none;">
-            <a href="#" class="category-pill"><span>⚽</span> Sports</a>
-            <a href="#" class="category-pill"><span>🛒</span> Groceries</a>
-            <a href="#" class="category-pill"><span>✏️</span> Stationery</a>
-            <a href="#" class="category-pill"><span>🎸</span> Music</a>
-            <a href="#" class="category-pill"><span>📦</span> Others</a>
+            <a href="{{ url_for('search', category='sports') }}" class="category-pill"><span>⚽</span> Sports</a>
+            <a href="{{ url_for('search', category='groceries') }}" class="category-pill"><span>🛒</span> Groceries</a>
+            <a href="{{ url_for('search', category='stationery') }}" class="category-pill"><span>✏️</span> Stationery</a>
+            <a href="{{ url_for('search', category='music') }}" class="category-pill"><span>🎸</span> Music</a>
+            <a href="{{ url_for('search', category='others') }}" class="category-pill"><span>📦</span> Others</a>
         </div>
 
     </section>
@@ -70,7 +70,7 @@
         
         <div class="section-header">
             <h3 class="section-title">Latest Products</h3>
-            <a href="#" class="view-all-link">View all &rarr;</a>
+            <a href="{{ url_for('search') }}" class="view-all-link">View all &rarr;</a>
         </div>
 
         {% if latest_products %}
