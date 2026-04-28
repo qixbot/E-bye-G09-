@@ -364,7 +364,10 @@ def search():
     keyword = request.args.get('q', '').strip()
     # categories can be comma-separated string (from hidden input) or multiple params
     categories_raw = request.args.get('category', '')
-    categories = [c for c in categories_raw.split(',') if c] if categories_raw else []
+    if categories_raw:
+        categories = [c.strip() for c in categories_raw.split(',') if c.strip()]
+    else:
+        categories = []
     condition = request.args.get('condition')
     date_range = request.args.get('date_range')
     date_from = request.args.get('date_from')
@@ -419,7 +422,38 @@ def search():
         query += " AND p.price <= ?"
         params.append(max_price)
 
-    query += " ORDER BY p.created_at DESC"
+    sort_by = request.args.get('sort', 'newest')
+
+    # Condition mapping for custom order
+    condition_order = {
+        'like_new': 1,
+        'good': 2,
+        'fair': 3
+    }
+
+    if sort_by == 'newest':
+        order_clause = "ORDER BY p.created_at DESC"
+    elif sort_by == 'oldest':
+        order_clause = "ORDER BY p.created_at ASC"
+    elif sort_by == 'price_asc':
+        order_clause = "ORDER BY p.price ASC, p.created_at DESC"
+    elif sort_by == 'price_desc':
+        order_clause = "ORDER BY p.price DESC, p.created_at DESC"
+    elif sort_by == 'condition_asc':
+        # Custom order: like_new (1) → good (2) → fair (3)
+        order_clause = "ORDER BY CASE p.condition " + \
+                    "WHEN 'like_new' THEN 1 " + \
+                    "WHEN 'good' THEN 2 " + \
+                    "WHEN 'fair' THEN 3 END ASC, p.created_at DESC"
+    elif sort_by == 'condition_desc':
+        order_clause = "ORDER BY CASE p.condition " + \
+                    "WHEN 'like_new' THEN 1 " + \
+                    "WHEN 'good' THEN 2 " + \
+                    "WHEN 'fair' THEN 3 END DESC, p.created_at DESC"
+    else:
+        order_clause = "ORDER BY p.created_at DESC"
+
+    query += " " + order_clause
 
     db = get_db()
     products_data = db.execute(query, params).fetchall()
