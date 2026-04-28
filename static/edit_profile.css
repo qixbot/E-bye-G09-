@@ -1380,6 +1380,658 @@ body {
     pointer-events: none;
 }
 
+.listing-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-listing-btn, .delete-listing-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 30px;
+    transition: all 0.1s;
+}
+
+.edit-listing-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.delete-listing-btn {
+    color: #d63c2c;
+}
+
+.delete-listing-btn:hover {
+    background: rgba(214, 60, 44, 0.1);
+}
+
+.listing-status {
+    background: white;
+    padding: 4px 14px;
+    border-radius: 40px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.listing-status.pending {
+    background: #fff3e0;
+    color: #f5a623;
+}
+
+.listing-status.approved, .listing-status.active {
+    background: #d1f5e4;
+    color: #0d6e3e;
+}
+
+.listing-status.rejected {
+    background: #f0e0e0;
+    color: #d63c2c;
+}
+
+/* Edit Product Modal Styles */
+.edit-product-modal .modal-content {
+    width: 650px;
+    max-width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: white;
+    border-radius: 24px;
+    padding: 0;
+}
+
+.edit-product-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #eae7e0;
+}
+
+.edit-product-modal .modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #98948e;
+}
+
+.edit-product-modal form {
+    padding: 24px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #4a4640;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid #eae7e0;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: #00381f;
+    box-shadow: 0 0 0 3px rgba(0, 56, 31, 0.1);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.existing-images, .new-images-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+    margin-bottom: 15px;
+}
+
+.image-preview {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #eae7e0;
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-preview .remove-image-btn, .remove-new-image {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #d63c2c;
+    color: white;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #f5f3ee;
+    border-radius: 40px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.upload-btn:hover {
+    background: #eae7e0;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #eae7e0;
+}
+
+.btn-cancel {
+    padding: 10px 24px;
+    background: #f0ede8;
+    border: none;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-save {
+    padding: 10px 28px;
+    background: #00381f;
+    color: white;
+    border: none;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-save:hover {
+    background: #002b17;
+}
+
+.listing-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-listing-btn, .delete-listing-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 30px;
+    transition: all 0.1s;
+}
+
+.edit-listing-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.delete-listing-btn {
+    color: #d63c2c;
+}
+
+.delete-listing-btn:hover {
+    background: rgba(214, 60, 44, 0.1);
+}
+
+.listing-status {
+    background: white;
+    padding: 4px 14px;
+    border-radius: 40px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.listing-status.pending {
+    background: #fff3e0;
+    color: #f5a623;
+}
+
+.listing-status.active, .listing-status.approved {
+    background: #d1f5e4;
+    color: #0d6e3e;
+}
+
+.listing-status.rejected {
+    background: #f0e0e0;
+    color: #d63c2c;
+}
+
+.ep-main-tabs {
+    display: flex;
+    background: var(--bone);
+    border-bottom: 1px solid var(--parch);
+    padding: 0 24px;
+    gap: 8px;
+}
+
+.ep-main-tab {
+    padding: 16px 24px;
+    background: none;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+}
+
+.ep-main-tab:hover {
+    color: var(--ink);
+}
+
+.ep-main-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.ep-main-pane {
+    display: none;
+    padding: 28px 32px;
+}
+
+.ep-main-pane.active {
+    display: block;
+}
+
+.ep-sub-pane {
+    display: none;
+}
+
+.ep-sub-pane.active {
+    display: block;
+}
+
+/* ============================================================
+   EDIT PRODUCT MODAL STYLES
+   ============================================================ */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-content {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    width: 90%;
+    max-width: 650px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    animation: modalSlideUp 0.3s ease;
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--parch);
+    background: var(--bone);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.modal-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--ink3);
+    transition: all 0.2s;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.modal-close:hover {
+    color: var(--red);
+    background: var(--red-light);
+}
+
+#editProductForm {
+    padding: 24px;
+}
+
+#editProductForm .form-group {
+    margin-bottom: 20px;
+}
+
+#editProductForm .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--ink3);
+    margin-bottom: 8px;
+}
+
+#editProductForm .form-group input,
+#editProductForm .form-group textarea,
+#editProductForm .form-group select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--parch);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 14px;
+    transition: all 0.15s;
+    background: var(--white);
+}
+
+#editProductForm .form-group input:focus,
+#editProductForm .form-group textarea:focus,
+#editProductForm .form-group select:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 56, 31, 0.08);
+}
+
+#editProductForm .form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+/* Existing Images */
+.existing-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.image-preview {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 2px solid var(--parch);
+    background: var(--bone);
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-preview .remove-image-btn,
+.image-preview .remove-new-image {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.image-preview .remove-image-btn:hover,
+.image-preview .remove-new-image:hover {
+    background: var(--red);
+    transform: scale(1.1);
+}
+
+/* Image Upload Area */
+.image-upload-area {
+    margin: 16px 0;
+}
+
+.upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: var(--bone);
+    border: 1.5px dashed var(--sand);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--ink2);
+}
+
+.upload-btn:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.new-images-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+/* Modal Buttons */
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--parch);
+}
+
+.modal-buttons button {
+    padding: 10px 24px;
+    border-radius: 99px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-buttons .btn-cancel {
+    background: var(--bone);
+    color: var(--ink2);
+    border: none;
+}
+
+.modal-buttons .btn-cancel:hover {
+    background: var(--parch);
+    transform: translateY(-1px);
+}
+
+.modal-buttons .btn-save {
+    background: var(--primary);
+    color: white;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 56, 31, 0.2);
+}
+
+.modal-buttons .btn-save:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 56, 31, 0.3);
+}
+
+/* Listing Actions */
+.listing-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.listing-status.rejected {
+    background: #f0e0e0;
+    color: #d63c2c;
+}
+
+.edit-listing-btn,
+.delete-listing-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.edit-listing-btn {
+    color: var(--primary);
+}
+
+.edit-listing-btn:hover {
+    background: var(--primary-light);
+    transform: scale(1.05);
+}
+
+.delete-listing-btn {
+    color: var(--red);
+}
+
+.delete-listing-btn:hover {
+    background: var(--red-light);
+    transform: scale(1.05);
+}
+
+/* Toast container override for modal z-index */
+.toast-container {
+    z-index: 10001;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .modal-buttons {
+        flex-direction: column;
+    }
+    
+    .modal-buttons button {
+        width: 100%;
+    }
+    
+    .existing-images {
+        gap: 8px;
+    }
+    
+    .image-preview {
+        width: 65px;
+        height: 65px;
+    }
+}
+
 /* ============================================================
    RESPONSIVE
    ============================================================ */

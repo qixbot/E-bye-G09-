@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block bottom_nav %}{% endblock %}
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='my_profile.css') }}">
+
+<div class="pf-page">
+
+    <!-- nav bar -->
+     <nav class="pf-navbar">
+        <a class="pf-nav-back" href="{{ url_for('home') }}" title="Back">←</a>
+        <div class="pf-nav-brand">E<span>-bye</span></div>
+        <div class="pf-nav-pills">
+            <a class="pf-nav-pill" href="{{ url_for('home') }}">
+                <span class="pill-icon">🏠</span><span>Home</span>
+            </a>
+            <a class="pf-nav-pill" href="{{ url_for('edit_profile') }}">
+                <span class="pill-icon">✏️</span><span>Edit Profile</span>
+            </a>
+            <a class="pf-nav-pill logout" href="{{ url_for('login') }}">
+                <span class="pill-icon">→</span><span>Logout</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- cover -->
+     <div class="pf-cover">
+        <dic class="pf-cover-img" id="coverImage"
+             style="background-image:('{{ url_for('cover_image') if user.cover_image else '' }}'); background: linear-gradient(135deg,#00c896 0%,#00381f 55%,#001a0e 100%);">
+        </div>
+    </div>
+
+    <div class="pf-wrap">
+
+        <!-- profile card -->
+        <div class="pf-card">
+        <div class="pf-card-top">
+
+            <div class="pf-avatar" id="profileAvatar">
+                <img src="{{ url_for('avatar_image') }}?t={{ range(1, 10000) | random }}"
+
+                        alt="Avatar"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+
+                        <div class="pf-avatar-init" style="display: none">
+                            {{ user.username[0].upper() if user.username else 'U' }}
+                        </div>
+                     </div>
+
+                     <div class="pf-identity">
+                        <div class="pf-name">{{ user.full_name or user.username }}</div>
+                        <div class="pf-handle">@{{user.username}}</div>
+                        <div class="pf-email">📧&nbsp;{{ user.email }}</div>
+                     </div>
+
+                     <a class="pf-edit-btn" href="{{url_for('edit_profile')}}">✏️ Edit Profile</a>
+                  </div>
+                    
+                    <div class="pf-bio">{{ user.bio or '✨ No bio yet. Click edit to tell others about yourself!' }}</div>
+
+                    <div class="pf-stats-row">
+                <div class="pf-stat">
+                    <span class="pf-stat-n" id="stat-listings">{{ listing_count }}</span>
+                    <span class="pf-stat-l">Listings</span>
+                </div>
+                <div class="pf-stat">
+                    <span class="pf-stat-n" id="stat-sold">{{ sold_count }}</span>
+                    <span class="pf-stat-l">Sold</span>
+                </div>
+                <div class="pf-stat">
+                    <span class="pf-stat-n">{{ trust_score }}%</span>
+                    <span class="pf-stat-l">Trust Score</span>
+                </div>
+                <div class="pf-stat">
+                    <span class="pf-stat-n">{{ user.rating or '—' }}</span>
+                    <span class="pf-stat-l">Rating</span>
+                </div>
+            </div>
+
+            <div class="pf-details">
+                <div class="pf-detail-row">
+                    <span class="pf-detail-icon">📞</span>
+                    <span><span class="pf-detail-label">Phone</span>&nbsp;{{ user.contact or 'Not set' }}</span
+                </div>
+                <div class="pf-detail-row">
+                    <span class="pf-detail-icon">⚥</span>
+                <span><span class="pf-detail-label">Gender</span>&nbsp;{{ user.gender or 'Prefer not to say' }}</span>
+                </div>
+                <div class="pf-detail-row">
+                    <span class="pf-detail-icon">🕐</span>
+                    <span><span class="pf-detail-label">Active</span>&nbsp;{{ user.active_hours or 'Not set' }}</span>
+                </div>
+                <div class="pf-detail-row">
+                    <span class="pf-detail-icon">⭐</span>
+                    <span><span class="pf-detail-label">Status</span>&nbsp;<span class="pf-verified-badge">✓ MMU Verified</span></span>
+                </div>
+                <div class="pf-detail-row">
+                    <span class="pf-detail-icon">📅</span>
+                    <span><span class="pf-detail-label">Member since</span>&nbsp;{{ user.created_at|time_since or 'New' }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- LISTINGS / PURCHASES PANEL -->
+        <div class="pf-panel">
+            <div class="pf-tabs">
+                <button class="pf-tab on" id="tab-listings" onclick="switchTab('listings')">
+                    📦 My Listings <span class="pf-tab-count" id="cnt-listings">0</span>
+                </button>
+                <button class="pf-tab" id="tab-purchases" onclick="switchTab('purchases')">
+                    🛍️ My Purchases <span class="pf-tab-count" id="cnt-purchases">0</span>
+                </button>
+            </div>
+
+            <!-- Listings pane -->
+            <div class="pf-pane on" id="pane-listings">
+                <div class="pf-list" id="listings-inner">
+                    <div class="pf-empty">
+                        <span class="pf-empty-icon">📦</span>
+                        <div class="pf-empty-title">Loading your listings...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purchases pane -->
+            <div class="pf-pane" id="pane-purchases">
+                <div class="pf-list" id="purchases-inner">
+                    <div class="pf-empty">
+                        <span class="pf-empty-icon">🛍️</span>
+                        <div class="pf-empty-title">Loading your purchases...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="pf-toast" id="pfToast"></div>
+
+<script>
+// tab switching
+function switchTab(name) {
+    document.querySelectorAll('.pf-tab').forEach(btn => btn.classList.remove('on'));
+    document.querySelectorAll('.pf-pane').forEach(pane => pane.classList.remove('on'));
+    document.getElementById('tab-' + name).classList.add('on');
+    document.getElementById('pane-' + name).classList.add('on');
+}
+
+// ESCAPE HTML
+function escapeHtml(str){
+    if (!str) return'';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+//show toast message
+function showToastMessafe(message,type){
+    const toast=document.getElementById('pfToast');
+    toast.textContent=message;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+//status class helper
+function statusClass(status) {
+    if (!status) return 'active';
+    return status.toLowerCase();
+}
+
+//load my listing
+function loadListings() {
+    const container = document.getElementById('listings-inner');
+    const countSpan = document.getElementById('cnt-listings');
+    container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">📦</span><div class="pf-empty-title">Loading your listings...</div></div>';
+
+    fetch('/api/user/listings', { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">📦</span><div class="pf-empty-title">No listings yet</div><div class="pf-empty-sub">Click "Post" to sell something!</div></div>';
+                countSpan.textContent = '0';
+                return;
+            }
+            countSpan.textContent = data.length;
+            container.innerHTML = data.map(item => `
+                <div class="pf-item">
+                    <div class="pf-item-thumb">${escapeHtml(item.emoji || '📦')}</div>
+                    <div class="pf-item-info">
+                        <div class="pf-item-name">${escapeHtml(item.name)}</div>
+                        <div class="pf-item-meta">Listed ${escapeHtml(item.created_at) || 'recently'}</div>
+                    </div>
+                    <div class="pf-item-right">
+                        <div class="pf-item-price">RM ${parseFloat(item.price).toFixed(2)}</div>
+                        <span class="pf-status ${statusClass(item.status)}">${escapeHtml(item.status || 'Active')}</span>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(() => {
+            container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">⚠️</span><div class="pf-empty-title">Failed to load listings</div><div class="pf-empty-sub">Please try again later</div></div>';
+        });
+}
+
+//load my purchases
+function loadPurchases() {
+    const container = document.getElementById('purchases-inner');
+    const countSpan = document.getElementById('cnt-purchases');
+    container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">🛍️</span><div class="pf-empty-title">Loading your purchases...</div></div>';
+
+    fetch('/api/user/purchases', { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">🛍️</span><div class="pf-empty-title">No purchases yet</div><div class="pf-empty-sub">Explore the marketplace!</div></div>';
+                countSpan.textContent = '0';
+                return;
+            }
+            countSpan.textContent = data.length;
+            container.innerHTML = data.map(item => `
+                <div class="pf-item">
+                    <div class="pf-item-thumb">${escapeHtml(item.emoji || '📦')}</div>
+                    <div class="pf-item-info">
+                        <div class="pf-item-name">${escapeHtml(item.name)}</div>
+                        <div class="pf-item-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
+                    </div>
+                    <div class="pf-item-right">
+                        <div class="pf-item-price">RM ${parseFloat(item.price).toFixed(2)}</div>
+                        <span class="pf-status ${statusClass(item.status)}">${escapeHtml(item.status || 'Completed')}</span>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(() => {
+            container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">⚠️</span><div class="pf-empty-title">Failed to load purchases</div><div class="pf-empty-sub">Please try again later</div></div>';
+        });
+}
+
+//page initialization
+document.addEventListener('DOMContentLoaded',function (){
+    loadListings();
+    loadPurchases();
+});
+</script>
+{%endblock%}
