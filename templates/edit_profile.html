@@ -124,55 +124,47 @@
                     <input type="file" id="avatarFileInput" accept="image/*" style="display:none">
 
                     <div class="ep-avatar-body">
-                        <div class="ep-name">{{ user.full_name or user.username }}</div>
-                        <div class="ep-handle">@{{ user.username }}</div>
+                    <div class="ep-name">{{ user.full_name or user.username }}</div>
+                    <div class="ep-handle">@{{ user.username }}</div>
 
-                        <!-- Account Status Card -->
-                        <div class="ep-account-status">
-                            <div class="ep-status-header">
-                                <span>⭐ Account Status</span>
-                                <span class="ep-status-badge verified">✓ Verified</span>
-                            </div>
-                            <div class="ep-status-metrics">
-                                <div>
-                                    <span class="ep-metric-value">{{ trust_score|default(0)|int }}%</span>
-                                    <span class="ep-metric-label">Trust</span>
-                                </div>
-                                <div>
-                                    <span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span>
-                                    <span class="ep-metric-label">Member</span>
-                                </div>
-                                <div>
-                                    <span class="ep-metric-value">{{ response_rate|default(98) }}%</span>
-                                    <span class="ep-metric-label">Response</span>
-                                </div>
-                            </div>
-                            <div class="ep-status-progress">
-                                <div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div>
-                            </div>
-                        </div>
-
-                        <div class="ep-stats">
-                            <div class="ep-stat">
-                                <div class="ep-stat-n">{{ listing_count or 0 }}</div>
-                                <div class="ep-stat-l">Listings</div>
-                            </div>
-                            <div class="ep-status-metrics">
-                                <div><span class="ep-metric-value">{{ trust_score }}%</span><span class="ep-metric-label">Trust</span></div>
-                                <div><span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span><span class="ep-metric-label">Member</span></div>
-                                <div><span class="ep-metric-value">{{ response_rate }}%</span><span class="ep-metric-label">Response</span></div>
-                            </div>
-                            <div class="ep-status-progress"><div class="ep-progress-bar" style="width: {{ trust_score }}%"></div></div>
-                        </div>
-
-                        <div class="ep-stats">
-                            <div class="ep-stat"><span class="ep-stat-n">{{ listing_count or 0 }}</span><span class="ep-stat-l">Listings</span></div>
-                            <div class="ep-stat"><span class="ep-stat-n">{{ user.rating or '—' }}</span><span class="ep-stat-l">Rating</span></div>
-                        </div>
-                        <div class="ep-verified">✓ MMU Verified</div>
+                    <!-- Account Status Card -->
+                    <div class="ep-account-status">
+                        <div class="ep-status-header">
+                             <span>⭐ Account Status</span>
+                             <span class="ep-status-badge verified">✓ Verified</span>
                     </div>
-                </div>
+                    <div class="ep-status-metrics">
+                    <div>
+                    <span class="ep-metric-value">{{ trust_score|default(0)|int }}%</span>
+                             <span class="ep-metric-label">Trust</span>
+                    </div>
+                <div>
+                <span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span>
+                <span class="ep-metric-label">Member</span>
             </div>
+            <div>
+                <span class="ep-metric-value">{{ response_rate|default(98) }}%</span>
+                <span class="ep-metric-label">Response</span>
+            </div>
+        </div>
+        <div class="ep-status-progress">
+            <div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div>
+        </div>
+    </div>
+
+    <div class="ep-stats">
+        <div class="ep-stat">
+            <div class="ep-stat-n">{{ listing_count or 0 }}</div>
+            <div class="ep-stat-l">Listings</div>
+        </div>
+        <div class="ep-stat">
+            <div class="ep-stat-n">{{ user.rating or '—' }}</div>
+            <div class="ep-stat-l">Rating</div>
+        </div>
+    </div>
+    
+    <div class="ep-verified">✓ MMU Verified</div>
+</div>
 
             <!-- Right panel -->
             <div class="ep-panel">
