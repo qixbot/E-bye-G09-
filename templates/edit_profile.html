@@ -430,56 +430,6 @@
     </div>
 </div>
 
-<style>
-/* Additional styles for main tabs and sub tabs */
-.ep-main-tabs {
-    display: flex;
-    background: var(--bone);
-    border-bottom: 1px solid var(--parch);
-    padding: 0 24px;
-    gap: 8px;
-}
-
-.ep-main-tab {
-    padding: 16px 24px;
-    background: none;
-    border: none;
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--ink3);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    transition: all 0.15s;
-}
-
-.ep-main-tab:hover {
-    color: var(--ink);
-}
-
-.ep-main-tab.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
-}
-
-.ep-main-pane {
-    display: none;
-    padding: 28px 32px;
-}
-
-.ep-main-pane.active {
-    display: block;
-}
-
-.ep-sub-pane {
-    display: none;
-}
-
-.ep-sub-pane.active {
-    display: block;
-}
-</style>
-
 <script>
 // ============================================================
 // COLOR PALETTE CONFIGURATION
@@ -557,22 +507,16 @@ function previewBg(val) {
 // BACKGROUND SYNCHRONIZATION - Load from database
 // ============================================================
 function restoreBackgroundFromServer() {
-    console.log('🎨 Loading background from database...');
-    
     fetch('/api/user/background', { credentials: 'same-origin' })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
                 let restoredBg = null;
-                
                 if (data.background_value) {
                     restoredBg = data.background_value;
-                    console.log(' Background loaded');
                 } else {
                     restoredBg = 'linear-gradient(135deg,#f5f3ee,#e6ded3)';
-                    console.log('🔄 Using default background');
                 }
-                
                 if (restoredBg && $bgLayer) {
                     $bgLayer.style.background = restoredBg;
                 }
@@ -600,7 +544,6 @@ function saveBackgroundToServer(bgValue, bgType = 'custom') {
     })
     .then(data => {
         if (!data.success) throw new Error('Save failed');
-        console.log(' Background saved');
         return true;
     });
 }
@@ -610,18 +553,15 @@ document.getElementById('bgSaveBtn')?.addEventListener('click', async () => {
         showToastMessage('Please select a background first', 'error');
         return;
     }
-
     const saveBtn = document.getElementById('bgSaveBtn');
     const originalText = saveBtn.textContent;
     saveBtn.textContent = 'Saving...';
     saveBtn.disabled = true;
-
     try {
         await saveBackgroundToServer(selectedBgValue, 'custom');
         showToastMessage('Background saved', 'success');
         if ($bgPanel) $bgPanel.classList.remove('open');
     } catch (err) {
-        console.error('Save background error:', err);
         showToastMessage('Failed to save background', 'error');
     } finally {
         saveBtn.textContent = originalText;
@@ -645,7 +585,7 @@ document.querySelector('.ep-bg-close')?.addEventListener('click', () => {
 });
 
 // ============================================================
-// COVER IMAGE SYNCHRONIZATION - Load from database BLOB
+// COVER IMAGE FUNCTIONS
 // ============================================================
 let coverCropper = null;
 const $coverFileInput = document.getElementById('coverFileInput');
@@ -653,11 +593,8 @@ const $coverCropModal = document.getElementById('coverCropModal');
 
 function loadCoverFromServer() {
     const coverDiv = document.getElementById('coverImage');
-    const coverUrl = '/cover-image?t=' + Date.now();
-    
     if (coverDiv) {
-        coverDiv.style.backgroundImage = `url(${coverUrl})`;
-        console.log('🖼️ Cover loaded from database BLOB');
+        coverDiv.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
     }
 }
 
@@ -703,16 +640,13 @@ document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click
     canvas.toBlob(blob => {
         const fd = new FormData();
         fd.append('cover_image', blob, 'cover.jpg');
-
         showToastMessage('Uploading cover...', 'info');
-
         fetch('/update-cover', {method: 'POST', body: fd, credentials: 'same-origin'})
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    const coverUrl = '/cover-image?t=' + Date.now();
                     const coverDiv = document.getElementById('coverImage');
-                    if (coverDiv) coverDiv.style.backgroundImage = `url(${coverUrl})`;
+                    if (coverDiv) coverDiv.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
                     closeCoverCrop();
                     showToastMessage('Cover updated', 'success');
                 } else {
@@ -720,14 +654,13 @@ document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click
                 }
             })
             .catch(err => {
-                console.error('Cover upload error:', err);
                 showToastMessage('Cover update failed', 'error');
             });
     }, 'image/jpeg', 0.9);
 });
 
 // ============================================================
-// AVATAR SYNCHRONIZATION - Load from database BLOB
+// AVATAR FUNCTIONS
 // ============================================================
 let avatarCropper = null;
 const $avatarFileInput = document.getElementById('avatarFileInput');
@@ -736,10 +669,8 @@ const $avatarCropModal = document.getElementById('avatarCropModal');
 function loadAvatarFromServer() {
     const avatarImg = document.getElementById('side-av-img');
     const avatarInit = document.getElementById('side-av-init');
-    const imgUrl = '/avatar-image?t=' + Date.now();
-    
     if (avatarImg) {
-        avatarImg.src = imgUrl;
+        avatarImg.src = '/avatar-image?t=' + Date.now();
         avatarImg.onload = function() {
             avatarImg.style.display = 'block';
             if (avatarInit) avatarInit.style.display = 'none';
@@ -749,15 +680,12 @@ function loadAvatarFromServer() {
             if (avatarInit) avatarInit.style.display = 'flex';
         };
     }
-    console.log('👤 Avatar loaded from database BLOB');
 }
 
-// Click on avatar ring to trigger file upload
 document.getElementById('avatarRing')?.addEventListener('click', () => {
     if ($avatarFileInput) $avatarFileInput.click();
 });
 
-// Handle avatar file selection and open crop modal
 if ($avatarFileInput) {
     $avatarFileInput.addEventListener('change', e => {
         if (!e.target.files[0]) return;
@@ -779,7 +707,6 @@ if ($avatarFileInput) {
     });
 }
 
-// Close avatar crop modal
 function closeAvatarCrop() {
     if ($avatarCropModal) $avatarCropModal.classList.remove('open');
     if (avatarCropper) {
@@ -789,34 +716,21 @@ function closeAvatarCrop() {
     if ($avatarFileInput) $avatarFileInput.value = '';
 }
 
-// Bind close buttons for avatar crop modal
 document.querySelector('.avatar-crop-close')?.addEventListener('click', closeAvatarCrop);
 document.getElementById('avatarCropCancel')?.addEventListener('click', closeAvatarCrop);
-
-// Save cropped avatar to server as BLOB
 document.getElementById('avatarCropConfirm')?.addEventListener('click', () => {
     if (!avatarCropper) return;
     const canvas = avatarCropper.getCroppedCanvas();
     canvas.toBlob(blob => {
         const fd = new FormData();
         fd.append('avatar', blob, 'avatar.jpg');
-
         showToastMessage('Uploading avatar...', 'info');
-
         fetch('/update-profile-avatar', {method: 'POST', body: fd, credentials: 'same-origin'})
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    // Refresh avatar from database BLOB
-                    const imgUrl = '/avatar-image?t=' + Date.now();
                     const avatarImg = document.getElementById('side-av-img');
-                    const avatarInit = document.getElementById('side-av-init');
-                    
-                    if (avatarImg) {
-                        avatarImg.src = imgUrl;
-                        avatarImg.style.display = 'block';
-                        if (avatarInit) avatarInit.style.display = 'none';
-                    }
+                    if (avatarImg) avatarImg.src = '/avatar-image?t=' + Date.now();
                     closeAvatarCrop();
                     showToastMessage('Avatar updated', 'success');
                 } else {
@@ -824,48 +738,39 @@ document.getElementById('avatarCropConfirm')?.addEventListener('click', () => {
                 }
             })
             .catch(err => {
-                console.error('Avatar upload error:', err);
                 showToastMessage('Avatar update failed', 'error');
             });
     }, 'image/jpeg', 0.9);
 });
 
 // ============================================================
-// MAIN TAB SWITCHING
+// TAB SWITCHING
 // ============================================================
 function switchMainTab(tabName) {
     document.querySelectorAll('.ep-main-tab').forEach(btn => btn.classList.remove('active'));
     document.querySelector(`.ep-main-tab[data-main-tab="${tabName}"]`).classList.add('active');
-
     document.querySelectorAll('.ep-main-pane').forEach(pane => pane.classList.remove('active'));
     document.getElementById(`main-pane-${tabName}`).classList.add('active');
-
     if (tabName === 'listings') loadListings();
     if (tabName === 'purchases') loadPurchases();
-
     if (tabName === 'edit') {
         switchSubTab('edit-profile');
     }
 }
 
-// ============================================================
-// SUB TAB SWITCHING
-// ============================================================
 function switchSubTab(subtabName) {
     document.querySelectorAll('.ep-sub-tab').forEach(btn => btn.classList.remove('active'));
     document.querySelector(`.ep-sub-tab[data-subtab="${subtabName}"]`).classList.add('active');
-
     document.querySelectorAll('.ep-sub-pane').forEach(pane => pane.classList.remove('active'));
     document.getElementById(`sub-pane-${subtabName}`).classList.add('active');
 }
 
 // ============================================================
-// API LOADS
+// LISTINGS AND PURCHASES
 // ============================================================
 function loadListings() {
     const container = document.getElementById('listings-content');
     container.innerHTML = '<div class="ep-empty">📦 Loading your listings...</div>';
-
     fetch('/api/user/listings', { credentials: 'same-origin' })
         .then(r => r.json())
         .then(data => {
@@ -873,14 +778,13 @@ function loadListings() {
                 container.innerHTML = '<div class="ep-empty">📦 You haven\'t listed any items yet.<br><small>Click "Post" to sell something!</small></div>';
                 return;
             }
-
             container.innerHTML = data.map(p => `
                 <div class="listing-item">
                     <span class="listing-emoji">${escapeHtml(p.emoji || '📦')}</span>
                     <div style="flex:1">
                         <div class="listing-name">${escapeHtml(p.name)}</div>
                         <div class="listing-price">RM ${parseFloat(p.price).toFixed(2)}</div>
-                        <div class="listing-status ${escapeHtml(p.status)}">${escapeHtml(p.status || 'Active')}</div>
+                        <span class="listing-status ${escapeHtml(p.status)}">${escapeHtml(p.status || 'Active')}</span>
                     </div>
                     <div class="listing-actions">
                         <button class="edit-listing-btn" onclick="editListing(${p.id})">✏️ Edit</button>
@@ -890,14 +794,13 @@ function loadListings() {
             `).join('');
         })
         .catch(() => {
-            container.innerHTML = '<div class="ep-empty">⚠️ Could not load listings. Try again later.</div>';
+            container.innerHTML = '<div class="ep-empty">⚠️ Could not load listings.</div>';
         });
 }
 
 function loadPurchases() {
     const container = document.getElementById('purchases-content');
     container.innerHTML = '<div class="ep-empty">🛍️ Loading your purchases...</div>';
-
     fetch('/api/user/purchases', { credentials: 'same-origin' })
         .then(r => r.json())
         .then(data => {
@@ -905,7 +808,6 @@ function loadPurchases() {
                 container.innerHTML = '<div class="ep-empty">🛍️ You haven\'t purchased anything yet.<br><small>Explore the marketplace!</small></div>';
                 return;
             }
-
             container.innerHTML = `<div class="purchases-list">${data.map(p => `
                 <div class="listing-item">
                     <span>${escapeHtml(p.emoji || '📦')}</span>
@@ -923,35 +825,188 @@ function loadPurchases() {
         });
 }
 
-function editListing(id) {
-    window.location.href = `/edit-listing/${id}`;
-}
-
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
 }
 
 // ============================================================
-// EDIT LISTING - Open edit modal
+// EDIT PRODUCT MODAL
 // ============================================================
 function editListing(productId) {
-    // Fetch product details and show edit modal
     fetch(`/api/product/${productId}`, { credentials: 'same-origin' })
         .then(r => r.json())
         .then(product => {
-            showEditListingModal(product);
+            showEditModal(product);
         })
         .catch(err => {
-            showToastMessage('Failed to load product details', 'error');
+            showToastMessage('Failed to load product', 'error');
         });
 }
 
-// ============================================================
-// DELETE LISTING
-// ============================================================
+function showEditModal(product) {
+    const existingModal = document.getElementById('editProductModal');
+    if (existingModal) existingModal.remove();
+    
+    const modalHtml = `
+        <div id="editProductModal" class="modal edit-product-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Edit Product</h2>
+                    <button class="modal-close" onclick="closeEditModal()">&times;</button>
+                </div>
+                <form id="editProductForm" onsubmit="saveProductChanges(event)">
+                    <input type="hidden" id="edit_product_id" value="${product.id}">
+                    <div class="form-group">
+                        <label>Product Name *</label>
+                        <input type="text" id="edit_name" value="${escapeHtml(product.name)}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Price (RM) *</label>
+                        <input type="number" id="edit_price" step="0.01" min="0" value="${product.price}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description *</label>
+                        <textarea id="edit_description" rows="4" required>${escapeHtml(product.description || '')}</textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Condition</label>
+                            <select id="edit_condition">
+                                <option value="new" ${product.condition === 'new' ? 'selected' : ''}>New</option>
+                                <option value="like_new" ${product.condition === 'like_new' ? 'selected' : ''}>Like New</option>
+                                <option value="good" ${product.condition === 'good' ? 'selected' : ''}>Good</option>
+                                <option value="fair" ${product.condition === 'fair' ? 'selected' : ''}>Fair</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="edit_category">
+                                <option value="books" ${product.category === 'books' ? 'selected' : ''}>📚 Books</option>
+                                <option value="gadgets" ${product.category === 'gadgets' ? 'selected' : ''}>💻 Gadgets</option>
+                                <option value="dorm" ${product.category === 'dorm' ? 'selected' : ''}>🛏 Dorm Essentials</option>
+                                <option value="fashion" ${product.category === 'fashion' ? 'selected' : ''}>👕 Fashion</option>
+                                <option value="stationery" ${product.category === 'stationery' ? 'selected' : ''}>✏️ Stationery</option>
+                                <option value="sports" ${product.category === 'sports' ? 'selected' : ''}>⚽ Sports</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Product Images</label>
+                        <div id="existing-images" class="existing-images">
+                            ${product.images ? product.images.split(',').map(img => `
+                                <div class="image-preview" data-image="${img}">
+                                    <img src="/static/uploads/${img}" alt="Product image">
+                                    <button type="button" class="remove-image-btn" onclick="removeImage('${img}')">✕</button>
+                                </div>
+                            `).join('') : '<p>No images</p>'}
+                        </div>
+                        <div class="image-upload-area">
+                            <label class="upload-btn">
+                                📷 Add New Photos
+                                <input type="file" id="edit_new_images" accept="image/*" multiple style="display:none" onchange="previewNewImages(this)">
+                            </label>
+                        </div>
+                        <div id="new-images-preview" class="new-images-preview"></div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+                        <button type="submit" class="btn-save">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('editProductModal').style.display = 'flex';
+    window.originalImages = product.images ? product.images.split(',') : [];
+    window.newImagesFiles = [];
+    window.imagesToDelete = [];
+}
+
+function previewNewImages(input) {
+    const previewContainer = document.getElementById('new-images-preview');
+    for (let file of input.files) {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'image-preview new';
+                previewDiv.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <button type="button" class="remove-new-image" onclick="this.parentElement.remove()">✕</button>
+                `;
+                previewContainer.appendChild(previewDiv);
+            };
+            reader.readAsDataURL(file);
+            window.newImagesFiles.push(file);
+        }
+    }
+    input.value = '';
+}
+
+function removeImage(imageName) {
+    const imgDiv = document.querySelector(`.image-preview[data-image="${imageName}"]`);
+    if (imgDiv) {
+        imgDiv.remove();
+        window.imagesToDelete.push(imageName);
+    }
+}
+
+function saveProductChanges(event) {
+    event.preventDefault();
+    const productId = document.getElementById('edit_product_id').value;
+    const formData = new FormData();
+    formData.append('name', document.getElementById('edit_name').value);
+    formData.append('price', document.getElementById('edit_price').value);
+    formData.append('description', document.getElementById('edit_description').value);
+    formData.append('condition', document.getElementById('edit_condition').value);
+    formData.append('category', document.getElementById('edit_category').value);
+    
+    if (window.imagesToDelete && window.imagesToDelete.length) {
+        formData.append('delete_images', JSON.stringify(window.imagesToDelete));
+    }
+    if (window.newImagesFiles && window.newImagesFiles.length) {
+        for (let file of window.newImagesFiles) {
+            formData.append('new_images', file);
+        }
+    }
+    
+    showToastMessage('Updating product...', 'info');
+    fetch(`/api/product/${productId}/update-full`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToastMessage('Product updated successfully!', 'success');
+            closeEditModal();
+            loadListings();
+        } else {
+            throw new Error(data.error || 'Update failed');
+        }
+    })
+    .catch(err => {
+        showToastMessage('Failed to update: ' + err.message, 'error');
+    });
+}
+
+function closeEditModal() {
+    const modal = document.getElementById('editProductModal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.remove();
+    }
+    window.originalImages = null;
+    window.newImagesFiles = null;
+    window.imagesToDelete = null;
+}
+
 function deleteListing(productId, productName) {
-    if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
+    if (confirm(`Are you sure you want to delete "${productName}"? This cannot be undone.`)) {
         fetch(`/api/product/${productId}/delete`, {
             method: 'DELETE',
             credentials: 'same-origin'
@@ -960,143 +1015,15 @@ function deleteListing(productId, productName) {
         .then(data => {
             if (data.success) {
                 showToastMessage(`"${productName}" deleted`, 'success');
-                loadListings(); // Refresh the list
+                loadListings();
             } else {
                 throw new Error(data.error || 'Delete failed');
             }
         })
         .catch(err => {
-            showToastMessage('Failed to delete product', 'error');
+            showToastMessage('Failed to delete', 'error');
         });
     }
-}
-
-// ============================================================
-// SHOW EDIT MODAL
-// ============================================================
-function showEditListingModal(product) {
-    // Check if modal exists, create if not
-    let modal = document.getElementById('editListingModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'editListingModal';
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content edit-listing-modal">
-                <span class="close" onclick="closeEditModal()">&times;</span>
-                <h2>Edit Product</h2>
-                <form id="editListingForm" onsubmit="saveListingChanges(event)">
-                    <input type="hidden" id="edit_product_id">
-                    <div class="form-group">
-                        <label>Product Name</label>
-                        <input type="text" id="edit_name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Price (RM)</label>
-                        <input type="number" id="edit_price" step="0.01" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea id="edit_description" rows="4" required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Condition</label>
-                        <select id="edit_condition">
-                            <option value="new">New</option>
-                            <option value="like_new">Like New</option>
-                            <option value="good">Good</option>
-                            <option value="fair">Fair</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Category</label>
-                        <select id="edit_category">
-                            <option value="books">📚 Books</option>
-                            <option value="gadgets">💻 Gadgets</option>
-                            <option value="dorm">🛏 Dorm Essentials</option>
-                            <option value="fashion">👕 Fashion</option>
-                            <option value="stationery">✏️ Stationery</option>
-                            <option value="sports">⚽ Sports</option>
-                        </select>
-                    </div>
-                    <div class="modal-buttons">
-                        <button type="button" class="modal-cancel" onclick="closeEditModal()">Cancel</button>
-                        <button type="submit" class="modal-save">Save Changes</button>
-                    </div>
-                </form>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        
-        // Add styles for modal
-        const style = document.createElement('style');
-        style.textContent = `
-            .edit-listing-modal { width: 500px; max-width: 90%; }
-            .edit-listing-modal .form-group { margin-bottom: 15px; }
-            .edit-listing-modal label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; }
-            .edit-listing-modal input, .edit-listing-modal select, .edit-listing-modal textarea {
-                width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;
-                font-family: inherit; font-size: 14px;
-            }
-            .edit-listing-modal textarea { resize: vertical; }
-            .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-            .modal-cancel { padding: 10px 20px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; }
-            .modal-save { padding: 10px 20px; background: #00381f; color: white; border: none; border-radius: 8px; cursor: pointer; }
-            .modal-save:hover { background: #002b17; }
-            .listing-actions { display: flex; gap: 8px; }
-            .delete-listing-btn { background: none; border: none; font-size: 18px; cursor: pointer; padding: 6px 12px; border-radius: 30px; transition: all 0.1s; color: #d63c2c; }
-            .delete-listing-btn:hover { background: rgba(214, 60, 44, 0.1); }
-        `;
-        document.head.appendChild(style);
-    }
-    
-    // Fill modal with product data
-    document.getElementById('edit_product_id').value = product.id;
-    document.getElementById('edit_name').value = product.name;
-    document.getElementById('edit_price').value = product.price;
-    document.getElementById('edit_description').value = product.description || '';
-    document.getElementById('edit_condition').value = product.condition || 'good';
-    document.getElementById('edit_category').value = product.category || 'books';
-    
-    modal.style.display = 'flex';
-}
-
-function closeEditModal() {
-    const modal = document.getElementById('editListingModal');
-    if (modal) modal.style.display = 'none';
-}
-
-function saveListingChanges(event) {
-    event.preventDefault();
-    
-    const productId = document.getElementById('edit_product_id').value;
-    const data = {
-        name: document.getElementById('edit_name').value,
-        price: parseFloat(document.getElementById('edit_price').value),
-        description: document.getElementById('edit_description').value,
-        condition: document.getElementById('edit_condition').value,
-        category: document.getElementById('edit_category').value
-    };
-    
-    fetch(`/api/product/${productId}/update`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        credentials: 'same-origin'
-    })
-    .then(r => r.json())
-    .then(result => {
-        if (result.success) {
-            showToastMessage('Product updated successfully', 'success');
-            closeEditModal();
-            loadListings(); // Refresh the list
-        } else {
-            throw new Error(result.error || 'Update failed');
-        }
-    })
-    .catch(err => {
-        showToastMessage('Failed to update product', 'error');
-    });
 }
 
 // ============================================================
@@ -1104,18 +1031,19 @@ function saveListingChanges(event) {
 // ============================================================
 function togglePassword(id, btn) {
     const input = document.getElementById(id);
-    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🫣'; }
-    else { input.type = 'password'; btn.textContent = '👀'; }
+    if (!input) return;
+    input.type = input.type === 'password' ? 'text' : 'password';
+    btn.textContent = input.type === 'password' ? '👀' : '🫣';
 }
 
-function checkStrength() {
-    const pw = document.getElementById('newPw').value;
+function checkPwStrength() {
+    const pw = document.getElementById('new_password').value;
     const checks = {
         len: pw.length >= 8,
-        up: /[A-Z]/.test(pw),
-        low: /[a-z]/.test(pw),
-        num: /[0-9]/.test(pw),
-        spec: /[!@#$%^&*]/.test(pw)
+        upper: /[A-Z]/.test(pw),
+        lower: /[a-z]/.test(pw),
+        number: /[0-9]/.test(pw),
+        special: /[!@#$%^&*]/.test(pw)
     };
     const score = Object.values(checks).filter(Boolean).length;
     const colors = ['', '#e74c3c', '#e67e22', '#f1c40f', '#27ae60', '#00c986'];
@@ -1154,9 +1082,8 @@ function checkPwMatch() {
         div.innerHTML = '✓ Passwords match';
         div.className = 'ep-pw-match pw-ok';
     } else {
-        fill.style.background = '#1eab6d';
-        label.textContent = 'Strong password';
-        label.style.color = '#1eab6d';
+        div.innerHTML = '✗ Passwords do not match';
+        div.className = 'ep-pw-match pw-bad';
     }
 }
 
@@ -1181,40 +1108,25 @@ function validatePwForm() {
 }
 
 // ============================================================
-// DELETE ACCOUNT REAL-TIME VALIDATION
+// DELETE ACCOUNT FUNCTIONS
 // ============================================================
 let deletePasswordValid = false;
-let deleteConfirmValid = false;
 
 function checkDeletePasswordMatch() {
     const enteredPw = document.getElementById('delete_password').value;
     const msgDiv = document.getElementById('deletePwMatch');
-
     if (enteredPw.length === 0) {
-        if (msgDiv) {
-            msgDiv.innerHTML = '';
-            msgDiv.className = 'delete-pw-match';
-        }
+        if (msgDiv) { msgDiv.innerHTML = ''; }
         deletePasswordValid = false;
         return;
     }
-
-    if (enteredPw.length < 6) {
-        if (msgDiv) {
-            msgDiv.innerHTML = '✗ Password must be at least 6 characters';
-            msgDiv.className = 'delete-pw-match match-error';
-        }
-        deletePasswordValid = false;
-        return;
-    }
-
     fetch('/verify-password', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({password: enteredPw}),
         credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
         if (msgDiv) {
             if (data.valid) {
@@ -1227,13 +1139,7 @@ function checkDeletePasswordMatch() {
                 deletePasswordValid = false;
             }
         }
-    })
-    .catch(() => {
-        if (msgDiv) {
-            msgDiv.innerHTML = '✗ Could not verify password';
-            msgDiv.className = 'delete-pw-match match-error';
-        }
-        deletePasswordValid = false;
+
     });
 }
 
@@ -1245,19 +1151,18 @@ function checkDeleteConfirm() {
             msgDiv.innerHTML = '✓ Confirmation correct';
             msgDiv.className = 'delete-confirm-match match-success';
         }
-        deleteConfirmValid = true;
+
     } else if (confirmText.length > 0) {
         if (msgDiv) {
             msgDiv.innerHTML = '✗ Please type DELETE exactly';
             msgDiv.className = 'delete-confirm-match match-error';
         }
-        deleteConfirmValid = false;
+
     } else {
         if (msgDiv) {
             msgDiv.innerHTML = '';
             msgDiv.className = 'delete-confirm-match';
         }
-        deleteConfirmValid = false;
     }
 }
 
@@ -1284,7 +1189,7 @@ document.getElementById('delete_password')?.addEventListener('input', checkDelet
 document.querySelector('#delete-form input[name="confirm_text"]')?.addEventListener('input', checkDeleteConfirm);
 
 // ============================================================
-// TOAST NOTIFICATION FUNCTION
+// TOAST NOTIFICATION
 // ============================================================
 function showToastMessage(message, type) {
     const existing = document.querySelector('.toast-container');
@@ -1296,19 +1201,18 @@ function showToastMessage(message, type) {
     toastDiv.innerHTML = `<span>${message}</span>`;
     container.appendChild(toastDiv);
     document.body.appendChild(container);
-    setTimeout(() => container.remove(), 3500);
+    setTimeout(() => container.remove(), 3000);
 }
 
 // ============================================================
 // PAGE INITIALIZATION
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Initializing profile page with database BLOB storage...');
 
     loadCoverFromServer();
     loadAvatarFromServer();
     restoreBackgroundFromServer();
-
+    
     const newPw = document.getElementById('new_password');
     const confPw = document.getElementById('confirm_password');
     if (newPw) newPw.addEventListener('input', function() {
@@ -1317,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     if (confPw) confPw.addEventListener('input', checkPwMatch);
 
-    console.log('Profile page fully initialized');
+
 });
 
 </script>

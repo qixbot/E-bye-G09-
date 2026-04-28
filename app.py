@@ -392,6 +392,7 @@ def avatar_image():
 
 @app.route('/update-profile-avatar', methods=['POST'])
 # Eileen's Route - Update avatar image
+
 def update_profile_avatar():
     """Upload avatar and store directly as BLOB in database"""
     if 'user_id' not in session:
@@ -439,6 +440,7 @@ def user_avatar(user_id):
 
 @app.route('/cover-image')
 # Eileen's Route - Upload custom cover image
+
 def cover_image():
     """Serve cover image from database BLOB - PERSISTENT storage"""
     if 'user_id' not in session:
@@ -492,6 +494,7 @@ def update_cover():
 # ============================================================
 # Eileen's Route - Save custom background image
 @app.route('/save-background-preset', methods=['POST'])
+
 def save_background_preset():
     """Save background preset (color/gradient) - PERSISTENT storage"""
     if 'user_id' not in session:
@@ -513,6 +516,7 @@ def save_background_preset():
 
 @app.route('/upload-background', methods=['POST'])
 # Eileen's Route - Upload custom background image 
+
 def upload_background():
     """Upload custom background image and store as data URL in database"""
     if 'user_id' not in session:
@@ -585,6 +589,7 @@ def api_user_purchases():
 
 @app.route('/api/user/listings')
 # Eileen's Route - Api for listing
+
 def api_user_listings():
     if 'user_id' not in session:
         return jsonify([])
@@ -612,9 +617,9 @@ def api_user_listings():
 # ============================================================
 # PRODUCT API FOR EDIT/DELETE
 # ============================================================
-
-@app.route('/api/product/<int:product_id>')
 # Eileen's Route - Get product
+@app.route('/api/product/<int:product_id>')
+
 def api_get_product(product_id):
     """Get product details for editing"""
     if 'user_id' not in session:
@@ -622,7 +627,7 @@ def api_get_product(product_id):
     
     db = get_db()
     product = db.execute('''
-        SELECT id, name, price, description, condition, category, status
+        SELECT id, name, price, description, condition, category, images, status
         FROM products 
         WHERE id = ? AND seller_id = ?
     ''', (product_id, session['user_id'])).fetchone()
@@ -633,9 +638,9 @@ def api_get_product(product_id):
     
     return jsonify(dict(product))
 
-
 @app.route('/api/product/<int:product_id>/update', methods=['PUT'])
 # Eileen's Route - Update product 
+
 def api_update_product(product_id):
     """Update product details"""
     if 'user_id' not in session:
@@ -710,6 +715,77 @@ def api_delete_product(product_id):
     
     # Delete product from database
     db.execute('DELETE FROM products WHERE id = ?', (product_id,))
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/product/<int:product_id>/update-full', methods=['POST'])
+
+def api_update_product_full(product_id):
+    """Update product with images"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    
+    # Verify product belongs to user
+    product = db.execute('SELECT id, images FROM products WHERE id = ? AND seller_id = ?', 
+                         (product_id, session['user_id'])).fetchone()
+    if not product:
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # Get form data
+    name = request.form.get('name', '').strip()
+    price = request.form.get('price', 0)
+    description = request.form.get('description', '').strip()
+    condition = request.form.get('condition', '')
+    category = request.form.get('category', '')
+    
+    # Validation
+    if not name or not price or not description:
+        return jsonify({'success': False, 'error': 'Name, price and description required'}), 400
+    
+    try:
+        price = float(price)
+    except:
+        return jsonify({'success': False, 'error': 'Invalid price'}), 400
+    
+    # Handle image deletions
+    current_images = product['images'].split(',') if product['images'] else []
+    delete_images = request.form.get('delete_images', '[]')
+    import json
+    images_to_delete = json.loads(delete_images) if delete_images else []
+    
+    # Remove deleted images from filesystem
+    for img_name in images_to_delete:
+        if img_name in current_images:
+            current_images.remove(img_name)
+            img_path = os.path.join('static/uploads', img_name)
+            if os.path.exists(img_path):
+                try:
+                    os.remove(img_path)
+                except:
+                    pass
+    
+    # Handle new image uploads
+    new_images = request.files.getlist('new_images')
+    for img in new_images:
+        if img and img.filename:
+            ext = img.filename.rsplit('.', 1)[-1].lower() if '.' in img.filename else 'jpg'
+            filename = f"product_{product_id}_{uuid.uuid4().hex}.{ext}"
+            img.save(os.path.join('static/uploads', filename))
+            current_images.append(filename)
+    
+    # Update database
+    images_string = ','.join(current_images) if current_images else ''
+    db.execute('''
+        UPDATE products 
+        SET name = ?, price = ?, description = ?, condition = ?, category = ?, 
+            images = ?, status = 'pending'
+        WHERE id = ?
+    ''', (name, price, description, condition, category, images_string, product_id))
     db.commit()
     db.close()
     
@@ -1546,3 +1622,4 @@ def user_profile(user_id):
 
 if __name__ == '__main__':
     app.run(debug=True)
+    

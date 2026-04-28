@@ -1431,6 +1431,264 @@ body {
     color: #d63c2c;
 }
 
+/* Edit Product Modal Styles */
+.edit-product-modal .modal-content {
+    width: 650px;
+    max-width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: white;
+    border-radius: 24px;
+    padding: 0;
+}
+
+.edit-product-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #eae7e0;
+}
+
+.edit-product-modal .modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #98948e;
+}
+
+.edit-product-modal form {
+    padding: 24px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #4a4640;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid #eae7e0;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: #00381f;
+    box-shadow: 0 0 0 3px rgba(0, 56, 31, 0.1);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.existing-images, .new-images-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+    margin-bottom: 15px;
+}
+
+.image-preview {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #eae7e0;
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-preview .remove-image-btn, .remove-new-image {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #d63c2c;
+    color: white;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #f5f3ee;
+    border-radius: 40px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.upload-btn:hover {
+    background: #eae7e0;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #eae7e0;
+}
+
+.btn-cancel {
+    padding: 10px 24px;
+    background: #f0ede8;
+    border: none;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-save {
+    padding: 10px 28px;
+    background: #00381f;
+    color: white;
+    border: none;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-save:hover {
+    background: #002b17;
+}
+
+.listing-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-listing-btn, .delete-listing-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 30px;
+    transition: all 0.1s;
+}
+
+.edit-listing-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.delete-listing-btn {
+    color: #d63c2c;
+}
+
+.delete-listing-btn:hover {
+    background: rgba(214, 60, 44, 0.1);
+}
+
+.listing-status {
+    background: white;
+    padding: 4px 14px;
+    border-radius: 40px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.listing-status.pending {
+    background: #fff3e0;
+    color: #f5a623;
+}
+
+.listing-status.active, .listing-status.approved {
+    background: #d1f5e4;
+    color: #0d6e3e;
+}
+
+.listing-status.rejected {
+    background: #f0e0e0;
+    color: #d63c2c;
+}
+
+.ep-main-tabs {
+    display: flex;
+    background: var(--bone);
+    border-bottom: 1px solid var(--parch);
+    padding: 0 24px;
+    gap: 8px;
+}
+
+.ep-main-tab {
+    padding: 16px 24px;
+    background: none;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+}
+
+.ep-main-tab:hover {
+    color: var(--ink);
+}
+
+.ep-main-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.ep-main-pane {
+    display: none;
+    padding: 28px 32px;
+}
+
+.ep-main-pane.active {
+    display: block;
+}
+
+.ep-sub-pane {
+    display: none;
+}
+
+.ep-sub-pane.active {
+    display: block;
+}
+
 /* ============================================================
    RESPONSIVE
    ============================================================ */
