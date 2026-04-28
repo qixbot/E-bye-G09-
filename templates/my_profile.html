@@ -3,63 +3,51 @@
 {% block navbar %}{% endblock %}
 
 {% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='my_profile.css') }}">
 
 <div class="pf-page">
+    <!-- Dynamic background layer -->
+    <div class="pf-bg-layer" id="pfBgLayer"></div>
 
-    <!-- nav bar -->
-     <nav class="pf-navbar">
+    <!-- NAVBAR -->
+    <nav class="pf-navbar">
         <a class="pf-nav-back" href="{{ url_for('home') }}" title="Back">←</a>
         <div class="pf-nav-brand">E<span>-bye</span></div>
         <div class="pf-nav-pills">
-            <a class="pf-nav-pill" href="{{ url_for('home') }}">
-                <span class="pill-icon">🏠</span><span>Home</span>
-            </a>
-            <a class="pf-nav-pill" href="{{ url_for('edit_profile') }}">
-                <span class="pill-icon">✏️</span><span>Edit Profile</span>
-            </a>
-            <a class="pf-nav-pill logout" href="{{ url_for('login') }}">
-                <span class="pill-icon">→</span><span>Logout</span>
-            </a>
+            <a class="pf-nav-pill" href="{{ url_for('home') }}"><span class="pill-icon">🏠</span><span>Home</span></a>
+            <a class="pf-nav-pill" href="{{ url_for('upload_product') }}"><span class="pill-icon">📷</span><span>Post</span></a>
+            <a class="pf-nav-pill logout" href="{{ url_for('login') }}"><span class="pill-icon">→</span><span>Logout</span></a>
         </div>
     </nav>
 
-    <!-- cover -->
-     <div class="pf-cover">
-        <dic class="pf-cover-img" id="coverImage"
-             style="background-image:('{{ url_for('cover_image') if user.cover_image else '' }}'); background: linear-gradient(135deg,#00c896 0%,#00381f 55%,#001a0e 100%);">
+    <!-- COVER - Load from database -->
+    <div class="pf-cover">
+        <div class="pf-cover-img" id="pfCoverImage"
+             style="background-image: url('{{ url_for('cover_image') if user.cover_blob else '' }}'); background: linear-gradient(135deg,#00c896 0%,#00381f 55%,#001a0e 100%);">
         </div>
     </div>
 
     <div class="pf-wrap">
-
-        <!-- profile card -->
+        <!-- PROFILE CARD -->
         <div class="pf-card">
-        <div class="pf-card-top">
+            <div class="pf-card-top">
+                <div class="pf-avatar">
+                    <img src="{{ url_for('avatar_image') }}?t={{ range(1, 10000) | random }}" alt="Avatar"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="pf-avatar-init" style="display: none;">{{ user.username[0].upper() if user.username else 'U' }}</div>
+                </div>
+                <div class="pf-identity">
+                    <div class="pf-name">{{ user.full_name or user.username }}</div>
+                    <div class="pf-handle">@{{ user.username }}</div>
+                    <div class="pf-email">📧&nbsp;{{ user.email }}</div>
+                </div>
+                <a class="pf-edit-btn" href="{{ url_for('edit_profile') }}">✏️ Edit Profile</a>
+            </div>
 
-            <div class="pf-avatar" id="profileAvatar">
-                <img src="{{ url_for('avatar_image') }}?t={{ range(1, 10000) | random }}"
+            <div class="pf-bio">{{ user.bio or '✨ No bio yet. Click edit to tell others about yourself!' }}</div>
 
-                        alt="Avatar"
-                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-
-                        <div class="pf-avatar-init" style="display: none">
-                            {{ user.username[0].upper() if user.username else 'U' }}
-                        </div>
-                     </div>
-
-                     <div class="pf-identity">
-                        <div class="pf-name">{{ user.full_name or user.username }}</div>
-                        <div class="pf-handle">@{{user.username}}</div>
-                        <div class="pf-email">📧&nbsp;{{ user.email }}</div>
-                     </div>
-
-                     <a class="pf-edit-btn" href="{{url_for('edit_profile')}}">✏️ Edit Profile</a>
-                  </div>
-                    
-                    <div class="pf-bio">{{ user.bio or '✨ No bio yet. Click edit to tell others about yourself!' }}</div>
-
-                    <div class="pf-stats-row">
+            <div class="pf-stats-row">
                 <div class="pf-stat">
                     <span class="pf-stat-n" id="stat-listings">{{ listing_count }}</span>
                     <span class="pf-stat-l">Listings</span>
@@ -81,11 +69,11 @@
             <div class="pf-details">
                 <div class="pf-detail-row">
                     <span class="pf-detail-icon">📞</span>
-                    <span><span class="pf-detail-label">Phone</span>&nbsp;{{ user.contact or 'Not set' }}</span
+                    <span><span class="pf-detail-label">Phone</span>&nbsp;{{ user.contact or 'Not set' }}</span>
                 </div>
                 <div class="pf-detail-row">
                     <span class="pf-detail-icon">⚥</span>
-                <span><span class="pf-detail-label">Gender</span>&nbsp;{{ user.gender or 'Prefer not to say' }}</span>
+                    <span><span class="pf-detail-label">Gender</span>&nbsp;{{ user.gender or 'Prefer not to say' }}</span>
                 </div>
                 <div class="pf-detail-row">
                     <span class="pf-detail-icon">🕐</span>
@@ -101,6 +89,7 @@
                 </div>
             </div>
         </div>
+
         <!-- LISTINGS / PURCHASES PANEL -->
         <div class="pf-panel">
             <div class="pf-tabs">
@@ -112,117 +101,227 @@
                 </button>
             </div>
 
-            <!-- Listings pane -->
+            <!-- Listings pane - GRID VIEW -->
             <div class="pf-pane on" id="pane-listings">
-                <div class="pf-list" id="listings-inner">
-                    <div class="pf-empty">
-                        <span class="pf-empty-icon">📦</span>
-                        <div class="pf-empty-title">Loading your listings...</div>
-                    </div>
+                <div class="products-grid" id="listings-grid">
+                    <div class="loading-state">📦 Loading your listings...</div>
                 </div>
             </div>
 
             <!-- Purchases pane -->
             <div class="pf-pane" id="pane-purchases">
-                <div class="pf-list" id="purchases-inner">
-                    <div class="pf-empty">
-                        <span class="pf-empty-icon">🛍️</span>
-                        <div class="pf-empty-title">Loading your purchases...</div>
-                    </div>
+                <div class="pf-list" id="purchases-list">
+                    <div class="loading-state">🛍️ Loading your purchases...</div>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
+<!-- Edit Product Modal (same as edit_profile) -->
+<div id="editProductModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>✏️ Edit Product</h2>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form id="editProductForm" onsubmit="saveProductChanges(event)">
+            <input type="hidden" id="edit_product_id">
+            
+            <div class="form-group">
+                <label>Product Name *</label>
+                <input type="text" id="edit_name" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Price (RM) *</label>
+                <input type="number" id="edit_price" step="0.01" min="0" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Description *</label>
+                <textarea id="edit_description" rows="4" required></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Condition</label>
+                    <select id="edit_condition">
+                        <option value="new">New</option>
+                        <option value="like_new">Like New</option>
+                        <option value="good">Good</option>
+                        <option value="fair">Fair</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="edit_category">
+                        <option value="books">📚 Books</option>
+                        <option value="gadgets">💻 Gadgets</option>
+                        <option value="dorm">🛏 Dorm Essentials</option>
+                        <option value="fashion">👕 Fashion</option>
+                        <option value="stationery">✏️ Stationery</option>
+                        <option value="sports">⚽ Sports</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Current Images</label>
+                <div id="existing_images_container" class="existing-images"></div>
+                <div class="image-upload-area">
+                    <label class="upload-btn">
+                        📷 Add New Photos
+                        <input type="file" id="edit_new_images" accept="image/*" multiple style="display:none" onchange="previewNewImages(this)">
+                    </label>
+                </div>
+                <div id="new_images_preview" class="new-images-preview"></div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn-save">Save Changes</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <div class="pf-toast" id="pfToast"></div>
 
 <script>
-// tab switching
+// ============================================================
+// LOAD BACKGROUND FROM SERVER
+// ============================================================
+function restoreBackgroundFromServer() {
+    fetch('/api/user/background', { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            const bgLayer = document.getElementById('pfBgLayer');
+            if (data.success && data.background_value) {
+                bgLayer.style.background = data.background_value;
+            } else {
+                bgLayer.style.background = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load background:', err);
+            document.getElementById('pfBgLayer').style.background = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
+        });
+}
+
+// ============================================================
+// LOAD COVER FROM SERVER
+// ============================================================
+function loadCoverFromServer() {
+    const coverDiv = document.getElementById('pfCoverImage');
+    if (coverDiv) {
+        coverDiv.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
+    }
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
 function switchTab(name) {
-    document.querySelectorAll('.pf-tab').forEach(btn => btn.classList.remove('on'));
-    document.querySelectorAll('.pf-pane').forEach(pane => pane.classList.remove('on'));
+    document.querySelectorAll('.pf-tab').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.pf-pane').forEach(p => p.classList.remove('on'));
     document.getElementById('tab-' + name).classList.add('on');
     document.getElementById('pane-' + name).classList.add('on');
+    if (name === 'listings') loadListings();
+    if (name === 'purchases') loadPurchases();
 }
 
+// ============================================================
 // ESCAPE HTML
-function escapeHtml(str){
-    if (!str) return'';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
+// ============================================================
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
 }
 
-//show toast message
-function showToastMessafe(message,type){
-    const toast=document.getElementById('pfToast');
-    toast.textContent=message;
+// ============================================================
+// SHOW TOAST
+// ============================================================
+function showToast(message, type) {
+    const toast = document.getElementById('pfToast');
+    toast.textContent = message;
     toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
+    setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-//status class helper
-function statusClass(status) {
-    if (!status) return 'active';
-    return status.toLowerCase();
-}
-
-//load my listing
+// ============================================================
+// LOAD MY LISTINGS (GRID VIEW)
+// ============================================================
 function loadListings() {
-    const container = document.getElementById('listings-inner');
+    const container = document.getElementById('listings-grid');
     const countSpan = document.getElementById('cnt-listings');
-    container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">📦</span><div class="pf-empty-title">Loading your listings...</div></div>';
-
+    container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
+    
     fetch('/api/user/listings', { credentials: 'same-origin' })
         .then(r => r.json())
         .then(data => {
             if (!data || data.length === 0) {
-                container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">📦</span><div class="pf-empty-title">No listings yet</div><div class="pf-empty-sub">Click "Post" to sell something!</div></div>';
+                container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><div class="empty-title">No listings yet</div><div class="empty-sub">Click "Post" to sell something!</div></div>';
                 countSpan.textContent = '0';
                 return;
             }
             countSpan.textContent = data.length;
-            container.innerHTML = data.map(item => `
-                <div class="pf-item">
-                    <div class="pf-item-thumb">${escapeHtml(item.emoji || '📦')}</div>
-                    <div class="pf-item-info">
-                        <div class="pf-item-name">${escapeHtml(item.name)}</div>
-                        <div class="pf-item-meta">Listed ${escapeHtml(item.created_at) || 'recently'}</div>
+            
+            container.innerHTML = data.map(item => {
+                const firstImage = item.first_image ? `/static/uploads/${item.first_image}` : null;
+                const statusClass = (item.status || 'pending').toLowerCase();
+                let statusText = item.status || 'Pending';
+                if (statusText === 'approved') statusText = 'Approved';
+                if (statusText === 'rejected') statusText = 'Rejected';
+                
+                return `
+                    <div class="product-card">
+                        <a href="/product/${item.id}" class="product-card-link">
+                            <div class="product-image-container">
+                                <span class="condition-badge">${escapeHtml(item.condition || 'Good')}</span>
+                                <div class="carousel-window">
+                                    <div class="carousel-track">
+                                        ${firstImage ? `<img src="${firstImage}" class="carousel-img" alt="${escapeHtml(item.name)}">` : '<div class="carousel-placeholder">📦</div>'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="product-info">
+                                <h4 class="product-name">${escapeHtml(item.name)}</h4>
+                                <div class="product-price">RM ${parseFloat(item.price).toFixed(2)}</div>
+                                <div class="product-status ${statusClass}">${escapeHtml(statusText)}</div>
+                            </div>
+                        </a>
+                        <div class="product-actions">
+                            <button class="edit-product-btn" onclick="editListing(${item.id})">✏️ Edit</button>
+                            <button class="delete-product-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name)}')">🗑️ Delete</button>
+                        </div>
                     </div>
-                    <div class="pf-item-right">
-                        <div class="pf-item-price">RM ${parseFloat(item.price).toFixed(2)}</div>
-                        <span class="pf-status ${statusClass(item.status)}">${escapeHtml(item.status || 'Active')}</span>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         })
         .catch(() => {
-            container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">⚠️</span><div class="pf-empty-title">Failed to load listings</div><div class="pf-empty-sub">Please try again later</div></div>';
+            container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load listings</div></div>';
         });
 }
 
-//load my purchases
+// ============================================================
+// LOAD MY PURCHASES
+// ============================================================
 function loadPurchases() {
-    const container = document.getElementById('purchases-inner');
+    const container = document.getElementById('purchases-list');
     const countSpan = document.getElementById('cnt-purchases');
-    container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">🛍️</span><div class="pf-empty-title">Loading your purchases...</div></div>';
-
+    container.innerHTML = '<div class="loading-state">🛍️ Loading your purchases...</div>';
+    
     fetch('/api/user/purchases', { credentials: 'same-origin' })
         .then(r => r.json())
         .then(data => {
             if (!data || data.length === 0) {
-                container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">🛍️</span><div class="pf-empty-title">No purchases yet</div><div class="pf-empty-sub">Explore the marketplace!</div></div>';
+                container.innerHTML = '<div class="empty-state"><span class="empty-icon">🛍️</span><div class="empty-title">No purchases yet</div><div class="empty-sub">Explore the marketplace!</div></div>';
                 countSpan.textContent = '0';
                 return;
             }
             countSpan.textContent = data.length;
+            
             container.innerHTML = data.map(item => `
                 <div class="pf-item">
                     <div class="pf-item-thumb">${escapeHtml(item.emoji || '📦')}</div>
@@ -232,20 +331,166 @@ function loadPurchases() {
                     </div>
                     <div class="pf-item-right">
                         <div class="pf-item-price">RM ${parseFloat(item.price).toFixed(2)}</div>
-                        <span class="pf-status ${statusClass(item.status)}">${escapeHtml(item.status || 'Completed')}</span>
+                        <span class="pf-status ${escapeHtml(item.status || 'completed').toLowerCase()}">${escapeHtml(item.status || 'Completed')}</span>
                     </div>
                 </div>
             `).join('');
         })
         .catch(() => {
-            container.innerHTML = '<div class="pf-empty"><span class="pf-empty-icon">⚠️</span><div class="pf-empty-title">Failed to load purchases</div><div class="pf-empty-sub">Please try again later</div></div>';
+            container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load purchases</div></div>';
         });
 }
 
-//page initialization
-document.addEventListener('DOMContentLoaded',function (){
+// ============================================================
+// EDIT PRODUCT MODAL FUNCTIONS (same as edit_profile)
+// ============================================================
+let currentProductImages = [];
+let newImagesFiles = [];
+let imagesToDelete = [];
+
+function editListing(productId) {
+    fetch(`/api/product/${productId}`, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(product => {
+            currentProductImages = product.images ? product.images.split(',') : [];
+            newImagesFiles = [];
+            imagesToDelete = [];
+            
+            document.getElementById('edit_product_id').value = product.id;
+            document.getElementById('edit_name').value = product.name;
+            document.getElementById('edit_price').value = product.price;
+            document.getElementById('edit_description').value = product.description || '';
+            document.getElementById('edit_condition').value = product.condition || 'good';
+            document.getElementById('edit_category').value = product.category || 'others';
+            
+            renderExistingImages();
+            document.getElementById('new_images_preview').innerHTML = '';
+            document.getElementById('editProductModal').style.display = 'flex';
+        })
+        .catch(() => showToast('Failed to load product details', 'error'));
+}
+
+function renderExistingImages() {
+    const container = document.getElementById('existing_images_container');
+    if (!currentProductImages.length) {
+        container.innerHTML = '<p class="no-images">No images uploaded</p>';
+        return;
+    }
+    container.innerHTML = currentProductImages.map(img => `
+        <div class="image-preview" data-image="${img}">
+            <img src="/static/uploads/${img}" alt="Product image">
+            <button type="button" class="remove-image-btn" onclick="markImageForDeletion('${img}')">✕</button>
+        </div>
+    `).join('');
+}
+
+function markImageForDeletion(imageName) {
+    const div = document.querySelector(`.image-preview[data-image="${imageName}"]`);
+    if (div) {
+        div.classList.add('marked-for-delete');
+        div.style.opacity = '0.5';
+        div.querySelector('.remove-image-btn').textContent = '↩️';
+        div.querySelector('.remove-image-btn').onclick = () => cancelImageDeletion(imageName);
+        if (!imagesToDelete.includes(imageName)) imagesToDelete.push(imageName);
+    }
+}
+
+function cancelImageDeletion(imageName) {
+    const div = document.querySelector(`.image-preview[data-image="${imageName}"]`);
+    if (div) {
+        div.classList.remove('marked-for-delete');
+        div.style.opacity = '1';
+        div.querySelector('.remove-image-btn').textContent = '✕';
+        div.querySelector('.remove-image-btn').onclick = () => markImageForDeletion(imageName);
+        imagesToDelete = imagesToDelete.filter(n => n !== imageName);
+    }
+}
+
+function previewNewImages(input) {
+    const preview = document.getElementById('new_images_preview');
+    newImagesFiles = [];
+    for (let f of input.files) {
+        if (f.type.startsWith('image/')) {
+            newImagesFiles.push(f);
+            const reader = new FileReader();
+            reader.onload = e => {
+                const div = document.createElement('div');
+                div.className = 'image-preview new';
+                div.innerHTML = `<img src="${e.target.result}" alt="Preview"><button type="button" class="remove-new-image" onclick="this.parentElement.remove(); removeNewImageFile('${f.name}')">✕</button>`;
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(f);
+        }
+    }
+    input.value = '';
+}
+
+function removeNewImageFile(filename) {
+    newImagesFiles = newImagesFiles.filter(f => f.name !== filename);
+}
+
+function saveProductChanges(event) {
+    event.preventDefault();
+    const id = document.getElementById('edit_product_id').value;
+    const fd = new FormData();
+    fd.append('name', document.getElementById('edit_name').value);
+    fd.append('price', document.getElementById('edit_price').value);
+    fd.append('description', document.getElementById('edit_description').value);
+    fd.append('condition', document.getElementById('edit_condition').value);
+    fd.append('category', document.getElementById('edit_category').value);
+    if (imagesToDelete.length) fd.append('delete_images', JSON.stringify(imagesToDelete));
+    for (let f of newImagesFiles) fd.append('new_images', f);
+    showToast('Updating product...', 'info');
+    fetch(`/api/product/${id}/update-full`, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(r => r.json()).then(data => {
+            if (data.success) {
+                showToast('Product updated successfully!', 'success');
+                closeEditModal();
+                loadListings();
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(err => showToast('Failed to update: ' + err.message, 'error'));
+}
+
+function closeEditModal() {
+    const m = document.getElementById('editProductModal');
+    if (m) {
+        m.style.display = 'none';
+    }
+    currentProductImages = [];
+    newImagesFiles = [];
+    imagesToDelete = [];
+}
+
+function deleteListing(productId, productName) {
+    if (confirm(`Are you sure you want to delete "${productName}"? This cannot be undone.`)) {
+        fetch(`/api/product/${productId}/delete`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`"${productName}" deleted`, 'success');
+                loadListings();
+            } else {
+                throw new Error(data.error || 'Delete failed');
+            }
+        })
+        .catch(() => showToast('Failed to delete', 'error'));
+    }
+}
+
+// ============================================================
+// PAGE INITIALIZATION
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    restoreBackgroundFromServer();
+    loadCoverFromServer();
     loadListings();
     loadPurchases();
 });
 </script>
-{%endblock%}
+{% endblock %}

@@ -126,6 +126,10 @@ def init_products():
     """Initialize products table"""
     db = get_db()
 
+<<<<<<< HEAD
+=======
+    # Create products table (fixed: removed duplicate columns)
+>>>>>>> 3e65a8da3d37635844e282b896ebfc5b70c8d31d
     db.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -143,7 +147,7 @@ def init_products():
         )
     ''')
 
-    # Add missing columns
+    # Add missing columns (safe for existing databases)
     try:
         db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
     except sqlite3.OperationalError:
