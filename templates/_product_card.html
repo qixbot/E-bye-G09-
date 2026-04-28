@@ -3,7 +3,7 @@
          data-images='{{ product.images_list[:3] | tojson }}'
          data-total="{{ product.images_list[:3]|length }}"
          data-actual-total="{{ product.actual_total }}">
-        <span class="condition-badge">{{ product.condition }}</span>
+        <span class="condition-badge">{{ product.condition | replace('_', ' ') | title }}</span>
         <div class="carousel-window">
             <div class="carousel-track">
                 {% if product.images_list[:3] %}
