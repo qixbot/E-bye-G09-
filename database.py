@@ -126,10 +126,6 @@ def init_products():
     """Initialize products table"""
     db = get_db()
 
-<<<<<<< HEAD
-=======
-    # Create products table (fixed: removed duplicate columns)
->>>>>>> 3e65a8da3d37635844e282b896ebfc5b70c8d31d
     db.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -183,10 +179,14 @@ def init_messages():
         db.execute("ALTER TABLE messages ADD COLUMN msg_type TEXT DEFAULT 'text'")
     except:
         pass
+    try:
+        db.execute("ALTER TABLE messages ADD COLUMN image TEXT")
+    except:
+        pass
     db.commit()
     db.close()
     print("Messages table ready.")
-
+    
 def init_announcements():
     db = get_db()
     db.execute('''
@@ -219,3 +219,6 @@ def init_reviews():
 # Initialize
 init_db()
 init_products()
+init_messages()
+init_announcements()
+init_reviews()
