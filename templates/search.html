@@ -8,6 +8,33 @@
 <div class="search-page-wrapper">
     <div class="search-header">
         <h2>Search Results</h2>
+
+        <div class="filter-summary">
+            {% set filters = [] %}
+            {% if request.args.get('q') %}{% set _ = filters.append('Keyword: ' + request.args.get('q')) %}{% endif %}
+            {% if request.args.get('category') %}{% set _ = filters.append('Category: ' + request.args.get('category')) %}{% endif %}
+            {% if request.args.get('condition') %}{% set _ = filters.append('Condition: ' + request.args.get('condition')|replace('_', ' ')|title) %}{% endif %}
+            {% if request.args.get('date_range') %}
+                {% set days = request.args.get('date_range') %}
+                {% if days == '7' %}{% set _ = filters.append('Last 7 days') %}
+                {% elif days == '30' %}{% set _ = filters.append('Last 30 days') %}
+                {% elif days == '365' %}{% set _ = filters.append('Last year') %}
+                {% endif %}
+            {% else %}
+                {% if request.args.get('date_from') or request.args.get('date_to') %}
+                    {% set _ = filters.append('Custom date range') %}
+                {% endif %}
+            {% endif %}
+            {% if request.args.get('min_price') or request.args.get('max_price') %}
+                {% set _ = filters.append('Price: ' + (request.args.get('min_price') or '0') + ' - ' + (request.args.get('max_price') or '∞')) %}
+            {% endif %}
+            {% if filters %}
+                <div class="filter-summary-text">
+                    Showing results for: {{ filters | join(', ') }}
+                </div>
+            {% endif %}
+        </div>
+
         <button class="filter-btn" id="openFilterBtn">🔍 Filters</button>
     </div>
 

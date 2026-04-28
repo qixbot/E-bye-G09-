@@ -11,7 +11,14 @@
     align-items: center;
     margin-bottom: 30px;
 }
-
+.filter-summary {
+    margin-top: 5px;
+}
+.filter-summary-text {
+    font-size: 0.85rem;
+    color: #999;
+    margin-bottom: 15px;
+}
 .filter-btn {
     background: #00381f;
     color: white;
