@@ -1,4 +1,4 @@
-{% extends "base.html"%}
+{% extends "base.html" %}
 {% block bottom_nav %}{% endblock %}
 {% block navbar %}{% endblock %}
 
@@ -10,10 +10,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
 
 <div class="ep-page" id="epPage">
-    <!-- Dynamic background layer -->
     <div class="ep-bg-layer" id="epBgLayer"></div>
 
-    <!-- Navigation bar -->
     <nav class="ep-navbar">
         <button class="ep-nav-back" onclick='window.location.href="{{ url_for('home') }}";'>←</button>
         <div class="nav-spacer"></div>
@@ -29,40 +27,37 @@
             </button>
         </div>
     </nav>
-<!-- Background selection panel -->
-<div class="ep-bg-panel" id="epBgPanel">
-    <div class="ep-bg-panel-header">
-        <span>🎨 Page Background</span>
-        <button class="ep-bg-close" onclick="toggleBgPanel()">✕</button>
-    </div>
-    <div class="theme-section">
-        <div class="theme-label">🌈 Rainbow</div>
-        <div class="color-grid" id="rainbowGrid"></div>
-    </div>
-    <div class="theme-section">
-        <div class="theme-label">🌸 Light Tones</div>
-        <div class="color-grid" id="lightGrid"></div>
-    </div>
-    <div class="theme-section">
-        <div class="theme-label">🌙 Dark Tones</div>
-        <div class="color-grid" id="darkGrid"></div>
-    </div>
-    <div class="theme-section">
-        <div class="theme-label">✨ Gradients</div>
-        <div class="color-grid" id="gradientGrid"></div>
-    </div>
-    <div id="currentBgPreview" class="bg-preview-current"></div>
-    <div class="bg-buttons">
-        <button class="bg-save-btn" id="bgSaveBtn">Save Changes</button>
-        <button class="bg-cancel-btn" id="bgCancelBtn">Cancel</button>
-    </div>
-</div>
 
+    <div class="ep-bg-panel" id="epBgPanel">
+        <div class="ep-bg-panel-header">
+            <span>🎨 Page Background</span>
+            <button class="ep-bg-close" onclick="toggleBgPanel()">✕</button>
+        </div>
+        <div class="theme-section">
+            <div class="theme-label">🌈 Rainbow</div>
+            <div class="color-grid" id="rainbowGrid"></div>
+        </div>
+        <div class="theme-section">
+            <div class="theme-label">🌸 Light Tones</div>
+            <div class="color-grid" id="lightGrid"></div>
+        </div>
+        <div class="theme-section">
+            <div class="theme-label">🌙 Dark Tones</div>
+            <div class="color-grid" id="darkGrid"></div>
+        </div>
+        <div class="theme-section">
+            <div class="theme-label">✨ Gradients</div>
+            <div class="color-grid" id="gradientGrid"></div>
+        </div>
+        <div id="currentBgPreview" class="bg-preview-current"></div>
+        <div class="bg-buttons">
+            <button class="bg-save-btn" id="bgSaveBtn">Save Changes</button>
+            <button class="bg-cancel-btn" id="bgCancelBtn">Cancel</button>
+        </div>
+    </div>
 
-    <!-- Cover banner section - load from database BLOB -->
     <div class="ep-cover-container">
-        <div class="ep-cover-image" id="coverImage"
-             style="background-image: url('{{ url_for('cover_image') }}?t={{ range(1, 10000) | random }}'); background-color: #00381f;">
+        <div class="ep-cover-image" id="coverImage" style="background-image: url('{{ url_for('cover_image') }}?t={{ range(1, 10000) | random }}'); background-color: #00381f;">
             <div class="ep-cover-overlay">
                 <button class="ep-cover-upload-btn" id="coverChangeBtn">📷 Change Cover</button>
             </div>
@@ -70,31 +65,27 @@
         <input type="file" id="coverFileInput" accept="image/*" style="display:none">
     </div>
 
-    <!-- Crop modals for cover and avatar -->
     <div class="crop-modal" id="coverCropModal">
         <div class="crop-content">
             <div class="crop-header">
                 <span>Crop Cover Image</span>
                 <button class="crop-close">&times;</button>
             </div>
-            <div class="crop-image-container">
-                <img id="coverCropImage">
-            </div>
+            <div class="crop-image-container"><img id="coverCropImage"></div>
             <div class="crop-buttons">
                 <button class="crop-cancel">Cancel</button>
                 <button class="crop-confirm">Save Changes</button>
             </div>
         </div>
     </div>
+
     <div class="crop-modal" id="avatarCropModal">
         <div class="crop-content crop-avatar-content">
             <div class="crop-header">
                 <span>Crop Profile Picture</span>
                 <button class="avatar-crop-close">&times;</button>
             </div>
-            <div class="crop-image-container">
-                <img id="avatarCropImage">
-            </div>
+            <div class="crop-image-container"><img id="avatarCropImage"></div>
             <div class="crop-buttons">
                 <button class="crop-cancel" id="avatarCropCancel">Cancel</button>
                 <button class="crop-confirm" id="avatarCropConfirm">Save Changes</button>
@@ -102,289 +93,152 @@
         </div>
     </div>
 
-    <!-- Main grid layout -->
     <div class="ep-wrap">
         <div class="ep-grid">
-    <!-- Left column: profile card -->
-    <div class="ep-identity">
-        <div class="ep-avatar-card">
-            <div class="ep-avatar-wrap">
-                <!-- Avatar ring -->
-                <div class="ep-av-ring" id="avatarRing">
-                    <img src="{{ url_for('avatar_image') }}?t={{ range(1, 10000) | random }}"
-                         id="side-av-img" alt="Avatar"
-                         onerror="this.style.display='none'; document.getElementById('side-av-init').style.display='flex';">
-                    <div class="ep-av-initials" id="side-av-init" style="display: none;">
-                        {{ user.username[0].upper() if user.username else 'U' }}
+            <div class="ep-identity">
+                <div class="ep-avatar-card">
+                    <div class="ep-avatar-wrap">
+                        <div class="ep-av-ring" id="avatarRing">
+                            <img src="{{ url_for('avatar_image') }}?t={{ range(1, 10000) | random }}" id="side-av-img" alt="Avatar" onerror="this.style.display='none'; document.getElementById('side-av-init').style.display='flex';">
+                            <div class="ep-av-initials" id="side-av-init" style="display: none;">{{ user.username[0].upper() if user.username else 'U' }}</div>
+                            <div class="ep-av-overlay">📷</div>
+                        </div>
                     </div>
-                    <div class="ep-av-overlay">📷</div>
+                    <input type="file" id="avatarFileInput" accept="image/*" style="display:none">
+                    <div class="ep-avatar-body">
+                        <div class="ep-name">{{ user.full_name or user.username }}</div>
+                        <div class="ep-handle">@{{ user.username }}</div>
+                        <div class="ep-account-status">
+                            <div class="ep-status-header"><span>⭐ Account Status</span><span class="ep-status-badge verified">✓ Verified</span></div>
+                            <div class="ep-status-metrics">
+                                <div><span class="ep-metric-value">{{ trust_score|default(0)|int }}%</span><span class="ep-metric-label">Trust</span></div>
+                                <div><span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span><span class="ep-metric-label">Member</span></div>
+                                <div><span class="ep-metric-value">{{ response_rate|default(98) }}%</span><span class="ep-metric-label">Response</span></div>
+                            </div>
+                            <div class="ep-status-progress"><div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div></div>
+                        </div>
+                        <div class="ep-stats">
+                            <div class="ep-stat"><div class="ep-stat-n">{{ listing_count or 0 }}</div><div class="ep-stat-l">Listings</div></div>
+                            <div class="ep-stat"><div class="ep-stat-n">{{ user.rating or '—' }}</div><div class="ep-stat-l">Rating</div></div>
+                        </div>
+                        <div class="ep-verified">✓ MMU Verified</div>
+                    </div>
                 </div>
             </div>
-            <input type="file" id="avatarFileInput" accept="image/*" style="display:none">
 
-            <div class="ep-avatar-body">
-                <div class="ep-name">{{ user.full_name or user.username }}</div>
-                <div class="ep-handle">@{{ user.username }}</div>
-
-                <!-- Account Status Card -->
-                <div class="ep-account-status">
-                    <div class="ep-status-header">
-                        <span>⭐ Account Status</span>
-                        <span class="ep-status-badge verified">✓ Verified</span>
-                    </div>
-                    <div class="ep-status-metrics">
-                        <div>
-                            <span class="ep-metric-value">{{ trust_score|default(0)|int }}%</span>
-                            <span class="ep-metric-label">Trust</span>
-                        </div>
-                        <div>
-                            <span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span>
-                            <span class="ep-metric-label">Member</span>
-                        </div>
-                        <div>
-                            <span class="ep-metric-value">{{ response_rate|default(98) }}%</span>
-                            <span class="ep-metric-label">Response</span>
-                        </div>
-                    </div>
-                    <div class="ep-status-progress">
-                        <div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div>
-                    </div>
-                </div>
-
-                <div class="ep-stats">
-                    <div class="ep-stat">
-                        <div class="ep-stat-n">{{ listing_count or 0 }}</div>
-                        <div class="ep-stat-l">Listings</div>
-                    </div>
-                    <div class="ep-stat">
-                        <div class="ep-stat-n">{{ user.rating or '—' }}</div>
-                        <div class="ep-stat-l">Rating</div>
-                    </div>
-                </div>
-                
-                <div class="ep-verified">✓ MMU Verified</div>
-            </div>
-        </div>
-    </div>
-
-            <!-- Right panel -->
             <div class="ep-panel">
-                <!-- MAIN TABS (My Purchases, My Listings, Edit Profile) -->
                 <div class="ep-main-tabs">
-                    <button class="ep-main-tab" data-main-tab="purchases" onclick="switchMainTab('purchases')">
-                        🛍️ My Purchases
-                    </button>
-                    <button class="ep-main-tab" data-main-tab="listings" onclick="switchMainTab('listings')">
-                        📦 My Listings
-                    </button>
-                    <button class="ep-main-tab active" data-main-tab="edit" onclick="switchMainTab('edit')">
-                        ✏️ Edit Profile
-                    </button>
+                    <button class="ep-main-tab" data-main-tab="purchases" onclick="switchMainTab('purchases')">🛍️ My Purchases</button>
+                    <button class="ep-main-tab" data-main-tab="listings" onclick="switchMainTab('listings')">📦 My Listings</button>
+                    <button class="ep-main-tab active" data-main-tab="edit" onclick="switchMainTab('edit')">✏️ Edit Profile</button>
                 </div>
 
-                <!-- Flash messages -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         <div style="padding:20px 40px 0">
                             {% for category, message in messages %}
-                                <div class="ep-flash {{ category }}">
-                                    {{ message }}
-                                </div>
+                                <div class="ep-flash {{ category }}">{{ message }}</div>
                             {% endfor %}
                         </div>
                     {% endif %}
                 {% endwith %}
 
-                <!-- MAIN PANE 1: My Purchases -->
                 <div class="ep-main-pane" id="main-pane-purchases">
-                    <div id="purchases-content">
-                        <div class="ep-empty">🛍️ Loading your purchases...</div>
-                    </div>
+                    <div class="pane-header"><h3 class="pane-title">🛍️ My Purchases</h3></div>
+                    <div id="purchases-grid" class="purchases-list"><div class="loading-state">Loading your purchases...</div></div>
                 </div>
 
-                <!-- MAIN PANE 2: My Listings -->
                 <div class="ep-main-pane" id="main-pane-listings">
-                    <div id="listings-content">
-                        <div class="ep-empty">📦 Loading your listings...</div>
+                    <div class="pane-header">
+                        <h3 class="pane-title">📦 My Listings</h3>
+                        <a href="{{ url_for('upload_product') }}" class="post-link">+ Post New Item</a>
                     </div>
+                    <div id="listings-grid" class="products-grid"><div class="loading-state">Loading your listings...</div></div>
                 </div>
 
-                <!-- MAIN PANE 3: Edit Profile (with 3 sub-tabs) -->
                 <div class="ep-main-pane active" id="main-pane-edit">
-                    <!-- Sub tabs (Edit Profile, Change Password, Delete Account) -->
                     <div class="ep-sub-tabs">
-                        <button class="ep-sub-tab active" data-subtab="edit-profile" onclick="switchSubTab('edit-profile')">
-                            ✏️ Edit Profile
-                        </button>
-                        <button class="ep-sub-tab" data-subtab="password" onclick="switchSubTab('password')">
-                            🔒 Change Password
-                        </button>
-                        <button class="ep-sub-tab danger" data-subtab="delete" onclick="switchSubTab('delete')">
-                            🗑️ Delete Account
-                        </button>
+                        <button class="ep-sub-tab active" data-subtab="edit-profile" onclick="switchSubTab('edit-profile')">✏️ Edit Profile</button>
+                        <button class="ep-sub-tab" data-subtab="password" onclick="switchSubTab('password')">🔒 Change Password</button>
+                        <button class="ep-sub-tab danger" data-subtab="delete" onclick="switchSubTab('delete')">🗑️ Delete Account</button>
                     </div>
 
-                    <!-- Sub pane 1: Edit Profile Form -->
                     <div class="ep-sub-pane active" id="sub-pane-edit-profile">
-                        <form method="POST" action="{{ url_for('update_profile') }}"
-                              enctype="multipart/form-data" id="edit-form">
+                        <form method="POST" action="{{ url_for('update_profile') }}" enctype="multipart/form-data" id="edit-form">
                             <div class="ep-grid-2">
-                                <div class="ep-fg">
-                                    <label>Display Name</label>
-                                    <input type="text" name="full_name"
-                                           value="{{ user.full_name or '' }}" placeholder="Your full name">
-                                </div>
-                                <div class="ep-fg">
-                                    <label>Username</label>
-                                    <input type="text" name="username"
-                                           value="{{ user.username or '' }}" placeholder="@username">
-                                </div>
+                                <div class="ep-fg"><label>Display Name</label><input type="text" name="full_name" value="{{ user.full_name or '' }}" placeholder="Your full name"></div>
+                                <div class="ep-fg"><label>Username</label><input type="text" name="username" value="{{ user.username or '' }}" placeholder="@username"></div>
                             </div>
-
-                            <div class="ep-fg">
-                                <label>Bio</label>
-                                <textarea name="bio" placeholder="Tell other students about yourself...">
-                                    {{- user.bio or '' -}}
-                                </textarea>
-                            </div>
-
+                            <div class="ep-fg"><label>Bio</label><textarea name="bio" placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea></div>
                             <div class="ep-grid-2">
-                                <div class="ep-fg">
-                                    <label>Phone Number</label>
-                                    <input type="tel" name="contact"
-                                           value="{{ user.contact or '' }}" placeholder="+60 12-345 6789">
-                                </div>
-                                <div class="ep-fg">
-                                    <label>Gender</label>
-                                    <select name="gender">
-                                        <option value="" {% if not user.gender %}selected{% endif %}>
-                                            Prefer not to say
-                                        </option>
-                                        <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>
-                                            Female
-                                        </option>
-                                        <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>
-                                            Male
-                                        </option>
-                                    </select>
-                                </div>
+                                <div class="ep-fg"><label>Phone Number</label><input type="tel" name="contact" value="{{ user.contact or '' }}" placeholder="+60 12-345 6789"></div>
+                                <div class="ep-fg"><label>Gender</label><select name="gender"><option value="" {% if not user.gender %}selected{% endif %}>Prefer not to say</option><option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>Female</option><option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>Male</option></select></div>
                             </div>
-
                             <div class="ep-fg">
                                 <label>Active Hours</label>
                                 <select name="active_hours">
-                                    <option value="" {% if not user.active_hours %}selected{% endif %}>
-                                        ⏰ Not set
-                                    </option>
-                                    <option value="Morning (9am-12pm)"
-                                            {% if user.active_hours == 'Morning (9am-12pm)' %}selected{% endif %}>
-                                        🌅 Morning (9am–12pm)
-                                    </option>
-                                    <option value="Afternoon (2pm-5pm)"
-                                            {% if user.active_hours == 'Afternoon (2pm-5pm)' %}selected{% endif %}>
-                                        ☀️ Afternoon (2pm–5pm)
-                                    </option>
-                                    <option value="Evening (8pm-11pm)"
-                                            {% if user.active_hours == 'Evening (8pm-11pm)' %}selected{% endif %}>
-                                        🌙 Evening (8pm–11pm)
-                                    </option>
-                                    <option value="Flexible"
-                                            {% if user.active_hours == 'Flexible' %}selected{% endif %}>
-                                        🔄 Flexible
-                                    </option>
+                                    <option value="" {% if not user.active_hours %}selected{% endif %}>⏰ Not set</option>
+                                    <option value="Morning (9am-12pm)" {% if user.active_hours == 'Morning (9am-12pm)' %}selected{% endif %}>🌅 Morning (9am–12pm)</option>
+                                    <option value="Afternoon (2pm-5pm)" {% if user.active_hours == 'Afternoon (2pm-5pm)' %}selected{% endif %}>☀️ Afternoon (2pm–5pm)</option>
+                                    <option value="Evening (8pm-11pm)" {% if user.active_hours == 'Evening (8pm-11pm)' %}selected{% endif %}>🌙 Evening (8pm–11pm)</option>
+                                    <option value="Flexible" {% if user.active_hours == 'Flexible' %}selected{% endif %}>🔄 Flexible</option>
                                 </select>
-                                <div class="ep-hint">
-                                    💬 Buyers will see when you're usually available to respond
-                                </div>
+                                <div class="ep-hint">💬 Buyers will see when you're usually available to respond</div>
                             </div>
-
                             <div class="ep-divider"></div>
                             <div class="ep-actions">
                                 <button type="submit" class="ep-btn-save">Save Changes</button>
-                                <button type="button" class="ep-btn-cancel"
-                                        onclick="window.location='{{ url_for('home') }}'">Cancel
-                                </button>
+                                <button type="button" class="ep-btn-cancel" onclick="window.location='{{ url_for('home') }}'">Cancel</button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- Sub pane 2: Change Password -->
                     <div class="ep-sub-pane" id="sub-pane-password">
                         <form method="POST" action="{{ url_for('change_password') }}" id="pw-form">
                             <div class="ep-fg">
                                 <label>Current Password</label>
                                 <div class="ep-input-wrap">
-                                    <input type="password" name="current_password" id="current_password"
-                                           placeholder="Enter your current password" required>
-                                    <button type="button" class="ep-eye"
-                                            onclick="togglePassword('current_password', this)">👀
-                                    </button>
+                                    <input type="password" name="current_password" id="current_password" placeholder="Enter your current password" required>
+                                    <button type="button" class="ep-eye" onclick="togglePassword('current_password', this)">👀</button>
                                 </div>
                             </div>
-
                             <div class="ep-fg">
                                 <label>New Password</label>
                                 <div class="ep-input-wrap">
-                                    <input type="password" name="new_password" id="new_password"
-                                           placeholder="Create a strong new password" required
-                                           oninput="checkPwStrength()">
-                                    <button type="button" class="ep-eye"
-                                            onclick="togglePassword('new_password', this)">👀
-                                    </button>
+                                    <input type="password" name="new_password" id="new_password" placeholder="Create a strong new password" required oninput="checkPwStrength()">
+                                    <button type="button" class="ep-eye" onclick="togglePassword('new_password', this)">👀</button>
                                 </div>
-                                <div class="ep-strength-wrap">
-                                    <div class="ep-strength-bar" id="ep-strength-bar"></div>
-                                </div>
+                                <div class="ep-strength-wrap"><div class="ep-strength-bar" id="ep-strength-bar"></div></div>
                                 <div class="ep-strength-label" id="ep-strength-label"></div>
                                 <div class="ep-reqs" id="ep-reqs">
-                                    <small id="ep-req-len" class="req-invalid">
-                                        <em class="req-icon">✗</em> At least 8 characters
-                                    </small>
-                                    <small id="ep-req-up" class="req-invalid">
-                                        <em class="req-icon">✗</em> At least 1 uppercase letter (A-Z)
-                                    </small>
-                                    <small id="ep-req-lo" class="req-invalid">
-                                        <em class="req-icon">✗</em> At least 1 lowercase letter (a-z)
-                                    </small>
-                                    <small id="ep-req-num" class="req-invalid">
-                                        <em class="req-icon">✗</em> At least 1 number (0-9)
-                                    </small>
-                                    <small id="ep-req-sp" class="req-invalid">
-                                        <em class="req-icon">✗</em> At least 1 special character (! @ # $ % ^ &amp; *)
-                                    </small>
+                                    <small id="ep-req-len" class="req-invalid"><em class="req-icon">✗</em> At least 8 characters</small>
+                                    <small id="ep-req-up" class="req-invalid"><em class="req-icon">✗</em> At least 1 uppercase letter (A-Z)</small>
+                                    <small id="ep-req-lo" class="req-invalid"><em class="req-icon">✗</em> At least 1 lowercase letter (a-z)</small>
+                                    <small id="ep-req-num" class="req-invalid"><em class="req-icon">✗</em> At least 1 number (0-9)</small>
+                                    <small id="ep-req-sp" class="req-invalid"><em class="req-icon">✗</em> At least 1 special character (! @ # $ % ^ &amp; *)</small>
                                 </div>
                             </div>
-
                             <div class="ep-fg">
                                 <label>Confirm New Password</label>
                                 <div class="ep-input-wrap">
-                                    <input type="password" name="confirm_password" id="confirm_password"
-                                           placeholder="Re-enter new password" required oninput="checkPwMatch()">
-                                    <button type="button" class="ep-eye"
-                                            onclick="togglePassword('confirm_password', this)">👀
-                                    </button>
+                                    <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter new password" required oninput="checkPwMatch()">
+                                    <button type="button" class="ep-eye" onclick="togglePassword('confirm_password', this)">👀</button>
                                 </div>
                                 <div class="ep-pw-match" id="ep-pw-match"></div>
                             </div>
-
                             <div class="ep-divider"></div>
                             <div class="ep-actions">
-                                <button type="submit" class="ep-btn-save" onclick="return validatePwForm()">
-                                    Update Password
-                                </button>
+                                <button type="submit" class="ep-btn-save" onclick="return validatePwForm()">Update Password</button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- Sub pane 3: Delete Account -->
                     <div class="ep-sub-pane" id="sub-pane-delete">
                         <div class="ep-danger-box">
                             <div class="ep-danger-icon">⚠️</div>
                             <div>
                                 <div class="ep-danger-title">This action cannot be undone</div>
-                                <div class="ep-danger-desc">
-                                    Deleting your account will permanently remove:
-                                </div>
+                                <div class="ep-danger-desc">Deleting your account will permanently remove:</div>
                                 <ul class="ep-danger-list">
                                     <li>Your profile and all personal information</li>
                                     <li>All your listings</li>
@@ -393,34 +247,24 @@
                                 </ul>
                             </div>
                         </div>
-
-                        <form method="POST" action="{{ url_for('delete_account') }}"
-                              id="delete-form" onsubmit="return confirmDelete()">
+                        <form method="POST" action="{{ url_for('delete_account') }}" id="delete-form" onsubmit="return confirmDelete()">
                             <div class="ep-fg">
                                 <label>Enter your password to confirm</label>
                                 <div class="ep-input-wrap">
-                                    <input type="password" name="password" id="delete_password"
-                                           placeholder="Your current password" required>
-                                    <button type="button" class="ep-eye"
-                                            onclick="togglePassword('delete_password', this)">👀
-                                    </button>
+                                    <input type="password" name="password" id="delete_password" placeholder="Your current password" required>
+                                    <button type="button" class="ep-eye" onclick="togglePassword('delete_password', this)">👀</button>
                                 </div>
                                 <div id="deletePwMatch" class="delete-pw-match"></div>
                             </div>
                             <div class="ep-fg">
                                 <label>Type <span class="ep-confirm-word">DELETE</span> to confirm</label>
-                                <input type="text" name="confirm_text" placeholder="DELETE" required
-                                       oninput="this.value = this.value.toUpperCase()">
+                                <input type="text" name="confirm_text" placeholder="DELETE" required oninput="this.value = this.value.toUpperCase()">
                                 <div id="deleteConfirmMatch" class="delete-confirm-match"></div>
                             </div>
                             <div class="ep-divider"></div>
                             <div class="ep-actions">
-                                <button type="submit" class="ep-btn-danger">
-                                    Permanently Delete Account
-                                </button>
-                                <button type="button" class="ep-btn-cancel" onclick="switchSubTab('edit-profile')">
-                                    Cancel
-                                </button>
+                                <button type="submit" class="ep-btn-danger">Permanently Delete Account</button>
+                                <button type="button" class="ep-btn-cancel" onclick="switchSubTab('edit-profile')">Cancel</button>
                             </div>
                         </form>
                     </div>
@@ -430,143 +274,106 @@
     </div>
 </div>
 
+<div id="editProductModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>✏️ Edit Product</h2>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form id="editProductForm" onsubmit="saveProductChanges(event)">
+            <input type="hidden" id="edit_product_id">
+            <div class="form-group"><label>Product Name *</label><input type="text" id="edit_name" required></div>
+            <div class="form-group"><label>Price (RM) *</label><input type="number" id="edit_price" step="0.01" min="0" required></div>
+            <div class="form-group"><label>Description *</label><textarea id="edit_description" rows="4" required></textarea></div>
+            <div class="form-row">
+                <div class="form-group"><label>Condition</label><select id="edit_condition"><option value="new">New</option><option value="like_new">Like New</option><option value="good">Good</option><option value="fair">Fair</option></select></div>
+                <div class="form-group"><label>Category</label><select id="edit_category"><option value="books">📚 Books</option><option value="gadgets">💻 Gadgets</option><option value="dorm">🛏 Dorm Essentials</option><option value="fashion">👕 Fashion</option><option value="stationery">✏️ Stationery</option><option value="sports">⚽ Sports</option></select></div>
+            </div>
+            <div class="form-group">
+                <label>Current Images</label>
+                <div id="existing_images_container" class="existing-images"></div>
+                <div class="image-upload-area"><label class="upload-btn">📷 Add New Photos<input type="file" id="edit_new_images" accept="image/*" multiple style="display:none" onchange="previewNewImages(this)"></label></div>
+                <div id="new_images_preview" class="new-images-preview"></div>
+            </div>
+            <div class="modal-buttons"><button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button><button type="submit" class="btn-save">Save Changes</button></div>
+        </form>
+    </div>
+</div>
+
 <script>
-// ============================================================
-// COLOR PALETTE CONFIGURATION
-// ============================================================
 const COLOR_CONFIG = {
-    rainbow: ['#FF0000','#FF4500','#FFA500','#FFD700','#FFFF00',
-              '#ADFF2F','#00FF00','#00FA9A','#00CED1','#1E90FF',
-              '#0000FF','#4B0082','#8A2BE2','#EE82EE','#FF69B4',
-              '#FFC0CB','#FFFFFF','#D3D3D3','#808080','#A0522D',
-              '#8B4513','#000000'],
-    light: ['#FFF0F0','#FFF5E6','#FFFFE0','#E8F5E9','#E3F2FD',
-            '#F3E5F5','#FCE4EC','#FFF9C4','#E0F7FA','#F1F8E9',
-            '#FFEBEE','#F9FBE7'],
-    dark: ['#5D1A1A','#6B2E00','#4A4A1A','#1A4A1A','#1A2B4A',
-           '#3A1A5D','#5D1A4A','#2B2B2B','#1E3A3A','#2E2E1E',
-           '#3A1A1A','#0F2B2B'],
-    gradient: ['linear-gradient(135deg,#FF6B6B,#FFE66D)',
-               'linear-gradient(135deg,#FBC2EB,#A6C1EE)',
-               'linear-gradient(135deg,#84FAB0,#8FD3F4)',
-               'linear-gradient(135deg,#FF9A9E,#FECFEF)',
-               'linear-gradient(135deg,#FFD26F,#FF6B6B)',
-               'linear-gradient(135deg,#A18CD1,#FBC2EB)',
-               'linear-gradient(135deg,#43C6AC,#191654)',
-               'linear-gradient(135deg,#FAD961,#F76B1C)',
-               'linear-gradient(135deg,#4CB8C4,#3CD3AD)',
-               'linear-gradient(135deg,#F53844,#42378F)',
-               'linear-gradient(135deg,#DD5E89,#F7BB97)',
-               'linear-gradient(135deg,#00B4DB,#0083B0)']
+    rainbow: ['#FF0000','#FF4500','#FFA500','#FFD700','#FFFF00','#ADFF2F','#00FF00','#00FA9A','#00CED1','#1E90FF','#0000FF','#4B0082','#8A2BE2','#EE82EE','#FF69B4','#FFC0CB','#FFFFFF','#D3D3D3','#808080','#A0522D','#8B4513','#000000'],
+    light: ['#FFF0F0','#FFF5E6','#FFFFE0','#E8F5E9','#E3F2FD','#F3E5F5','#FCE4EC','#FFF9C4','#E0F7FA','#F1F8E9','#FFEBEE','#F9FBE7'],
+    dark: ['#5D1A1A','#6B2E00','#4A4A1A','#1A4A1A','#1A2B4A','#3A1A5D','#5D1A4A','#2B2B2B','#1E3A3A','#2E2E1E','#3A1A1A','#0F2B2B'],
+    gradient: ['linear-gradient(135deg,#FF6B6B,#FFE66D)','linear-gradient(135deg,#FBC2EB,#A6C1EE)','linear-gradient(135deg,#84FAB0,#8FD3F4)','linear-gradient(135deg,#FF9A9E,#FECFEF)','linear-gradient(135deg,#FFD26F,#FF6B6B)','linear-gradient(135deg,#A18CD1,#FBC2EB)','linear-gradient(135deg,#43C6AC,#191654)','linear-gradient(135deg,#FAD961,#F76B1C)','linear-gradient(135deg,#4CB8C4,#3CD3AD)','linear-gradient(135deg,#F53844,#42378F)','linear-gradient(135deg,#DD5E89,#F7BB97)','linear-gradient(135deg,#00B4DB,#0083B0)']
 };
 
-function buildGrid(containerId, colors, isGradient = false) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    container.innerHTML = '';
+function buildGrid(containerId, colors, isGradient) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    c.innerHTML = '';
     colors.forEach(col => {
-        const swatch = document.createElement('div');
-        swatch.className = 'color-swatch';
+        const s = document.createElement('div');
+        s.className = 'color-swatch';
         if (isGradient) {
-            swatch.style.background = col;
-            swatch.classList.add('gradient-swatch');
+            s.style.background = col;
+            s.classList.add('gradient-swatch');
         } else {
-            swatch.style.backgroundColor = col;
+            s.style.backgroundColor = col;
         }
-        swatch.onclick = () => {
-            selectedBgValue = col;
-            previewBg(col);
-        };
-        container.appendChild(swatch);
+        s.onclick = () => { selectedBgValue = col; previewBg(col); };
+        c.appendChild(s);
     });
 }
 
-buildGrid('rainbowGrid', COLOR_CONFIG.rainbow);
-buildGrid('lightGrid', COLOR_CONFIG.light);
-buildGrid('darkGrid', COLOR_CONFIG.dark);
+buildGrid('rainbowGrid', COLOR_CONFIG.rainbow, false);
+buildGrid('lightGrid', COLOR_CONFIG.light, false);
+buildGrid('darkGrid', COLOR_CONFIG.dark, false);
 buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
 
-// ============================================================
-// DOM ELEMENT CACHING
-// ============================================================
 const $bgLayer = document.getElementById('epBgLayer');
 const $bgPreview = document.getElementById('currentBgPreview');
 const $bgPanel = document.getElementById('epBgPanel');
 let selectedBgValue = null;
 
-// ============================================================
-// PREVIEW FUNCTION
-// ============================================================
 function previewBg(val) {
     if ($bgLayer) $bgLayer.style.background = val;
     if ($bgPreview) $bgPreview.style.background = val;
     selectedBgValue = val;
 }
 
-// ============================================================
-// BACKGROUND SYNCHRONIZATION - Load from database
-// ============================================================
 function restoreBackgroundFromServer() {
     fetch('/api/user/background', { credentials: 'same-origin' })
         .then(r => r.json())
         .then(data => {
-            if (data.success) {
-                let restoredBg = null;
-                if (data.background_value) {
-                    restoredBg = data.background_value;
-                } else {
-                    restoredBg = 'linear-gradient(135deg,#f5f3ee,#e6ded3)';
-                }
-                if (restoredBg && $bgLayer) {
-                    $bgLayer.style.background = restoredBg;
-                }
-                if ($bgPreview) {
-                    $bgPreview.style.background = restoredBg;
-                }
-                selectedBgValue = restoredBg;
-            }
+            let restoredBg = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
+            if (data.success && data.background_value) restoredBg = data.background_value;
+            if ($bgLayer) $bgLayer.style.background = restoredBg;
+            if ($bgPreview) $bgPreview.style.background = restoredBg;
+            selectedBgValue = restoredBg;
         })
-        .catch(err => {
-            console.error('Failed to load background:', err);
-        });
+        .catch(() => { if ($bgLayer) $bgLayer.style.background = 'linear-gradient(135deg, #f5f3ee, #e6ded3)'; });
 }
 
-function saveBackgroundToServer(bgValue, bgType = 'custom') {
+function saveBackgroundToServer(bgValue) {
     return fetch('/save-background-preset', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({bg_type: bgType, bg_value: bgValue}),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bg_type: 'custom', bg_value: bgValue }),
         credentials: 'same-origin'
-    })
-    .then(res => {
-        if (!res.ok) throw new Error('Server error');
-        return res.json();
-    })
-    .then(data => {
-        if (!data.success) throw new Error('Save failed');
-        return true;
-    });
+    }).then(r => r.json()).then(data => { if (!data.success) throw new Error('Save failed'); return true; });
 }
 
 document.getElementById('bgSaveBtn')?.addEventListener('click', async () => {
-    if (!selectedBgValue) {
-        showToastMessage('Please select a background first', 'error');
-        return;
-    }
-    const saveBtn = document.getElementById('bgSaveBtn');
-    const originalText = saveBtn.textContent;
-    saveBtn.textContent = 'Saving...';
-    saveBtn.disabled = true;
+    if (!selectedBgValue) { showToastMessage('Please select a background first', 'error'); return; }
+    const btn = document.getElementById('bgSaveBtn'), orig = btn.textContent;
+    btn.textContent = 'Saving...'; btn.disabled = true;
     try {
-        await saveBackgroundToServer(selectedBgValue, 'custom');
+        await saveBackgroundToServer(selectedBgValue);
         showToastMessage('Background saved', 'success');
         if ($bgPanel) $bgPanel.classList.remove('open');
-    } catch (err) {
-        showToastMessage('Failed to save background', 'error');
-    } finally {
-        saveBtn.textContent = originalText;
-        saveBtn.disabled = false;
-    }
+    } catch (err) { showToastMessage('Failed to save background', 'error'); }
+    finally { btn.textContent = orig; btn.disabled = false; }
 });
 
 document.getElementById('bgCancelBtn')?.addEventListener('click', () => {
@@ -576,625 +383,294 @@ document.getElementById('bgCancelBtn')?.addEventListener('click', () => {
     showToastMessage('Reverted', 'info');
 });
 
-function toggleBgPanel() {
-    if ($bgPanel) $bgPanel.classList.toggle('open');
-}
+function toggleBgPanel() { if ($bgPanel) $bgPanel.classList.toggle('open'); }
+document.querySelector('.ep-bg-close')?.addEventListener('click', () => { if ($bgPanel) $bgPanel.classList.remove('open'); });
 
-document.querySelector('.ep-bg-close')?.addEventListener('click', () => {
-    if ($bgPanel) $bgPanel.classList.remove('open');
-});
-
-// ============================================================
-// COVER IMAGE FUNCTIONS
-// ============================================================
 let coverCropper = null;
-const $coverFileInput = document.getElementById('coverFileInput');
-const $coverCropModal = document.getElementById('coverCropModal');
+const $coverFileInput = document.getElementById('coverFileInput'), $coverCropModal = document.getElementById('coverCropModal');
 
-function loadCoverFromServer() {
-    const coverDiv = document.getElementById('coverImage');
-    if (coverDiv) {
-        coverDiv.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
-    }
-}
-
-document.getElementById('coverChangeBtn')?.addEventListener('click', () => {
-    if ($coverFileInput) $coverFileInput.click();
-});
-
+function loadCoverFromServer() { const d = document.getElementById('coverImage'); if (d) d.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')'; }
+document.getElementById('coverChangeBtn')?.addEventListener('click', () => { if ($coverFileInput) $coverFileInput.click(); });
 if ($coverFileInput) {
     $coverFileInput.addEventListener('change', e => {
         if (!e.target.files[0]) return;
         const reader = new FileReader();
         reader.onload = ev => {
-            const coverCropImage = document.getElementById('coverCropImage');
-            if (coverCropImage) coverCropImage.src = ev.target.result;
+            const img = document.getElementById('coverCropImage');
+            if (img) img.src = ev.target.result;
             if ($coverCropModal) $coverCropModal.classList.add('open');
             if (coverCropper) coverCropper.destroy();
-            if (typeof Cropper !== 'undefined') {
-                coverCropper = new Cropper(document.getElementById('coverCropImage'), {
-                    aspectRatio: 16/5,
-                    viewMode: 1,
-                    autoCropArea: 1
-                });
-            }
+            if (typeof Cropper !== 'undefined') coverCropper = new Cropper(document.getElementById('coverCropImage'), { aspectRatio: 16/5, viewMode: 1, autoCropArea: 1 });
         };
         reader.readAsDataURL(e.target.files[0]);
     });
 }
-
 function closeCoverCrop() {
     if ($coverCropModal) $coverCropModal.classList.remove('open');
-    if (coverCropper) {
-        coverCropper.destroy();
-        coverCropper = null;
-    }
+    if (coverCropper) { coverCropper.destroy(); coverCropper = null; }
     if ($coverFileInput) $coverFileInput.value = '';
 }
-
 document.querySelector('#coverCropModal .crop-close')?.addEventListener('click', closeCoverCrop);
 document.querySelector('#coverCropModal .crop-cancel')?.addEventListener('click', closeCoverCrop);
 document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click', () => {
     if (!coverCropper) return;
-    const canvas = coverCropper.getCroppedCanvas();
-    canvas.toBlob(blob => {
+    coverCropper.getCroppedCanvas().toBlob(blob => {
         const fd = new FormData();
         fd.append('cover_image', blob, 'cover.jpg');
         showToastMessage('Uploading cover...', 'info');
-        fetch('/update-cover', {method: 'POST', body: fd, credentials: 'same-origin'})
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    const coverDiv = document.getElementById('coverImage');
-                    if (coverDiv) coverDiv.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
-                    closeCoverCrop();
-                    showToastMessage('Cover updated', 'success');
-                } else {
-                    throw new Error(data.error || 'Upload failed');
-                }
-            })
-            .catch(err => {
-                showToastMessage('Cover update failed', 'error');
-            });
+        fetch('/update-cover', { method: 'POST', body: fd, credentials: 'same-origin' })
+            .then(r => r.json()).then(data => {
+                if (data.success) { document.getElementById('coverImage').style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')'; closeCoverCrop(); showToastMessage('Cover updated', 'success'); }
+                else throw new Error(data.error);
+            }).catch(() => showToastMessage('Cover update failed', 'error'));
     }, 'image/jpeg', 0.9);
 });
 
-// ============================================================
-// AVATAR FUNCTIONS
-// ============================================================
 let avatarCropper = null;
-const $avatarFileInput = document.getElementById('avatarFileInput');
-const $avatarCropModal = document.getElementById('avatarCropModal');
+const $avatarFileInput = document.getElementById('avatarFileInput'), $avatarCropModal = document.getElementById('avatarCropModal');
 
 function loadAvatarFromServer() {
-    const avatarImg = document.getElementById('side-av-img');
-    const avatarInit = document.getElementById('side-av-init');
-    if (avatarImg) {
-        avatarImg.src = '/avatar-image?t=' + Date.now();
-        avatarImg.onload = function() {
-            avatarImg.style.display = 'block';
-            if (avatarInit) avatarInit.style.display = 'none';
-        };
-        avatarImg.onerror = function() {
-            avatarImg.style.display = 'none';
-            if (avatarInit) avatarInit.style.display = 'flex';
-        };
+    const img = document.getElementById('side-av-img'), init = document.getElementById('side-av-init');
+    if (img) {
+        img.src = '/avatar-image?t=' + Date.now();
+        img.onload = () => { img.style.display = 'block'; if (init) init.style.display = 'none'; };
+        img.onerror = () => { img.style.display = 'none'; if (init) init.style.display = 'flex'; };
     }
 }
-
-document.getElementById('avatarRing')?.addEventListener('click', () => {
-    if ($avatarFileInput) $avatarFileInput.click();
-});
-
+document.getElementById('avatarRing')?.addEventListener('click', () => { if ($avatarFileInput) $avatarFileInput.click(); });
 if ($avatarFileInput) {
     $avatarFileInput.addEventListener('change', e => {
         if (!e.target.files[0]) return;
         const reader = new FileReader();
         reader.onload = ev => {
-            const avatarCropImage = document.getElementById('avatarCropImage');
-            if (avatarCropImage) avatarCropImage.src = ev.target.result;
+            const img = document.getElementById('avatarCropImage');
+            if (img) img.src = ev.target.result;
             if ($avatarCropModal) $avatarCropModal.classList.add('open');
             if (avatarCropper) avatarCropper.destroy();
-            if (typeof Cropper !== 'undefined') {
-                avatarCropper = new Cropper(document.getElementById('avatarCropImage'), {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    autoCropArea: 1
-                });
-            }
+            if (typeof Cropper !== 'undefined') avatarCropper = new Cropper(document.getElementById('avatarCropImage'), { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
         };
         reader.readAsDataURL(e.target.files[0]);
     });
 }
-
 function closeAvatarCrop() {
     if ($avatarCropModal) $avatarCropModal.classList.remove('open');
-    if (avatarCropper) {
-        avatarCropper.destroy();
-        avatarCropper = null;
-    }
+    if (avatarCropper) { avatarCropper.destroy(); avatarCropper = null; }
     if ($avatarFileInput) $avatarFileInput.value = '';
 }
-
 document.querySelector('.avatar-crop-close')?.addEventListener('click', closeAvatarCrop);
 document.getElementById('avatarCropCancel')?.addEventListener('click', closeAvatarCrop);
 document.getElementById('avatarCropConfirm')?.addEventListener('click', () => {
     if (!avatarCropper) return;
-    const canvas = avatarCropper.getCroppedCanvas();
-    canvas.toBlob(blob => {
+    avatarCropper.getCroppedCanvas().toBlob(blob => {
         const fd = new FormData();
         fd.append('avatar', blob, 'avatar.jpg');
         showToastMessage('Uploading avatar...', 'info');
-        fetch('/update-profile-avatar', {method: 'POST', body: fd, credentials: 'same-origin'})
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    const avatarImg = document.getElementById('side-av-img');
-                    if (avatarImg) avatarImg.src = '/avatar-image?t=' + Date.now();
-                    closeAvatarCrop();
-                    showToastMessage('Avatar updated', 'success');
-                } else {
-                    throw new Error(data.error || 'Upload failed');
-                }
-            })
-            .catch(err => {
-                showToastMessage('Avatar update failed', 'error');
-            });
+        fetch('/update-profile-avatar', { method: 'POST', body: fd, credentials: 'same-origin' })
+            .then(r => r.json()).then(data => {
+                if (data.success) { document.getElementById('side-av-img').src = '/avatar-image?t=' + Date.now(); closeAvatarCrop(); showToastMessage('Avatar updated', 'success'); }
+                else throw new Error(data.error);
+            }).catch(() => showToastMessage('Avatar update failed', 'error'));
     }, 'image/jpeg', 0.9);
 });
 
-// ============================================================
-// TAB SWITCHING
-// ============================================================
 function switchMainTab(tabName) {
-    document.querySelectorAll('.ep-main-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.ep-main-tab').forEach(b => b.classList.remove('active'));
     document.querySelector(`.ep-main-tab[data-main-tab="${tabName}"]`).classList.add('active');
-    document.querySelectorAll('.ep-main-pane').forEach(pane => pane.classList.remove('active'));
+    document.querySelectorAll('.ep-main-pane').forEach(p => p.classList.remove('active'));
     document.getElementById(`main-pane-${tabName}`).classList.add('active');
     if (tabName === 'listings') loadListings();
     if (tabName === 'purchases') loadPurchases();
-    if (tabName === 'edit') {
-        switchSubTab('edit-profile');
-    }
+    if (tabName === 'edit') switchSubTab('edit-profile');
 }
 
 function switchSubTab(subtabName) {
-    document.querySelectorAll('.ep-sub-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.ep-sub-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.ep-sub-pane').forEach(p => p.classList.remove('active'));
     document.querySelector(`.ep-sub-tab[data-subtab="${subtabName}"]`).classList.add('active');
-    document.querySelectorAll('.ep-sub-pane').forEach(pane => pane.classList.remove('active'));
     document.getElementById(`sub-pane-${subtabName}`).classList.add('active');
 }
 
-// ============================================================
-// LISTINGS AND PURCHASES
-// ============================================================
 function loadListings() {
-    const container = document.getElementById('listings-content');
-    container.innerHTML = '<div class="ep-empty">📦 Loading your listings...</div>';
-    
+    const container = document.getElementById('listings-grid');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
     fetch('/api/user/listings', { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.length) {
-                container.innerHTML = '<div class="ep-empty">📦 You haven\'t listed any items yet.<br><small>Click "Post" to sell something!</small></div>';
-                return;
-            }
-            container.innerHTML = data.map(p => `
-                <div class="listing-item">
-                    <div class="listing-thumb">
-                        ${p.first_image ? 
-                            `<img src="/static/uploads/${p.first_image}" class="listing-img" alt="${escapeHtml(p.name)}">` : 
-                            `<div class="listing-emoji">${escapeHtml(p.emoji || '📦')}</div>`
-                        }
-                    </div>
-                    <div style="flex:1">
-                        <div class="listing-name">${escapeHtml(p.name)}</div>
-                        <div class="listing-price">RM ${parseFloat(p.price).toFixed(2)}</div>
-                        <div class="listing-status ${escapeHtml(p.status)}">${escapeHtml(p.status || 'Active')}</div>
-                    </div>
-                    <div class="listing-actions">
-                        <button class="edit-listing-btn" onclick="editListing(${p.id})">✏️ Edit</button>
-                        <button class="delete-listing-btn" onclick="deleteListing(${p.id}, '${escapeHtml(p.name)}')">🗑️ Delete</button>
-                    </div>
-                </div>
-            `).join('');
-        })
-        
+        .then(r => r.json()).then(data => {
+            if (!data || data.length === 0) { container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><p>You haven\'t listed any items yet</p><small><a href="{{ url_for('upload_product') }}">Click here to post your first item!</a></small></div>'; return; }
+            container.innerHTML = data.map(item => {
+                const firstImage = item.first_image ? `/static/uploads/${item.first_image}` : null;
+                const statusClass = (item.status || 'pending').toLowerCase();
+                let statusText = item.status || 'Pending';
+                if (statusText === 'approved') statusText = 'Approved';
+                if (statusText === 'rejected') statusText = 'Rejected';
+                return `<div class="product-card"><a href="/product/${item.id}" class="product-card-link"><div class="product-image-container"><span class="condition-badge">${escapeHtml(item.condition || 'Good')}</span><div class="carousel-window"><div class="carousel-track">${firstImage ? `<img src="${firstImage}" class="carousel-img" alt="${escapeHtml(item.name)}">` : '<div class="carousel-placeholder">📦</div>'}</div></div></div><div class="product-info"><h4 class="product-name">${escapeHtml(item.name)}</h4><div class="product-price">RM ${parseFloat(item.price).toFixed(2)}</div><div class="product-status ${statusClass}">${escapeHtml(statusText)}</div></div></a><div class="product-actions"><button class="edit-product-btn" onclick="editListing(${item.id})">✏️ Edit</button><button class="delete-product-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name)}')">🗑️ Delete</button></div></div>`;
+            }).join('');
+        }).catch(() => container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings.</div>');
 }
 
 function loadPurchases() {
-    const container = document.getElementById('purchases-content');
-    container.innerHTML = '<div class="ep-empty">🛍️ Loading your purchases...</div>';
+    const container = document.getElementById('purchases-grid');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-state">🛍️ Loading your purchases...</div>';
     fetch('/api/user/purchases', { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.length) {
-                container.innerHTML = '<div class="ep-empty">🛍️ You haven\'t purchased anything yet.<br><small>Explore the marketplace!</small></div>';
-                return;
-            }
-            container.innerHTML = `<div class="purchases-list">${data.map(p => `
-                <div class="listing-item">
-                    <span>${escapeHtml(p.emoji || '📦')}</span>
-                    <div style="flex:1">
-                        <div class="listing-name">${escapeHtml(p.name)}</div>
-                        <div class="listing-seller">from @${escapeHtml(p.seller_name || 'Unknown')}</div>
-                    </div>
-                    <span class="listing-price">RM ${parseFloat(p.price).toFixed(2)}</span>
-                    <span class="listing-status ${escapeHtml(p.status)}">${escapeHtml(p.status || 'Completed')}</span>
-                </div>
-            `).join('')}</div>`;
-        })
-        .catch(() => {
-            container.innerHTML = '<div class="ep-empty">⚠️ Could not load purchases.</div>';
-        });
+        .then(r => r.json()).then(data => {
+            if (!data || data.length === 0) { container.innerHTML = '<div class="empty-state"><span class="empty-icon">🛍️</span><p>You haven\'t purchased anything yet</p><small>Explore the marketplace!</small></div>'; return; }
+            container.innerHTML = data.map(item => `<div class="purchase-card"><a href="/product/${item.product_id}" class="purchase-link"><div class="purchase-info"><div class="purchase-name">${escapeHtml(item.name)}</div><div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div><div class="purchase-price">RM ${parseFloat(item.price).toFixed(2)}</div></div><div class="purchase-status ${escapeHtml(item.status)}">${escapeHtml(item.status || 'Completed')}</div></a></div>`).join('');
+        }).catch(() => container.innerHTML = '<div class="empty-state">⚠️ Failed to load purchases.</div>');
 }
 
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
-}
+let currentProductImages = [], newImagesFiles = [], imagesToDelete = [];
 
-// ============================================================
-// EDIT PRODUCT MODAL
-// ============================================================
 function editListing(productId) {
     fetch(`/api/product/${productId}`, { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(product => {
-            showEditModal(product);
-        })
-        .catch(err => {
-            showToastMessage('Failed to load product', 'error');
-        });
+        .then(r => r.json()).then(product => {
+            currentProductImages = product.images ? product.images.split(',') : [];
+            newImagesFiles = []; imagesToDelete = [];
+            document.getElementById('edit_product_id').value = product.id;
+            document.getElementById('edit_name').value = product.name;
+            document.getElementById('edit_price').value = product.price;
+            document.getElementById('edit_description').value = product.description || '';
+            document.getElementById('edit_condition').value = product.condition || 'good';
+            document.getElementById('edit_category').value = product.category || 'others';
+            renderExistingImages();
+            document.getElementById('new_images_preview').innerHTML = '';
+            document.getElementById('editProductModal').style.display = 'flex';
+        }).catch(() => showToastMessage('Failed to load product details', 'error'));
 }
 
-function showEditModal(product) {
-    const existingModal = document.getElementById('editProductModal');
-    if (existingModal) existingModal.remove();
-    
-    const modalHtml = `
-        <div id="editProductModal" class="modal edit-product-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Edit Product</h2>
-                    <button class="modal-close" onclick="closeEditModal()">&times;</button>
-                </div>
-                <form id="editProductForm" onsubmit="saveProductChanges(event)">
-                    <input type="hidden" id="edit_product_id" value="${product.id}">
-                    <div class="form-group">
-                        <label>Product Name *</label>
-                        <input type="text" id="edit_name" value="${escapeHtml(product.name)}" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Price (RM) *</label>
-                        <input type="number" id="edit_price" step="0.01" min="0" value="${product.price}" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Description *</label>
-                        <textarea id="edit_description" rows="4" required>${escapeHtml(product.description || '')}</textarea>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Condition</label>
-                            <select id="edit_condition">
-                                <option value="new" ${product.condition === 'new' ? 'selected' : ''}>New</option>
-                                <option value="like_new" ${product.condition === 'like_new' ? 'selected' : ''}>Like New</option>
-                                <option value="good" ${product.condition === 'good' ? 'selected' : ''}>Good</option>
-                                <option value="fair" ${product.condition === 'fair' ? 'selected' : ''}>Fair</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Category</label>
-                            <select id="edit_category">
-                                <option value="books" ${product.category === 'books' ? 'selected' : ''}>📚 Books</option>
-                                <option value="gadgets" ${product.category === 'gadgets' ? 'selected' : ''}>💻 Gadgets</option>
-                                <option value="dorm" ${product.category === 'dorm' ? 'selected' : ''}>🛏 Dorm Essentials</option>
-                                <option value="fashion" ${product.category === 'fashion' ? 'selected' : ''}>👕 Fashion</option>
-                                <option value="stationery" ${product.category === 'stationery' ? 'selected' : ''}>✏️ Stationery</option>
-                                <option value="sports" ${product.category === 'sports' ? 'selected' : ''}>⚽ Sports</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Product Images</label>
-                        <div id="existing-images" class="existing-images">
-                            ${product.images ? product.images.split(',').map(img => `
-                                <div class="image-preview" data-image="${img}">
-                                    <img src="/static/uploads/${img}" alt="Product image">
-                                    <button type="button" class="remove-image-btn" onclick="removeImage('${img}')">✕</button>
-                                </div>
-                            `).join('') : '<p>No images</p>'}
-                        </div>
-                        <div class="image-upload-area">
-                            <label class="upload-btn">
-                                📷 Add New Photos
-                                <input type="file" id="edit_new_images" accept="image/*" multiple style="display:none" onchange="previewNewImages(this)">
-                            </label>
-                        </div>
-                        <div id="new-images-preview" class="new-images-preview"></div>
-                    </div>
-                    <div class="modal-buttons">
-                        <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
-                        <button type="submit" class="btn-save">Save Changes</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    document.getElementById('editProductModal').style.display = 'flex';
-    window.originalImages = product.images ? product.images.split(',') : [];
-    window.newImagesFiles = [];
-    window.imagesToDelete = [];
+function renderExistingImages() {
+    const container = document.getElementById('existing_images_container');
+    if (!currentProductImages.length) { container.innerHTML = '<p class="no-images">No images uploaded</p>'; return; }
+    container.innerHTML = currentProductImages.map(img => `<div class="image-preview" data-image="${img}"><img src="/static/uploads/${img}" alt="Product image"><button type="button" class="remove-image-btn" onclick="markImageForDeletion('${img}')">✕</button></div>`).join('');
+}
+
+function markImageForDeletion(imageName) {
+    const div = document.querySelector(`.image-preview[data-image="${imageName}"]`);
+    if (div) {
+        div.classList.add('marked-for-delete'); div.style.opacity = '0.5';
+        div.querySelector('.remove-image-btn').textContent = '↩️';
+        div.querySelector('.remove-image-btn').onclick = () => cancelImageDeletion(imageName);
+        if (!imagesToDelete.includes(imageName)) imagesToDelete.push(imageName);
+    }
+}
+
+function cancelImageDeletion(imageName) {
+    const div = document.querySelector(`.image-preview[data-image="${imageName}"]`);
+    if (div) {
+        div.classList.remove('marked-for-delete'); div.style.opacity = '1';
+        div.querySelector('.remove-image-btn').textContent = '✕';
+        div.querySelector('.remove-image-btn').onclick = () => markImageForDeletion(imageName);
+        imagesToDelete = imagesToDelete.filter(n => n !== imageName);
+    }
 }
 
 function previewNewImages(input) {
-    const previewContainer = document.getElementById('new-images-preview');
-    for (let file of input.files) {
-        if (file.type.startsWith('image/')) {
+    const preview = document.getElementById('new_images_preview');
+    newImagesFiles = [];
+    for (let f of input.files) {
+        if (f.type.startsWith('image/')) {
+            newImagesFiles.push(f);
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const previewDiv = document.createElement('div');
-                previewDiv.className = 'image-preview new';
-                previewDiv.innerHTML = `
-                    <img src="${e.target.result}" alt="Preview">
-                    <button type="button" class="remove-new-image" onclick="this.parentElement.remove()">✕</button>
-                `;
-                previewContainer.appendChild(previewDiv);
+            reader.onload = e => {
+                const div = document.createElement('div');
+                div.className = 'image-preview new';
+                div.innerHTML = `<img src="${e.target.result}" alt="Preview"><button type="button" class="remove-new-image" onclick="this.parentElement.remove(); removeNewImageFile('${f.name}')">✕</button>`;
+                preview.appendChild(div);
             };
-            reader.readAsDataURL(file);
-            window.newImagesFiles.push(file);
+            reader.readAsDataURL(f);
         }
     }
     input.value = '';
 }
 
-function removeImage(imageName) {
-    const imgDiv = document.querySelector(`.image-preview[data-image="${imageName}"]`);
-    if (imgDiv) {
-        imgDiv.remove();
-        window.imagesToDelete.push(imageName);
-    }
-}
+function removeNewImageFile(filename) { newImagesFiles = newImagesFiles.filter(f => f.name !== filename); }
 
 function saveProductChanges(event) {
     event.preventDefault();
-    const productId = document.getElementById('edit_product_id').value;
-    const formData = new FormData();
-    formData.append('name', document.getElementById('edit_name').value);
-    formData.append('price', document.getElementById('edit_price').value);
-    formData.append('description', document.getElementById('edit_description').value);
-    formData.append('condition', document.getElementById('edit_condition').value);
-    formData.append('category', document.getElementById('edit_category').value);
-    
-    if (window.imagesToDelete && window.imagesToDelete.length) {
-        formData.append('delete_images', JSON.stringify(window.imagesToDelete));
-    }
-    if (window.newImagesFiles && window.newImagesFiles.length) {
-        for (let file of window.newImagesFiles) {
-            formData.append('new_images', file);
-        }
-    }
-    
+    const id = document.getElementById('edit_product_id').value;
+    const fd = new FormData();
+    fd.append('name', document.getElementById('edit_name').value);
+    fd.append('price', document.getElementById('edit_price').value);
+    fd.append('description', document.getElementById('edit_description').value);
+    fd.append('condition', document.getElementById('edit_condition').value);
+    fd.append('category', document.getElementById('edit_category').value);
+    if (imagesToDelete.length) fd.append('delete_images', JSON.stringify(imagesToDelete));
+    for (let f of newImagesFiles) fd.append('new_images', f);
     showToastMessage('Updating product...', 'info');
-    fetch(`/api/product/${productId}/update-full`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin'
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showToastMessage('Product updated successfully!', 'success');
-            closeEditModal();
-            loadListings();
-        } else {
-            throw new Error(data.error || 'Update failed');
-        }
-    })
-    .catch(err => {
-        showToastMessage('Failed to update: ' + err.message, 'error');
-    });
+    fetch(`/api/product/${id}/update-full`, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(r => r.json()).then(data => { if (data.success) { showToastMessage('Product updated successfully!', 'success'); closeEditModal(); loadListings(); } else throw new Error(data.error); })
+        .catch(err => showToastMessage('Failed to update: ' + err.message, 'error'));
 }
 
-function closeEditModal() {
-    const modal = document.getElementById('editProductModal');
-    if (modal) {
-        modal.style.display = 'none';
-        modal.remove();
-    }
-    window.originalImages = null;
-    window.newImagesFiles = null;
-    window.imagesToDelete = null;
-}
+function closeEditModal() { const m = document.getElementById('editProductModal'); if (m) { m.style.display = 'none'; m.remove(); } currentProductImages = []; newImagesFiles = []; imagesToDelete = []; }
 
-function deleteListing(productId, productName) {
-    if (confirm(`Are you sure you want to delete "${productName}"? This cannot be undone.`)) {
-        fetch(`/api/product/${productId}/delete`, {
-            method: 'DELETE',
-            credentials: 'same-origin'
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                showToastMessage(`"${productName}" deleted`, 'success');
-                loadListings();
-            } else {
-                throw new Error(data.error || 'Delete failed');
-            }
-        })
-        .catch(err => {
-            showToastMessage('Failed to delete', 'error');
-        });
+function deleteListing(id, name) {
+    if (confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
+        fetch(`/api/product/${id}/delete`, { method: 'DELETE', credentials: 'same-origin' })
+            .then(r => r.json()).then(data => { if (data.success) { showToastMessage(`"${name}" deleted`, 'success'); loadListings(); } else throw new Error(data.error); })
+            .catch(() => showToastMessage('Failed to delete', 'error'));
     }
 }
 
-// ============================================================
-// PASSWORD FUNCTIONS
-// ============================================================
-function togglePassword(id, btn) {
-    const input = document.getElementById(id);
-    if (!input) return;
-    input.type = input.type === 'password' ? 'text' : 'password';
-    btn.textContent = input.type === 'password' ? '👀' : '🫣';
-}
+function togglePassword(id, btn) { const inp = document.getElementById(id); if (!inp) return; inp.type = inp.type === 'password' ? 'text' : 'password'; btn.textContent = inp.type === 'password' ? '👀' : '🫣'; }
 
 function checkPwStrength() {
     const pw = document.getElementById('new_password').value;
-    const checks = {
-        len: pw.length >= 8,
-        upper: /[A-Z]/.test(pw),
-        lower: /[a-z]/.test(pw),
-        number: /[0-9]/.test(pw),
-        special: /[!@#$%^&*]/.test(pw)
-    };
+    const checks = { len: pw.length >= 8, upper: /[A-Z]/.test(pw), lower: /[a-z]/.test(pw), number: /[0-9]/.test(pw), special: /[!@#$%^&*]/.test(pw) };
     const score = Object.values(checks).filter(Boolean).length;
     const colors = ['', '#e74c3c', '#e67e22', '#f1c40f', '#27ae60', '#00c986'];
     const labels = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
     const widths = ['0%', '20%', '40%', '60%', '80%', '100%'];
     const bar = document.getElementById('ep-strength-bar');
-    if (bar) {
-        bar.style.width = widths[score];
-        bar.style.background = colors[score];
-    }
+    if (bar) { bar.style.width = widths[score]; bar.style.background = colors[score]; }
     const label = document.getElementById('ep-strength-label');
     if (label) label.textContent = pw ? `Password strength: ${labels[score]}` : '';
     const reqs = ['ep-req-len', 'ep-req-up', 'ep-req-lo', 'ep-req-num', 'ep-req-sp'];
     const valid = [checks.len, checks.upper, checks.lower, checks.number, checks.special];
-    reqs.forEach((id, i) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const ic = el.querySelector('.req-icon');
-        el.className = valid[i] ? 'req-valid' : 'req-invalid';
-        if (ic) ic.textContent = valid[i] ? '✓' : '✗';
-    });
+    reqs.forEach((id, i) => { const el = document.getElementById(id); if (!el) return; const ic = el.querySelector('.req-icon'); el.className = valid[i] ? 'req-valid' : 'req-invalid'; if (ic) ic.textContent = valid[i] ? '✓' : '✗'; });
     return score === 5;
 }
 
 function checkPwMatch() {
-    const pw = document.getElementById('new_password').value || '';
-    const cpw = document.getElementById('confirm_password').value || '';
-    const div = document.getElementById('ep-pw-match');
+    const pw = document.getElementById('new_password').value || '', cpw = document.getElementById('confirm_password').value || '', div = document.getElementById('ep-pw-match');
     if (!div) return;
-    if (!cpw) {
-        div.innerHTML = '';
-        div.className = 'ep-pw-match';
-        return;
-    }
-    if (pw === cpw) {
-        div.innerHTML = '✓ Passwords match';
-        div.className = 'ep-pw-match pw-ok';
-    } else {
-        div.innerHTML = '✗ Passwords do not match';
-        div.className = 'ep-pw-match pw-bad';
-    }
+    if (!cpw) { div.innerHTML = ''; div.className = 'ep-pw-match'; return; }
+    if (pw === cpw) { div.innerHTML = '✓ Passwords match'; div.className = 'ep-pw-match pw-ok'; }
+    else { div.innerHTML = '✗ Passwords do not match'; div.className = 'ep-pw-match pw-bad'; }
 }
 
 function validatePwForm() {
-    const strong = checkPwStrength();
-    const pw = document.getElementById('new_password').value || '';
-    const cpw = document.getElementById('confirm_password').value || '';
-    const cur = document.getElementById('current_password').value || '';
-    if (!cur) {
-        alert('Please enter your current password.');
-        return false;
-    }
-    if (!strong) {
-        alert('Please meet all password requirements.');
-        return false;
-    }
-    if (pw !== cpw) {
-        alert('Passwords do not match.');
-        return false;
-    }
+    const strong = checkPwStrength(), pw = document.getElementById('new_password').value || '', cpw = document.getElementById('confirm_password').value || '', cur = document.getElementById('current_password').value || '';
+    if (!cur) { alert('Please enter your current password.'); return false; }
+    if (!strong) { alert('Please meet all password requirements.'); return false; }
+    if (pw !== cpw) { alert('Passwords do not match.'); return false; }
     return true;
 }
 
-// ============================================================
-// DELETE ACCOUNT FUNCTIONS
-// ============================================================
 let deletePasswordValid = false;
 
 function checkDeletePasswordMatch() {
-    const enteredPw = document.getElementById('delete_password').value;
-    const msgDiv = document.getElementById('deletePwMatch');
-    if (enteredPw.length === 0) {
-        if (msgDiv) { msgDiv.innerHTML = ''; }
-        deletePasswordValid = false;
-        return;
-    }
-    fetch('/verify-password', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({password: enteredPw}),
-        credentials: 'same-origin'
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (msgDiv) {
-            if (data.valid) {
-                msgDiv.innerHTML = '✓ Password verified';
-                msgDiv.className = 'delete-pw-match match-success';
-                deletePasswordValid = true;
-            } else {
-                msgDiv.innerHTML = '✗ Incorrect password';
-                msgDiv.className = 'delete-pw-match match-error';
-                deletePasswordValid = false;
-            }
-        }
-
-    });
+    const pw = document.getElementById('delete_password').value, msg = document.getElementById('deletePwMatch');
+    if (pw.length === 0) { if (msg) msg.innerHTML = ''; deletePasswordValid = false; return; }
+    fetch('/verify-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }), credentials: 'same-origin' })
+        .then(r => r.json()).then(data => { if (msg) { if (data.valid) { msg.innerHTML = '✓ Password verified'; msg.className = 'delete-pw-match match-success'; deletePasswordValid = true; } else { msg.innerHTML = '✗ Incorrect password'; msg.className = 'delete-pw-match match-error'; deletePasswordValid = false; } } });
 }
 
-function checkDeleteConfirm() {
-    const confirmText = document.querySelector('#delete-form input[name="confirm_text"]').value;
-    const msgDiv = document.getElementById('deleteConfirmMatch');
-    if (confirmText === 'DELETE') {
-        if (msgDiv) {
-            msgDiv.innerHTML = '✓ Confirmation correct';
-            msgDiv.className = 'delete-confirm-match match-success';
-        }
-
-    } else if (confirmText.length > 0) {
-        if (msgDiv) {
-            msgDiv.innerHTML = '✗ Please type DELETE exactly';
-            msgDiv.className = 'delete-confirm-match match-error';
-        }
-
-    } else {
-        if (msgDiv) {
-            msgDiv.innerHTML = '';
-            msgDiv.className = 'delete-confirm-match';
-        }
-    }
-}
+function checkDeleteConfirm() { const text = document.querySelector('#delete-form input[name="confirm_text"]').value, msg = document.getElementById('deleteConfirmMatch'); if (text === 'DELETE') { if (msg) { msg.innerHTML = '✓ Confirmation correct'; msg.className = 'delete-confirm-match match-success'; } } else if (text.length > 0) { if (msg) { msg.innerHTML = '✗ Please type DELETE exactly'; msg.className = 'delete-confirm-match match-error'; } } else { if (msg) msg.innerHTML = ''; } }
 
 function confirmDelete() {
-    const pw = document.getElementById('delete_password').value;
-    const confirmText = document.querySelector('#delete-form input[name="confirm_text"]').value;
-
-    if (!pw) {
-        showToastMessage('Please enter your password', 'error');
-        return false;
-    }
-    if (!deletePasswordValid) {
-        showToastMessage('Please enter a valid password', 'error');
-        return false;
-    }
-    if (confirmText !== 'DELETE') {
-        showToastMessage('Type DELETE to confirm', 'error');
-        return false;
-    }
+    const pw = document.getElementById('delete_password').value, text = document.querySelector('#delete-form input[name="confirm_text"]').value;
+    if (!pw) { showToastMessage('Please enter your password', 'error'); return false; }
+    if (!deletePasswordValid) { showToastMessage('Please enter a valid password', 'error'); return false; }
+    if (text !== 'DELETE') { showToastMessage('Type DELETE to confirm', 'error'); return false; }
     return confirm('⚠️ Permanent deletion. Are you sure?');
 }
 
 document.getElementById('delete_password')?.addEventListener('input', checkDeletePasswordMatch);
 document.querySelector('#delete-form input[name="confirm_text"]')?.addEventListener('input', checkDeleteConfirm);
 
-// ============================================================
-// TOAST NOTIFICATION
-// ============================================================
+function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]); }
+
 function showToastMessage(message, type) {
     const existing = document.querySelector('.toast-container');
     if (existing) existing.remove();
@@ -1208,25 +684,13 @@ function showToastMessage(message, type) {
     setTimeout(() => container.remove(), 3000);
 }
 
-// ============================================================
-// PAGE INITIALIZATION
-// ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-
     loadCoverFromServer();
     loadAvatarFromServer();
     restoreBackgroundFromServer();
-    
-    const newPw = document.getElementById('new_password');
-    const confPw = document.getElementById('confirm_password');
-    if (newPw) newPw.addEventListener('input', function() {
-        checkPwStrength();
-        checkPwMatch();
-    });
+    const newPw = document.getElementById('new_password'), confPw = document.getElementById('confirm_password');
+    if (newPw) newPw.addEventListener('input', function() { checkPwStrength(); checkPwMatch(); });
     if (confPw) confPw.addEventListener('input', checkPwMatch);
-
-
 });
-
 </script>
 {% endblock %}

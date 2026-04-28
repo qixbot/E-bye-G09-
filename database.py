@@ -111,7 +111,7 @@ def init_products():
     """Initialize products table with all required columns"""
     db = get_db()
 
-    # Create products table
+    # Create products table (fixed: removed duplicate columns)
     db.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -124,14 +124,12 @@ def init_products():
             images TEXT,
             status TEXT DEFAULT 'pending',
             reject_reason TEXT DEFAULT '',
-            status TEXT DEFAULT 'pending',
-            reject_reason TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (seller_id) REFERENCES users(id)
         )
     ''')
 
-    # Add missing columns
+    # Add missing columns (safe for existing databases)
     try:
         db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
         print("Added column: status")
