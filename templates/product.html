@@ -82,7 +82,7 @@
             <div class="action-buttons">
                 <div class="double-buttons">
                     <button class="offer-btn" onclick="openOfferModal()">Make an Offer</button>
-                    <a href="#" class="chat-btn">💬 Chat with seller</a>
+                    <a href="{{ url_for('chat_page', other_user_id=product.seller_id, product_id=product.id) }}" class="chat-btn">💬 Chat with seller</a>
                 </div>
                 <button class="buy-btn" onclick="confirmPurchase()">Buy Now</button>
             </div>

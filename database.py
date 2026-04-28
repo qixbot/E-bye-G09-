@@ -1,5 +1,4 @@
 import sqlite3
-
 from werkzeug.security import generate_password_hash
 
 DATABASE = 'ebyte.db'
@@ -14,7 +13,7 @@ def init_db():
     """Initialize database with all required tables and columns"""
     db = get_db()
 
-    # Create users table with BLOB columns for storing ALL images directly in database
+    # Create users table
     db.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,9 +39,10 @@ def init_db():
             is_blocked INTEGER DEFAULT 0,
             frozen_until TIMESTAMP,
             freeze_reason TEXT,
+            freeze_count INTEGER DEFAULT 0,
             trust_score INTEGER DEFAULT 85,
             response_rate INTEGER DEFAULT 98,
-            rating TEXT DEFAULT '—',
+            rating TEXT DEFAULT '--',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -59,7 +59,23 @@ def init_db():
         )
     ''')
 
-    # Add missing columns for existing databases (safe migration)
+    # Create messages table for chat
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            product_id INTEGER,
+            content TEXT NOT NULL,
+            msg_type TEXT DEFAULT 'text',
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES users(id),
+            FOREIGN KEY (receiver_id) REFERENCES users(id)
+        )
+    ''')
+
+    # Add missing columns
     columns_to_add = [
         ('full_name', 'TEXT'),
         ('contact', 'TEXT'),
@@ -71,9 +87,10 @@ def init_db():
         ('active_hours', 'TEXT'),
         ('frozen_until', 'TIMESTAMP'),
         ('freeze_reason', 'TEXT'),
+        ('freeze_count', 'INTEGER DEFAULT 0'),
         ('trust_score', 'INTEGER DEFAULT 85'),
         ('response_rate', 'INTEGER DEFAULT 98'),
-        ('rating', "TEXT DEFAULT '—'")
+        ('rating', "TEXT DEFAULT '--'")
     ]
 
     for col_name, col_def in columns_to_add:
@@ -81,11 +98,11 @@ def init_db():
             db.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}")
             print(f"Added column: {col_name}")
         except sqlite3.OperationalError:
-            pass  # Column already exists
+            pass
 
     db.commit()
 
-    # Create default admin user
+    # Create default admin
     admin_email = 'admin@student.mmu.edu.my'
     admin_password = generate_password_hash('Admin123!')
     
@@ -99,19 +116,16 @@ def init_db():
             VALUES (?, ?, ?, ?, ?)
         ''', ('ADMIN001', admin_email, 'Administrator', admin_password, 1))
         db.commit()
-        print("Default admin created: admin@student.mmu.edu.my / Admin123!")
-    else:
-        print("Admin user already exists")
+        print("Default admin created")
 
     db.close()
     print("Database ready")
 
 
 def init_products():
-    """Initialize products table with all required columns"""
+    """Initialize products table"""
     db = get_db()
 
-    # Create products table
     db.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -124,8 +138,6 @@ def init_products():
             images TEXT,
             status TEXT DEFAULT 'pending',
             reject_reason TEXT DEFAULT '',
-            status TEXT DEFAULT 'pending',
-            reject_reason TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (seller_id) REFERENCES users(id)
         )
@@ -134,13 +146,11 @@ def init_products():
     # Add missing columns
     try:
         db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
-        print("Added column: status")
     except sqlite3.OperationalError:
         pass
 
     try:
         db.execute("ALTER TABLE products ADD COLUMN reject_reason TEXT DEFAULT ''")
-        print("Added column: reject_reason")
     except sqlite3.OperationalError:
         pass
 
@@ -148,6 +158,59 @@ def init_products():
     db.close()
     print("Products table ready")
 
+def init_messages():
+    db = get_db()
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            product_id INTEGER,
+            content TEXT,
+            msg_type TEXT DEFAULT 'text',
+            image TEXT,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES users(id),
+            FOREIGN KEY (receiver_id) REFERENCES users(id)
+        )
+    ''')
+    try:
+        db.execute("ALTER TABLE messages ADD COLUMN msg_type TEXT DEFAULT 'text'")
+    except:
+        pass
+    db.commit()
+    db.close()
+    print("Messages table ready.")
+
+def init_announcements():
+    db = get_db()
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS announcements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    db.commit()
+    db.close()
+
+def init_reviews():
+    db = get_db()
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            comment TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (product_id) REFERENCES products(id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+    db.commit()
+    db.close()
 
 # Initialize
 init_db()

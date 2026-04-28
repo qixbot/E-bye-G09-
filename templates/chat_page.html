@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - {{ other_user.username }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; }
+        .chat-container { display: flex; flex-direction: column; height: 100vh; width: 100%; background: #fff; }
+        .chat-header { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e0e0e0; background: #fff; min-height: 55px; }
+        .chat-header a { text-decoration: none; color: #205c30; font-size: 18px; margin-right: 12px; }
+        .avatar-circle { width: 38px; height: 38px; border-radius: 50%; background: #205c30; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; margin-right: 10px; }
+        .header-name { font-weight: 600; font-size: 15px; }
+        .header-username { font-size: 11px; color: #888; }
+        .product-card { display: flex; align-items: center; padding: 10px 16px; background: #f0f7f2; border-bottom: 1px solid #d4e8d8; cursor: pointer; gap: 10px; }
+        .product-card img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+        .pname { font-weight: 600; font-size: 13px; }
+        .pprice { color: #205c30; font-weight: bold; font-size: 12px; }
+        .messages-area { flex: 1; overflow-y: auto; padding: 16px; background: #f5f6f5; }
+        .msg-row { margin-bottom: 14px; display: flex; flex-direction: column; }
+        .msg-row.right { align-items: flex-end; }
+        .msg-row.left { align-items: flex-start; }
+        .msg-bubble { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; word-break: break-word; }
+        .msg-bubble.sent { background: #205c30; color: white; border-bottom-right-radius: 4px; }
+        .msg-bubble.received { background: #fff; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .msg-bubble img { max-width: 180px; border-radius: 8px; margin: 4px 0; cursor: pointer; }
+        .msg-meta { font-size: 10px; color: #999; margin-top: 3px; padding: 0 2px; }
+        .input-bar { display: flex; align-items: center; padding: 10px 12px; border-top: 1px solid #e0e0e0; gap: 6px; background: #fff; min-height: 55px; }
+        .input-bar button { background: none; border: none; font-size: 22px; cursor: pointer; padding: 4px; }
+        .input-bar button:active { transform: scale(1.2); }
+        .input-bar input[type="text"] { flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 8px 14px; font-size: 14px; outline: none; background: #f9f9f9; }
+        .input-bar input[type="text"]:focus { border-color: #205c30; background: #fff; }
+        .btn-send { background: #205c30 !important; color: white !important; padding: 6px 16px !important; border-radius: 18px !important; font-size: 13px !important; font-weight: 600; }
+        #imageInput { display: none; }
+        .emoji-panel { display: none; flex-wrap: wrap; gap: 2px; padding: 6px 12px; background: #f9f9f9; border-top: 1px solid #eee; max-height: 100px; overflow-y: auto; }
+        .emoji-panel.show { display: flex; }
+        .emoji-panel span { font-size: 20px; cursor: pointer; padding: 2px 4px; }
+        .image-preview-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; }
+        .image-preview-overlay.show { display: flex; }
+        .image-preview-overlay img { max-width: 95%; max-height: 95%; border-radius: 8px; }
+        
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <a href="{{ url_for('chat_list') }}">← Back</a>
+        <div class="avatar-circle">{{ other_user.username[0].upper() }}</div>
+        <div>
+            <div class="header-name">{{ other_user.full_name or other_user.username }}</div>
+            <div class="header-username">@{{ other_user.username }}</div>
+        </div>
+    </div>
+
+    {% if product_info %}
+    {% set imgs = product_info.images.split(',') if product_info.images else [] %}
+    <div class="product-card" onclick="window.location.href='{{ url_for('product_detail', product_id=product_info.id) }}'">
+        {% if imgs and imgs[0] %}
+        <img src="{{ url_for('static', filename='uploads/' ~ imgs[0]) }}" alt="">
+        {% endif %}
+        <div>
+            <div class="pname">{{ product_info.name }}</div>
+            <div class="pprice">RM {{ "%.2f"|format(product_info.price) }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="messages-area" id="chatMessages">
+        {% for msg in messages %}
+        <div class="msg-row {% if msg.sender_id == session['user_id'] %}right{% else %}left{% endif %}">
+            <div class="msg-bubble {% if msg.sender_id == session['user_id'] %}sent{% else %}received{% endif %}">
+                {% if msg.image %}
+                <img src="{{ url_for('static', filename='uploads/' ~ msg.image) }}" onclick="previewImage(this.src)" loading="lazy">
+                {% endif %}
+                {{ msg.content | safe }}
+            </div>
+            <div class="msg-meta">
+                {{ msg.created_at[:19] if msg.created_at else '' }}
+                {% if msg.sender_id == session['user_id'] %}
+                    {% if msg.is_read %}✓✓ Read{% else %}✓ Sent{% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="emoji-panel" id="emojiPanel">
+        {% set emojis = ['😀','😂','😍','🥰','😎','🤩','👍','👎','❤️','🔥','🎉','💯','✅','👋','🙏','💪','📦','💰','💬'] %}
+        {% for emoji in emojis %}
+        <span onclick="insertEmoji('{{ emoji }}')">{{ emoji }}</span>
+        {% endfor %}
+    </div>
+
+    <div class="input-bar">
+        <input type="file" id="imageInput" accept="image/*" onchange="sendImage()">
+        <button onclick="document.getElementById('imageInput').click()" title="Photo">🖼️</button>
+        <button onclick="toggleEmoji()" title="Emoji">😀</button>
+        <button onclick="sendProduct()" title="Send Product">📦</button>
+        <input type="text" id="msgInput" placeholder="Message...">
+        <button class="btn-send" onclick="sendMsg()">Send</button>
+    </div>
+</div>
+
+<div class="image-preview-overlay" id="imagePreview" onclick="this.classList.remove('show')">
+    <img id="previewImg" src="">
+</div>
+
+<script>
+var otherId = {{ other_user.id }};
+var prodId = {{ product_info.id if product_info else 0 }};
+var prodName = "{{ product_info.name if product_info else '' }}";
+var prodPrice = "{{ '%.2f'|format(product_info.price) if product_info and product_info.price else '0.00' }}";
+var prodUrl = "{{ url_for('product_detail', product_id=product_info.id) if product_info and product_info.id else '' }}";
+
+function sendMsg() {
+    var input = document.getElementById('msgInput');
+    var text = input.value.trim();
+    if (!text) return;
+    
+    fetch('/chat/send', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ receiver_id: otherId, product_id: prodId, content: text })
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.success) { input.value = ''; location.reload(); }
+        else { alert('Failed: ' + (d.error || 'Unknown')); }
+    }).catch(function(e){ alert('Error: ' + e); });
+}
+
+function sendProduct() {
+    var link = prodUrl || '#';
+    var cardHtml = '<a href="' + link + '" style="text-decoration:none;color:inherit;">' +
+        '<div style="background:#f0f7f2;border-radius:12px;padding:12px;max-width:260px;border:1px solid #d4e8d8;">' +
+        '<div style="font-weight:600;font-size:14px;margin-bottom:6px;">📦 ' + prodName + '</div>' +
+        '<div style="color:#205c30;font-weight:bold;font-size:16px;margin-bottom:4px;">RM ' + prodPrice + '</div>' +
+        '<div style="font-size:11px;color:#205c30;text-decoration:underline;">Tap to view product →</div>' +
+        '</div></a>';
+    
+    fetch('/chat/send', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ receiver_id: otherId, product_id: prodId, content: cardHtml })
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.success) location.reload();
+    });
+}
+
+function sendImage() {
+    var file = document.getElementById('imageInput').files[0];
+    if (!file) return;
+    
+    var formData = new FormData();
+    formData.append('image', file);
+    formData.append('receiver_id', otherId);
+    formData.append('product_id', prodId);
+    
+    fetch('/chat/send-image', {
+        method: 'POST',
+        body: formData
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.success) location.reload();
+    }).catch(function(e){ alert('Error: ' + e); });
+}
+
+function toggleEmoji() {
+    document.getElementById('emojiPanel').classList.toggle('show');
+}
+
+function insertEmoji(e) {
+    var input = document.getElementById('msgInput');
+    input.value += e;
+    input.focus();
+}
+
+function previewImage(src) {
+    document.getElementById('previewImg').src = src;
+    document.getElementById('imagePreview').classList.add('show');
+}
+
+// Enter 发送
+document.getElementById('msgInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMsg();
+    }
+});
+
+// 强制滚到底部
+function scrollToBottom() {
+    var d = document.getElementById('chatMessages');
+    if (d) {
+        d.scrollTop = d.scrollHeight;
+    }
+}
+
+// 页面加载完滚动
+window.addEventListener('load', function() {
+    scrollToBottom();
+});
+
+// DOM 加载完也滚动
+document.addEventListener('DOMContentLoaded', function() {
+    scrollToBottom();
+});
+
+// 图片加载后滚动
+setTimeout(function() {
+    scrollToBottom();
+}, 500);
+
+// 轮询
+setInterval(function() {
+    fetch('/api/chat/messages/' + otherId + '?since=' + ({{ messages[-1].id if messages and messages|length > 0 else 0 }}))
+    .then(function(r){ return r.json(); })
+    .then(function(msgs) { if (msgs && msgs.length > 0) location.reload(); });
+}, 3000);
+</script>
+
+</body>
+</html>

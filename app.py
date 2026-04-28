@@ -16,13 +16,15 @@ from flask import (
     Flask, render_template, request, redirect,
     url_for, session, flash, jsonify, make_response
 )
-from database import init_db, get_db, init_products
+
 
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
 from werkzeug.utils import secure_filename
+
+from database import init_db, get_db, init_products, init_messages, init_announcements, init_reviews
 
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026-new'
@@ -82,13 +84,43 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Initialize the database
 init_db()
 init_products()
+init_messages()
+init_announcements()
+init_reviews()
 
+def init_messages():
+    db = get_db()
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            product_id INTEGER,
+            content TEXT,
+            msg_type TEXT DEFAULT 'text',
+            image TEXT,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES users(id),
+            FOREIGN KEY (receiver_id) REFERENCES users(id)
+        )
+    ''')
+    # 为旧表添加 msg_type 列
+    try:
+        db.execute("ALTER TABLE messages ADD COLUMN msg_type TEXT DEFAULT 'text'")
+    except:
+        pass
+    db.commit()
+    db.close()
+    print("Messages table ready.")
 
 @app.route('/')
 
 
 def index():
     return redirect(url_for('login'))
+
+
 
 
 # ============================================================
@@ -1522,9 +1554,8 @@ def admin_get_product_info(pid):
     return dict(product)
 
 
-# Freeze user for 7 days
+# Freeze user for 7 days(limited 3 times)
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
-
 def freeze_7day(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
@@ -1532,32 +1563,65 @@ def freeze_7day(user_id):
 
     reason = request.form.get('reason', 'No reason provided').strip()
     now = datetime.now()
+    
+    db = get_db()
+    
+    # Check current freeze count
+    user = db.execute('SELECT freeze_count, is_blocked FROM users WHERE id = ?',
+                      (user_id,)).fetchone()
+    
+    if not user:
+        db.close()
+        flash("User not found", "error")
+        return redirect(url_for("admin_users"))
+    
+    if user['is_blocked'] == 1:
+        db.close()
+        flash("User is already permanently blocked", "error")
+        return redirect(url_for("admin_users"))
+    
+    freeze_count = user['freeze_count'] if user['freeze_count'] else 0
+    
+    if freeze_count >= 3:
+        # Auto-block permanently
+        db.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = ?", (user_id,))
+        db.execute("""
+            INSERT INTO notifications (user_id, message, created_at)
+            VALUES (?, ?, ?)
+        """, (user_id,
+              f"Your account has been PERMANENTLY BLOCKED after 3 freezes.",
+              now.strftime("%Y-%m-%d %H:%M:%S")))
+        db.commit()
+        db.close()
+        flash("User has been permanently blocked after 3 freezes.", "warning")
+        return redirect(url_for("admin_users"))
+    
+    # Increment freeze count and freeze for 7 days
     frozen_end_time = now + timedelta(days=7)
     time_str = frozen_end_time.strftime("%Y-%m-%d %H:%M:%S")
-
-    db = get_db()
+    
     db.execute("""
         UPDATE users
         SET is_frozen = 1,
             frozen_until = ?,
-            freeze_reason = ?
+            freeze_reason = ?,
+            freeze_count = freeze_count + 1
         WHERE id = ?
     """, (time_str, reason, user_id))
 
     db.execute("""
         INSERT INTO notifications (user_id, message, created_at)
         VALUES (?, ?, ?)
-    """, (
-        user_id,
-        f"Your account has been frozen for 7 days.\nReason: {reason}\nAuto unfreeze: {time_str}",
-        now.strftime("%Y-%m-%d %H:%M:%S")
-    ))
+    """, (user_id,
+          f"Your account has been frozen for 7 days (Freeze {freeze_count + 1}/3).\n"
+          f"Reason: {reason}\nAuto unfreeze: {time_str}\n"
+          f"After 3 freezes, your account will be permanently blocked.",
+          now.strftime("%Y-%m-%d %H:%M:%S")))
 
     db.commit()
     db.close()
-    flash("User successfully frozen for 7 days.", "success")
+    flash(f"User frozen for 7 days (Freeze {freeze_count + 1}/3).", "success")
     return redirect(url_for("admin_users"))
-
 
 # Block user permanently
 @app.route('/admin/user/<int:user_id>/block', methods=['POST'])
@@ -1624,16 +1688,231 @@ def unblock_user(user_id):
 
 
 # ============================================================
-# Chat List Route
+# Keting's Route - Chat List
 # ============================================================
-@app.route('/chatlist')
+# ==================== Keting's Chat Routes ====================
+@app.route('/chat/send', methods=['POST'])
+def chat_send():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'})
 
-def user_chatlist():
+    data = request.get_json()
+    receiver_id = data.get('receiver_id')
+    product_id = data.get('product_id', 0)
+    content = data.get('content', '').strip()
+
+    if not receiver_id or not content:
+        return jsonify({'success': False, 'error': 'Missing data'})
+
+    db = get_db()
+    db.execute('''
+        INSERT INTO messages (sender_id, receiver_id, product_id, content, created_at)
+        VALUES (?, ?, ?, ?, datetime('now', 'localtime'))
+    ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, content))
+    db.commit()
+    db.close()
+
+    return jsonify({'success': True})
+
+
+@app.route('/chat/send-image', methods=['POST'])
+def chat_send_image():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    receiver_id = request.form.get('receiver_id')
+    product_id = request.form.get('product_id', 0)
+    file = request.files.get('image')
+
+    if not receiver_id or not file:
+        return jsonify({'success': False, 'error': 'Missing data'}), 400
+
+    filename = secure_filename("chat_" + str(session['user_id']) + "_" + uuid.uuid4().hex + ".jpg")
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    db = get_db()
+    db.execute('''
+        INSERT INTO messages (sender_id, receiver_id, product_id, content, image, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))
+    ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, '', filename))
+    db.commit()
+    db.close()
+
+    return jsonify({'success': True})
+
+@app.route('/chat/<int:other_user_id>')
+@app.route('/chat/<int:other_user_id>/<int:product_id>')
+def chat_page(other_user_id, product_id=None):
     if 'user_id' not in session:
         flash("Please login first", "error")
         return redirect(url_for('login'))
-    return render_template('user_chatlist.html')
 
+    db = get_db()
+    
+    # 对方用户信息
+    other_user = db.execute('SELECT * FROM users WHERE id = ?', (other_user_id,)).fetchone()
+    if not other_user:
+        db.close()
+        flash("User not found", "error")
+        return redirect(url_for('home'))
+
+    # 关联商品信息
+    product_info = None
+    if product_id:
+        product_info = db.execute('''
+            SELECT p.*, u.username as seller_name
+            FROM products p JOIN users u ON p.seller_id = u.id
+            WHERE p.id = ?
+        ''', (product_id,)).fetchone()
+
+    # 历史消息
+    messages = db.execute('''
+        SELECT * FROM messages
+        WHERE (sender_id = ? AND receiver_id = ?)
+           OR (sender_id = ? AND receiver_id = ?)
+        ORDER BY created_at ASC
+    ''', (session['user_id'], other_user_id, other_user_id, session['user_id'])).fetchall()
+
+    # 标记对方消息为已读
+    db.execute('''
+        UPDATE messages SET is_read = 1
+        WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
+    ''', (other_user_id, session['user_id']))
+    db.commit()
+    db.close()
+
+    return render_template('chat_page.html',
+                           other_user=other_user,
+                           product_info=product_info,
+                           messages=messages)
+
+
+
+@app.route('/api/chat/messages/<int:other_user_id>')
+def chat_get_messages(other_user_id):
+    if 'user_id' not in session:
+        return jsonify([])
+
+    since = request.args.get('since', 0, type=int)
+    
+    db = get_db()
+    messages = db.execute('''
+        SELECT * FROM messages
+        WHERE ((sender_id = ? AND receiver_id = ?)
+            OR (sender_id = ? AND receiver_id = ?))
+          AND id > ?
+        ORDER BY created_at ASC
+    ''', (session['user_id'], other_user_id, other_user_id, session['user_id'], since)).fetchall()
+    db.close()
+
+    return jsonify([dict(row) for row in messages])
+
+
+
+@app.route('/chatlist')
+def chat_list():
+    if 'user_id' not in session:
+        flash("Please login first", "error")
+        return redirect(url_for('login'))
+
+    db = get_db()
+    user_id = session['user_id']
+
+    # 用户聊天列表
+    chats = db.execute('''
+        SELECT u.id, u.username, u.full_name, u.avatar,
+               m.content as last_message, m.image as last_image,
+               m.created_at as last_time,
+               m.is_read, m.sender_id,
+               (SELECT COUNT(*) FROM messages
+                WHERE sender_id = u.id AND receiver_id = ? AND is_read = 0) as unread_count
+        FROM users u
+        JOIN (
+            SELECT CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_id,
+                   MAX(id) as max_id
+            FROM messages
+            WHERE sender_id = ? OR receiver_id = ?
+            GROUP BY other_id
+        ) latest ON u.id = latest.other_id
+        JOIN messages m ON m.id = latest.max_id
+        ORDER BY m.created_at DESC
+    ''', (user_id, user_id, user_id, user_id)).fetchall()
+    
+    chat_list = []
+    for chat in chats:
+        chat = dict(chat)
+        if chat['last_image']:
+            chat['last_message'] = '(Picture)'
+        elif chat['last_message'] and 'Tap to view product' in (chat['last_message'] or ''):
+            chat['last_message'] = '(Product)'
+        chat_list.append(chat)
+
+    # 未读通知数
+    unread_notifications = db.execute(
+        "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0",
+        (user_id,)
+    ).fetchone()[0]
+
+    # 未读评论数（暂用0，评论区做完再改）
+    unread_reviews = 0
+    
+    db.close()
+
+    return render_template('user_chatlist.html', 
+                           chats=chat_list,
+                           unread_notifications=unread_notifications,
+                           unread_reviews=unread_reviews)
+
+# 系统公告列表
+@app.route('/announcements')
+def announcements():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    db = get_db()
+    anns = db.execute('SELECT * FROM announcements ORDER BY created_at DESC').fetchall()
+    db.close()
+    return render_template('announcements.html', announcements=anns)
+
+
+# 管理员发公告
+@app.route('/admin/announcement/add', methods=['POST'])
+def add_announcement():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    title = request.form.get('title', '').strip()
+    content = request.form.get('content', '').strip()
+    if title and content:
+        db = get_db()
+        db.execute('INSERT INTO announcements (title, content) VALUES (?, ?)', (title, content))
+        db.commit()
+        db.close()
+    return redirect(url_for('admin_dashboard'))
+
+
+# 导航栏未读数量 API
+@app.route('/api/unread-count')
+def unread_count():
+    if 'user_id' not in session:
+        return jsonify({'chat': 0, 'notifications': 0})
+
+    user_id = session['user_id']
+    db = get_db()
+
+    chat_unread = db.execute(
+        "SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0",
+        (user_id,)
+    ).fetchone()[0]
+
+    notif_unread = db.execute(
+        "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0",
+        (user_id,)
+    ).fetchone()[0]
+
+    db.close()
+    return jsonify({'chat': chat_unread, 'notifications': notif_unread})
 
 # ============================================================
 # Xingru's Route - Upload Product
@@ -1739,6 +2018,8 @@ def upload_product():
         return redirect(url_for('home'))
 
     return render_template('upload.html')
+
+
 
 
 # ============================================================
