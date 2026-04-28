@@ -98,17 +98,19 @@
     </div>
 
     <!-- Products grid -->
-    <div class="product-grid">
-        {% if products %}
+    {% if products %}
+        <div class="product-grid">
             {% for product in products %}
                 {% include '_product_card.html' %}
             {% endfor %}
-        {% else %}
+        </div>
+    {% else %}
+        <div class="empty-state-full">
             <div class="empty-products-state">
                 <p>No products found. Try different keywords or filters.</p>
             </div>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 </div>
 
 <script>
