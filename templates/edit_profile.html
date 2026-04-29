@@ -1,6 +1,27 @@
 {% extends "base.html" %}
 {% block bottom_nav %}{% endblock %}
-{% block navbar %}{% endblock %}
+
+{% block navbar %}
+<nav class="top-navbar edit-profile-nav">
+    <a href="{{ url_for('home') }}" class="nav-site">
+        <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-bye Logo" class="site-logo">
+        <span class="site-name">E-bye</span>
+    </a>
+    
+    <div class="nav-spacer"></div>
+    
+    <div class="nav-profile">
+        <button class="bg-nav-btn" onclick="toggleBgPanel()">
+            <span class="bg-icon">🎨</span>
+            <span class="bg-text">Background</span>
+        </button>
+        <a href="{{ url_for('logout') }}" class="logout-btn">
+            <span class="logout-icon">🚪</span>
+            <span class="logout-text">Logout</span>
+        </a>
+    </div>
+</nav>
+{% endblock %}
 
 {% block content %}
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,30 +32,6 @@
 
 <div class="ep-page" id="epPage">
     <div class="ep-bg-layer" id="epBgLayer"></div>
-
-    <!-- nav bar -->
-    <nav class="ep-navbar">
-    <div style="display: flex; align-items: center; gap: 16px;">
-        <button class="ep-nav-back" onclick='window.location.href="{{ url_for('home') }}";'>←</button>
-        <a href="{{ url_for('home') }}" class="nav-logo">
-            <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-bye" class="nav-logo-img">
-            <span class="nav-logo-text">E<span>-bye</span></span>
-        </a>
-    </div>
-    <div class="nav-spacer"></div>
-    <div class="ep-nav-actions">
-        <button class="ep-nav-pill" onclick="toggleBgPanel()">
-            <span class="icon">🎨</span><span>Background</span>
-        </button>
-        <a href="{{ url_for('home') }}" class="ep-nav-pill">
-            <span class="icon">🏠</span><span>Home</span>
-        </a>
-        <a href="{{ url_for('login') }}" class="ep-nav-pill danger">
-            <span class="icon">🚪</span><span>Logout</span>
-        </a>
-    </div>
-</nav>
-
 
     <div class="ep-bg-panel" id="epBgPanel">
         <div class="ep-bg-panel-header">

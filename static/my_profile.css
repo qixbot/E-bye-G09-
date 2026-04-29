@@ -1209,3 +1209,45 @@
         height: 60px;
     }
 }
+/* ============================================================
+   MY PROFILE CUSTOM NAVBAR
+   ============================================================ */
+.my-profile-nav {
+    justify-content: space-between;
+}
+
+.my-profile-nav .nav-spacer {
+    flex: 1;
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100px;
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 14px;
+    font-weight: 600;
+    transition: .15s;
+    text-decoration: none;
+}
+
+.logout-btn:hover {
+    background: rgba(214, 60, 44, 0.6);
+    border-color: transparent;
+    color: white;
+}
+
+.logout-icon {
+    font-size: 15px;
+}
+
+.logout-text {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
