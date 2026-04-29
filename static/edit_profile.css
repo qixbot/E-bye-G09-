@@ -53,71 +53,118 @@ body {
 }
 
 /* ============================================================
-   NAVBAR
+   NAVBAR - Unified Style (Matches home page)
    ============================================================ */
+.pf-navbar,
 .ep-navbar {
     position: sticky;
     top: 0;
     z-index: 200;
     display: flex;
     align-items: center;
-    padding: 0 28px;
+    justify-content: space-between;
     height: 64px;
-    background: rgba(0, 56, 31, 0.96);
-    backdrop-filter: blur(12px);
+    padding: 0 28px;
+    background: rgba(0, 56, 31, 0.97);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.nav-spacer {
-    flex: 1;
+/* Logo section */
+.nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
 }
 
-.ep-nav-back {
+.nav-logo-img {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
+}
+
+.nav-logo-text {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -.01em;
+}
+
+.nav-logo-text span {
+    opacity: 0.6;
+}
+
+/* Back button for edit_profile */
+.ep-nav-back,
+.pf-nav-back {
     width: 38px;
     height: 38px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.12);
-    border: none;
-    color: white;
-    font-size: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-size: 18px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s;
+    transition: .15s;
+    flex-shrink: 0;
+    text-decoration: none;
 }
 
-.ep-nav-back:hover {
+.ep-nav-back:hover,
+.pf-nav-back:hover {
     background: rgba(255, 255, 255, 0.22);
 }
 
-.ep-nav-actions {
-    display: flex;
-    gap: 10px;
+/* Spacer to push actions to the right */
+.nav-spacer {
+    flex: 1;
 }
 
-.ep-nav-pill {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    padding: 8px 18px;
-    border-radius: 40px;
-    color: white;
-    font-weight: 500;
-    font-size: 13px;
-    cursor: pointer;
+/* Right side action buttons */
+.nav-actions,
+.ep-nav-actions,
+.pf-nav-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-pill,
+.ep-nav-pill,
+.pf-nav-pill {
     display: flex;
     align-items: center;
     gap: 6px;
-    transition: background 0.2s;
+    padding: 8px 16px;
+    border-radius: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .15s;
+    text-decoration: none;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.ep-nav-pill:hover {
+.nav-pill:hover,
+.ep-nav-pill:hover,
+.pf-nav-pill:hover {
     background: rgba(255, 255, 255, 0.2);
 }
 
-.ep-nav-pill.danger:hover {
-    background: rgba(214, 60, 44, 0.7);
+.nav-pill.logout:hover,
+.ep-nav-pill.danger:hover,
+.pf-nav-pill.logout:hover {
+    background: rgba(214, 60, 44, 0.6);
+    border-color: transparent;
 }
-
 /* ============================================================
    BACKGROUND PANEL
    ============================================================ */
@@ -1398,4 +1445,3 @@ body {
     text-align: center;
 }
 
-#coverCrop

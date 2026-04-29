@@ -1,4 +1,5 @@
 import sqlite3
+
 from werkzeug.security import generate_password_hash
 
 DATABASE = 'ebyte.db'
@@ -59,19 +60,20 @@ def init_db():
         )
     ''')
 
-    # Create messages table for chat
+    # Create offers table (for offer system)
     db.execute('''
-        CREATE TABLE IF NOT EXISTS messages (
+        CREATE TABLE IF NOT EXISTS offers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_id INTEGER NOT NULL,
-            receiver_id INTEGER NOT NULL,
-            product_id INTEGER,
-            content TEXT NOT NULL,
-            msg_type TEXT DEFAULT 'text',
-            is_read INTEGER DEFAULT 0,
+            product_id INTEGER NOT NULL,
+            buyer_id INTEGER NOT NULL,
+            offer_price REAL NOT NULL,
+            original_price REAL,
+            message TEXT,
+            counter_price REAL,
+            status TEXT DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (sender_id) REFERENCES users(id),
-            FOREIGN KEY (receiver_id) REFERENCES users(id)
+            FOREIGN KEY (product_id) REFERENCES products(id),
+            FOREIGN KEY (buyer_id) REFERENCES users(id)
         )
     ''')
 
@@ -143,7 +145,6 @@ def init_products():
         )
     ''')
 
-    # Add missing columns (safe for existing databases)
     try:
         db.execute("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'")
     except sqlite3.OperationalError:
@@ -170,7 +171,7 @@ def init_messages():
             msg_type TEXT DEFAULT 'text',
             image TEXT,
             is_read INTEGER DEFAULT 0,
-            created_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (sender_id) REFERENCES users(id),
             FOREIGN KEY (receiver_id) REFERENCES users(id)
         )

@@ -1,6 +1,4 @@
 {% extends "base.html" %}
-{% block bottom_nav %}{% endblock %}
-{% block navbar %}{% endblock %}
 
 {% block content %}
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -9,17 +7,6 @@
 <div class="pf-page">
     <!-- Dynamic background layer -->
     <div class="pf-bg-layer" id="pfBgLayer"></div>
-
-    <!-- NAVBAR -->
-    <nav class="pf-navbar">
-        <a class="pf-nav-back" href="{{ url_for('home') }}" title="Back">←</a>
-        <div class="pf-nav-brand">E<span>-bye</span></div>
-        <div class="pf-nav-pills">
-            <a class="pf-nav-pill" href="{{ url_for('home') }}"><span class="pill-icon">🏠</span><span>Home</span></a>
-            <a class="pf-nav-pill" href="{{ url_for('upload_product') }}"><span class="pill-icon">📷</span><span>Post</span></a>
-            <a class="pf-nav-pill logout" href="{{ url_for('login') }}"><span class="pill-icon">→</span><span>Logout</span></a>
-        </div>
-    </nav>
 
     <!-- COVER - Load from database -->
     <div class="pf-cover">
@@ -101,7 +88,7 @@
                 </button>
             </div>
 
-            <!-- Listings pane - GRID VIEW -->
+            <!-- Listings pane - ROW VIEW -->
             <div class="pf-pane on" id="pane-listings">
                 <div class="products-grid" id="listings-grid">
                     <div class="loading-state">📦 Loading your listings...</div>
@@ -118,7 +105,7 @@
     </div>
 </div>
 
-<!-- Edit Product Modal (same as edit_profile) -->
+<!-- Edit Product Modal -->
 <div id="editProductModal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
@@ -186,6 +173,19 @@
     </div>
 </div>
 
+<!-- Offer Management Modal -->
+<div id="offerModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="offerModalTitle">💰 Offers for <span id="offerProductName"></span></h2>
+            <button class="modal-close" onclick="closeOfferModal()">&times;</button>
+        </div>
+        <div id="offersList" class="offers-list">
+            <div class="loading-state">Loading offers...</div>
+        </div>
+    </div>
+</div>
+
 <div class="pf-toast" id="pfToast"></div>
 
 <script>
@@ -203,8 +203,7 @@ function restoreBackgroundFromServer() {
                 bgLayer.style.background = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
             }
         })
-        .catch(err => {
-            console.error('Failed to load background:', err);
+        .catch(() => {
             document.getElementById('pfBgLayer').style.background = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
         });
 }
@@ -250,7 +249,7 @@ function showToast(message, type) {
 }
 
 // ============================================================
-// LOAD MY LISTINGS (GRID VIEW)
+// LOAD MY LISTINGS (ROW VIEW)
 // ============================================================
 function loadListings() {
     const container = document.getElementById('listings-grid');
@@ -269,31 +268,38 @@ function loadListings() {
             
             container.innerHTML = data.map(item => {
                 const firstImage = item.first_image ? `/static/uploads/${item.first_image}` : null;
-                const statusClass = (item.status || 'pending').toLowerCase();
                 let statusText = item.status || 'Pending';
-                if (statusText === 'approved') statusText = 'Approved';
-                if (statusText === 'rejected') statusText = 'Rejected';
+                let statusColor = 'pending';
+                if (statusText === 'approved') { statusText = 'For Sale'; statusColor = 'active'; }
+                if (statusText === 'rejected') { statusText = 'Rejected'; statusColor = 'rejected'; }
+                if (statusText === 'sold') { statusText = 'Sold'; statusColor = 'sold'; }
+                
+                const postedDate = item.created_at ? item.created_at.split(' ')[0] : 'Recently';
+                const offersCount = item.offer_count || 0;
                 
                 return `
-                    <div class="product-card">
-                        <a href="/product/${item.id}" class="product-card-link">
-                            <div class="product-image-container">
-                                <span class="condition-badge">${escapeHtml(item.condition || 'Good')}</span>
-                                <div class="carousel-window">
-                                    <div class="carousel-track">
-                                        ${firstImage ? `<img src="${firstImage}" class="carousel-img" alt="${escapeHtml(item.name)}">` : '<div class="carousel-placeholder">📦</div>'}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="product-info">
-                                <h4 class="product-name">${escapeHtml(item.name)}</h4>
-                                <div class="product-price">RM ${parseFloat(item.price).toFixed(2)}</div>
-                                <div class="product-status ${statusClass}">${escapeHtml(statusText)}</div>
-                            </div>
-                        </a>
-                        <div class="product-actions">
-                            <button class="edit-product-btn" onclick="editListing(${item.id})">✏️ Edit</button>
-                            <button class="delete-product-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name)}')">🗑️ Delete</button>
+                    <div class="listing-row">
+                        <div class="listing-row-thumb">
+                            ${firstImage 
+                                ? `<img src="${firstImage}" alt="${escapeHtml(item.name)}">` 
+                                : `<div class="thumb-placeholder">📦</div>`
+                            }
+                        </div>
+                        <div class="listing-row-info">
+                            <div class="listing-row-name">${escapeHtml(item.name)}</div>
+                            <div class="listing-row-price">RM ${parseFloat(item.price).toFixed(2)}</div>
+                            <div class="listing-row-meta">Posted: ${escapeHtml(postedDate)}</div>
+                            <div class="listing-row-status ${statusColor}">${escapeHtml(statusText)}</div>
+                        </div>
+                        <div class="listing-row-actions">
+                            ${offersCount > 0 
+                                ? `<button class="view-offers-btn" onclick="viewOffers(${item.id}, '${escapeHtml(item.name)}')">
+                                    💬 View Offers (${offersCount})
+                                   </button>`
+                                : `<span class="no-offers">No offers yet</span>`
+                            }
+                            <button class="edit-listing-row-btn" onclick="editListing(${item.id})">✏️ Edit</button>
+                            <button class="delete-listing-row-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name)}')">🗑️ Delete</button>
                         </div>
                     </div>
                 `;
@@ -323,15 +329,30 @@ function loadPurchases() {
             countSpan.textContent = data.length;
             
             container.innerHTML = data.map(item => `
-                <div class="pf-item">
-                    <div class="pf-item-thumb">${escapeHtml(item.emoji || '📦')}</div>
-                    <div class="pf-item-info">
-                        <div class="pf-item-name">${escapeHtml(item.name)}</div>
-                        <div class="pf-item-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
+                <div class="purchase-card">
+                    <div class="purchase-header">
+                        <div class="purchase-thumb">${escapeHtml(item.emoji || '📦')}</div>
+                        <div class="purchase-title-section">
+                            <div class="purchase-name">${escapeHtml(item.name)}</div>
+                            <div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
+                        </div>
+                        <div class="purchase-status-badge ${item.status || 'pending'}">
+                            ${item.status === 'completed' ? '✅ Completed' : (item.status === 'pending' ? '⏳ Pending' : (item.status || 'Pending'))}
+                        </div>
                     </div>
-                    <div class="pf-item-right">
-                        <div class="pf-item-price">RM ${parseFloat(item.price).toFixed(2)}</div>
-                        <span class="pf-status ${escapeHtml(item.status || 'completed').toLowerCase()}">${escapeHtml(item.status || 'Completed')}</span>
+                    <div class="purchase-details">
+                        <div class="purchase-price-info">
+                            ${item.final_price !== item.original_price && item.original_price
+                                ? `<span class="negotiated-price">RM ${parseFloat(item.price).toFixed(2)}</span>
+                                   <span class="original-price-strikethrough">RM ${parseFloat(item.original_price).toFixed(2)}</span>
+                                   <span class="negotiated-badge">✨ Negotiated</span>`
+                                : `<span class="purchase-price">RM ${parseFloat(item.price).toFixed(2)}</span>`
+                            }
+                        </div>
+                        <div class="purchase-meta-info">
+                            <span class="meta-item">📍 ${escapeHtml(item.meetup_location || 'MMU Campus')}</span>
+                            <span class="meta-item">📅 ${item.created_at ? escapeHtml(item.created_at.split(' ')[0]) : 'Recently'}</span>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -342,7 +363,126 @@ function loadPurchases() {
 }
 
 // ============================================================
-// EDIT PRODUCT MODAL FUNCTIONS (same as edit_profile)
+// OFFER SYSTEM FUNCTIONS
+// ============================================================
+let currentProductId = null;
+
+function viewOffers(productId, productName) {
+    currentProductId = productId;
+    document.getElementById('offerProductName').innerText = productName;
+    document.getElementById('offerModal').style.display = 'flex';
+    
+    fetch(`/api/product/${productId}/offers`, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('offersList');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="empty-state"><span class="empty-icon">💬</span><div class="empty-title">No offers yet</div><div class="empty-sub">Buyers will make offers here</div></div>';
+                return;
+            }
+            
+            container.innerHTML = data.map(offer => {
+                const offerDate = offer.created_at ? offer.created_at.split(' ')[0] : 'Recently';
+                let statusBadge = '';
+                let actionButtons = '';
+                
+                if (offer.status === 'pending') {
+                    statusBadge = '<span class="offer-status pending">⏳ Pending</span>';
+                    actionButtons = `
+                        <button class="accept-offer-btn" onclick="respondToOffer(${offer.id}, 'accept')">✅ Accept</button>
+                        <button class="reject-offer-btn" onclick="respondToOffer(${offer.id}, 'reject')">❌ Reject</button>
+                        <button class="counter-offer-btn" onclick="makeCounterOffer(${offer.id})">💰 Counter</button>
+                    `;
+                } else if (offer.status === 'accepted') {
+                    statusBadge = '<span class="offer-status accepted">✅ Accepted</span>';
+                    actionButtons = `<button class="contact-buyer-btn" onclick="contactBuyer(${offer.buyer_id})">💬 Contact Buyer</button>`;
+                } else if (offer.status === 'rejected') {
+                    statusBadge = '<span class="offer-status rejected">❌ Rejected</span>';
+                } else if (offer.status === 'countered') {
+                    statusBadge = '<span class="offer-status countered">🔄 Counter Offer</span>';
+                    actionButtons = `
+                        <button class="accept-offer-btn" onclick="respondToOffer(${offer.id}, 'accept')">✅ Accept</button>
+                        <button class="reject-offer-btn" onclick="respondToOffer(${offer.id}, 'reject')">❌ Reject</button>
+                    `;
+                }
+                
+                return `
+                    <div class="offer-card">
+                        <div class="offer-header">
+                            <div class="offer-buyer">👤 ${escapeHtml(offer.buyer_name || 'Unknown')}</div>
+                            ${statusBadge}
+                        </div>
+                        <div class="offer-amount">
+                            <span class="offer-label">Offer Price:</span>
+                            <span class="offer-price">RM ${parseFloat(offer.offer_price).toFixed(2)}</span>
+                            ${offer.original_price ? `<span class="original-price">(Original: RM ${parseFloat(offer.original_price).toFixed(2)})</span>` : ''}
+                        </div>
+                        ${offer.message ? `<div class="offer-message">💬 "${escapeHtml(offer.message)}"</div>` : ''}
+                        <div class="offer-meta">📅 ${offerDate}</div>
+                        <div class="offer-actions">${actionButtons}</div>
+                    </div>
+                `;
+            }).join('');
+        })
+        .catch(() => {
+            document.getElementById('offersList').innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load offers</div></div>';
+        });
+}
+
+function closeOfferModal() {
+    document.getElementById('offerModal').style.display = 'none';
+    currentProductId = null;
+}
+
+function respondToOffer(offerId, action) {
+    showToast(`${action === 'accept' ? 'Accepting' : 'Rejecting'} offer...`, 'info');
+    fetch(`/api/offer/${offerId}/${action}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`Offer ${action}ed successfully!`, 'success');
+            if (currentProductId) viewOffers(currentProductId, document.getElementById('offerProductName').innerText);
+            loadListings();
+        } else {
+            throw new Error(data.error || 'Failed to respond');
+        }
+    })
+    .catch(err => showToast('Error: ' + err.message, 'error'));
+}
+
+function makeCounterOffer(offerId) {
+    const newPrice = prompt('Enter your counter offer price (RM):', '0');
+    if (!newPrice || parseFloat(newPrice) <= 0) return;
+    
+    showToast('Sending counter offer...', 'info');
+    fetch(`/api/offer/${offerId}/counter`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ counter_price: parseFloat(newPrice) })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Counter offer sent!', 'success');
+            if (currentProductId) viewOffers(currentProductId, document.getElementById('offerProductName').innerText);
+        } else {
+            throw new Error(data.error || 'Failed to send counter offer');
+        }
+    })
+    .catch(err => showToast('Error: ' + err.message, 'error'));
+}
+
+function contactBuyer(buyerId) {
+    window.location.href = `/chat/${buyerId}`;
+}
+
+// ============================================================
+// EDIT PRODUCT MODAL FUNCTIONS
 // ============================================================
 let currentProductImages = [];
 let newImagesFiles = [];
@@ -456,9 +596,7 @@ function saveProductChanges(event) {
 
 function closeEditModal() {
     const m = document.getElementById('editProductModal');
-    if (m) {
-        m.style.display = 'none';
-    }
+    if (m) { m.style.display = 'none'; }
     currentProductImages = [];
     newImagesFiles = [];
     imagesToDelete = [];

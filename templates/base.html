@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <!-- TOP Navigation bar - Xingru -->
+    <!-- TOP Navigation bar -->
     {% block navbar %}
     <nav class="top-navbar">
         <a href="{{ url_for('home') }}" class="nav-site">
@@ -20,19 +20,22 @@
         
         <form action="{{ url_for('search') }}" method="GET" class="nav-search">
             <span class="search-icon">🔍</span>
-            <input type="text" name="q" placeholder="Search textbooks, dorm items, gadgets..." class="search-input" value="{{ request.args.get('q', '') }}">
+            <input type="text" name="q" placeholder="Search textbooks, dorm items, gadgets..." class="search-input">
+            <input type="hidden" name="category" id="search-category-input">
+            <input type="hidden" name="condition" id="search-condition-input">
+            <input type="hidden" name="min_price" id="search-min-price">
+            <input type="hidden" name="max_price" id="search-max-price">
+            <input type="hidden" name="sort" id="search-sort">
+            <input type="hidden" name="date_range" id="search-date-range">
         </form>
         
         <div class="nav-profile">
-            <!-- Notification button -->
             <a href="#" class="nav-icon-btn" title="Notifications">
                 <img src="{{ url_for('static', filename='notif_icon.png') }}" class="nav-icon-img" alt="Notifications">
             </a>
-            <!-- Chat button -->
             <a href="/chatlist" class="nav-icon-btn" title="Messages">
                 <img src="{{ url_for('static', filename='chat-icon_Ver2.png') }}" class="nav-icon-img" alt="Chat">
             </a>
-
             <a href="{{ url_for('edit_profile') }}" style="text-decoration: none; display: flex; align-items: center;">
                 <img src="{{ url_for('user_avatar', user_id=session.get('user_id')) }}" class="nav-avatar-img"
                     alt="Avatar"
@@ -48,7 +51,8 @@
         </div>
     </nav>
     {% endblock %}
-       <!-- TOP Navigation bar end -->
+    
+    <!-- TOP Navigation bar end -->
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -62,7 +66,7 @@
 
     {% block content %}{% endblock %}
     
-    <!-- BOTTOM Navigation bar - Xingru -->
+    <!-- BOTTOM Navigation bar -->
     {% block bottom_nav %}
     <div class="bottom-nav-spacer"></div>
     
@@ -84,10 +88,10 @@
             </a>
         </div>
 
-         <a href="{{ url_for('my_profile') }}" class="nav-item">
-        <img src="{{ url_for('static', filename='ebee-head.png') }}" class="nav-icon" alt="Profile">
-        <span class="nav-text">Profile</span>
-    </a>
+        <a href="{{ url_for('my_profile') }}" class="nav-item">
+            <span class="nav-icon">👤</span>
+            <span class="nav-text">Profile</span>
+        </a>
 
         <a href="#" class="nav-item">
             <span class="nav-icon">📍</span>
@@ -99,11 +103,9 @@
      
     <script>
         function showGlobalToast(message, type = 'success') {
-            // Remove any existing toast container to avoid duplicates
             const existing = document.querySelector('.toast-container');
             if (existing) existing.remove();
 
-            // Create the same structure as flash messages
             const container = document.createElement('div');
             container.className = 'toast-container';
 
@@ -114,7 +116,6 @@
             container.appendChild(toastDiv);
             document.body.appendChild(container);
 
-            // Auto‑remove after 3 seconds (same as flash toasts)
             setTimeout(() => {
                 if (container) container.remove();
             }, 3000);

@@ -367,6 +367,7 @@ def home():
 
 #Xingru's Route - Search with filters
 @app.route('/search')
+
 def search():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -716,7 +717,28 @@ def api_user_background():
 def api_user_purchases():
     if 'user_id' not in session:
         return jsonify([])
-    return jsonify([])
+    
+    db = get_db()
+    rows = db.execute('''
+        SELECT o.id, o.product_id, o.final_price as price, 
+               o.original_price, o.status, o.meetup_location, o.created_at,
+               p.name,
+               u.username as seller_name
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        JOIN users u ON p.seller_id = u.id
+        WHERE o.buyer_id = ?
+        ORDER BY o.created_at DESC
+    ''', (session['user_id'],)).fetchall()
+    db.close()
+    
+    purchases = []
+    for row in rows:
+        item = dict(row)
+        item['emoji'] = get_emoji_by_category(item['name'])
+        purchases.append(item)
+    
+    return jsonify(purchases)
 
 
 # Eileen's Route - Api for listing
@@ -728,8 +750,8 @@ def api_user_listings():
     
     db = get_db()
     rows = db.execute("""
-        SELECT id, name, price, status, created_at, images,
-               CASE category
+        SELECT p.id, p.name, p.price, p.status, p.created_at, p.images,
+               CASE p.category
                    WHEN 'books' THEN '📚'
                    WHEN 'gadgets' THEN '💻'
                    WHEN 'dorm' THEN '🛏'
@@ -737,10 +759,11 @@ def api_user_listings():
                    WHEN 'stationery' THEN '✏️'
                    WHEN 'sports' THEN '⚽'
                    ELSE '📦'
-               END as emoji
-        FROM products
-        WHERE seller_id = ?
-        ORDER BY created_at DESC
+               END as emoji,
+               (SELECT COUNT(*) FROM offers WHERE product_id = p.id AND status = 'pending') as offer_count
+        FROM products p
+        WHERE p.seller_id = ?
+        ORDER BY p.created_at DESC
     """, (session['user_id'],)).fetchall()
     db.close()
     
@@ -750,12 +773,312 @@ def api_user_listings():
         images_str = item.get('images', '')
         if images_str:
             img_list = images_str.split(',')
-            item['first_image'] = img_list[0]  # Get first image
+            item['first_image'] = img_list[0]
         else:
             item['first_image'] = None
         listings.append(item)
     
     return jsonify(listings)
+
+# ============================================================
+# OFFER SYSTEM API ROUTES
+# ============================================================
+
+@app.route('/api/product/<int:product_id>/offers')
+
+def get_product_offers(product_id):
+    """Get all offers for a product (seller only)"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    # Verify product belongs to user
+    product = db.execute('SELECT seller_id FROM products WHERE id = ?', (product_id,)).fetchone()
+    if not product or product['seller_id'] != session['user_id']:
+        db.close()
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    offers = db.execute('''
+        SELECT o.*, u.username as buyer_name
+        FROM offers o
+        JOIN users u ON o.buyer_id = u.id
+        WHERE o.product_id = ?
+        ORDER BY o.created_at DESC
+    ''', (product_id,)).fetchall()
+    db.close()
+    
+    # Add offer_count to product for listing display
+    offer_count = len(offers)
+    
+    result = []
+    for offer in offers:
+        offer_dict = dict(offer)
+        result.append(offer_dict)
+    
+    return jsonify(result)
+
+
+@app.route('/api/product/<int:product_id>/offer-count')
+
+def get_product_offer_count(product_id):
+    """Get offer count for a product"""
+    if 'user_id' not in session:
+        return jsonify({'count': 0})
+    
+    db = get_db()
+    count = db.execute(
+        'SELECT COUNT(*) FROM offers WHERE product_id = ?',
+        (product_id,)
+    ).fetchone()[0]
+    db.close()
+    
+    return jsonify({'count': count})
+
+
+@app.route('/api/product/<int:product_id>/offers/send', methods=['POST'])
+
+def send_offer(product_id):
+    """Send an offer for a product (buyer)"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    offer_price = data.get('offer_price')
+    message = data.get('message', '')
+    
+    if not offer_price or float(offer_price) <= 0:
+        return jsonify({'success': False, 'error': 'Invalid offer price'}), 400
+    
+    db = get_db()
+    
+    # Get product info
+    product = db.execute(
+        'SELECT id, name, price, seller_id FROM products WHERE id = ? AND status = "approved"',
+        (product_id,)
+    ).fetchone()
+    
+    if not product:
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # Check if buyer is not the seller
+    if product['seller_id'] == session['user_id']:
+        db.close()
+        return jsonify({'success': False, 'error': 'You cannot make an offer on your own product'}), 400
+    
+    # Check if offer already exists
+    existing = db.execute(
+        'SELECT id FROM offers WHERE product_id = ? AND buyer_id = ? AND status = "pending"',
+        (product_id, session['user_id'])
+    ).fetchone()
+    
+    if existing:
+        db.close()
+        return jsonify({'success': False, 'error': 'You already have a pending offer for this product'}), 400
+    
+    # Create offer
+    db.execute('''
+        INSERT INTO offers (product_id, buyer_id, offer_price, original_price, message, status)
+        VALUES (?, ?, ?, ?, ?, 'pending')
+    ''', (product_id, session['user_id'], float(offer_price), product['price'], message))
+    
+    # Create notification for seller
+    db.execute('''
+        INSERT INTO notifications (user_id, message, created_at)
+        VALUES (?, ?, ?)
+    ''', (product['seller_id'],
+          f"New offer of RM {float(offer_price):.2f} on your item: {product['name']}",
+          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True, 'message': 'Offer sent successfully'})
+
+
+@app.route('/api/offer/<int:offer_id>/accept', methods=['POST'])
+
+def accept_offer(offer_id):
+    """Accept an offer (seller)"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    
+    # Get offer details
+    offer = db.execute('''
+        SELECT o.*, p.name as product_name, p.seller_id, p.id as product_id
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = ?
+    ''', (offer_id,)).fetchone()
+    
+    if not offer:
+        db.close()
+        return jsonify({'success': False, 'error': 'Offer not found'}), 404
+    
+    # Verify seller
+    if offer['seller_id'] != session['user_id']:
+        db.close()
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    # Update offer status
+    db.execute('UPDATE offers SET status = "accepted" WHERE id = ?', (offer_id,))
+    
+    # Mark product as sold
+    db.execute('UPDATE products SET status = "sold" WHERE id = ?', (offer['product_id'],))
+    
+    # Create notification for buyer
+    db.execute('''
+        INSERT INTO notifications (user_id, message, created_at)
+        VALUES (?, ?, ?)
+    ''', (offer['buyer_id'],
+          f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} has been accepted!",
+          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+
+@app.route('/api/offer/<int:offer_id>/reject', methods=['POST'])
+
+def reject_offer(offer_id):
+    """Reject an offer (seller)"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    
+    # Get offer details
+    offer = db.execute('''
+        SELECT o.*, p.name as product_name, p.seller_id
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = ?
+    ''', (offer_id,)).fetchone()
+    
+    if not offer:
+        db.close()
+        return jsonify({'success': False, 'error': 'Offer not found'}), 404
+    
+    # Verify seller
+    if offer['seller_id'] != session['user_id']:
+        db.close()
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    # Update offer status
+    db.execute('UPDATE offers SET status = "rejected" WHERE id = ?', (offer_id,))
+    
+    # Create notification for buyer
+    db.execute('''
+        INSERT INTO notifications (user_id, message, created_at)
+        VALUES (?, ?, ?)
+    ''', (offer['buyer_id'],
+          f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} was rejected.",
+          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+
+@app.route('/api/offer/<int:offer_id>/counter', methods=['POST'])
+
+
+def counter_offer(offer_id):
+    """Counter an offer (seller)"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    counter_price = data.get('counter_price')
+    
+    if not counter_price or float(counter_price) <= 0:
+        return jsonify({'success': False, 'error': 'Invalid counter price'}), 400
+    
+    db = get_db()
+    
+    # Get offer details
+    offer = db.execute('''
+        SELECT o.*, p.name as product_name, p.seller_id
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = ?
+    ''', (offer_id,)).fetchone()
+    
+    if not offer:
+        db.close()
+        return jsonify({'success': False, 'error': 'Offer not found'}), 404
+    
+    # Verify seller
+    if offer['seller_id'] != session['user_id']:
+        db.close()
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    # Create counter offer (insert new offer or update)
+    db.execute('''
+        UPDATE offers 
+        SET counter_price = ?, status = 'countered'
+        WHERE id = ?
+    ''', (float(counter_price), offer_id))
+    
+    # Create notification for buyer
+    db.execute('''
+        INSERT INTO notifications (user_id, message, created_at)
+        VALUES (?, ?, ?)
+    ''', (offer['buyer_id'],
+          f"Seller countered your offer for {offer['product_name']}: RM {float(counter_price):.2f}",
+          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+
+@app.route('/api/offer/<int:offer_id>/accept-counter', methods=['POST'])
+
+def accept_counter_offer(offer_id):
+    """Accept a counter offer (buyer)"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    
+    # Get offer details
+    offer = db.execute('''
+        SELECT o.*, p.name as product_name, p.seller_id
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = ?
+    ''', (offer_id,)).fetchone()
+    
+    if not offer:
+        db.close()
+        return jsonify({'success': False, 'error': 'Offer not found'}), 404
+    
+    # Verify buyer
+    if offer['buyer_id'] != session['user_id']:
+        db.close()
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    # Update offer with counter price as accepted
+    db.execute('''
+        UPDATE offers 
+        SET offer_price = counter_price, status = 'accepted', counter_price = NULL
+        WHERE id = ?
+    ''', (offer_id,))
+    
+    # Mark product as sold
+    db.execute('UPDATE products SET status = "sold" WHERE id = ?', (offer['product_id'],))
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
 
 # ============================================================
 # PRODUCT API FOR EDIT/DELETE
@@ -1556,6 +1879,7 @@ def admin_get_product_info(pid):
 
 # Freeze user for 7 days(limited 3 times)
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
+
 def freeze_7day(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
@@ -1692,6 +2016,7 @@ def unblock_user(user_id):
 # ============================================================
 # ==================== Keting's Chat Routes ====================
 @app.route('/chat/send', methods=['POST'])
+
 def chat_send():
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'})
@@ -1716,6 +2041,7 @@ def chat_send():
 
 
 @app.route('/chat/send-image', methods=['POST'])
+
 def chat_send_image():
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
@@ -1743,6 +2069,7 @@ def chat_send_image():
 
 @app.route('/chat/<int:other_user_id>')
 @app.route('/chat/<int:other_user_id>/<int:product_id>')
+
 def chat_page(other_user_id, product_id=None):
     if 'user_id' not in session:
         flash("Please login first", "error")
@@ -1790,6 +2117,7 @@ def chat_page(other_user_id, product_id=None):
 
 
 @app.route('/api/chat/messages/<int:other_user_id>')
+
 def chat_get_messages(other_user_id):
     if 'user_id' not in session:
         return jsonify([])
@@ -1811,6 +2139,7 @@ def chat_get_messages(other_user_id):
 
 
 @app.route('/chatlist')
+
 def chat_list():
     if 'user_id' not in session:
         flash("Please login first", "error")
@@ -1866,6 +2195,7 @@ def chat_list():
 
 # 系统公告列表
 @app.route('/announcements')
+
 def announcements():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -1878,6 +2208,7 @@ def announcements():
 
 # 管理员发公告
 @app.route('/admin/announcement/add', methods=['POST'])
+
 def add_announcement():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
@@ -1894,6 +2225,7 @@ def add_announcement():
 
 # 导航栏未读数量 API
 @app.route('/api/unread-count')
+
 def unread_count():
     if 'user_id' not in session:
         return jsonify({'chat': 0, 'notifications': 0})

@@ -12,21 +12,29 @@
 <div class="ep-page" id="epPage">
     <div class="ep-bg-layer" id="epBgLayer"></div>
 
+    <!-- nav bar -->
     <nav class="ep-navbar">
+    <div style="display: flex; align-items: center; gap: 16px;">
         <button class="ep-nav-back" onclick='window.location.href="{{ url_for('home') }}";'>←</button>
-        <div class="nav-spacer"></div>
-        <div class="ep-nav-actions">
-            <button class="ep-nav-pill" onclick="toggleBgPanel()">
-                <span class="icon">🎨</span><span>Background</span>
-            </button>
-            <button class="ep-nav-pill" onclick='window.location.href="{{ url_for('home') }}";'>
-                <span class="icon">🏠</span><span>Home</span>
-            </button>
-            <button class="ep-nav-pill danger" onclick='window.location.href="{{ url_for('login') }}";'>
-                <span class="icon">🚪</span><span>Logout</span>
-            </button>
-        </div>
-    </nav>
+        <a href="{{ url_for('home') }}" class="nav-logo">
+            <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-bye" class="nav-logo-img">
+            <span class="nav-logo-text">E<span>-bye</span></span>
+        </a>
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="ep-nav-actions">
+        <button class="ep-nav-pill" onclick="toggleBgPanel()">
+            <span class="icon">🎨</span><span>Background</span>
+        </button>
+        <a href="{{ url_for('home') }}" class="ep-nav-pill">
+            <span class="icon">🏠</span><span>Home</span>
+        </a>
+        <a href="{{ url_for('login') }}" class="ep-nav-pill danger">
+            <span class="icon">🚪</span><span>Logout</span>
+        </a>
+    </div>
+</nav>
+
 
     <div class="ep-bg-panel" id="epBgPanel">
         <div class="ep-bg-panel-header">
