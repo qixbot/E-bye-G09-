@@ -6,8 +6,6 @@ import os
 
 import sqlite3
 
-import subprocess
-
 from datetime import datetime, timedelta
 
 import uuid
@@ -1266,17 +1264,17 @@ def api_update_product_full(product_id):
                 except:
                     pass
 
-# Handle new image uploads
-new_images = request.files.getlist('new_images')
-for img in new_images:
-    if img and img.filename:
-        if '.' in img.filename:
-            ext = img.filename.rsplit('.', 1)[-1].lower()
-        else:
-            ext = 'jpg'
-        filename = f"product_{product_id}_{uuid.uuid4().hex}.{ext}"
-        img.save(os.path.join('static/uploads', filename))
-        current_images.append(filename)
+    # Handle new image uploads
+    new_images = request.files.getlist('new_images')
+    for img in new_images:
+        if img and img.filename:
+            if '.' in img.filename:
+                ext = img.filename.rsplit('.', 1)[-1].lower()
+            else:
+                ext = 'jpg'
+            filename = f"product_{product_id}_{uuid.uuid4().hex}.{ext}"
+            img.save(os.path.join('static/uploads', filename))
+            current_images.append(filename)
 
     # Update database
     images_string = ','.join(current_images) if current_images else ''
@@ -1293,7 +1291,6 @@ for img in new_images:
     db.close()
 
     return jsonify({'success': True})
-
 
 # Eileen's Route - Delete product
 @app.route('/api/product/<int:product_id>/delete', methods=['DELETE'])
@@ -1379,6 +1376,20 @@ def my_profile():
 
     trust_score = calculate_trust_score(user, listing_count)
 
+    # ========== calculate response_rate ==========
+    response_rate = 50
+    if listing_count > 0:
+        response_rate += 15
+    if user['bio'] and user['contact']:
+        response_rate += 10
+    if user['active_hours'] and user['active_hours'] != 'Not set':
+        response_rate += 10
+    if user['avatar_blob']:
+        response_rate += 5
+    response_rate = min(response_rate, 98)
+    response_rate = max(response_rate, 40)
+    # ========================================
+
     db.close()
 
     return render_template(
@@ -1386,7 +1397,8 @@ def my_profile():
         user=user,
         listing_count=listing_count,
         sold_count=sold_count,
-        trust_score=trust_score
+        trust_score=trust_score,
+        response_rate=response_rate  
     )
 
 # ============================================================

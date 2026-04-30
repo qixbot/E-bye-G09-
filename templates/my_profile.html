@@ -53,23 +53,23 @@
             <div class="pf-bio">{{ user.bio or '✨ No bio yet. Click edit to tell others about yourself!' }}</div>
 
             <div class="pf-stats-row">
-                <div class="pf-stat">
-                    <span class="pf-stat-n" id="stat-listings">{{ listing_count }}</span>
-                    <span class="pf-stat-l">Listings</span>
-                </div>
-                <div class="pf-stat">
-                    <span class="pf-stat-n" id="stat-sold">{{ sold_count }}</span>
-                    <span class="pf-stat-l">Sold</span>
-                </div>
-                <div class="pf-stat">
-                    <span class="pf-stat-n">{{ trust_score }}%</span>
-                    <span class="pf-stat-l">Trust Score</span>
-                </div>
-                <div class="pf-stat">
-                    <span class="pf-stat-n">{{ user.rating or '—' }}</span>
-                    <span class="pf-stat-l">Rating</span>
-                </div>
+            <div class="pf-stat">
+                  <span class="pf-stat-n" id="stat-listings">{{ listing_count }}</span>
+                  <span class="pf-stat-l">Listings</span>
             </div>
+                 <div class="pf-stat">
+                 <span class="pf-stat-n" id="stat-sold">{{ sold_count }}</span>
+                       <span class="pf-stat-l">Sold</span>
+            </div>
+                 <div class="pf-stat">
+                 <span class="pf-stat-n">{{ trust_score }}%</span>
+                        <span class="pf-stat-l">Trust Score</span>
+            </div>
+                <div class="pf-stat">
+                <span class="pf-stat-n">{{ response_rate|default(85) }}%</span>
+                        <span class="pf-stat-l">Response</span>
+            </div>
+         </div>
 
             <div class="pf-details">
                 <div class="pf-detail-row">
