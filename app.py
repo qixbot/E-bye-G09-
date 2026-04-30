@@ -1266,16 +1266,17 @@ def api_update_product_full(product_id):
                 except:
                     pass
 
-    # Handle new image uploads
-    new_images = request.files.getlist('new_images')
-    for img in new_images:
+# Handle new image uploads
+new_images = request.files.getlist('new_images')
+for img in new_images:
+    if img and img.filename:
         if '.' in img.filename:
-        ext = img.filename.rsplit('.', 1)[-1].lower()
-    else:
-    ext = 'jpg'
-            filename = f"product_{product_id}_{uuid.uuid4().hex}.{ext}"
-            img.save(os.path.join('static/uploads', filename))
-            current_images.append(filename)
+            ext = img.filename.rsplit('.', 1)[-1].lower()
+        else:
+            ext = 'jpg'
+        filename = f"product_{product_id}_{uuid.uuid4().hex}.{ext}"
+        img.save(os.path.join('static/uploads', filename))
+        current_images.append(filename)
 
     # Update database
     images_string = ','.join(current_images) if current_images else ''
