@@ -6,6 +6,8 @@ import os
 
 import sqlite3
 
+import subprocess
+
 from datetime import datetime, timedelta
 
 import uuid
@@ -28,6 +30,50 @@ from database import init_db, get_db, init_products, init_messages, init_announc
 
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026-new'
+
+def calculate_trust_score(user, listing_count):
+    """Calculate trust score based on user profile and activity"""
+    trust_score = 60
+    
+    # Profile completeness
+    if user['avatar_blob']:
+        trust_score += 8
+    if user['bio']:
+        trust_score += 8
+    if user['contact']:
+        trust_score += 7
+    if user['full_name']:
+        trust_score += 7
+
+    # Account age bonus
+    if user['created_at']:
+        try:
+            created_date = datetime.strptime(user['created_at'], '%Y-%m-%d %H:%M:%S')
+            days_since_join = (datetime.now() - created_date).days
+            if days_since_join >= 365:
+                trust_score += 20
+            elif days_since_join >= 180:
+                trust_score += 15
+            elif days_since_join >= 30:
+                trust_score += 10
+            elif days_since_join >= 7:
+                trust_score += 5
+        except:
+            pass
+
+    # Listing count bonus (max 25)
+    trust_score += min(25, (listing_count // 2) * 2)
+
+    # Activity bonus
+    if user['active_hours'] and user['active_hours'] != 'Not set':
+        trust_score += 10
+    if user['gender']:
+        trust_score += 5
+
+    trust_score = min(trust_score, 100)
+    trust_score = max(trust_score, 30)
+    
+    return trust_score
 
 # jinja2 time filter
 @app.template_filter('time_since')
@@ -119,9 +165,6 @@ def init_messages():
 
 def index():
     return redirect(url_for('login'))
-
-
-
 
 # ============================================================
 # Eileen's Route - Login
@@ -329,7 +372,9 @@ def home():
 
     db = get_db()
     products_data = db.execute('''
-        SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
+        SELECT p.*, 
+        u.username as seller_name, 
+                               u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'approved'
@@ -363,7 +408,7 @@ def home():
         products.append(product)
 
     return render_template('home.html',
-                           username=session.get('username'), latest_products=products)
+        username=session.get('username'), latest_products=products)
 
 #Xingru's Route - Search with filters
 @app.route('/search')
@@ -1073,7 +1118,10 @@ def accept_counter_offer(offer_id):
     ''', (offer_id,))
     
     # Mark product as sold
-    db.execute('UPDATE products SET status = "sold" WHERE id = ?', (offer['product_id'],))
+    db.execute(
+    'UPDATE products SET status = "sold" WHERE id = ?',
+    (offer['product_id'],)
+    )
     
     db.commit()
     db.close()
@@ -1144,9 +1192,102 @@ def api_update_product(product_id):
     # Update product (status becomes pending again for admin review)
     db.execute('''
         UPDATE products
-        SET name = ?, price = ?, description = ?, condition = ?, category = ?, status = 'pending'
+        SET name = ?, 
+        price = ?, description = ?, condition = ?, category = ?, status = 'pending'
         WHERE id = ?
     ''', (name, price, description, condition, category, product_id))
+    db.commit()
+    db.close()
+
+    return jsonify({'success': True})
+
+# ============================================================
+# Eileen's route - update product full
+# ============================================================
+
+@app.route('/api/product/<int:product_id>/update-full', methods=['POST'])
+
+def api_update_product_full(product_id):
+    """Update product with images"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    db = get_db()
+
+    # Verify product belongs to user
+    product = db.execute(
+        'SELECT id, images FROM products '
+        'WHERE id = ? AND seller_id = ?',
+        (product_id, session['user_id'])
+    ).fetchone()
+
+    if not product:
+        db.close()
+        return jsonify(
+            {'success': False, 'error': 'Product not found'}
+        ), 404
+
+    # Get form data
+    name = request.form.get('name', '').strip()
+    price = request.form.get('price', 0)
+    description = request.form.get('description', '').strip()
+    condition = request.form.get('condition', '')
+    category = request.form.get('category', '')
+
+    # Validation
+    if not name or not price or not description:
+        return jsonify({
+            'success': False,
+            'error': 'Name, price and description required'
+        }), 400
+
+    try:
+        price = float(price)
+    except:
+        return jsonify(
+            {'success': False, 'error': 'Invalid price'}
+        ), 400
+
+    # Handle image deletions
+    current_images = product['images'].split(',') if product['images'] else []
+    delete_images = request.form.get('delete_images', '[]')
+
+    import json
+    images_to_delete = json.loads(delete_images) if delete_images else []
+
+    # Remove deleted images from filesystem
+    for img_name in images_to_delete:
+        if img_name in current_images:
+            current_images.remove(img_name)
+            img_path = os.path.join('static/uploads', img_name)
+            if os.path.exists(img_path):
+                try:
+                    os.remove(img_path)
+                except:
+                    pass
+
+    # Handle new image uploads
+    new_images = request.files.getlist('new_images')
+    for img in new_images:
+        if '.' in img.filename:
+        ext = img.filename.rsplit('.', 1)[-1].lower()
+    else:
+    ext = 'jpg'
+            filename = f"product_{product_id}_{uuid.uuid4().hex}.{ext}"
+            img.save(os.path.join('static/uploads', filename))
+            current_images.append(filename)
+
+    # Update database
+    images_string = ','.join(current_images) if current_images else ''
+    db.execute("""
+        UPDATE products
+        SET name = ?, price = ?, description = ?,
+            condition = ?, category = ?, images = ?,
+            status = 'pending'
+        WHERE id = ?
+    """, (name, price, description, condition,
+          category, images_string, product_id))
+
     db.commit()
     db.close()
 
@@ -1159,16 +1300,24 @@ def api_update_product(product_id):
 def api_delete_product(product_id):
     """Delete a product listing"""
     if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+        return jsonify(
+            {'success': False, 'error': 'Not logged in'}
+        ), 401
 
     db = get_db()
 
     # Verify product belongs to user
-    product = db.execute('SELECT id, name, images FROM products WHERE id = ? AND seller_id = ?',
-                         (product_id, session['user_id'])).fetchone()
+    product = db.execute(
+        'SELECT id, name, images FROM products '
+        'WHERE id = ? AND seller_id = ?',
+        (product_id, session['user_id'])
+    ).fetchone()
+
     if not product:
         db.close()
-        return jsonify({'success': False, 'error': 'Product not found'}), 404
+        return jsonify(
+            {'success': False, 'error': 'Product not found'}
+        ), 404
 
     # Delete associated images from filesystem
     if product['images']:
@@ -1187,134 +1336,57 @@ def api_delete_product(product_id):
 
     return jsonify({'success': True})
 
-
 # ============================================================
-# Eileen's Route - User own profile
+# Eileen's Route - My profile
 # ============================================================
 @app.route('/my-profile')
 
 def my_profile():
-    """Display user's own profile page with listings and purchases"""
+
     if 'user_id' not in session:
         flash('Please login first', 'error')
         return redirect(url_for('login'))
 
     db = get_db()
-    user = db.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    user_id = session['user_id']
+
+    user = db.execute(
+        'SELECT * FROM users WHERE id = ?',
+        (user_id,)
+    ).fetchone()
 
     if not user:
         session.clear()
         flash('User not found', 'error')
         return redirect(url_for('login'))
 
-    # Get listing count
-    listing_count = db.execute('SELECT COUNT(*) FROM products WHERE seller_id = ?',
-                               (session['user_id'],)).fetchone()[0]
+    listing_count = db.execute(
+        'SELECT COUNT(*) FROM products WHERE seller_id = ?',
+        (user_id,)
+    ).fetchone()[0]
 
-    # Get sold count (from orders table if exists)
+
     sold_count = 0
     try:
-        sold_count = db.execute('SELECT COUNT(*) FROM orders WHERE seller_id = ? AND status = "completed"',
-                               (session['user_id'],)).fetchone()[0]
+        sold_count = db.execute(
+            'SELECT COUNT(*) FROM orders '
+            'WHERE seller_id = ? AND status = "completed"',
+            (user_id,)
+        ).fetchone()[0]
     except:
         pass
 
-    # Calculate trust score
-    trust_score = 60
-    if user['avatar_blob']:
-        trust_score += 8
-    if user['bio']:
-        trust_score += 8
-    if user['contact']:
-        trust_score += 7
-    if user['full_name']:
-        trust_score += 7
-    trust_score += min(25, (listing_count // 2) * 2)
-    trust_score = min(100, max(30, trust_score))
+    trust_score = calculate_trust_score(user, listing_count)
 
     db.close()
 
-    return render_template('my_profile.html',
-                           user=user,
-                           listing_count=listing_count,
-                           sold_count=sold_count,
-                           trust_score=trust_score)
-
-
-# ============================================================
-# Eileen's route - update product full
-# ============================================================
-@app.route('/api/product/<int:product_id>/update-full', methods=['POST'])
-
-def api_update_product_full(product_id):
-    """Update product with images"""
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    db = get_db()
-
-    # Verify product belongs to user
-    product = db.execute('SELECT id, images FROM products WHERE id = ? AND seller_id = ?',
-                         (product_id, session['user_id'])).fetchone()
-    if not product:
-        db.close()
-        return jsonify({'success': False, 'error': 'Product not found'}), 404
-
-    # Get form data
-    name = request.form.get('name', '').strip()
-    price = request.form.get('price', 0)
-    description = request.form.get('description', '').strip()
-    condition = request.form.get('condition', '')
-    category = request.form.get('category', '')
-
-    # Validation
-    if not name or not price or not description:
-        return jsonify({'success': False, 'error': 'Name, price and description required'}), 400
-
-    try:
-        price = float(price)
-    except:
-        return jsonify({'success': False, 'error': 'Invalid price'}), 400
-
-    # Handle image deletions
-    current_images = product['images'].split(',') if product['images'] else []
-    delete_images = request.form.get('delete_images', '[]')
-    import json
-    images_to_delete = json.loads(delete_images) if delete_images else []
-
-    # Remove deleted images from filesystem
-    for img_name in images_to_delete:
-        if img_name in current_images:
-            current_images.remove(img_name)
-            img_path = os.path.join('static/uploads', img_name)
-            if os.path.exists(img_path):
-                try:
-                    os.remove(img_path)
-                except:
-                    pass
-
-    # Handle new image uploads
-    new_images = request.files.getlist('new_images')
-    for img in new_images:
-        if img and img.filename:
-            ext = img.filename.rsplit('.', 1)[-1].lower() if '.' in img.filename else 'jpg'
-            filename = f"product_{product_id}_{uuid.uuid4().hex}.{ext}"
-            img.save(os.path.join('static/uploads', filename))
-            current_images.append(filename)
-
-    # Update database
-    images_string = ','.join(current_images) if current_images else ''
-    db.execute('''
-        UPDATE products
-        SET name = ?, price = ?, description = ?, condition = ?, category = ?,
-            images = ?, status = 'pending'
-        WHERE id = ?
-    ''', (name, price, description, condition, category, images_string, product_id))
-    db.commit()
-    db.close()
-
-    return jsonify({'success': True})
-
+    return render_template(
+        'my_profile.html',
+        user=user,
+        listing_count=listing_count,
+        sold_count=sold_count,
+        trust_score=trust_score
+    )
 
 # ============================================================
 # Eileen's Route - Edit Profile
@@ -1336,43 +1408,8 @@ def edit_profile():
         (session['user_id'],)
     ).fetchone()[0]
 
-    # Calculate trust score
-    trust_score = 60
-    if user['avatar_blob']:
-        trust_score += 8
-    if user['bio']:
-        trust_score += 8
-    if user['contact']:
-        trust_score += 7
-    if user['full_name']:
-        trust_score += 7
-
-    if user['created_at']:
-        try:
-            created_date = datetime.strptime(
-                user['created_at'], '%Y-%m-%d %H:%M:%S'
-            )
-            days_since_join = (datetime.now() - created_date).days
-            if days_since_join >= 365:
-                trust_score += 20
-            elif days_since_join >= 180:
-                trust_score += 15
-            elif days_since_join >= 30:
-                trust_score += 10
-            elif days_since_join >= 7:
-                trust_score += 5
-        except:
-            pass
-
-    trust_score += min(25, (listing_count // 2) * 2)
-
-    if user['active_hours'] and user['active_hours'] != 'Not set':
-        trust_score += 10
-    if user['gender']:
-        trust_score += 5
-
-    trust_score = min(trust_score, 100)
-    trust_score = max(trust_score, 30)
+    # 使用公共函数
+    trust_score = calculate_trust_score(user, listing_count)
 
     # Calculate response rate
     response_rate = 50
@@ -1382,8 +1419,10 @@ def edit_profile():
 
     if user['bio'] and user['contact']:
         response_rate += 10
+
     if user['active_hours'] and user['active_hours'] != 'Not set':
         response_rate += 10
+
     if user['avatar_blob']:
         response_rate += 5
 
@@ -1400,7 +1439,6 @@ def edit_profile():
         trust_score=trust_score,
         response_rate=response_rate
     )
-
 
 # ============================================================
 # Eileen's Route - Update Profile
