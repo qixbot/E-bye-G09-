@@ -606,8 +606,15 @@ function saveProductChanges(event) {
         .then(r => r.json()).then(data => { if (data.success) { showToastMessage('Product updated successfully!', 'success'); closeEditModal(); loadListings(); } else throw new Error(data.error); })
         .catch(err => showToastMessage('Failed to update: ' + err.message, 'error'));
 }
-
-function closeEditModal() { const m = document.getElementById('editProductModal'); if (m) { m.style.display = 'none'; m.remove(); } currentProductImages = []; newImagesFiles = []; imagesToDelete = []; }
+function closeEditModal() {
+    const modal = document.getElementById('editProductModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    currentProductImages = [];
+    newImagesFiles = [];
+    imagesToDelete = [];
+}
 
 function deleteListing(id, name) {
     if (confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {

@@ -29,7 +29,7 @@
     <!-- COVER - Load from database -->
     <div class="pf-cover">
         <div class="pf-cover-img" id="pfCoverImage"
-             style="background-image: url('{{ url_for('cover_image') if user.cover_blob else '' }}'); background: linear-gradient(135deg,#00c896 0%,#00381f 55%,#001a0e 100%);">
+             style="background: linear-gradient(135deg,#00c896 0%,#00381f 55%,#001a0e 100%);">
         </div>
     </div>
 
@@ -231,9 +231,15 @@ function restoreBackgroundFromServer() {
 // ============================================================
 function loadCoverFromServer() {
     const coverDiv = document.getElementById('pfCoverImage');
-    if (coverDiv) {
-        coverDiv.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
-    }
+    if (!coverDiv) return;
+    const img = new Image();
+    img.onload = function() {
+        coverDiv.style.background = 'url(/cover-image?t=' + Date.now() + ') center/cover no-repeat';
+    };
+    img.onerror = function() {
+        // No cover image uploaded, keep the gradient fallback
+    };
+    img.src = '/cover-image?t=' + Date.now();
 }
 
 // ============================================================
