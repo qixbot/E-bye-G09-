@@ -87,38 +87,38 @@
 
 <script>
     function togglePassword(inputID, btn) {
-      const input = document.getElementById(inputID);
-      if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = '🫣';
-      } else {
-        input.type = 'password';
-        btn.textContent = '👀';
-      }
+        const input = document.getElementById(inputID);
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = '🫣';
+        } else {
+            input.type = 'password';
+            btn.textContent = '👀';
+        }
     }
 
-    function showError(field,message){
-        const errorDiv= document.getElementById(`${field}-error`);
+    function showError(field, message) {
+        const errorDiv = document.getElementById(`${field}-error`);
         if (errorDiv) {
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             const input = document.getElementById(field === 'email' ? 'email' : 'login-password');
-        if (input) input.classList.add('field-error');
+            if (input) input.classList.add('field-error');
         }
     }
 
     // Client-side validation for login form
     document.getElementById('login-form').addEventListener('submit', function(event) {
-        const email = document.getElementById('email').value;  // email and password are used in validation, so they are declared here
+        const email = document.getElementById('email').value;
         const password = document.getElementById('login-password').value;
-        let hasError = false;  // all use hasError
+        let hasError = false;
 
         // Reset error messages
         document.querySelectorAll('.form-error').forEach(el => el.style.display = 'none');
         document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
-        
+
         // Validate email format
-       if (!email) {
+        if (!email) {
             showError('email', 'Email address is required.');
             hasError = true;
         } else if (!email.endsWith('@student.mmu.edu.my')) {
@@ -139,13 +139,11 @@
 
     // Clear error messages on input
     document.getElementById('email').addEventListener('input', function() {
-    document.getElementById('email-error').style.display = 'none';
-    this.classList.remove('field-error');
-});
+        document.getElementById('email-error').style.display = 'none';
+        this.classList.remove('field-error');
+    });
     document.getElementById('login-password').addEventListener('input', function() {
-    document.getElementById('password-error').style.display = 'none';
-    this.classList.remove('field-error');
-});
-
+        document.getElementById('password-error').style.display = 'none';
+        this.classList.remove('field-error');
+    });
 </script>
-{% endblock %}

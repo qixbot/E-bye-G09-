@@ -44,9 +44,11 @@ def init_db():
             trust_score INTEGER DEFAULT 85,
             response_rate INTEGER DEFAULT 98,
             rating TEXT DEFAULT '--',
+            remember_token TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
 
     # Create notifications table
     db.execute('''

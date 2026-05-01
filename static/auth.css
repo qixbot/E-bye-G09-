@@ -133,7 +133,7 @@ body::after {
     overflow: hidden;
     min-height: 580px;
     max-height:85vh;
-    overflow-y: auto;
+    overflow-y: hidden;
 }
 
 .auth-left::before {

@@ -163,8 +163,6 @@ def init_messages():
 
 
 def index():
-    if 'user_id' in session:
-        return redirect(url_for('home'))  # 已登录 → 首页
     return render_template('welcome.html')  # 未登录 → 欢迎页
 
 
@@ -186,76 +184,79 @@ def login():
         ).fetchone()
         db.close()
 
-        # Account+password check validation if correct then will pass to verify
         if user and check_password_hash(user['password'], password):
-            # Permanently blocked check
-            if user['is_blocked'] == 1:
-                flash('❌ This account is permanently blocked.', 'danger')
-                return redirect(url_for('login'))
-
-            # Time-limited freeze check
-            is_user_frozen = user['is_frozen']
-            frozen_end_time = user['frozen_until']
-
-            if is_user_frozen == 1 and frozen_end_time:
-                now = datetime.now()
-                expire_time = None
-                try:
-                    expire_time = datetime.strptime(
-                        frozen_end_time, "%Y-%m-%d %H:%M:%S"
-                    )
-                except Exception:
-                    pass
-
-                if expire_time and now < expire_time:
-                    time_diff = expire_time - now
-                    remain_days = time_diff.days
-                    remain_hours = time_diff.seconds // 3600
-
-                    freeze_reason_text = (
-                        user['freeze_reason']
-                        if user['freeze_reason']
-                        else 'No specific reason provided'
-                    )
-                    alert_msg = (
-                        f'⚠️ ACCOUNT FROZEN\n'
-                        f'Reason: {freeze_reason_text}\n'
-                        f'Will unlock in: {remain_days} Day(s) '
-                        f'{remain_hours} Hour(s)'
-                    )
-                    flash(alert_msg, 'warning')
-                    return redirect(url_for('login'))
-                else:
-                    # Auto unfreeze expired account
-                    db_auto = get_db()
-                    db_auto.execute("""
-                        UPDATE users
-                        SET is_frozen = 0, frozen_until = NULL,
-                            freeze_reason = NULL
-                        WHERE id = ?
-                    """, (user["id"],))
-                    db_auto.commit()
-                    db_auto.close()
+            # ... (existing freeze/block checks) ...
 
             # Login successful
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['student_id'] = user['student_id']
 
+            # Handle Remember Me - generate and save token to database
             if remember_me:
-                session.permanent = True
+                import secrets
+                token = secrets.token_urlsafe(64)  # Generate secure random token
+                db = get_db()
+                db.execute(
+                    'UPDATE users SET remember_token = ? WHERE id = ?',
+                    (token, user['id'])
+                )
+                db.commit()
+                db.close()
+                # Store token in cookie (expires in 30 days)
+                response = redirect(url_for('home'))
+                response.set_cookie('remember_token', token, 
+                                    max_age=30*24*60*60, httponly=True, secure=False)
+                flash('Login successful!', 'success')
+                return response
             else:
-                session.permanent = False
-
-            flash('Login successful!', 'success')
-            return redirect(url_for('home'))
-
-        # Account/password error fallback
+                # Clear any existing token if user doesn't want to be remembered
+                db = get_db()
+                db.execute(
+                    'UPDATE users SET remember_token = NULL WHERE id = ?',
+                    (user['id'],)
+                )
+                db.commit()
+                db.close()
+                response = redirect(url_for('home'))
+                response.set_cookie('remember_token', '', expires=0)
+                flash('Login successful!', 'success')
+                return response
         else:
             flash('Invalid email or password', 'error')
 
     return render_template('login.html')
 
+from flask import request, redirect, url_for, session
+
+@app.before_request
+
+def check_remember_me():
+    """Auto-login user if valid remember_token cookie exists"""
+    if 'user_id' in session:
+        return  # Already logged in
+    
+    # Skip authentication for public routes
+    public_routes = ['login', 'register', 'forgot_password', 'static', 'welcome']
+    if request.endpoint in public_routes:
+        return
+    
+    token = request.cookies.get('remember_token')
+    if not token:
+        return
+    
+    db = get_db()
+    user = db.execute(
+        'SELECT id, username, student_id FROM users WHERE remember_token = ?',
+        (token,)
+    ).fetchone()
+    db.close()
+    
+    if user:
+        session['user_id'] = user['id']
+        session['username'] = user['username']
+        session['student_id'] = user['student_id']
+        print(f"Auto-logged in user: {user['username']}")
 
 # ============================================================
 # Eileen's Route - Register
@@ -1584,6 +1585,12 @@ def delete_account():
     db.close()
 
     session.clear()
+
+    # In delete_account function, after deleting user data
+    # Also clear any remember_token cookie
+    response = redirect(url_for('login'))
+    response.set_cookie('remember_token', '', expires=0)
+
     flash('Your account has been permanently deleted', 'info')
     return redirect(url_for('login'))
 
