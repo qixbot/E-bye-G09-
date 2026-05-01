@@ -158,11 +158,15 @@ def init_messages():
     db.close()
     print("Messages table ready.")
 
+
 @app.route('/')
 
 
 def index():
-    return redirect(url_for('login'))
+    if 'user_id' in session:
+        return redirect(url_for('home'))  # 已登录 → 首页
+    return render_template('welcome.html')  # 未登录 → 欢迎页
+
 
 # ============================================================
 # Eileen's Route - Login
