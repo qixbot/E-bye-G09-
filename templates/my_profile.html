@@ -23,10 +23,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='my_profile.css') }}">
 
 <div class="pf-page">
-    <!-- Dynamic background layer -->
     <div class="pf-bg-layer" id="pfBgLayer"></div>
 
-    <!-- COVER - Load from database -->
     <div class="pf-cover">
         <div class="pf-cover-img" id="pfCoverImage"
              style="background: linear-gradient(135deg,#00c896 0%,#00381f 55%,#001a0e 100%);">
@@ -34,7 +32,6 @@
     </div>
 
     <div class="pf-wrap">
-        <!-- PROFILE CARD -->
         <div class="pf-card">
             <div class="pf-card-top">
                 <div class="pf-avatar">
@@ -53,23 +50,23 @@
             <div class="pf-bio">{{ user.bio or '✨ No bio yet. Click edit to tell others about yourself!' }}</div>
 
             <div class="pf-stats-row">
-            <div class="pf-stat">
-                  <span class="pf-stat-n" id="stat-listings">{{ listing_count }}</span>
-                  <span class="pf-stat-l">Listings</span>
-            </div>
-                 <div class="pf-stat">
-                 <span class="pf-stat-n" id="stat-sold">{{ sold_count }}</span>
-                       <span class="pf-stat-l">Sold</span>
-            </div>
-                 <div class="pf-stat">
-                 <span class="pf-stat-n">{{ trust_score }}%</span>
-                        <span class="pf-stat-l">Trust Score</span>
-            </div>
                 <div class="pf-stat">
-                <span class="pf-stat-n">{{ response_rate|default(85) }}%</span>
-                        <span class="pf-stat-l">Response</span>
+                    <span class="pf-stat-n" id="stat-listings">{{ listing_count }}</span>
+                    <span class="pf-stat-l">Listings</span>
+                </div>
+                <div class="pf-stat">
+                    <span class="pf-stat-n" id="stat-sold">{{ sold_count }}</span>
+                    <span class="pf-stat-l">Sold</span>
+                </div>
+                <div class="pf-stat">
+                    <span class="pf-stat-n">{{ trust_score }}%</span>
+                    <span class="pf-stat-l">Trust Score</span>
+                </div>
+                <div class="pf-stat">
+                    <span class="pf-stat-n">{{ response_rate|default(85) }}%</span>
+                    <span class="pf-stat-l">Response</span>
+                </div>
             </div>
-         </div>
 
             <div class="pf-details">
                 <div class="pf-detail-row">
@@ -95,7 +92,6 @@
             </div>
         </div>
 
-        <!-- LISTINGS / PURCHASES PANEL -->
         <div class="pf-panel">
             <div class="pf-tabs">
                 <button class="pf-tab on" id="tab-listings" onclick="switchTab('listings')">
@@ -106,14 +102,12 @@
                 </button>
             </div>
 
-            <!-- Listings pane - ROW VIEW -->
             <div class="pf-pane on" id="pane-listings">
-                <div class="products-grid" id="listings-grid">
+                <div id="listings-grid">
                     <div class="loading-state">📦 Loading your listings...</div>
                 </div>
             </div>
 
-            <!-- Purchases pane -->
             <div class="pf-pane" id="pane-purchases">
                 <div class="pf-list" id="purchases-list">
                     <div class="loading-state">🛍️ Loading your purchases...</div>
@@ -172,15 +166,17 @@
             </div>
             
             <div class="form-group">
-                <label>Current Images</label>
+                <label>Media Files (Images & Videos) - Max 12 files</label>
                 <div id="existing_images_container" class="existing-images"></div>
                 <div class="image-upload-area">
                     <label class="upload-btn">
-                        📷 Add New Photos
-                        <input type="file" id="edit_new_images" accept="image/*" multiple style="display:none" onchange="previewNewImages(this)">
+                        📷 Add Photos/Videos
+                        <input type="file" id="edit_new_media" accept="image/*,video/*" multiple style="display:none" onchange="previewNewMedia(this)">
                     </label>
+                    <small class="upload-hint">Supported: JPG, PNG, GIF, MP4, WebM, MOV (max 10MB each). Max 12 files total.</small>
                 </div>
-                <div id="new_images_preview" class="new-images-preview"></div>
+                <div id="new_media_preview" class="new-media-preview"></div>
+                <div id="mediaLimitWarning" class="media-limit-warning" style="display: none;">⚠️ You can only upload up to 12 media files total</div>
             </div>
             
             <div class="modal-buttons">
@@ -195,7 +191,7 @@
 <div id="offerModal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 id="offerModalTitle">💰 Offers for <span id="offerProductName"></span></h2>
+            <h2>💰 Offers for <span id="offerProductName"></span></h2>
             <button class="modal-close" onclick="closeOfferModal()">&times;</button>
         </div>
         <div id="offersList" class="offers-list">
@@ -207,6 +203,11 @@
 <div class="pf-toast" id="pfToast"></div>
 
 <script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const MAX_MEDIA_FILES = 12;
+
 // ============================================================
 // LOAD BACKGROUND FROM SERVER
 // ============================================================
@@ -236,9 +237,6 @@ function loadCoverFromServer() {
     img.onload = function() {
         coverDiv.style.background = 'url(/cover-image?t=' + Date.now() + ') center/cover no-repeat';
     };
-    img.onerror = function() {
-        // No cover image uploaded, keep the gradient fallback
-    };
     img.src = '/cover-image?t=' + Date.now();
 }
 
@@ -259,7 +257,12 @@ function switchTab(name) {
 // ============================================================
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
 // ============================================================
@@ -269,11 +272,13 @@ function showToast(message, type) {
     const toast = document.getElementById('pfToast');
     toast.textContent = message;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
+    setTimeout(function() {
+        toast.classList.remove('show');
+    }, 3000);
 }
 
 // ============================================================
-// LOAD MY LISTINGS (ROW VIEW)
+// LOAD MY LISTINGS
 // ============================================================
 function loadListings() {
     const container = document.getElementById('listings-grid');
@@ -281,55 +286,70 @@ function loadListings() {
     container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
     
     fetch('/api/user/listings', { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(data => {
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
             if (!data || data.length === 0) {
                 container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><div class="empty-title">No listings yet</div><div class="empty-sub">Click "Post" to sell something!</div></div>';
-                countSpan.textContent = '0';
+                if (countSpan) countSpan.textContent = '0';
                 return;
             }
-            countSpan.textContent = data.length;
+            if (countSpan) countSpan.textContent = data.length;
             
-            container.innerHTML = data.map(item => {
-                const firstImage = item.first_image ? `/static/uploads/${item.first_image}` : null;
-                let statusText = item.status || 'Pending';
-                let statusColor = 'pending';
+            var html = '';
+            for (var i = 0; i < data.length; i++) {
+                var item = data[i];
+                var firstImage = null;
+                var isVideo = false;
+                
+                if (item.images_blob) {
+                    try {
+                        var images = JSON.parse(item.images_blob);
+                        if (images && images.length > 0) {
+                            firstImage = images[0];
+                            isVideo = firstImage.startsWith('data:video') || firstImage.match(/\.(mp4|webm|mov)/i);
+                        }
+                    } catch(e) {}
+                }
+                
+                if (!firstImage && item.first_image) {
+                    firstImage = '/static/uploads/' + item.first_image;
+                }
+                
+                var statusText = item.status || 'Pending';
+                var statusColor = 'pending';
                 if (statusText === 'approved') { statusText = 'For Sale'; statusColor = 'active'; }
                 if (statusText === 'rejected') { statusText = 'Rejected'; statusColor = 'rejected'; }
                 if (statusText === 'sold') { statusText = 'Sold'; statusColor = 'sold'; }
                 
-                const postedDate = item.created_at ? item.created_at.split(' ')[0] : 'Recently';
-                const offersCount = item.offer_count || 0;
+                var postedDate = item.created_at ? item.created_at.split(' ')[0] : 'Recently';
+                var productUrl = '/product/' + item.id;
                 
-                return `
+                html += `
                     <div class="listing-row">
-                        <div class="listing-row-thumb">
-                            ${firstImage 
-                                ? `<img src="${firstImage}" alt="${escapeHtml(item.name)}">` 
-                                : `<div class="thumb-placeholder">📦</div>`
-                            }
-                        </div>
-                        <div class="listing-row-info">
-                            <div class="listing-row-name">${escapeHtml(item.name)}</div>
-                            <div class="listing-row-price">RM ${parseFloat(item.price).toFixed(2)}</div>
-                            <div class="listing-row-meta">Posted: ${escapeHtml(postedDate)}</div>
-                            <div class="listing-row-status ${statusColor}">${escapeHtml(statusText)}</div>
-                        </div>
+                        <a href="${productUrl}" class="listing-row-link" target="_blank">
+                            <div class="listing-row-thumb">
+                                ${firstImage ? (isVideo ? 
+                                    `<video src="${firstImage}" style="width:100%;height:100%;object-fit:cover;"></video><span class="video-badge-thumb">🎬</span>` : 
+                                    `<img src="${firstImage}" alt="${escapeHtml(item.name)}">`) : 
+                                    `<div class="thumb-placeholder">📦</div>`}
+                            </div>
+                            <div class="listing-row-info">
+                                <div class="listing-row-name">${escapeHtml(item.name)}</div>
+                                <div class="listing-row-price">RM ${parseFloat(item.price).toFixed(2)}</div>
+                                <div class="listing-row-meta">Posted: ${escapeHtml(postedDate)}</div>
+                                <div class="listing-row-status ${statusColor}">${escapeHtml(statusText)}</div>
+                            </div>
+                        </a>
                         <div class="listing-row-actions">
-                            ${offersCount > 0 
-                                ? `<button class="view-offers-btn" onclick="viewOffers(${item.id}, '${escapeHtml(item.name)}')">
-                                    💬 View Offers (${offersCount})
-                                   </button>`
-                                : `<span class="no-offers">No offers yet</span>`
-                            }
-                            <button class="edit-listing-row-btn" onclick="editListing(${item.id})">✏️ Edit</button>
-                            <button class="delete-listing-row-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name)}')">🗑️ Delete</button>
+                            <button class="edit-listing-row-btn" onclick="event.stopPropagation(); editListing(${item.id})">✏️ Edit</button>
+                            <button class="delete-listing-row-btn" onclick="event.stopPropagation(); deleteListing(${item.id}, '${escapeHtml(item.name)}')">🗑️ Delete</button>
                         </div>
                     </div>
                 `;
-            }).join('');
+            }
+            container.innerHTML = html;
         })
-        .catch(() => {
+        .catch(function() {
             container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load listings</div></div>';
         });
 }
@@ -343,45 +363,47 @@ function loadPurchases() {
     container.innerHTML = '<div class="loading-state">🛍️ Loading your purchases...</div>';
     
     fetch('/api/user/purchases', { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(data => {
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
             if (!data || data.length === 0) {
                 container.innerHTML = '<div class="empty-state"><span class="empty-icon">🛍️</span><div class="empty-title">No purchases yet</div><div class="empty-sub">Explore the marketplace!</div></div>';
-                countSpan.textContent = '0';
+                if (countSpan) countSpan.textContent = '0';
                 return;
             }
-            countSpan.textContent = data.length;
+            if (countSpan) countSpan.textContent = data.length;
             
-            container.innerHTML = data.map(item => `
-                <div class="purchase-card">
-                    <div class="purchase-header">
-                        <div class="purchase-thumb">${escapeHtml(item.emoji || '📦')}</div>
-                        <div class="purchase-title-section">
-                            <div class="purchase-name">${escapeHtml(item.name)}</div>
-                            <div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
-                        </div>
-                        <div class="purchase-status-badge ${item.status || 'pending'}">
-                            ${item.status === 'completed' ? '✅ Completed' : (item.status === 'pending' ? '⏳ Pending' : (item.status || 'Pending'))}
-                        </div>
+            var html = '';
+            for (var i = 0; i < data.length; i++) {
+                var item = data[i];
+                html += `
+                    <div class="purchase-card">
+                        <a href="/product/${item.product_id}" class="purchase-link" target="_blank">
+                            <div class="purchase-header">
+                                <div class="purchase-thumb">${escapeHtml(item.emoji || '📦')}</div>
+                                <div class="purchase-title-section">
+                                    <div class="purchase-name">${escapeHtml(item.name)}</div>
+                                    <div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
+                                </div>
+                                <div class="purchase-status-badge ${item.status || 'pending'}">
+                                    ${item.status === 'completed' ? '✅ Completed' : (item.status === 'pending' ? '⏳ Pending' : (item.status || 'Pending'))}
+                                </div>
+                            </div>
+                            <div class="purchase-details">
+                                <div class="purchase-price-info">
+                                    <span class="purchase-price">RM ${parseFloat(item.price).toFixed(2)}</span>
+                                </div>
+                                <div class="purchase-meta-info">
+                                    <span class="meta-item">📍 MMU Campus</span>
+                                    <span class="meta-item">📅 ${item.created_at ? escapeHtml(item.created_at.split(' ')[0]) : 'Recently'}</span>
+                                </div>
+                            </div>
+                        </a>
                     </div>
-                    <div class="purchase-details">
-                        <div class="purchase-price-info">
-                            ${item.final_price !== item.original_price && item.original_price
-                                ? `<span class="negotiated-price">RM ${parseFloat(item.price).toFixed(2)}</span>
-                                   <span class="original-price-strikethrough">RM ${parseFloat(item.original_price).toFixed(2)}</span>
-                                   <span class="negotiated-badge">✨ Negotiated</span>`
-                                : `<span class="purchase-price">RM ${parseFloat(item.price).toFixed(2)}</span>`
-                            }
-                        </div>
-                        <div class="purchase-meta-info">
-                            <span class="meta-item">📍 ${escapeHtml(item.meetup_location || 'MMU Campus')}</span>
-                            <span class="meta-item">📅 ${item.created_at ? escapeHtml(item.created_at.split(' ')[0]) : 'Recently'}</span>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }
+            container.innerHTML = html;
         })
-        .catch(() => {
+        .catch(function() {
             container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load purchases</div></div>';
         });
 }
@@ -389,26 +411,28 @@ function loadPurchases() {
 // ============================================================
 // OFFER SYSTEM FUNCTIONS
 // ============================================================
-let currentProductId = null;
+var currentProductId = null;
 
 function viewOffers(productId, productName) {
     currentProductId = productId;
     document.getElementById('offerProductName').innerText = productName;
     document.getElementById('offerModal').style.display = 'flex';
     
-    fetch(`/api/product/${productId}/offers`, { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(data => {
-            const container = document.getElementById('offersList');
+    fetch('/api/product/' + productId + '/offers', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var container = document.getElementById('offersList');
             if (!data || data.length === 0) {
                 container.innerHTML = '<div class="empty-state"><span class="empty-icon">💬</span><div class="empty-title">No offers yet</div><div class="empty-sub">Buyers will make offers here</div></div>';
                 return;
             }
             
-            container.innerHTML = data.map(offer => {
-                const offerDate = offer.created_at ? offer.created_at.split(' ')[0] : 'Recently';
-                let statusBadge = '';
-                let actionButtons = '';
+            var html = '';
+            for (var i = 0; i < data.length; i++) {
+                var offer = data[i];
+                var offerDate = offer.created_at ? offer.created_at.split(' ')[0] : 'Recently';
+                var statusBadge = '';
+                var actionButtons = '';
                 
                 if (offer.status === 'pending') {
                     statusBadge = '<span class="offer-status pending">⏳ Pending</span>';
@@ -419,7 +443,7 @@ function viewOffers(productId, productName) {
                     `;
                 } else if (offer.status === 'accepted') {
                     statusBadge = '<span class="offer-status accepted">✅ Accepted</span>';
-                    actionButtons = `<button class="contact-buyer-btn" onclick="contactBuyer(${offer.buyer_id})">💬 Contact Buyer</button>`;
+                    actionButtons = '<button class="contact-buyer-btn" onclick="contactBuyer(' + offer.buyer_id + ')">💬 Contact Buyer</button>';
                 } else if (offer.status === 'rejected') {
                     statusBadge = '<span class="offer-status rejected">❌ Rejected</span>';
                 } else if (offer.status === 'countered') {
@@ -430,7 +454,7 @@ function viewOffers(productId, productName) {
                     `;
                 }
                 
-                return `
+                html += `
                     <div class="offer-card">
                         <div class="offer-header">
                             <div class="offer-buyer">👤 ${escapeHtml(offer.buyer_name || 'Unknown')}</div>
@@ -439,16 +463,17 @@ function viewOffers(productId, productName) {
                         <div class="offer-amount">
                             <span class="offer-label">Offer Price:</span>
                             <span class="offer-price">RM ${parseFloat(offer.offer_price).toFixed(2)}</span>
-                            ${offer.original_price ? `<span class="original-price">(Original: RM ${parseFloat(offer.original_price).toFixed(2)})</span>` : ''}
+                            ${offer.original_price ? '<span class="original-price">(Original: RM ' + parseFloat(offer.original_price).toFixed(2) + ')</span>' : ''}
                         </div>
-                        ${offer.message ? `<div class="offer-message">💬 "${escapeHtml(offer.message)}"</div>` : ''}
+                        ${offer.message ? '<div class="offer-message">💬 "' + escapeHtml(offer.message) + '"</div>' : ''}
                         <div class="offer-meta">📅 ${offerDate}</div>
                         <div class="offer-actions">${actionButtons}</div>
                     </div>
                 `;
-            }).join('');
+            }
+            container.innerHTML = html;
         })
-        .catch(() => {
+        .catch(function() {
             document.getElementById('offersList').innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load offers</div></div>';
         });
 }
@@ -459,38 +484,38 @@ function closeOfferModal() {
 }
 
 function respondToOffer(offerId, action) {
-    showToast(`${action === 'accept' ? 'Accepting' : 'Rejecting'} offer...`, 'info');
-    fetch(`/api/offer/${offerId}/${action}`, {
+    showToast((action === 'accept' ? 'Accepting' : 'Rejecting') + ' offer...', 'info');
+    fetch('/api/offer/' + offerId + '/' + action, {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' }
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
         if (data.success) {
-            showToast(`Offer ${action}ed successfully!`, 'success');
+            showToast('Offer ' + action + 'ed successfully!', 'success');
             if (currentProductId) viewOffers(currentProductId, document.getElementById('offerProductName').innerText);
             loadListings();
         } else {
             throw new Error(data.error || 'Failed to respond');
         }
     })
-    .catch(err => showToast('Error: ' + err.message, 'error'));
+    .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
 }
 
 function makeCounterOffer(offerId) {
-    const newPrice = prompt('Enter your counter offer price (RM):', '0');
+    var newPrice = prompt('Enter your counter offer price (RM):', '0');
     if (!newPrice || parseFloat(newPrice) <= 0) return;
     
     showToast('Sending counter offer...', 'info');
-    fetch(`/api/offer/${offerId}/counter`, {
+    fetch('/api/offer/' + offerId + '/counter', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ counter_price: parseFloat(newPrice) })
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
         if (data.success) {
             showToast('Counter offer sent!', 'success');
             if (currentProductId) viewOffers(currentProductId, document.getElementById('offerProductName').innerText);
@@ -498,27 +523,36 @@ function makeCounterOffer(offerId) {
             throw new Error(data.error || 'Failed to send counter offer');
         }
     })
-    .catch(err => showToast('Error: ' + err.message, 'error'));
+    .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
 }
 
 function contactBuyer(buyerId) {
-    window.location.href = `/chat/${buyerId}`;
+    window.location.href = '/chat/' + buyerId;
 }
 
 // ============================================================
 // EDIT PRODUCT MODAL FUNCTIONS
 // ============================================================
-let currentProductImages = [];
-let newImagesFiles = [];
-let imagesToDelete = [];
+var currentProductMedia = [];
+var newMediaFiles = [];
+var mediaToDelete = [];
 
 function editListing(productId) {
-    fetch(`/api/product/${productId}`, { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(product => {
-            currentProductImages = product.images ? product.images.split(',') : [];
-            newImagesFiles = [];
-            imagesToDelete = [];
+    fetch('/api/product/' + productId, { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(product) {
+            if (product.images_blob) {
+                try {
+                    currentProductMedia = JSON.parse(product.images_blob);
+                } catch(e) {
+                    currentProductMedia = [];
+                }
+            } else {
+                currentProductMedia = [];
+            }
+            
+            newMediaFiles = [];
+            mediaToDelete = [];
             
             document.getElementById('edit_product_id').value = product.id;
             document.getElementById('edit_name').value = product.name;
@@ -527,121 +561,233 @@ function editListing(productId) {
             document.getElementById('edit_condition').value = product.condition || 'good';
             document.getElementById('edit_category').value = product.category || 'others';
             
-            renderExistingImages();
-            document.getElementById('new_images_preview').innerHTML = '';
+            renderExistingMedia();
+            document.getElementById('new_media_preview').innerHTML = '';
+            updateUploadButtonState();
             document.getElementById('editProductModal').style.display = 'flex';
         })
-        .catch(() => showToast('Failed to load product details', 'error'));
+        .catch(function() { showToast('Failed to load product details', 'error'); });
 }
 
-function renderExistingImages() {
-    const container = document.getElementById('existing_images_container');
-    if (!currentProductImages.length) {
-        container.innerHTML = '<p class="no-images">No images uploaded</p>';
+function getTotalMediaCount() {
+    return (currentProductMedia.length - mediaToDelete.length) + newMediaFiles.length;
+}
+
+function updateUploadButtonState() {
+    var uploadBtn = document.getElementById('uploadBtn');
+    var warning = document.getElementById('mediaLimitWarning');
+    var currentCount = getTotalMediaCount();
+    
+    if (currentCount >= MAX_MEDIA_FILES) {
+        if (uploadBtn) {
+            uploadBtn.style.opacity = '0.5';
+            uploadBtn.style.pointerEvents = 'none';
+        }
+        if (warning) warning.style.display = 'block';
+    } else {
+        if (uploadBtn) {
+            uploadBtn.style.opacity = '1';
+            uploadBtn.style.pointerEvents = 'auto';
+        }
+        if (warning) warning.style.display = 'none';
+    }
+}
+
+function renderExistingMedia() {
+    var container = document.getElementById('existing_images_container');
+    if (!currentProductMedia.length) {
+        container.innerHTML = '<p class="no-images">No media uploaded</p>';
         return;
     }
-    container.innerHTML = currentProductImages.map(img => `
-        <div class="image-preview" data-image="${img}">
-            <img src="/static/uploads/${img}" alt="Product image">
-            <button type="button" class="remove-image-btn" onclick="markImageForDeletion('${img}')">✕</button>
-        </div>
-    `).join('');
-}
-
-function markImageForDeletion(imageName) {
-    const div = document.querySelector(`.image-preview[data-image="${imageName}"]`);
-    if (div) {
-        div.classList.add('marked-for-delete');
-        div.style.opacity = '0.5';
-        div.querySelector('.remove-image-btn').textContent = '↩️';
-        div.querySelector('.remove-image-btn').onclick = () => cancelImageDeletion(imageName);
-        if (!imagesToDelete.includes(imageName)) imagesToDelete.push(imageName);
+    
+    var html = '';
+    for (var i = 0; i < currentProductMedia.length; i++) {
+        var media = currentProductMedia[i];
+        var isVideo = media.startsWith('data:video') || media.match(/\.(mp4|webm|mov|avi)/i);
+        var isMarkedForDelete = mediaToDelete.indexOf(i) !== -1;
+        
+        html += `
+            <div class="media-preview ${isMarkedForDelete ? 'marked-for-delete' : ''}" data-index="${i}">
+                ${isVideo ? 
+                    '<video src="' + media + '" style="width:100%;height:100%;object-fit:cover;"></video>' : 
+                    '<img src="' + media + '" alt="Product media">'}
+                <button type="button" class="remove-media-btn" onclick="toggleMediaDeletion(${i})">
+                    ${isMarkedForDelete ? '↩️' : '✕'}
+                </button>
+                ${isVideo ? '<span class="video-badge">🎬</span>' : ''}
+            </div>
+        `;
     }
+    container.innerHTML = html;
 }
 
-function cancelImageDeletion(imageName) {
-    const div = document.querySelector(`.image-preview[data-image="${imageName}"]`);
-    if (div) {
-        div.classList.remove('marked-for-delete');
-        div.style.opacity = '1';
-        div.querySelector('.remove-image-btn').textContent = '✕';
-        div.querySelector('.remove-image-btn').onclick = () => markImageForDeletion(imageName);
-        imagesToDelete = imagesToDelete.filter(n => n !== imageName);
+function toggleMediaDeletion(index) {
+    var idx = mediaToDelete.indexOf(index);
+    if (idx !== -1) {
+        mediaToDelete.splice(idx, 1);
+    } else {
+        mediaToDelete.push(index);
     }
+    renderExistingMedia();
+    updateUploadButtonState();
 }
 
-function previewNewImages(input) {
-    const preview = document.getElementById('new_images_preview');
-    newImagesFiles = [];
-    for (let f of input.files) {
-        if (f.type.startsWith('image/')) {
-            newImagesFiles.push(f);
-            const reader = new FileReader();
-            reader.onload = e => {
-                const div = document.createElement('div');
-                div.className = 'image-preview new';
-                div.innerHTML = `<img src="${e.target.result}" alt="Preview"><button type="button" class="remove-new-image" onclick="this.parentElement.remove(); removeNewImageFile('${f.name}')">✕</button>`;
+function previewNewMedia(input) {
+    var preview = document.getElementById('new_media_preview');
+    var files = Array.from(input.files);
+    var remainingSlots = MAX_MEDIA_FILES - getTotalMediaCount();
+    
+    if (files.length > remainingSlots) {
+        showToast('You can only add ' + remainingSlots + ' more file(s). Max ' + MAX_MEDIA_FILES + ' total.', 'error');
+        input.value = '';
+        return;
+    }
+    
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+            showToast(file.name + ' is not a supported format', 'error');
+            continue;
+        }
+        
+        var maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            showToast(file.name + ' is too large (max 10MB)', 'error');
+            continue;
+        }
+        
+        newMediaFiles.push(file);
+        var reader = new FileReader();
+        reader.onload = (function(f, filename) {
+            return function(e) {
+                var div = document.createElement('div');
+                div.className = 'media-preview new';
+                var isVideo = f.type.startsWith('video/');
+                
+                if (isVideo) {
+                    div.innerHTML = `
+                        <video src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;"></video>
+                        <button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, '${filename}')">✕</button>
+                        <span class="video-badge">🎬</span>
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="Preview">
+                        <button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, '${filename}')">✕</button>
+                    `;
+                }
                 preview.appendChild(div);
             };
-            reader.readAsDataURL(f);
-        }
+        })(file, file.name);
+        reader.readAsDataURL(file);
     }
     input.value = '';
+    updateUploadButtonState();
 }
 
-function removeNewImageFile(filename) {
-    newImagesFiles = newImagesFiles.filter(f => f.name !== filename);
+function removeNewMediaItem(btn, filename) {
+    btn.closest('.media-preview').remove();
+    var index = -1;
+    for (var i = 0; i < newMediaFiles.length; i++) {
+        if (newMediaFiles[i].name === filename) {
+            index = i;
+            break;
+        }
+    }
+    if (index !== -1) newMediaFiles.splice(index, 1);
+    updateUploadButtonState();
 }
 
 function saveProductChanges(event) {
     event.preventDefault();
-    const id = document.getElementById('edit_product_id').value;
-    const fd = new FormData();
-    fd.append('name', document.getElementById('edit_name').value);
-    fd.append('price', document.getElementById('edit_price').value);
-    fd.append('description', document.getElementById('edit_description').value);
-    fd.append('condition', document.getElementById('edit_condition').value);
-    fd.append('category', document.getElementById('edit_category').value);
-    if (imagesToDelete.length) fd.append('delete_images', JSON.stringify(imagesToDelete));
-    for (let f of newImagesFiles) fd.append('new_images', f);
+    var id = document.getElementById('edit_product_id').value;
+    
+    var remainingMedia = [];
+    for (var i = 0; i < currentProductMedia.length; i++) {
+        if (mediaToDelete.indexOf(i) === -1) {
+            remainingMedia.push(currentProductMedia[i]);
+        }
+    }
+    var totalAfterSave = remainingMedia.length + newMediaFiles.length;
+    
+    if (totalAfterSave > MAX_MEDIA_FILES) {
+        showToast('Maximum ' + MAX_MEDIA_FILES + ' media files allowed. Current: ' + totalAfterSave, 'error');
+        return;
+    }
+    
+    if (totalAfterSave === 0) {
+        showToast('Please add at least one photo or video', 'error');
+        return;
+    }
+    
     showToast('Updating product...', 'info');
-    fetch(`/api/product/${id}/update-full`, { method: 'POST', body: fd, credentials: 'same-origin' })
-        .then(r => r.json()).then(data => {
+    
+    var uploadPromises = [];
+    for (var i = 0; i < newMediaFiles.length; i++) {
+        var file = newMediaFiles[i];
+        var promise = new Promise(function(resolve) {
+            var reader = new FileReader();
+            reader.onload = function(e) { resolve(e.target.result); };
+            reader.readAsDataURL(file);
+        });
+        uploadPromises.push(promise);
+    }
+    
+    Promise.all(uploadPromises).then(function(newBase64Media) {
+        var allMedia = remainingMedia.concat(newBase64Media);
+        var imagesBlobJson = JSON.stringify(allMedia);
+        
+        var fd = new FormData();
+        fd.append('name', document.getElementById('edit_name').value);
+        fd.append('price', document.getElementById('edit_price').value);
+        fd.append('description', document.getElementById('edit_description').value);
+        fd.append('condition', document.getElementById('edit_condition').value);
+        fd.append('category', document.getElementById('edit_category').value);
+        fd.append('images_blob', imagesBlobJson);
+        
+        fetch('/api/product/' + id + '/update-full', { 
+            method: 'POST', 
+            body: fd, 
+            credentials: 'same-origin' 
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
             if (data.success) {
                 showToast('Product updated successfully!', 'success');
                 closeEditModal();
                 loadListings();
             } else {
-                throw new Error(data.error);
+                throw new Error(data.error || 'Update failed');
             }
         })
-        .catch(err => showToast('Failed to update: ' + err.message, 'error'));
+        .catch(function(err) { showToast('Failed to update: ' + err.message, 'error'); });
+    });
 }
 
 function closeEditModal() {
-    const m = document.getElementById('editProductModal');
-    if (m) { m.style.display = 'none'; }
-    currentProductImages = [];
-    newImagesFiles = [];
-    imagesToDelete = [];
+    var modal = document.getElementById('editProductModal');
+    if (modal) modal.style.display = 'none';
+    currentProductMedia = [];
+    newMediaFiles = [];
+    mediaToDelete = [];
 }
 
 function deleteListing(productId, productName) {
-    if (confirm(`Are you sure you want to delete "${productName}"? This cannot be undone.`)) {
-        fetch(`/api/product/${productId}/delete`, {
+    if (confirm('Are you sure you want to delete "' + productName + '"? This cannot be undone.')) {
+        fetch('/api/product/' + productId + '/delete', {
             method: 'DELETE',
             credentials: 'same-origin'
         })
-        .then(r => r.json())
-        .then(data => {
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
             if (data.success) {
-                showToast(`"${productName}" deleted`, 'success');
+                showToast('"' + productName + '" deleted', 'success');
                 loadListings();
             } else {
                 throw new Error(data.error || 'Delete failed');
             }
         })
-        .catch(() => showToast('Failed to delete', 'error'));
+        .catch(function() { showToast('Failed to delete', 'error'); });
     }
 }
 

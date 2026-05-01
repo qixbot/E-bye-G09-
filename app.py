@@ -833,7 +833,7 @@ def api_user_listings():
 # ============================================================
 
 @app.route('/api/product/<int:product_id>/offers')
-
+#get offer route by Eileen
 def get_product_offers(product_id):
     """Get all offers for a product (seller only)"""
     if 'user_id' not in session:
@@ -867,7 +867,7 @@ def get_product_offers(product_id):
 
 
 @app.route('/api/product/<int:product_id>/offer-count')
-
+#accept get product offer route by Eileen
 def get_product_offer_count(product_id):
     """Get offer count for a product"""
     if 'user_id' not in session:
@@ -884,7 +884,7 @@ def get_product_offer_count(product_id):
 
 
 @app.route('/api/product/<int:product_id>/offers/send', methods=['POST'])
-
+#accept send offer route by Eileen
 def send_offer(product_id):
     """Send an offer for a product (buyer)"""
     if 'user_id' not in session:
@@ -945,7 +945,7 @@ def send_offer(product_id):
 
 
 @app.route('/api/offer/<int:offer_id>/accept', methods=['POST'])
-
+#accept offer route by Eileen
 def accept_offer(offer_id):
     """Accept an offer (seller)"""
     if 'user_id' not in session:
@@ -991,7 +991,7 @@ def accept_offer(offer_id):
 
 
 @app.route('/api/offer/<int:offer_id>/reject', methods=['POST'])
-
+#accept reject route by Eileen
 def reject_offer(offer_id):
     """Reject an offer (seller)"""
     if 'user_id' not in session:
@@ -1034,8 +1034,7 @@ def reject_offer(offer_id):
 
 
 @app.route('/api/offer/<int:offer_id>/counter', methods=['POST'])
-
-
+#counter offer route by Eileen
 def counter_offer(offer_id):
     """Counter an offer (seller)"""
     if 'user_id' not in session:
@@ -1088,7 +1087,7 @@ def counter_offer(offer_id):
 
 
 @app.route('/api/offer/<int:offer_id>/accept-counter', methods=['POST'])
-
+#accept counter offer route by Eileen
 def accept_counter_offer(offer_id):
     """Accept a counter offer (buyer)"""
     if 'user_id' not in session:

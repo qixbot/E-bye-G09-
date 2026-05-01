@@ -33,7 +33,7 @@
 
         <!-- Right Column: Form -->
         <div class="auth-right">
-            <!-- Toast Messages as inline alerts -->
+            <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     <div class="flash-messages">
@@ -110,20 +110,56 @@
         }
     }
 
-    // Load saved credentials from localStorage on page load (for Remember Me)
-    document.addEventListener('DOMContentLoaded', function() {
+    // Save credentials to localStorage
+    function saveCredentials(email, password) {
+        try {
+            localStorage.setItem('savedEmail', email);
+            localStorage.setItem('savedPassword', password);
+            localStorage.setItem('savedTimestamp', Date.now().toString());
+            console.log('✅ Credentials saved to localStorage');
+        } catch (e) {
+            console.error('Failed to save credentials:', e);
+        }
+    }
+
+    // Clear credentials from localStorage
+    function clearCredentials() {
+        localStorage.removeItem('savedEmail');
+        localStorage.removeItem('savedPassword');
+        localStorage.removeItem('savedTimestamp');
+        console.log('🗑️ Credentials cleared from localStorage');
+    }
+
+    // Load credentials from localStorage and fill form
+    function loadCredentials() {
         const savedEmail = localStorage.getItem('savedEmail');
         const savedPassword = localStorage.getItem('savedPassword');
         const rememberCheckbox = document.getElementById('remember_me');
         
+        console.log('Loading credentials:', { 
+            hasEmail: !!savedEmail, 
+            hasPassword: !!savedPassword 
+        });
+        
         if (savedEmail && savedPassword) {
             document.getElementById('email').value = savedEmail;
             document.getElementById('login-password').value = savedPassword;
-            if (rememberCheckbox) rememberCheckbox.checked = true;
+            if (rememberCheckbox) {
+                rememberCheckbox.checked = true;
+            }
+            console.log('✅ Credentials loaded and filled');
+            return true;
         }
+        console.log('ℹ️ No saved credentials found');
+        return false;
+    }
+
+    // Load credentials when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCredentials();
     });
 
-    // Client-side validation for login form with Remember Me functionality
+    // Handle form submission
     document.getElementById('login-form').addEventListener('submit', function(event) {
         const email = document.getElementById('email').value;
         const password = document.getElementById('login-password').value;
@@ -149,19 +185,20 @@
             hasError = true;
         }
 
-        // Save or clear login credentials based on Remember Me checkbox
-        if (!hasError && rememberMe) {
-            localStorage.setItem('savedEmail', email);
-            localStorage.setItem('savedPassword', password);
-        } else if (!hasError && !rememberMe) {
-            localStorage.removeItem('savedEmail');
-            localStorage.removeItem('savedPassword');
+        // Save or clear credentials based on Remember Me checkbox
+        if (!hasError) {
+            if (rememberMe) {
+                saveCredentials(email, password);
+            } else {
+                clearCredentials();
+            }
         }
 
         if (hasError) {
             event.preventDefault();
+        } else {
+            console.log('📤 Form submitting with rememberMe =', rememberMe);
         }
-        // If no error, form submits normally and browser will prompt to save password
     });
 
     // Clear error messages when user starts typing in email field
