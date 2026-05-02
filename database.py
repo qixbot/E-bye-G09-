@@ -131,7 +131,7 @@ def init_db():
 
 
 def init_products():
-    """Initialize products table"""
+    """Initialize products table with images_blob column"""
     db = get_db()
 
     db.execute('''
@@ -144,6 +144,7 @@ def init_products():
             condition TEXT,
             category TEXT,
             images TEXT,
+            images_blob TEXT,
             status TEXT DEFAULT 'pending',
             reject_reason TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -161,6 +162,12 @@ def init_products():
     try:
         db.execute("ALTER TABLE products ADD COLUMN reject_reason TEXT DEFAULT ''")
         print("Added column: reject_reason to products")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        db.execute("ALTER TABLE products ADD COLUMN images_blob TEXT")
+        print("Added column: images_blob to products")
     except sqlite3.OperationalError:
         pass
 

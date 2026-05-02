@@ -798,14 +798,18 @@ def api_user_listings():
     
     db = get_db()
     rows = db.execute("""
-        SELECT p.id, p.name, p.price, p.status, p.created_at, p.images,
+        SELECT p.id, p.name, p.price, p.status, p.created_at, 
+               p.images, p.images_blob,
                CASE p.category
                    WHEN 'books' THEN '📚'
                    WHEN 'gadgets' THEN '💻'
-                   WHEN 'dorm' THEN '🛏'
+                   WHEN 'dorm' THEN '🛏️'
                    WHEN 'fashion' THEN '👕'
-                   WHEN 'stationery' THEN '✏️'
+                   WHEN 'beauty' THEN '💄'
                    WHEN 'sports' THEN '⚽'
+                   WHEN 'groceries' THEN '🛒'
+                   WHEN 'stationery' THEN '✏️'
+                   WHEN 'music' THEN '🎸'
                    ELSE '📦'
                END as emoji,
                (SELECT COUNT(*) FROM offers WHERE product_id = p.id AND status = 'pending') as offer_count
@@ -818,10 +822,19 @@ def api_user_listings():
     listings = []
     for row in rows:
         item = dict(row)
-        images_str = item.get('images', '')
-        if images_str:
-            img_list = images_str.split(',')
-            item['first_image'] = img_list[0]
+        if item.get('images_blob'):
+            try:
+                import json
+                images = json.loads(item['images_blob'])
+                if images and len(images) > 0:
+                    item['first_image'] = images[0]
+                else:
+                    item['first_image'] = None
+            except:
+                item['first_image'] = None
+        elif item.get('images'):
+            img_list = item['images'].split(',')
+            item['first_image'] = img_list[0] if img_list else None
         else:
             item['first_image'] = None
         listings.append(item)
@@ -1143,7 +1156,13 @@ def api_get_product(product_id):
 
     db = get_db()
     product = db.execute('''
-        SELECT id, name, price, description, condition, category, images, status
+        SELECT id, 
+        name, price, 
+        description, 
+        condition, 
+        category, 
+        images, 
+                         images_blob, status
         FROM products
         WHERE id = ? AND seller_id = ?
     ''', (product_id, session['user_id'])).fetchone()
@@ -1153,7 +1172,6 @@ def api_get_product(product_id):
         return jsonify({'error': 'Product not found'}), 404
 
     return jsonify(dict(product))
-
 
 # Eileen's Route - Update product
 @app.route('/api/product/<int:product_id>/update', methods=['PUT'])
@@ -1206,96 +1224,49 @@ def api_update_product(product_id):
 # ============================================================
 # Eileen's route - update product full
 # ============================================================
-
 @app.route('/api/product/<int:product_id>/update-full', methods=['POST'])
 
 def api_update_product_full(product_id):
-    """Update product with images"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
     db = get_db()
-
+    
     # Verify product belongs to user
-    product = db.execute(
-        'SELECT id, images FROM products '
-        'WHERE id = ? AND seller_id = ?',
-        (product_id, session['user_id'])
-    ).fetchone()
-
+    product = db.execute('SELECT id FROM products WHERE id = ? AND seller_id = ?', 
+                         (product_id, session['user_id'])).fetchone()
     if not product:
         db.close()
-        return jsonify(
-            {'success': False, 'error': 'Product not found'}
-        ), 404
-
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
     # Get form data
     name = request.form.get('name', '').strip()
     price = request.form.get('price', 0)
     description = request.form.get('description', '').strip()
     condition = request.form.get('condition', '')
     category = request.form.get('category', '')
-
+    images_blob = request.form.get('images_blob', '[]')
+    
     # Validation
     if not name or not price or not description:
-        return jsonify({
-            'success': False,
-            'error': 'Name, price and description required'
-        }), 400
-
+        return jsonify({'success': False, 'error': 'Name, price and description required'}), 400
+    
     try:
         price = float(price)
     except:
-        return jsonify(
-            {'success': False, 'error': 'Invalid price'}
-        ), 400
-
-    # Handle image deletions
-    current_images = product['images'].split(',') if product['images'] else []
-    delete_images = request.form.get('delete_images', '[]')
-
-    import json
-    images_to_delete = json.loads(delete_images) if delete_images else []
-
-    # Remove deleted images from filesystem
-    for img_name in images_to_delete:
-        if img_name in current_images:
-            current_images.remove(img_name)
-            img_path = os.path.join('static/uploads', img_name)
-            if os.path.exists(img_path):
-                try:
-                    os.remove(img_path)
-                except:
-                    pass
-
-    # Handle new image uploads
-    new_images = request.files.getlist('new_images')
-    for img in new_images:
-        if img and img.filename:
-            if '.' in img.filename:
-                ext = img.filename.rsplit('.', 1)[-1].lower()
-            else:
-                ext = 'jpg'
-            filename = f"product_{product_id}_{uuid.uuid4().hex}.{ext}"
-            img.save(os.path.join('static/uploads', filename))
-            current_images.append(filename)
-
-    # Update database
-    images_string = ','.join(current_images) if current_images else ''
-    db.execute("""
-        UPDATE products
-        SET name = ?, price = ?, description = ?,
-            condition = ?, category = ?, images = ?,
-            status = 'pending'
+        return jsonify({'success': False, 'error': 'Invalid price'}), 400
+    
+    # Update database with images_blob
+    db.execute('''
+        UPDATE products 
+        SET name = ?, price = ?, description = ?, condition = ?, category = ?, 
+            images_blob = ?, status = 'pending'
         WHERE id = ?
-    """, (name, price, description, condition,
-          category, images_string, product_id))
-
+    ''', (name, price, description, condition, category, images_blob, product_id))
     db.commit()
     db.close()
-
+    
     return jsonify({'success': True})
-
 # Eileen's Route - Delete product
 @app.route('/api/product/<int:product_id>/delete', methods=['DELETE'])
 
@@ -2351,59 +2322,60 @@ def upload_product():
         except ValueError:
             errors.append("Please enter a valid price.")
 
-        # Validate images
+
+        import base64
+        import json
+        
         files = request.files.getlist('product_images')
-        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'webm', 'mov'}
-        invalid_files = []
-        valid_files = []
-
+        images_base64 = []
+        image_filenames = []
+        
         for file in files:
-            if file and file.filename != '':
-                ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
-                if ext not in ALLOWED_EXTENSIONS:
-                    invalid_files.append(file.filename)
-                else:
-                    valid_files.append(file)
+            if file and file.filename:
 
-        # If any invalid file is found, abort the whole upload
-        if invalid_files:
-            flash(f"Unsupported file type(s): {', '.join(invalid_files)}. Only images and MP4/WebM/MOV videos are allowed.", "error")
-            return render_template('upload.html')
+                file_data = file.read()
+                
 
-        # Now save only valid files (all are valid)
-        saved_image_names = []
-        for file in valid_files:
-            original_filename = file.filename
-            ext = original_filename.rsplit('.', 1)[-1].lower()
-            filename = secure_filename(original_filename)
-            if not filename:
-                filename = f"media_{uuid.uuid4().hex}.{ext}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            saved_image_names.append(filename)
-
-            if ext in ['mp4', 'webm', 'mov']:
-                thumb_filename = f"{os.path.splitext(filename)[0]}_thumb.jpg"
-                thumb_path = os.path.join(app.config['UPLOAD_FOLDER'], thumb_filename)
-                generate_video_thumbnail(filepath, thumb_path)
-
-        if not saved_image_names:
-            errors.append("Please upload at least one photo.")
-
+                if len(file_data) > 10 * 1024 * 1024:
+                    continue
+ 
+                ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+                mime_type = 'image/jpeg'
+                if ext in ['mp4', 'webm', 'mov']:
+                    mime_type = 'video/mp4'
+                elif ext in ['png']:
+                    mime_type = 'image/png'
+                elif ext in ['gif']:
+                    mime_type = 'image/gif'
+                
+                base64_str = base64.b64encode(file_data).decode('utf-8')
+                images_base64.append(f"data:{mime_type};base64,{base64_str}")
+                
+                filename = secure_filename(file.filename)
+                if not filename:
+                    filename = f"media_{uuid.uuid4().hex}.{ext}"
+                file.seek(0)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                image_filenames.append(filename)
+        
+        if not images_base64:
+            errors.append("Please upload at least one photo or video.")
+        
         if errors:
             for err in errors:
                 flash(err, "error")
             return render_template('upload.html')
-
-        images_string = ",".join(saved_image_names)
+        
+        images_json = json.dumps(images_base64)
+        images_string = ",".join(image_filenames)
+        
         db = get_db()
         db.execute('''
             INSERT INTO products (seller_id, name, price,
-                    description, condition, category, images, created_at, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
-        ''', (seller_id, name,
-              price_val, description,
-              condition, category, images_string, 'pending'))
+                    description, condition, category, images, images_blob, created_at, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+        ''', (seller_id, name, price_val, description,
+              condition, category, images_string, images_json, 'pending'))
         db.commit()
         db.close()
 
@@ -2411,8 +2383,6 @@ def upload_product():
         return redirect(url_for('home'))
 
     return render_template('upload.html')
-
-
 
 
 # ============================================================

@@ -117,7 +117,7 @@
     </div>
 </div>
 
-<!-- Edit Product Modal -->
+<!-- Edit Product Modal - Supports Images & Videos (Max 12 files) -->
 <div id="editProductModal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
@@ -152,31 +152,35 @@
                         <option value="fair">Fair</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Category</label>
-                    <select id="edit_category">
-                        <option value="books">📚 Books</option>
-                        <option value="gadgets">💻 Gadgets</option>
-                        <option value="dorm">🛏 Dorm Essentials</option>
-                        <option value="fashion">👕 Fashion</option>
-                        <option value="stationery">✏️ Stationery</option>
-                        <option value="sports">⚽ Sports</option>
-                    </select>
-                </div>
+               <div class="form-group">
+               <label>Category</label>
+               <select id="edit_category">
+                    <option value="books">📚 Books</option>
+                    <option value="gadgets">💻 Gadgets</option>
+                    <option value="dorm">🛏️ Dorm Items</option>
+                    <option value="fashion">👕 Fashion</option>
+                    <option value="beauty">💄 Beauty</option>
+                    <option value="sports">⚽ Sports</option>
+                    <option value="groceries">🛒 Groceries</option>
+                    <option value="stationery">✏️ Stationery</option>
+                    <option value="music">🎸 Music</option>
+                    <option value="others">📦 Others</option>
+              </select>
+          </div>
             </div>
             
             <div class="form-group">
                 <label>Media Files (Images & Videos) - Max 12 files</label>
-                <div id="existing_images_container" class="existing-images"></div>
-                <div class="image-upload-area">
-                    <label class="upload-btn">
+                <div id="existing_media_container" class="existing-media"></div>
+                <div class="media-upload-area">
+                    <label class="upload-btn" id="uploadBtn">
                         📷 Add Photos/Videos
                         <input type="file" id="edit_new_media" accept="image/*,video/*" multiple style="display:none" onchange="previewNewMedia(this)">
                     </label>
-                    <small class="upload-hint">Supported: JPG, PNG, GIF, MP4, WebM, MOV (max 10MB each). Max 12 files total.</small>
+                    <small class="upload-hint">Supported: Images (JPG, PNG, GIF) and Videos (MP4, WebM, MOV). Max 10MB each. Max 12 files total.</small>
                 </div>
                 <div id="new_media_preview" class="new-media-preview"></div>
-                <div id="mediaLimitWarning" class="media-limit-warning" style="display: none;">⚠️ You can only upload up to 12 media files total</div>
+                <div id="mediaLimitWarning" class="media-limit-warning" style="display: none;">⚠️ Maximum 12 media files allowed</div>
             </div>
             
             <div class="modal-buttons">
@@ -206,23 +210,23 @@
 // ============================================================
 // CONSTANTS
 // ============================================================
-const MAX_MEDIA_FILES = 12;
+var MAX_MEDIA_FILES = 12;
 
 // ============================================================
 // LOAD BACKGROUND FROM SERVER
 // ============================================================
 function restoreBackgroundFromServer() {
     fetch('/api/user/background', { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(data => {
-            const bgLayer = document.getElementById('pfBgLayer');
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var bgLayer = document.getElementById('pfBgLayer');
             if (data.success && data.background_value) {
                 bgLayer.style.background = data.background_value;
             } else {
                 bgLayer.style.background = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
             }
         })
-        .catch(() => {
+        .catch(function() {
             document.getElementById('pfBgLayer').style.background = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
         });
 }
@@ -231,9 +235,9 @@ function restoreBackgroundFromServer() {
 // LOAD COVER FROM SERVER
 // ============================================================
 function loadCoverFromServer() {
-    const coverDiv = document.getElementById('pfCoverImage');
+    var coverDiv = document.getElementById('pfCoverImage');
     if (!coverDiv) return;
-    const img = new Image();
+    var img = new Image();
     img.onload = function() {
         coverDiv.style.background = 'url(/cover-image?t=' + Date.now() + ') center/cover no-repeat';
     };
@@ -244,8 +248,8 @@ function loadCoverFromServer() {
 // TAB SWITCHING
 // ============================================================
 function switchTab(name) {
-    document.querySelectorAll('.pf-tab').forEach(b => b.classList.remove('on'));
-    document.querySelectorAll('.pf-pane').forEach(p => p.classList.remove('on'));
+    document.querySelectorAll('.pf-tab').forEach(function(b) { b.classList.remove('on'); });
+    document.querySelectorAll('.pf-pane').forEach(function(p) { p.classList.remove('on'); });
     document.getElementById('tab-' + name).classList.add('on');
     document.getElementById('pane-' + name).classList.add('on');
     if (name === 'listings') loadListings();
@@ -269,7 +273,7 @@ function escapeHtml(str) {
 // SHOW TOAST
 // ============================================================
 function showToast(message, type) {
-    const toast = document.getElementById('pfToast');
+    var toast = document.getElementById('pfToast');
     toast.textContent = message;
     toast.classList.add('show');
     setTimeout(function() {
@@ -281,15 +285,15 @@ function showToast(message, type) {
 // LOAD MY LISTINGS
 // ============================================================
 function loadListings() {
-    const container = document.getElementById('listings-grid');
-    const countSpan = document.getElementById('cnt-listings');
+    var container = document.getElementById('listings-grid');
+    var countSpan = document.getElementById('cnt-listings');
     container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
     
     fetch('/api/user/listings', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (!data || data.length === 0) {
-                container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><div class="empty-title">No listings yet</div><div class="empty-sub">Click "Post" to sell something!</div></div>';
+                container.innerHTML = '<div class="empty-state">No listings yet</div>';
                 if (countSpan) countSpan.textContent = '0';
                 return;
             }
@@ -298,21 +302,12 @@ function loadListings() {
             var html = '';
             for (var i = 0; i < data.length; i++) {
                 var item = data[i];
+                
                 var firstImage = null;
                 var isVideo = false;
-                
-                if (item.images_blob) {
-                    try {
-                        var images = JSON.parse(item.images_blob);
-                        if (images && images.length > 0) {
-                            firstImage = images[0];
-                            isVideo = firstImage.startsWith('data:video') || firstImage.match(/\.(mp4|webm|mov)/i);
-                        }
-                    } catch(e) {}
-                }
-                
-                if (!firstImage && item.first_image) {
-                    firstImage = '/static/uploads/' + item.first_image;
+                if (item.first_image) {
+                    firstImage = item.first_image;
+                    isVideo = firstImage.startsWith('data:video') || firstImage.match(/\.(mp4|webm|mov)/i);
                 }
                 
                 var statusText = item.status || 'Pending';
@@ -350,7 +345,7 @@ function loadListings() {
             container.innerHTML = html;
         })
         .catch(function() {
-            container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load listings</div></div>';
+            container.innerHTML = '<div class="empty-state">Failed to load listings</div>';
         });
 }
 
@@ -358,8 +353,8 @@ function loadListings() {
 // LOAD MY PURCHASES
 // ============================================================
 function loadPurchases() {
-    const container = document.getElementById('purchases-list');
-    const countSpan = document.getElementById('cnt-purchases');
+    var container = document.getElementById('purchases-list');
+    var countSpan = document.getElementById('cnt-purchases');
     container.innerHTML = '<div class="loading-state">🛍️ Loading your purchases...</div>';
     
     fetch('/api/user/purchases', { credentials: 'same-origin' })
@@ -529,11 +524,10 @@ function makeCounterOffer(offerId) {
 function contactBuyer(buyerId) {
     window.location.href = '/chat/' + buyerId;
 }
-
 // ============================================================
-// EDIT PRODUCT MODAL FUNCTIONS
+// EDIT PRODUCT MODAL FUNCTIONS (Images & Videos, Max 12 files)
 // ============================================================
-var currentProductMedia = [];
+var currentMediaFiles = [];
 var newMediaFiles = [];
 var mediaToDelete = [];
 
@@ -541,14 +535,29 @@ function editListing(productId) {
     fetch('/api/product/' + productId, { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(product) {
+            console.log('Product data:', product);
+            
+            // Try to get images from multiple possible fields
             if (product.images_blob) {
                 try {
-                    currentProductMedia = JSON.parse(product.images_blob);
+                    currentMediaFiles = JSON.parse(product.images_blob);
+                    console.log('Loaded from images_blob:', currentMediaFiles.length);
                 } catch(e) {
-                    currentProductMedia = [];
+                    currentMediaFiles = [];
                 }
+            } else if (product.images) {
+                // Convert file paths to displayable format
+                var imagePaths = product.images.split(',');
+                currentMediaFiles = [];
+                for (var i = 0; i < imagePaths.length; i++) {
+                    var path = imagePaths[i];
+                    if (path) {
+                        currentMediaFiles.push('/static/uploads/' + path);
+                    }
+                }
+                console.log('Loaded from images field:', currentMediaFiles.length);
             } else {
-                currentProductMedia = [];
+                currentMediaFiles = [];
             }
             
             newMediaFiles = [];
@@ -566,11 +575,14 @@ function editListing(productId) {
             updateUploadButtonState();
             document.getElementById('editProductModal').style.display = 'flex';
         })
-        .catch(function() { showToast('Failed to load product details', 'error'); });
+        .catch(function(err) { 
+            console.error('Error loading product:', err);
+            showToast('Failed to load product details', 'error'); 
+        });
 }
 
 function getTotalMediaCount() {
-    return (currentProductMedia.length - mediaToDelete.length) + newMediaFiles.length;
+    return (currentMediaFiles.length - mediaToDelete.length) + newMediaFiles.length;
 }
 
 function updateUploadButtonState() {
@@ -594,23 +606,28 @@ function updateUploadButtonState() {
 }
 
 function renderExistingMedia() {
-    var container = document.getElementById('existing_images_container');
-    if (!currentProductMedia.length) {
-        container.innerHTML = '<p class="no-images">No media uploaded</p>';
+    var container = document.getElementById('existing_media_container');
+    if (!container) {
+        console.error('existing_media_container not found');
+        return;
+    }
+    
+    if (!currentMediaFiles.length) {
+        container.innerHTML = '<p class="no-media">No media uploaded</p>';
         return;
     }
     
     var html = '';
-    for (var i = 0; i < currentProductMedia.length; i++) {
-        var media = currentProductMedia[i];
-        var isVideo = media.startsWith('data:video') || media.match(/\.(mp4|webm|mov|avi)/i);
+    for (var i = 0; i < currentMediaFiles.length; i++) {
+        var media = currentMediaFiles[i];
+        var isVideo = media.startsWith('data:video') || media.match(/\.(mp4|webm|mov|avi)$/i);
         var isMarkedForDelete = mediaToDelete.indexOf(i) !== -1;
         
         html += `
             <div class="media-preview ${isMarkedForDelete ? 'marked-for-delete' : ''}" data-index="${i}">
                 ${isVideo ? 
                     '<video src="' + media + '" style="width:100%;height:100%;object-fit:cover;"></video>' : 
-                    '<img src="' + media + '" alt="Product media">'}
+                    '<img src="' + media + '" alt="Product media" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\' viewBox=\'0 0 24 24\' fill=\'%2398948e\'%3E%3Crect width=\'24\' height=\'24\' fill=\'%23f5f3ee\'/%3E%3Ctext x=\'12\' y=\'16\' text-anchor=\'middle\' font-size=\'12\' fill=\'%2398948e\'%3E📦%3C/text%3E%3C/svg%3E\';" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\' viewBox=\'0 0 24 24\' fill=\'%2398948e\'%3E%3Crect width=\'24\' height=\'24\' fill=\'%23f5f3ee\'/%3E%3Ctext x=\'12\' y=\'16\' text-anchor=\'middle\' font-size=\'12\' fill=\'%2398948e\'%3E📦%3C/text%3E%3C/svg%3E\';">'}
                 <button type="button" class="remove-media-btn" onclick="toggleMediaDeletion(${i})">
                     ${isMarkedForDelete ? '↩️' : '✕'}
                 </button>
@@ -686,7 +703,8 @@ function previewNewMedia(input) {
 }
 
 function removeNewMediaItem(btn, filename) {
-    btn.closest('.media-preview').remove();
+    var container = btn.closest('.media-preview');
+    if (container) container.remove();
     var index = -1;
     for (var i = 0; i < newMediaFiles.length; i++) {
         if (newMediaFiles[i].name === filename) {
@@ -702,10 +720,11 @@ function saveProductChanges(event) {
     event.preventDefault();
     var id = document.getElementById('edit_product_id').value;
     
+    // Keep media that are NOT marked for deletion
     var remainingMedia = [];
-    for (var i = 0; i < currentProductMedia.length; i++) {
+    for (var i = 0; i < currentMediaFiles.length; i++) {
         if (mediaToDelete.indexOf(i) === -1) {
-            remainingMedia.push(currentProductMedia[i]);
+            remainingMedia.push(currentMediaFiles[i]);
         }
     }
     var totalAfterSave = remainingMedia.length + newMediaFiles.length;
@@ -722,6 +741,7 @@ function saveProductChanges(event) {
     
     showToast('Updating product...', 'info');
     
+    // Convert new files to base64
     var uploadPromises = [];
     for (var i = 0; i < newMediaFiles.length; i++) {
         var file = newMediaFiles[i];
@@ -760,35 +780,19 @@ function saveProductChanges(event) {
                 throw new Error(data.error || 'Update failed');
             }
         })
-        .catch(function(err) { showToast('Failed to update: ' + err.message, 'error'); });
+        .catch(function(err) { 
+            console.error('Save error:', err);
+            showToast('Failed to update: ' + err.message, 'error'); 
+        });
     });
 }
 
 function closeEditModal() {
     var modal = document.getElementById('editProductModal');
     if (modal) modal.style.display = 'none';
-    currentProductMedia = [];
+    currentMediaFiles = [];
     newMediaFiles = [];
     mediaToDelete = [];
-}
-
-function deleteListing(productId, productName) {
-    if (confirm('Are you sure you want to delete "' + productName + '"? This cannot be undone.')) {
-        fetch('/api/product/' + productId + '/delete', {
-            method: 'DELETE',
-            credentials: 'same-origin'
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                showToast('"' + productName + '" deleted', 'success');
-                loadListings();
-            } else {
-                throw new Error(data.error || 'Delete failed');
-            }
-        })
-        .catch(function() { showToast('Failed to delete', 'error'); });
-    }
 }
 
 // ============================================================

@@ -279,6 +279,7 @@
     </div>
 </div>
 
+<!-- Edit Product Modal - Supports Images & Videos (Max 12 files) -->
 <div id="editProductModal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
@@ -287,25 +288,77 @@
         </div>
         <form id="editProductForm" onsubmit="saveProductChanges(event)">
             <input type="hidden" id="edit_product_id">
-            <div class="form-group"><label>Product Name *</label><input type="text" id="edit_name" required></div>
-            <div class="form-group"><label>Price (RM) *</label><input type="number" id="edit_price" step="0.01" min="0" required></div>
-            <div class="form-group"><label>Description *</label><textarea id="edit_description" rows="4" required></textarea></div>
-            <div class="form-row">
-                <div class="form-group"><label>Condition</label><select id="edit_condition"><option value="new">New</option><option value="like_new">Like New</option><option value="good">Good</option><option value="fair">Fair</option></select></div>
-                <div class="form-group"><label>Category</label><select id="edit_category"><option value="books">📚 Books</option><option value="gadgets">💻 Gadgets</option><option value="dorm">🛏 Dorm Essentials</option><option value="fashion">👕 Fashion</option><option value="stationery">✏️ Stationery</option><option value="sports">⚽ Sports</option></select></div>
-            </div>
+            
             <div class="form-group">
-                <label>Current Images</label>
-                <div id="existing_images_container" class="existing-images"></div>
-                <div class="image-upload-area"><label class="upload-btn">📷 Add New Photos<input type="file" id="edit_new_images" accept="image/*" multiple style="display:none" onchange="previewNewImages(this)"></label></div>
-                <div id="new_images_preview" class="new-images-preview"></div>
+                <label>Product Name *</label>
+                <input type="text" id="edit_name" required>
             </div>
-            <div class="modal-buttons"><button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button><button type="submit" class="btn-save">Save Changes</button></div>
+            
+            <div class="form-group">
+                <label>Price (RM) *</label>
+                <input type="number" id="edit_price" step="0.01" min="0" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Description *</label>
+                <textarea id="edit_description" rows="4" required></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Condition</label>
+                    <select id="edit_condition">
+                        <option value="new">New</option>
+                        <option value="like_new">Like New</option>
+                        <option value="good">Good</option>
+                        <option value="fair">Fair</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="edit_category">
+                        <option value="books">📚 Books</option>
+                        <option value="gadgets">💻 Gadgets</option>
+                        <option value="dorm">🛏️ Dorm Items</option>
+                        <option value="fashion">👕 Fashion</option>
+                        <option value="beauty">💄 Beauty</option>
+                        <option value="sports">⚽ Sports</option>
+                        <option value="groceries">🛒 Groceries</option>
+                        <option value="stationery">✏️ Stationery</option>
+                        <option value="music">🎸 Music</option>
+                        <option value="others">📦 Others</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Media Files (Images & Videos) - Max 12 files</label>
+                <div id="existing_media_container" class="existing-media"></div>
+                <div class="media-upload-area">
+                    <label class="upload-btn" id="uploadBtn">
+                        📷 Add Photos/Videos
+                        <input type="file" id="edit_new_media" accept="image/*,video/*" multiple style="display:none" onchange="previewNewMedia(this)">
+                    </label>
+                    <small class="upload-hint">Supported: Images (JPG, PNG, GIF) and Videos (MP4, WebM, MOV). Max 10MB each. Max 12 files total.</small>
+                </div>
+                <div id="new_media_preview" class="new-media-preview"></div>
+                <div id="mediaLimitWarning" class="media-limit-warning" style="display: none;">⚠️ Maximum 12 media files allowed</div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn-save">Save Changes</button>
+            </div>
         </form>
     </div>
 </div>
 
 <script>
+var MAX_MEDIA_FILES = 12;
+
+// ============================================================
+// COLOR CONFIGURATION
+// ============================================================
 const COLOR_CONFIG = {
     rainbow: ['#FF0000','#FF4500','#FFA500','#FFD700','#FFFF00','#ADFF2F','#00FF00','#00FA9A','#00CED1','#1E90FF','#0000FF','#4B0082','#8A2BE2','#EE82EE','#FF69B4','#FFC0CB','#FFFFFF','#D3D3D3','#808080','#A0522D','#8B4513','#000000'],
     light: ['#FFF0F0','#FFF5E6','#FFFFE0','#E8F5E9','#E3F2FD','#F3E5F5','#FCE4EC','#FFF9C4','#E0F7FA','#F1F8E9','#FFEBEE','#F9FBE7'],
@@ -314,11 +367,12 @@ const COLOR_CONFIG = {
 };
 
 function buildGrid(containerId, colors, isGradient) {
-    const c = document.getElementById(containerId);
+    var c = document.getElementById(containerId);
     if (!c) return;
     c.innerHTML = '';
-    colors.forEach(col => {
-        const s = document.createElement('div');
+    for (var i = 0; i < colors.length; i++) {
+        var col = colors[i];
+        var s = document.createElement('div');
         s.className = 'color-swatch';
         if (isGradient) {
             s.style.background = col;
@@ -326,9 +380,11 @@ function buildGrid(containerId, colors, isGradient) {
         } else {
             s.style.backgroundColor = col;
         }
-        s.onclick = () => { selectedBgValue = col; previewBg(col); };
+        s.onclick = (function(val) {
+            return function() { selectedBgValue = val; previewBg(val); };
+        })(col);
         c.appendChild(s);
-    });
+    }
 }
 
 buildGrid('rainbowGrid', COLOR_CONFIG.rainbow, false);
@@ -336,10 +392,10 @@ buildGrid('lightGrid', COLOR_CONFIG.light, false);
 buildGrid('darkGrid', COLOR_CONFIG.dark, false);
 buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
 
-const $bgLayer = document.getElementById('epBgLayer');
-const $bgPreview = document.getElementById('currentBgPreview');
-const $bgPanel = document.getElementById('epBgPanel');
-let selectedBgValue = null;
+var $bgLayer = document.getElementById('epBgLayer');
+var $bgPreview = document.getElementById('currentBgPreview');
+var $bgPanel = document.getElementById('epBgPanel');
+var selectedBgValue = null;
 
 function previewBg(val) {
     if ($bgLayer) $bgLayer.style.background = val;
@@ -349,15 +405,17 @@ function previewBg(val) {
 
 function restoreBackgroundFromServer() {
     fetch('/api/user/background', { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(data => {
-            let restoredBg = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var restoredBg = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
             if (data.success && data.background_value) restoredBg = data.background_value;
             if ($bgLayer) $bgLayer.style.background = restoredBg;
             if ($bgPreview) $bgPreview.style.background = restoredBg;
             selectedBgValue = restoredBg;
         })
-        .catch(() => { if ($bgLayer) $bgLayer.style.background = 'linear-gradient(135deg, #f5f3ee, #e6ded3)'; });
+        .catch(function() {
+            if ($bgLayer) $bgLayer.style.background = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
+        });
 }
 
 function saveBackgroundToServer(bgValue) {
@@ -366,22 +424,28 @@ function saveBackgroundToServer(bgValue) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bg_type: 'custom', bg_value: bgValue }),
         credentials: 'same-origin'
-    }).then(r => r.json()).then(data => { if (!data.success) throw new Error('Save failed'); return true; });
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.success) throw new Error('Save failed');
+        return true;
+    });
 }
 
-document.getElementById('bgSaveBtn')?.addEventListener('click', async () => {
+document.getElementById('bgSaveBtn')?.addEventListener('click', function() {
     if (!selectedBgValue) { showToastMessage('Please select a background first', 'error'); return; }
-    const btn = document.getElementById('bgSaveBtn'), orig = btn.textContent;
-    btn.textContent = 'Saving...'; btn.disabled = true;
-    try {
-        await saveBackgroundToServer(selectedBgValue);
-        showToastMessage('Background saved', 'success');
-        if ($bgPanel) $bgPanel.classList.remove('open');
-    } catch (err) { showToastMessage('Failed to save background', 'error'); }
-    finally { btn.textContent = orig; btn.disabled = false; }
+    var btn = document.getElementById('bgSaveBtn');
+    var orig = btn.textContent;
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+    saveBackgroundToServer(selectedBgValue)
+        .then(function() {
+            showToastMessage('Background saved', 'success');
+            if ($bgPanel) $bgPanel.classList.remove('open');
+        })
+        .catch(function() { showToastMessage('Failed to save background', 'error'); })
+        .finally(function() { btn.textContent = orig; btn.disabled = false; });
 });
 
-document.getElementById('bgCancelBtn')?.addEventListener('click', () => {
+document.getElementById('bgCancelBtn')?.addEventListener('click', function() {
     restoreBackgroundFromServer();
     selectedBgValue = null;
     if ($bgPanel) $bgPanel.classList.remove('open');
@@ -389,23 +453,29 @@ document.getElementById('bgCancelBtn')?.addEventListener('click', () => {
 });
 
 function toggleBgPanel() { if ($bgPanel) $bgPanel.classList.toggle('open'); }
-document.querySelector('.ep-bg-close')?.addEventListener('click', () => { if ($bgPanel) $bgPanel.classList.remove('open'); });
+document.querySelector('.ep-bg-close')?.addEventListener('click', function() { if ($bgPanel) $bgPanel.classList.remove('open'); });
 
-let coverCropper = null;
-const $coverFileInput = document.getElementById('coverFileInput'), $coverCropModal = document.getElementById('coverCropModal');
+// ============================================================
+// COVER & AVATAR FUNCTIONS
+// ============================================================
+var coverCropper = null;
+var $coverFileInput = document.getElementById('coverFileInput');
+var $coverCropModal = document.getElementById('coverCropModal');
 
-function loadCoverFromServer() { const d = document.getElementById('coverImage'); if (d) d.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')'; }
-document.getElementById('coverChangeBtn')?.addEventListener('click', () => { if ($coverFileInput) $coverFileInput.click(); });
+function loadCoverFromServer() { var d = document.getElementById('coverImage'); if (d) d.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')'; }
+document.getElementById('coverChangeBtn')?.addEventListener('click', function() { if ($coverFileInput) $coverFileInput.click(); });
 if ($coverFileInput) {
-    $coverFileInput.addEventListener('change', e => {
+    $coverFileInput.addEventListener('change', function(e) {
         if (!e.target.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = ev => {
-            const img = document.getElementById('coverCropImage');
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            var img = document.getElementById('coverCropImage');
             if (img) img.src = ev.target.result;
             if ($coverCropModal) $coverCropModal.classList.add('open');
             if (coverCropper) coverCropper.destroy();
-            if (typeof Cropper !== 'undefined') coverCropper = new Cropper(document.getElementById('coverCropImage'), { aspectRatio: 16/5, viewMode: 1, autoCropArea: 1 });
+            if (typeof Cropper !== 'undefined') {
+                coverCropper = new Cropper(document.getElementById('coverCropImage'), { aspectRatio: 16/5, viewMode: 1, autoCropArea: 1 });
+            }
         };
         reader.readAsDataURL(e.target.files[0]);
     });
@@ -417,42 +487,53 @@ function closeCoverCrop() {
 }
 document.querySelector('#coverCropModal .crop-close')?.addEventListener('click', closeCoverCrop);
 document.querySelector('#coverCropModal .crop-cancel')?.addEventListener('click', closeCoverCrop);
-document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click', () => {
+document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click', function() {
     if (!coverCropper) return;
-    coverCropper.getCroppedCanvas().toBlob(blob => {
-        const fd = new FormData();
+    coverCropper.getCroppedCanvas().toBlob(function(blob) {
+        var fd = new FormData();
         fd.append('cover_image', blob, 'cover.jpg');
         showToastMessage('Uploading cover...', 'info');
         fetch('/update-cover', { method: 'POST', body: fd, credentials: 'same-origin' })
-            .then(r => r.json()).then(data => {
-                if (data.success) { document.getElementById('coverImage').style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')'; closeCoverCrop(); showToastMessage('Cover updated', 'success'); }
-                else throw new Error(data.error);
-            }).catch(() => showToastMessage('Cover update failed', 'error'));
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    document.getElementById('coverImage').style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
+                    closeCoverCrop();
+                    showToastMessage('Cover updated', 'success');
+                } else {
+                    throw new Error(data.error);
+                }
+            })
+            .catch(function() { showToastMessage('Cover update failed', 'error'); });
     }, 'image/jpeg', 0.9);
 });
 
-let avatarCropper = null;
-const $avatarFileInput = document.getElementById('avatarFileInput'), $avatarCropModal = document.getElementById('avatarCropModal');
+var avatarCropper = null;
+var $avatarFileInput = document.getElementById('avatarFileInput');
+var $avatarCropModal = document.getElementById('avatarCropModal');
 
 function loadAvatarFromServer() {
-    const img = document.getElementById('side-av-img'), init = document.getElementById('side-av-init');
+    var img = document.getElementById('side-av-img');
+    var init = document.getElementById('side-av-init');
     if (img) {
         img.src = '/avatar-image?t=' + Date.now();
-        img.onload = () => { img.style.display = 'block'; if (init) init.style.display = 'none'; };
-        img.onerror = () => { img.style.display = 'none'; if (init) init.style.display = 'flex'; };
+        img.onload = function() { img.style.display = 'block'; if (init) init.style.display = 'none'; };
+        img.onerror = function() { img.style.display = 'none'; if (init) init.style.display = 'flex'; };
     }
 }
-document.getElementById('avatarRing')?.addEventListener('click', () => { if ($avatarFileInput) $avatarFileInput.click(); });
+document.getElementById('avatarRing')?.addEventListener('click', function() { if ($avatarFileInput) $avatarFileInput.click(); });
 if ($avatarFileInput) {
-    $avatarFileInput.addEventListener('change', e => {
+    $avatarFileInput.addEventListener('change', function(e) {
         if (!e.target.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = ev => {
-            const img = document.getElementById('avatarCropImage');
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            var img = document.getElementById('avatarCropImage');
             if (img) img.src = ev.target.result;
             if ($avatarCropModal) $avatarCropModal.classList.add('open');
             if (avatarCropper) avatarCropper.destroy();
-            if (typeof Cropper !== 'undefined') avatarCropper = new Cropper(document.getElementById('avatarCropImage'), { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
+            if (typeof Cropper !== 'undefined') {
+                avatarCropper = new Cropper(document.getElementById('avatarCropImage'), { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
+            }
         };
         reader.readAsDataURL(e.target.files[0]);
     });
@@ -464,214 +545,468 @@ function closeAvatarCrop() {
 }
 document.querySelector('.avatar-crop-close')?.addEventListener('click', closeAvatarCrop);
 document.getElementById('avatarCropCancel')?.addEventListener('click', closeAvatarCrop);
-document.getElementById('avatarCropConfirm')?.addEventListener('click', () => {
+document.getElementById('avatarCropConfirm')?.addEventListener('click', function() {
     if (!avatarCropper) return;
-    avatarCropper.getCroppedCanvas().toBlob(blob => {
-        const fd = new FormData();
+    avatarCropper.getCroppedCanvas().toBlob(function(blob) {
+        var fd = new FormData();
         fd.append('avatar', blob, 'avatar.jpg');
         showToastMessage('Uploading avatar...', 'info');
         fetch('/update-profile-avatar', { method: 'POST', body: fd, credentials: 'same-origin' })
-            .then(r => r.json()).then(data => {
-                if (data.success) { document.getElementById('side-av-img').src = '/avatar-image?t=' + Date.now(); closeAvatarCrop(); showToastMessage('Avatar updated', 'success'); }
-                else throw new Error(data.error);
-            }).catch(() => showToastMessage('Avatar update failed', 'error'));
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    document.getElementById('side-av-img').src = '/avatar-image?t=' + Date.now();
+                    closeAvatarCrop();
+                    showToastMessage('Avatar updated', 'success');
+                } else {
+                    throw new Error(data.error);
+                }
+            })
+            .catch(function() { showToastMessage('Avatar update failed', 'error'); });
     }, 'image/jpeg', 0.9);
 });
 
+// ============================================================
+// TAB SWITCHING
+// ============================================================
 function switchMainTab(tabName) {
-    document.querySelectorAll('.ep-main-tab').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.ep-main-tab[data-main-tab="${tabName}"]`).classList.add('active');
-    document.querySelectorAll('.ep-main-pane').forEach(p => p.classList.remove('active'));
-    document.getElementById(`main-pane-${tabName}`).classList.add('active');
+    document.querySelectorAll('.ep-main-tab').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelector('.ep-main-tab[data-main-tab="' + tabName + '"]').classList.add('active');
+    document.querySelectorAll('.ep-main-pane').forEach(function(p) { p.classList.remove('active'); });
+    document.getElementById('main-pane-' + tabName).classList.add('active');
     if (tabName === 'listings') loadListings();
     if (tabName === 'purchases') loadPurchases();
     if (tabName === 'edit') switchSubTab('edit-profile');
 }
 
 function switchSubTab(subtabName) {
-    document.querySelectorAll('.ep-sub-tab').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.ep-sub-pane').forEach(p => p.classList.remove('active'));
-    document.querySelector(`.ep-sub-tab[data-subtab="${subtabName}"]`).classList.add('active');
-    document.getElementById(`sub-pane-${subtabName}`).classList.add('active');
+    document.querySelectorAll('.ep-sub-tab').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.ep-sub-pane').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelector('.ep-sub-tab[data-subtab="' + subtabName + '"]').classList.add('active');
+    document.getElementById('sub-pane-' + subtabName).classList.add('active');
 }
 
+// ============================================================
+// LOAD LISTINGS
+// ============================================================
 function loadListings() {
-    const container = document.getElementById('listings-grid');
+    var container = document.getElementById('listings-grid');
     if (!container) return;
     container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
     fetch('/api/user/listings', { credentials: 'same-origin' })
-        .then(r => r.json()).then(data => {
-            if (!data || data.length === 0) { container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><p>You haven\'t listed any items yet</p><small><a href="{{ url_for('upload_product') }}">Click here to post your first item!</a></small></div>'; return; }
-            container.innerHTML = data.map(item => {
-                const firstImage = item.first_image ? `/static/uploads/${item.first_image}` : null;
-                const statusClass = (item.status || 'pending').toLowerCase();
-                let statusText = item.status || 'Pending';
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><p>You haven\'t listed any items yet</p><small><a href="{{ url_for('upload_product') }}">Click here to post your first item!</a></small></div>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < data.length; i++) {
+                var item = data[i];
+                var firstImage = null;
+                if (item.first_image) {
+                    firstImage = item.first_image.startsWith('data:') ? item.first_image : '/static/uploads/' + item.first_image;
+                }
+                var statusClass = (item.status || 'pending').toLowerCase();
+                var statusText = item.status || 'Pending';
                 if (statusText === 'approved') statusText = 'Approved';
                 if (statusText === 'rejected') statusText = 'Rejected';
-                return `<div class="product-card"><a href="/product/${item.id}" class="product-card-link"><div class="product-image-container"><span class="condition-badge">${escapeHtml(item.condition || 'Good')}</span><div class="carousel-window"><div class="carousel-track">${firstImage ? `<img src="${firstImage}" class="carousel-img" alt="${escapeHtml(item.name)}">` : '<div class="carousel-placeholder">📦</div>'}</div></div></div><div class="product-info"><h4 class="product-name">${escapeHtml(item.name)}</h4><div class="product-price">RM ${parseFloat(item.price).toFixed(2)}</div><div class="product-status ${statusClass}">${escapeHtml(statusText)}</div></div></a><div class="product-actions"><button class="edit-product-btn" onclick="editListing(${item.id})">✏️ Edit</button><button class="delete-product-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name)}')">🗑️ Delete</button></div></div>`;
-            }).join('');
-        }).catch(() => container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings.</div>');
+                html += '<div class="product-card"><a href="/product/' + item.id + '" class="product-card-link"><div class="product-image-container"><span class="condition-badge">' + escapeHtml(item.condition || 'Good') + '</span><div class="carousel-window"><div class="carousel-track">' + (firstImage ? '<img src="' + firstImage + '" class="carousel-img" alt="' + escapeHtml(item.name) + '">' : '<div class="carousel-placeholder">📦</div>') + '</div></div></div><div class="product-info"><h4 class="product-name">' + escapeHtml(item.name) + '</h4><div class="product-price">RM ' + parseFloat(item.price).toFixed(2) + '</div><div class="product-status ' + statusClass + '">' + escapeHtml(statusText) + '</div></div></a><div class="product-actions"><button class="edit-product-btn" onclick="editListing(' + item.id + ')">✏️ Edit</button><button class="delete-product-btn" onclick="deleteListing(' + item.id + ', \'' + escapeHtml(item.name) + '\')">🗑️ Delete</button></div></div>';
+            }
+            container.innerHTML = html;
+        })
+        .catch(function() { container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings.</div>'; });
 }
 
 function loadPurchases() {
-    const container = document.getElementById('purchases-grid');
+    var container = document.getElementById('purchases-grid');
     if (!container) return;
     container.innerHTML = '<div class="loading-state">🛍️ Loading your purchases...</div>';
     fetch('/api/user/purchases', { credentials: 'same-origin' })
-        .then(r => r.json()).then(data => {
-            if (!data || data.length === 0) { container.innerHTML = '<div class="empty-state"><span class="empty-icon">🛍️</span><p>You haven\'t purchased anything yet</p><small>Explore the marketplace!</small></div>'; return; }
-            container.innerHTML = data.map(item => `<div class="purchase-card"><a href="/product/${item.product_id}" class="purchase-link"><div class="purchase-info"><div class="purchase-name">${escapeHtml(item.name)}</div><div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div><div class="purchase-price">RM ${parseFloat(item.price).toFixed(2)}</div></div><div class="purchase-status ${escapeHtml(item.status)}">${escapeHtml(item.status || 'Completed')}</div></a></div>`).join('');
-        }).catch(() => container.innerHTML = '<div class="empty-state">⚠️ Failed to load purchases.</div>');
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="empty-state"><span class="empty-icon">🛍️</span><p>You haven\'t purchased anything yet</p><small>Explore the marketplace!</small></div>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < data.length; i++) {
+                var item = data[i];
+                html += '<div class="purchase-card"><a href="/product/' + item.product_id + '" class="purchase-link"><div class="purchase-info"><div class="purchase-name">' + escapeHtml(item.name) + '</div><div class="purchase-seller">from @' + escapeHtml(item.seller_name || 'Unknown') + '</div><div class="purchase-price">RM ' + parseFloat(item.price).toFixed(2) + '</div></div><div class="purchase-status ' + escapeHtml(item.status) + '">' + escapeHtml(item.status || 'Completed') + '</div></a></div>';
+            }
+            container.innerHTML = html;
+        })
+        .catch(function() { container.innerHTML = '<div class="empty-state">⚠️ Failed to load purchases.</div>'; });
 }
 
-let currentProductImages = [], newImagesFiles = [], imagesToDelete = [];
+// ============================================================
+// EDIT PRODUCT MODAL FUNCTIONS (Images & Videos, Max 12 files)
+// ============================================================
+var currentMediaFiles = [];
+var newMediaFiles = [];
+var mediaToDelete = [];
 
 function editListing(productId) {
-    fetch(`/api/product/${productId}`, { credentials: 'same-origin' })
-        .then(r => r.json()).then(product => {
-            currentProductImages = product.images ? product.images.split(',') : [];
-            newImagesFiles = []; imagesToDelete = [];
+    fetch('/api/product/' + productId, { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(product) {
+            if (product.images_blob) {
+                try {
+                    currentMediaFiles = JSON.parse(product.images_blob);
+                } catch(e) {
+                    currentMediaFiles = [];
+                }
+            } else {
+                currentMediaFiles = [];
+            }
+            
+            newMediaFiles = [];
+            mediaToDelete = [];
+            
             document.getElementById('edit_product_id').value = product.id;
             document.getElementById('edit_name').value = product.name;
             document.getElementById('edit_price').value = product.price;
             document.getElementById('edit_description').value = product.description || '';
             document.getElementById('edit_condition').value = product.condition || 'good';
             document.getElementById('edit_category').value = product.category || 'others';
-            renderExistingImages();
-            document.getElementById('new_images_preview').innerHTML = '';
+            
+            renderExistingMedia();
+            document.getElementById('new_media_preview').innerHTML = '';
+            updateUploadButtonState();
             document.getElementById('editProductModal').style.display = 'flex';
-        }).catch(() => showToastMessage('Failed to load product details', 'error'));
+        })
+        .catch(function(err) { 
+            console.error('Error loading product:', err);
+            showToastMessage('Failed to load product details', 'error'); 
+        });
 }
 
-function renderExistingImages() {
-    const container = document.getElementById('existing_images_container');
-    if (!currentProductImages.length) { container.innerHTML = '<p class="no-images">No images uploaded</p>'; return; }
-    container.innerHTML = currentProductImages.map(img => `<div class="image-preview" data-image="${img}"><img src="/static/uploads/${img}" alt="Product image"><button type="button" class="remove-image-btn" onclick="markImageForDeletion('${img}')">✕</button></div>`).join('');
+function getTotalMediaCount() {
+    return (currentMediaFiles.length - mediaToDelete.length) + newMediaFiles.length;
 }
 
-function markImageForDeletion(imageName) {
-    const div = document.querySelector(`.image-preview[data-image="${imageName}"]`);
-    if (div) {
-        div.classList.add('marked-for-delete'); div.style.opacity = '0.5';
-        div.querySelector('.remove-image-btn').textContent = '↩️';
-        div.querySelector('.remove-image-btn').onclick = () => cancelImageDeletion(imageName);
-        if (!imagesToDelete.includes(imageName)) imagesToDelete.push(imageName);
+function updateUploadButtonState() {
+    var uploadBtn = document.getElementById('uploadBtn');
+    var warning = document.getElementById('mediaLimitWarning');
+    var currentCount = getTotalMediaCount();
+    
+    if (currentCount >= MAX_MEDIA_FILES) {
+        if (uploadBtn) {
+            uploadBtn.style.opacity = '0.5';
+            uploadBtn.style.pointerEvents = 'none';
+        }
+        if (warning) warning.style.display = 'block';
+    } else {
+        if (uploadBtn) {
+            uploadBtn.style.opacity = '1';
+            uploadBtn.style.pointerEvents = 'auto';
+        }
+        if (warning) warning.style.display = 'none';
     }
 }
 
-function cancelImageDeletion(imageName) {
-    const div = document.querySelector(`.image-preview[data-image="${imageName}"]`);
-    if (div) {
-        div.classList.remove('marked-for-delete'); div.style.opacity = '1';
-        div.querySelector('.remove-image-btn').textContent = '✕';
-        div.querySelector('.remove-image-btn').onclick = () => markImageForDeletion(imageName);
-        imagesToDelete = imagesToDelete.filter(n => n !== imageName);
+function renderExistingMedia() {
+    var container = document.getElementById('existing_media_container');
+    if (!container) return;
+    
+    if (!currentMediaFiles.length) {
+        container.innerHTML = '<p class="no-media">No media uploaded</p>';
+        return;
     }
+    
+    var html = '';
+    for (var i = 0; i < currentMediaFiles.length; i++) {
+        var media = currentMediaFiles[i];
+        var isVideo = media.startsWith('data:video') || media.match(/\.(mp4|webm|mov|avi)$/i);
+        var isMarkedForDelete = mediaToDelete.indexOf(i) !== -1;
+        
+        html += '<div class="media-preview ' + (isMarkedForDelete ? 'marked-for-delete' : '') + '" data-index="' + i + '">' +
+            (isVideo ? '<video src="' + media + '" style="width:100%;height:100%;object-fit:cover;"></video>' : '<img src="' + media + '" alt="Product media">') +
+            '<button type="button" class="remove-media-btn" onclick="toggleMediaDeletion(' + i + ')">' + (isMarkedForDelete ? '↩️' : '✕') + '</button>' +
+            (isVideo ? '<span class="video-badge">🎬</span>' : '') +
+            '</div>';
+    }
+    container.innerHTML = html;
 }
 
-function previewNewImages(input) {
-    const preview = document.getElementById('new_images_preview');
-    newImagesFiles = [];
-    for (let f of input.files) {
-        if (f.type.startsWith('image/')) {
-            newImagesFiles.push(f);
-            const reader = new FileReader();
-            reader.onload = e => {
-                const div = document.createElement('div');
-                div.className = 'image-preview new';
-                div.innerHTML = `<img src="${e.target.result}" alt="Preview"><button type="button" class="remove-new-image" onclick="this.parentElement.remove(); removeNewImageFile('${f.name}')">✕</button>`;
+function toggleMediaDeletion(index) {
+    var idx = mediaToDelete.indexOf(index);
+    if (idx !== -1) {
+        mediaToDelete.splice(idx, 1);
+    } else {
+        mediaToDelete.push(index);
+    }
+    renderExistingMedia();
+    updateUploadButtonState();
+}
+
+function previewNewMedia(input) {
+    var preview = document.getElementById('new_media_preview');
+    var files = Array.from(input.files);
+    var remainingSlots = MAX_MEDIA_FILES - getTotalMediaCount();
+    
+    if (files.length > remainingSlots) {
+        showToastMessage('You can only add ' + remainingSlots + ' more file(s). Max ' + MAX_MEDIA_FILES + ' total.', 'error');
+        input.value = '';
+        return;
+    }
+    
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+            showToastMessage(file.name + ' is not a supported format', 'error');
+            continue;
+        }
+        
+        var maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            showToastMessage(file.name + ' is too large (max 10MB)', 'error');
+            continue;
+        }
+        
+        newMediaFiles.push(file);
+        var reader = new FileReader();
+        reader.onload = (function(f, filename) {
+            return function(e) {
+                var div = document.createElement('div');
+                div.className = 'media-preview new';
+                var isVideo = f.type.startsWith('video/');
+                
+                if (isVideo) {
+                    div.innerHTML = '<video src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;"></video>' +
+                        '<button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, \'' + filename + '\')">✕</button>' +
+                        '<span class="video-badge">🎬</span>';
+                } else {
+                    div.innerHTML = '<img src="' + e.target.result + '" alt="Preview">' +
+                        '<button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, \'' + filename + '\')">✕</button>';
+                }
                 preview.appendChild(div);
             };
-            reader.readAsDataURL(f);
-        }
+        })(file, file.name);
+        reader.readAsDataURL(file);
     }
     input.value = '';
+    updateUploadButtonState();
 }
 
-function removeNewImageFile(filename) { newImagesFiles = newImagesFiles.filter(f => f.name !== filename); }
+function removeNewMediaItem(btn, filename) {
+    var container = btn.closest('.media-preview');
+    if (container) container.remove();
+    var index = -1;
+    for (var i = 0; i < newMediaFiles.length; i++) {
+        if (newMediaFiles[i].name === filename) {
+            index = i;
+            break;
+        }
+    }
+    if (index !== -1) newMediaFiles.splice(index, 1);
+    updateUploadButtonState();
+}
 
 function saveProductChanges(event) {
     event.preventDefault();
-    const id = document.getElementById('edit_product_id').value;
-    const fd = new FormData();
-    fd.append('name', document.getElementById('edit_name').value);
-    fd.append('price', document.getElementById('edit_price').value);
-    fd.append('description', document.getElementById('edit_description').value);
-    fd.append('condition', document.getElementById('edit_condition').value);
-    fd.append('category', document.getElementById('edit_category').value);
-    if (imagesToDelete.length) fd.append('delete_images', JSON.stringify(imagesToDelete));
-    for (let f of newImagesFiles) fd.append('new_images', f);
-    showToastMessage('Updating product...', 'info');
-    fetch(`/api/product/${id}/update-full`, { method: 'POST', body: fd, credentials: 'same-origin' })
-        .then(r => r.json()).then(data => { if (data.success) { showToastMessage('Product updated successfully!', 'success'); closeEditModal(); loadListings(); } else throw new Error(data.error); })
-        .catch(err => showToastMessage('Failed to update: ' + err.message, 'error'));
-}
-function closeEditModal() {
-    const modal = document.getElementById('editProductModal');
-    if (modal) {
-        modal.style.display = 'none';
+    var id = document.getElementById('edit_product_id').value;
+    
+    var remainingMedia = [];
+    for (var i = 0; i < currentMediaFiles.length; i++) {
+        if (mediaToDelete.indexOf(i) === -1) {
+            remainingMedia.push(currentMediaFiles[i]);
+        }
     }
-    currentProductImages = [];
-    newImagesFiles = [];
-    imagesToDelete = [];
+    var totalAfterSave = remainingMedia.length + newMediaFiles.length;
+    
+    if (totalAfterSave > MAX_MEDIA_FILES) {
+        showToastMessage('Maximum ' + MAX_MEDIA_FILES + ' media files allowed. Current: ' + totalAfterSave, 'error');
+        return;
+    }
+    
+    if (totalAfterSave === 0) {
+        showToastMessage('Please add at least one photo or video', 'error');
+        return;
+    }
+    
+    showToastMessage('Updating product...', 'info');
+    
+    var uploadPromises = [];
+    for (var i = 0; i < newMediaFiles.length; i++) {
+        var file = newMediaFiles[i];
+        var promise = new Promise(function(resolve) {
+            var reader = new FileReader();
+            reader.onload = function(e) { resolve(e.target.result); };
+            reader.readAsDataURL(file);
+        });
+        uploadPromises.push(promise);
+    }
+    
+    Promise.all(uploadPromises).then(function(newBase64Media) {
+        var allMedia = remainingMedia.concat(newBase64Media);
+        var imagesBlobJson = JSON.stringify(allMedia);
+        
+        var fd = new FormData();
+        fd.append('name', document.getElementById('edit_name').value);
+        fd.append('price', document.getElementById('edit_price').value);
+        fd.append('description', document.getElementById('edit_description').value);
+        fd.append('condition', document.getElementById('edit_condition').value);
+        fd.append('category', document.getElementById('edit_category').value);
+        fd.append('images_blob', imagesBlobJson);
+        
+        fetch('/api/product/' + id + '/update-full', { 
+            method: 'POST', 
+            body: fd, 
+            credentials: 'same-origin' 
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showToastMessage('Product updated successfully!', 'success');
+                closeEditModal();
+                loadListings();
+            } else {
+                throw new Error(data.error || 'Update failed');
+            }
+        })
+        .catch(function(err) { 
+            console.error('Save error:', err);
+            showToastMessage('Failed to update: ' + err.message, 'error'); 
+        });
+    });
+}
+
+function closeEditModal() {
+    var modal = document.getElementById('editProductModal');
+    if (modal) modal.style.display = 'none';
+    currentMediaFiles = [];
+    newMediaFiles = [];
+    mediaToDelete = [];
 }
 
 function deleteListing(id, name) {
-    if (confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
-        fetch(`/api/product/${id}/delete`, { method: 'DELETE', credentials: 'same-origin' })
-            .then(r => r.json()).then(data => { if (data.success) { showToastMessage(`"${name}" deleted`, 'success'); loadListings(); } else throw new Error(data.error); })
-            .catch(() => showToastMessage('Failed to delete', 'error'));
+    if (confirm('Are you sure you want to delete "' + name + '"? This cannot be undone.')) {
+        fetch('/api/product/' + id + '/delete', { method: 'DELETE', credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    showToastMessage('"' + name + '" deleted', 'success');
+                    loadListings();
+                } else {
+                    throw new Error(data.error);
+                }
+            })
+            .catch(function() { showToastMessage('Failed to delete', 'error'); });
     }
 }
 
-function togglePassword(id, btn) { const inp = document.getElementById(id); if (!inp) return; inp.type = inp.type === 'password' ? 'text' : 'password'; btn.textContent = inp.type === 'password' ? '👀' : '🫣'; }
+// ============================================================
+// PASSWORD FUNCTIONS
+// ============================================================
+function togglePassword(id, btn) {
+    var inp = document.getElementById(id);
+    if (!inp) return;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '👀' : '🫣';
+}
 
 function checkPwStrength() {
-    const pw = document.getElementById('new_password').value;
-    const checks = { len: pw.length >= 8, upper: /[A-Z]/.test(pw), lower: /[a-z]/.test(pw), number: /[0-9]/.test(pw), special: /[!@#$%^&*]/.test(pw) };
-    const score = Object.values(checks).filter(Boolean).length;
-    const colors = ['', '#e74c3c', '#e67e22', '#f1c40f', '#27ae60', '#00c986'];
-    const labels = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
-    const widths = ['0%', '20%', '40%', '60%', '80%', '100%'];
-    const bar = document.getElementById('ep-strength-bar');
+    var pw = document.getElementById('new_password').value;
+    var checks = {
+        len: pw.length >= 8,
+        upper: /[A-Z]/.test(pw),
+        lower: /[a-z]/.test(pw),
+        number: /[0-9]/.test(pw),
+        special: /[!@#$%^&*]/.test(pw)
+    };
+    var score = Object.values(checks).filter(Boolean).length;
+    var colors = ['', '#e74c3c', '#e67e22', '#f1c40f', '#27ae60', '#00c986'];
+    var labels = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
+    var widths = ['0%', '20%', '40%', '60%', '80%', '100%'];
+    var bar = document.getElementById('ep-strength-bar');
     if (bar) { bar.style.width = widths[score]; bar.style.background = colors[score]; }
-    const label = document.getElementById('ep-strength-label');
-    if (label) label.textContent = pw ? `Password strength: ${labels[score]}` : '';
-    const reqs = ['ep-req-len', 'ep-req-up', 'ep-req-lo', 'ep-req-num', 'ep-req-sp'];
-    const valid = [checks.len, checks.upper, checks.lower, checks.number, checks.special];
-    reqs.forEach((id, i) => { const el = document.getElementById(id); if (!el) return; const ic = el.querySelector('.req-icon'); el.className = valid[i] ? 'req-valid' : 'req-invalid'; if (ic) ic.textContent = valid[i] ? '✓' : '✗'; });
+    var label = document.getElementById('ep-strength-label');
+    if (label) label.textContent = pw ? 'Password strength: ' + labels[score] : '';
+    var reqs = ['ep-req-len', 'ep-req-up', 'ep-req-lo', 'ep-req-num', 'ep-req-sp'];
+    var valid = [checks.len, checks.upper, checks.lower, checks.number, checks.special];
+    for (var i = 0; i < reqs.length; i++) {
+        var el = document.getElementById(reqs[i]);
+        if (!el) continue;
+        var ic = el.querySelector('.req-icon');
+        el.className = valid[i] ? 'req-valid' : 'req-invalid';
+        if (ic) ic.textContent = valid[i] ? '✓' : '✗';
+    }
     return score === 5;
 }
 
 function checkPwMatch() {
-    const pw = document.getElementById('new_password').value || '', cpw = document.getElementById('confirm_password').value || '', div = document.getElementById('ep-pw-match');
+    var pw = document.getElementById('new_password').value || '';
+    var cpw = document.getElementById('confirm_password').value || '';
+    var div = document.getElementById('ep-pw-match');
     if (!div) return;
     if (!cpw) { div.innerHTML = ''; div.className = 'ep-pw-match'; return; }
-    if (pw === cpw) { div.innerHTML = '✓ Passwords match'; div.className = 'ep-pw-match pw-ok'; }
-    else { div.innerHTML = '✗ Passwords do not match'; div.className = 'ep-pw-match pw-bad'; }
+    if (pw === cpw) {
+        div.innerHTML = '✓ Passwords match';
+        div.className = 'ep-pw-match pw-ok';
+    } else {
+        div.innerHTML = '✗ Passwords do not match';
+        div.className = 'ep-pw-match pw-bad';
+    }
 }
 
 function validatePwForm() {
-    const strong = checkPwStrength(), pw = document.getElementById('new_password').value || '', cpw = document.getElementById('confirm_password').value || '', cur = document.getElementById('current_password').value || '';
+    var strong = checkPwStrength();
+    var pw = document.getElementById('new_password').value || '';
+    var cpw = document.getElementById('confirm_password').value || '';
+    var cur = document.getElementById('current_password').value || '';
     if (!cur) { alert('Please enter your current password.'); return false; }
     if (!strong) { alert('Please meet all password requirements.'); return false; }
     if (pw !== cpw) { alert('Passwords do not match.'); return false; }
     return true;
 }
 
-let deletePasswordValid = false;
+// ============================================================
+// DELETE ACCOUNT FUNCTIONS
+// ============================================================
+var deletePasswordValid = false;
 
 function checkDeletePasswordMatch() {
-    const pw = document.getElementById('delete_password').value, msg = document.getElementById('deletePwMatch');
+    var pw = document.getElementById('delete_password').value;
+    var msg = document.getElementById('deletePwMatch');
     if (pw.length === 0) { if (msg) msg.innerHTML = ''; deletePasswordValid = false; return; }
-    fetch('/verify-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }), credentials: 'same-origin' })
-        .then(r => r.json()).then(data => { if (msg) { if (data.valid) { msg.innerHTML = '✓ Password verified'; msg.className = 'delete-pw-match match-success'; deletePasswordValid = true; } else { msg.innerHTML = '✗ Incorrect password'; msg.className = 'delete-pw-match match-error'; deletePasswordValid = false; } } });
+    fetch('/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (msg) {
+            if (data.valid) {
+                msg.innerHTML = '✓ Password verified';
+                msg.className = 'delete-pw-match match-success';
+                deletePasswordValid = true;
+            } else {
+                msg.innerHTML = '✗ Incorrect password';
+                msg.className = 'delete-pw-match match-error';
+                deletePasswordValid = false;
+            }
+        }
+    });
 }
 
-function checkDeleteConfirm() { const text = document.querySelector('#delete-form input[name="confirm_text"]').value, msg = document.getElementById('deleteConfirmMatch'); if (text === 'DELETE') { if (msg) { msg.innerHTML = '✓ Confirmation correct'; msg.className = 'delete-confirm-match match-success'; } } else if (text.length > 0) { if (msg) { msg.innerHTML = '✗ Please type DELETE exactly'; msg.className = 'delete-confirm-match match-error'; } } else { if (msg) msg.innerHTML = ''; } }
+function checkDeleteConfirm() {
+    var text = document.querySelector('#delete-form input[name="confirm_text"]').value;
+    var msg = document.getElementById('deleteConfirmMatch');
+    if (text === 'DELETE') {
+        if (msg) { msg.innerHTML = '✓ Confirmation correct'; msg.className = 'delete-confirm-match match-success'; }
+    } else if (text.length > 0) {
+        if (msg) { msg.innerHTML = '✗ Please type DELETE exactly'; msg.className = 'delete-confirm-match match-error'; }
+    } else {
+        if (msg) msg.innerHTML = '';
+    }
+}
 
 function confirmDelete() {
-    const pw = document.getElementById('delete_password').value, text = document.querySelector('#delete-form input[name="confirm_text"]').value;
+    var pw = document.getElementById('delete_password').value;
+    var text = document.querySelector('#delete-form input[name="confirm_text"]').value;
     if (!pw) { showToastMessage('Please enter your password', 'error'); return false; }
     if (!deletePasswordValid) { showToastMessage('Please enter a valid password', 'error'); return false; }
     if (text !== 'DELETE') { showToastMessage('Type DELETE to confirm', 'error'); return false; }
@@ -681,26 +1016,41 @@ function confirmDelete() {
 document.getElementById('delete_password')?.addEventListener('input', checkDeletePasswordMatch);
 document.querySelector('#delete-form input[name="confirm_text"]')?.addEventListener('input', checkDeleteConfirm);
 
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]); }
-
-function showToastMessage(message, type) {
-    const existing = document.querySelector('.toast-container');
-    if (existing) existing.remove();
-    const container = document.createElement('div');
-    container.className = 'toast-container';
-    const toastDiv = document.createElement('div');
-    toastDiv.className = `toast toast-${type}`;
-    toastDiv.innerHTML = `<span>${message}</span>`;
-    container.appendChild(toastDiv);
-    document.body.appendChild(container);
-    setTimeout(() => container.remove(), 3000);
+// ============================================================
+// UTILITY FUNCTIONS
+// ============================================================
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
+function showToastMessage(message, type) {
+    var existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    var container = document.createElement('div');
+    container.className = 'toast-container';
+    var toastDiv = document.createElement('div');
+    toastDiv.className = 'toast toast-' + type;
+    toastDiv.innerHTML = '<span>' + message + '</span>';
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    setTimeout(function() { container.remove(); }, 3000);
+}
+
+// ============================================================
+// PAGE INITIALIZATION
+// ============================================================
 document.addEventListener('DOMContentLoaded', function() {
     loadCoverFromServer();
     loadAvatarFromServer();
     restoreBackgroundFromServer();
-    const newPw = document.getElementById('new_password'), confPw = document.getElementById('confirm_password');
+    var newPw = document.getElementById('new_password');
+    var confPw = document.getElementById('confirm_password');
     if (newPw) newPw.addEventListener('input', function() { checkPwStrength(); checkPwMatch(); });
     if (confPw) confPw.addEventListener('input', checkPwMatch);
 });
