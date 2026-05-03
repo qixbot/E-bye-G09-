@@ -1,33 +1,51 @@
 import re
-
 import subprocess
-
 import os
-
 import sqlite3
-
 from datetime import datetime, timedelta
-
 import uuid
-
 import base64
-
 from flask import (
     Flask, render_template, request, redirect,
     url_for, session, flash, jsonify, make_response
 )
-
-
-
 from werkzeug.security import generate_password_hash, check_password_hash
-
-
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from database import init_db, get_db, init_products, init_messages, init_announcements, init_reviews
 
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026-new'
+
+# ============================================================
+# Helper function for emoji (was missing)
+# ============================================================
+def get_emoji_by_category(name):
+    """Return an emoji based on product name (fallback for purchases)"""
+    name_lower = str(name).lower()
+    if 'book' in name_lower:
+        return '📚'
+    if 'gadget' in name_lower or 'phone' in name_lower or 'laptop' in name_lower:
+        return '💻'
+    if 'dorm' in name_lower or 'bed' in name_lower or 'furniture' in name_lower:
+        return '🛏️'
+    if 'fashion' in name_lower or 'shirt' in name_lower or 'shoe' in name_lower:
+        return '👕'
+    if 'beauty' in name_lower or 'makeup' in name_lower:
+        return '💄'
+    if 'sport' in name_lower:
+        return '⚽'
+    if 'grocery' in name_lower or 'food' in name_lower:
+        return '🛒'
+    if 'stationery' in name_lower or 'pen' in name_lower:
+        return '✏️'
+    if 'music' in name_lower:
+        return '🎸'
+    return '📦'
 
 def calculate_trust_score(user, listing_count):
     """Calculate trust score based on user profile and activity"""
@@ -75,9 +93,7 @@ def calculate_trust_score(user, listing_count):
 
 # jinja2 time filter
 @app.template_filter('time_since')
-
 def time_since(date):
-
     if not date:
         return 'New'
     now = datetime.now()
@@ -99,7 +115,6 @@ def time_since(date):
         return f"{diff.seconds//60}m"
     return 'Just now'
 
-
 def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
     """Extract a frame from video at given time offset and save as JPEG."""
     cmd = [
@@ -119,7 +134,6 @@ def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
         print(f"FFmpeg error for {video_path}: {e.stderr}")
         return False
 
-
 # --- Setup folder for uploaded product images ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -132,45 +146,14 @@ init_messages()
 init_announcements()
 init_reviews()
 
-def init_messages():
-    db = get_db()
-    db.execute('''
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_id INTEGER NOT NULL,
-            receiver_id INTEGER NOT NULL,
-            product_id INTEGER,
-            content TEXT,
-            msg_type TEXT DEFAULT 'text',
-            image TEXT,
-            is_read INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (sender_id) REFERENCES users(id),
-            FOREIGN KEY (receiver_id) REFERENCES users(id)
-        )
-    ''')
-    # 为旧表添加 msg_type 列
-    try:
-        db.execute("ALTER TABLE messages ADD COLUMN msg_type TEXT DEFAULT 'text'")
-    except:
-        pass
-    db.commit()
-    db.close()
-    print("Messages table ready.")
-
-
 @app.route('/')
-
-
 def index():
     return render_template('welcome.html')  # 未登录 → 欢迎页
-
 
 # ============================================================
 # Eileen's Route - Login
 # ============================================================
 @app.route('/login', methods=['GET', 'POST'])
-
 def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
@@ -178,10 +161,10 @@ def login():
         remember_me = request.form.get('remember_me')
 
         db = get_db()
-        user = db.execute(
-            'SELECT * FROM users WHERE LOWER(email) = LOWER(?)',
-            (email,)
-        ).fetchone()
+        cur = db.cursor()
+        cur.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(%s)', (email,))
+        user = cur.fetchone()
+        cur.close()
         db.close()
 
         if user and check_password_hash(user['password'], password):
@@ -197,11 +180,10 @@ def login():
                 import secrets
                 token = secrets.token_urlsafe(64)  # Generate secure random token
                 db = get_db()
-                db.execute(
-                    'UPDATE users SET remember_token = ? WHERE id = ?',
-                    (token, user['id'])
-                )
+                cur = db.cursor()
+                cur.execute('UPDATE users SET remember_token = %s WHERE id = %s', (token, user['id']))
                 db.commit()
+                cur.close()
                 db.close()
                 # Store token in cookie (expires in 30 days)
                 response = redirect(url_for('home'))
@@ -212,11 +194,10 @@ def login():
             else:
                 # Clear any existing token if user doesn't want to be remembered
                 db = get_db()
-                db.execute(
-                    'UPDATE users SET remember_token = NULL WHERE id = ?',
-                    (user['id'],)
-                )
+                cur = db.cursor()
+                cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (user['id'],))
                 db.commit()
+                cur.close()
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', '', expires=0)
@@ -230,7 +211,6 @@ def login():
 from flask import request, redirect, url_for, session
 
 @app.before_request
-
 def check_remember_me():
     """Auto-login user if valid remember_token cookie exists"""
     if 'user_id' in session:
@@ -246,10 +226,10 @@ def check_remember_me():
         return
     
     db = get_db()
-    user = db.execute(
-        'SELECT id, username, student_id FROM users WHERE remember_token = ?',
-        (token,)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = %s', (token,))
+    user = cur.fetchone()
+    cur.close()
     db.close()
     
     if user:
@@ -262,7 +242,6 @@ def check_remember_me():
 # Eileen's Route - Register
 # ============================================================
 @app.route('/register', methods=['GET', 'POST'])
-
 def register():
     if request.method == 'POST':
         student_id = request.form.get('student_id')
@@ -325,37 +304,37 @@ def register():
             return render_template('register.html')
 
         db = get_db()
+        cur = db.cursor()
 
         # Check existing student_id or email
-        existing = db.execute(
-            'SELECT * FROM users WHERE student_id = ? OR LOWER(email) = LOWER(?)',
-            (student_id, email)
-        ).fetchone()
+        cur.execute('SELECT * FROM users WHERE student_id = %s OR LOWER(email) = LOWER(%s)', (student_id, email))
+        existing = cur.fetchone()
         if existing:
+            cur.close()
             db.close()
             flash('Student ID or Email already registered', 'error')
             return render_template('register.html')
 
         # Check existing username
-        username_exists = db.execute(
-            'SELECT * FROM users WHERE LOWER(username) = LOWER(?)',
-            (username,)
-        ).fetchone()
+        cur.execute('SELECT * FROM users WHERE LOWER(username) = LOWER(%s)', (username,))
+        username_exists = cur.fetchone()
         if username_exists:
+            cur.close()
             db.close()
             flash('Username already taken. Please choose another one.', 'error')
             return render_template('register.html')
 
         # Create user
         hashed_password = generate_password_hash(password)
-        db.execute('''
+        cur.execute('''
             INSERT INTO users (
                 student_id, email, username, password, gender,
                 security_q1, security_a1, security_q2, security_a2
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (student_id, email, username, hashed_password, gender,
               q1, a1, q2, a2))
         db.commit()
+        cur.close()
         db.close()
 
         flash('Account created successfully! Please login.', 'success')
@@ -368,21 +347,23 @@ def register():
 # Xingru's Route - Homepage
 # ============================================================
 @app.route('/home')
-
 def home():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     db = get_db()
-    products_data = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT p.*, 
         u.username as seller_name, 
-                               u.full_name as seller_full_name, u.id as seller_id
+        u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'approved'
         ORDER BY p.created_at DESC
-    ''').fetchall()
+    ''')
+    products_data = cur.fetchall()
+    cur.close()
     db.close()
 
     products = []
@@ -413,9 +394,8 @@ def home():
     return render_template('home.html',
         username=session.get('username'), latest_products=products)
 
-#Xingru's Route - Search with filters
+# Xingru's Route - Search with filters
 @app.route('/search')
-
 def search():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -453,41 +433,41 @@ def search():
 
     # Keyword search
     if keyword:
-        query += " AND (p.name LIKE ? OR p.description LIKE ?)"
+        query += " AND (p.name LIKE %s OR p.description LIKE %s)"
         like = f"%{keyword}%"
         params.extend([like, like])
 
     # Category filter
     if categories:
-        placeholders = ','.join('?' for _ in categories)
+        placeholders = ','.join('%s' for _ in categories)
         query += f" AND p.category IN ({placeholders})"
         params.extend(categories)
 
     # Condition filter (multi)
     if conditions:
-        placeholders = ','.join('?' for _ in conditions)
+        placeholders = ','.join('%s' for _ in conditions)
         query += f" AND p.condition IN ({placeholders})"
         params.extend(conditions)
 
     # Date range – prioritise date_range if provided, else use custom dates
     if date_range and date_range.isdigit():
         days = int(date_range)
-        query += " AND p.created_at >= datetime('now', ?)"
-        params.append(f"-{days} days")
+        query += " AND p.created_at >= NOW() - INTERVAL '%s days'"
+        params.append(days)
     else:
         if date_from:
-            query += " AND p.created_at >= ?"
+            query += " AND p.created_at >= %s"
             params.append(date_from)
         if date_to:
-            query += " AND p.created_at <= ?"
+            query += " AND p.created_at <= %s"
             params.append(date_to + " 23:59:59")
 
     # Price range
     if min_price is not None:
-        query += " AND p.price >= ?"
+        query += " AND p.price >= %s"
         params.append(min_price)
     if max_price is not None:
-        query += " AND p.price <= ?"
+        query += " AND p.price <= %s"
         params.append(max_price)
 
     # Sorting
@@ -515,7 +495,10 @@ def search():
     query += " " + order_clause
 
     db = get_db()
-    products_data = db.execute(query, params).fetchall()
+    cur = db.cursor()
+    cur.execute(query, params)
+    products_data = cur.fetchall()
+    cur.close()
     db.close()
 
     # Process each product (same as home route)
@@ -541,7 +524,6 @@ def search():
     return render_template('search.html', products=products)
 
 @app.route('/logout')
-
 def logout():
     session.clear()
     flash('Logged out', 'info')
@@ -552,15 +534,16 @@ def logout():
 # ============================================================
 # Eileen's Route - Avatar image
 @app.route('/avatar-image')
-
 def avatar_image():
     """Serve avatar image from database BLOB - PERSISTENT storage"""
     if 'user_id' not in session:
         return '', 404
 
     db = get_db()
-    user = db.execute('SELECT avatar_blob FROM users WHERE id = ?',
-                      (session['user_id'],)).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT avatar_blob FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
     db.close()
 
     if user and user['avatar_blob']:
@@ -573,7 +556,6 @@ def avatar_image():
 
 # Eileen's Route - Update avatar image
 @app.route('/update-profile-avatar', methods=['POST'])
-
 def update_profile_avatar():
     """Upload avatar and store directly as BLOB in database"""
     if 'user_id' not in session:
@@ -594,9 +576,10 @@ def update_profile_avatar():
         return jsonify({'success': False, 'error': 'Image too large (max 2MB)'}), 400
 
     db = get_db()
-    db.execute('UPDATE users SET avatar_blob = ? WHERE id = ?',
-               (image_data, session['user_id']))
+    cur = db.cursor()
+    cur.execute('UPDATE users SET avatar_blob = %s WHERE id = %s', (image_data, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
@@ -604,10 +587,12 @@ def update_profile_avatar():
 
 # Added by Xingru - public route to serve avatar by user_id (for displaying other users' avatars)
 @app.route('/user-avatar/<int:user_id>')
-
 def user_avatar(user_id):
     db = get_db()
-    user = db.execute('SELECT avatar_blob FROM users WHERE id = ?', (user_id,)).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT avatar_blob FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
+    cur.close()
     db.close()
     if user and user['avatar_blob']:
         response = make_response(user['avatar_blob'])
@@ -621,15 +606,16 @@ def user_avatar(user_id):
 # ============================================================
 # Eileen's Route - Upload custom cover image
 @app.route('/cover-image')
-
 def cover_image():
     """Serve cover image from database BLOB - PERSISTENT storage"""
     if 'user_id' not in session:
         return '', 404
 
     db = get_db()
-    user = db.execute('SELECT cover_blob FROM users WHERE id = ?',
-                      (session['user_id'],)).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT cover_blob FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
     db.close()
 
     if user and user['cover_blob']:
@@ -641,7 +627,6 @@ def cover_image():
 
 
 @app.route('/update-cover', methods=['POST'])
-
 def update_cover():
     """Upload cover and store directly as BLOB in database"""
     if 'user_id' not in session:
@@ -662,9 +647,10 @@ def update_cover():
         return jsonify({'success': False, 'error': 'Image too large (max 5MB)'}), 400
 
     db = get_db()
-    db.execute('UPDATE users SET cover_blob = ? WHERE id = ?',
-               (image_data, session['user_id']))
+    cur = db.cursor()
+    cur.execute('UPDATE users SET cover_blob = %s WHERE id = %s', (image_data, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
@@ -675,7 +661,6 @@ def update_cover():
 # ============================================================
 # Eileen's Route - Save custom background image
 @app.route('/save-background-preset', methods=['POST'])
-
 def save_background_preset():
     """Save background preset (color/gradient) - PERSISTENT storage"""
     if 'user_id' not in session:
@@ -686,10 +671,12 @@ def save_background_preset():
     bg_value = data.get('bg_value')
 
     db = get_db()
-    db.execute('''
-        UPDATE users SET background_type = ?, background_value = ? WHERE id = ?
+    cur = db.cursor()
+    cur.execute('''
+        UPDATE users SET background_type = %s, background_value = %s WHERE id = %s
     ''', (bg_type, bg_value, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
@@ -697,7 +684,6 @@ def save_background_preset():
 
 # Eileen's Route - Upload custom background image
 @app.route('/upload-background', methods=['POST'])
-
 def upload_background():
     """Upload custom background image and store as data URL in database"""
     if 'user_id' not in session:
@@ -721,10 +707,12 @@ def upload_background():
     bg_value = f"data:{mime_type};base64,{base64.b64encode(image_data).decode('utf-8')}"
 
     db = get_db()
-    db.execute('''
-        UPDATE users SET background_type = ?, background_value = ? WHERE id = ?
+    cur = db.cursor()
+    cur.execute('''
+        UPDATE users SET background_type = %s, background_value = %s WHERE id = %s
     ''', ('image', bg_value, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({
@@ -734,17 +722,19 @@ def upload_background():
 
 
 @app.route('/api/user/background')
-
 def api_user_background():
     """Get user background data for cross-device sync"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
     db = get_db()
-    user = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT background_type, background_value
-        FROM users WHERE id = ?
-    ''', (session['user_id'],)).fetchone()
+        FROM users WHERE id = %s
+    ''', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
     db.close()
 
     if user:
@@ -761,13 +751,13 @@ def api_user_background():
 # ============================================================
 # Eileen's Route - Api for purchase
 @app.route('/api/user/purchases')
-
 def api_user_purchases():
     if 'user_id' not in session:
         return jsonify([])
     
     db = get_db()
-    rows = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT o.id, o.product_id, o.final_price as price, 
                o.original_price, o.status, o.meetup_location, o.created_at,
                p.name,
@@ -775,9 +765,11 @@ def api_user_purchases():
         FROM orders o
         JOIN products p ON o.product_id = p.id
         JOIN users u ON p.seller_id = u.id
-        WHERE o.buyer_id = ?
+        WHERE o.buyer_id = %s
         ORDER BY o.created_at DESC
-    ''', (session['user_id'],)).fetchall()
+    ''', (session['user_id'],))
+    rows = cur.fetchall()
+    cur.close()
     db.close()
     
     purchases = []
@@ -791,13 +783,13 @@ def api_user_purchases():
 
 # Eileen's Route - Api for listing
 @app.route('/api/user/listings')
-
 def api_user_listings():
     if 'user_id' not in session:
         return jsonify([])
     
     db = get_db()
-    rows = db.execute("""
+    cur = db.cursor()
+    cur.execute("""
         SELECT p.id, p.name, p.price, p.status, p.created_at, 
                p.images, p.images_blob,
                CASE p.category
@@ -814,9 +806,11 @@ def api_user_listings():
                END as emoji,
                (SELECT COUNT(*) FROM offers WHERE product_id = p.id AND status = 'pending') as offer_count
         FROM products p
-        WHERE p.seller_id = ?
+        WHERE p.seller_id = %s
         ORDER BY p.created_at DESC
-    """, (session['user_id'],)).fetchall()
+    """, (session['user_id'],))
+    rows = cur.fetchall()
+    cur.close()
     db.close()
     
     listings = []
@@ -846,26 +840,30 @@ def api_user_listings():
 # ============================================================
 
 @app.route('/api/product/<int:product_id>/offers')
-#get offer route by Eileen
 def get_product_offers(product_id):
     """Get all offers for a product (seller only)"""
     if 'user_id' not in session:
         return jsonify({'error': 'Not logged in'}), 401
     
     db = get_db()
+    cur = db.cursor()
     # Verify product belongs to user
-    product = db.execute('SELECT seller_id FROM products WHERE id = ?', (product_id,)).fetchone()
+    cur.execute('SELECT seller_id FROM products WHERE id = %s', (product_id,))
+    product = cur.fetchone()
     if not product or product['seller_id'] != session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'error': 'Unauthorized'}), 403
     
-    offers = db.execute('''
+    cur.execute('''
         SELECT o.*, u.username as buyer_name
         FROM offers o
         JOIN users u ON o.buyer_id = u.id
-        WHERE o.product_id = ?
+        WHERE o.product_id = %s
         ORDER BY o.created_at DESC
-    ''', (product_id,)).fetchall()
+    ''', (product_id,))
+    offers = cur.fetchall()
+    cur.close()
     db.close()
     
     # Add offer_count to product for listing display
@@ -880,24 +878,23 @@ def get_product_offers(product_id):
 
 
 @app.route('/api/product/<int:product_id>/offer-count')
-#accept get product offer route by Eileen
 def get_product_offer_count(product_id):
     """Get offer count for a product"""
     if 'user_id' not in session:
         return jsonify({'count': 0})
     
     db = get_db()
-    count = db.execute(
-        'SELECT COUNT(*) FROM offers WHERE product_id = ?',
-        (product_id,)
-    ).fetchone()[0]
+    cur = db.cursor()
+    cur.execute('SELECT COUNT(*) AS count FROM offers WHERE product_id = %s', (product_id,))
+    row = cur.fetchone()
+    count = row['count'] if row else 0
+    cur.close()
     db.close()
     
     return jsonify({'count': count})
 
 
 @app.route('/api/product/<int:product_id>/offers/send', methods=['POST'])
-#accept send offer route by Eileen
 def send_offer(product_id):
     """Send an offer for a product (buyer)"""
     if 'user_id' not in session:
@@ -911,143 +908,148 @@ def send_offer(product_id):
         return jsonify({'success': False, 'error': 'Invalid offer price'}), 400
     
     db = get_db()
+    cur = db.cursor()
     
     # Get product info
-    product = db.execute(
-        'SELECT id, name, price, seller_id FROM products WHERE id = ? AND status = "approved"',
-        (product_id,)
-    ).fetchone()
+    cur.execute('SELECT id, name, price, seller_id FROM products WHERE id = %s AND status = "approved"', (product_id,))
+    product = cur.fetchone()
     
     if not product:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Product not found'}), 404
     
     # Check if buyer is not the seller
     if product['seller_id'] == session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'You cannot make an offer on your own product'}), 400
     
     # Check if offer already exists
-    existing = db.execute(
-        'SELECT id FROM offers WHERE product_id = ? AND buyer_id = ? AND status = "pending"',
-        (product_id, session['user_id'])
-    ).fetchone()
+    cur.execute('SELECT id FROM offers WHERE product_id = %s AND buyer_id = %s AND status = "pending"', (product_id, session['user_id']))
+    existing = cur.fetchone()
     
     if existing:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'You already have a pending offer for this product'}), 400
     
     # Create offer
-    db.execute('''
+    cur.execute('''
         INSERT INTO offers (product_id, buyer_id, offer_price, original_price, message, status)
-        VALUES (?, ?, ?, ?, ?, 'pending')
+        VALUES (%s, %s, %s, %s, %s, 'pending')
     ''', (product_id, session['user_id'], float(offer_price), product['price'], message))
     
     # Create notification for seller
-    db.execute('''
+    cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, ?)
+        VALUES (%s, %s, NOW())
     ''', (product['seller_id'],
-          f"New offer of RM {float(offer_price):.2f} on your item: {product['name']}",
-          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+          f"New offer of RM {float(offer_price):.2f} on your item: {product['name']}"))
     
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True, 'message': 'Offer sent successfully'})
 
 
 @app.route('/api/offer/<int:offer_id>/accept', methods=['POST'])
-#accept offer route by Eileen
 def accept_offer(offer_id):
     """Accept an offer (seller)"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     db = get_db()
+    cur = db.cursor()
     
     # Get offer details
-    offer = db.execute('''
+    cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id, p.id as product_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = ?
-    ''', (offer_id,)).fetchone()
+        WHERE o.id = %s
+    ''', (offer_id,))
+    offer = cur.fetchone()
     
     if not offer:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     # Verify seller
     if offer['seller_id'] != session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Update offer status
-    db.execute('UPDATE offers SET status = "accepted" WHERE id = ?', (offer_id,))
+    cur.execute('UPDATE offers SET status = "accepted" WHERE id = %s', (offer_id,))
     
     # Mark product as sold
-    db.execute('UPDATE products SET status = "sold" WHERE id = ?', (offer['product_id'],))
+    cur.execute('UPDATE products SET status = "sold" WHERE id = %s', (offer['product_id'],))
     
     # Create notification for buyer
-    db.execute('''
+    cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, ?)
+        VALUES (%s, %s, NOW())
     ''', (offer['buyer_id'],
-          f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} has been accepted!",
-          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+          f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} has been accepted!"))
     
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True})
 
 
 @app.route('/api/offer/<int:offer_id>/reject', methods=['POST'])
-#accept reject route by Eileen
 def reject_offer(offer_id):
     """Reject an offer (seller)"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     db = get_db()
+    cur = db.cursor()
     
     # Get offer details
-    offer = db.execute('''
+    cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = ?
-    ''', (offer_id,)).fetchone()
+        WHERE o.id = %s
+    ''', (offer_id,))
+    offer = cur.fetchone()
     
     if not offer:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     # Verify seller
     if offer['seller_id'] != session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Update offer status
-    db.execute('UPDATE offers SET status = "rejected" WHERE id = ?', (offer_id,))
+    cur.execute('UPDATE offers SET status = "rejected" WHERE id = %s', (offer_id,))
     
     # Create notification for buyer
-    db.execute('''
+    cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, ?)
+        VALUES (%s, %s, NOW())
     ''', (offer['buyer_id'],
-          f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} was rejected.",
-          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+          f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} was rejected."))
     
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True})
 
 
 @app.route('/api/offer/<int:offer_id>/counter', methods=['POST'])
-#counter offer route by Eileen
 def counter_offer(offer_id):
     """Counter an offer (seller)"""
     if 'user_id' not in session:
@@ -1060,85 +1062,90 @@ def counter_offer(offer_id):
         return jsonify({'success': False, 'error': 'Invalid counter price'}), 400
     
     db = get_db()
+    cur = db.cursor()
     
     # Get offer details
-    offer = db.execute('''
+    cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = ?
-    ''', (offer_id,)).fetchone()
+        WHERE o.id = %s
+    ''', (offer_id,))
+    offer = cur.fetchone()
     
     if not offer:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     # Verify seller
     if offer['seller_id'] != session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Create counter offer (insert new offer or update)
-    db.execute('''
+    cur.execute('''
         UPDATE offers 
-        SET counter_price = ?, status = 'countered'
-        WHERE id = ?
+        SET counter_price = %s, status = 'countered'
+        WHERE id = %s
     ''', (float(counter_price), offer_id))
     
     # Create notification for buyer
-    db.execute('''
+    cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, ?)
+        VALUES (%s, %s, NOW())
     ''', (offer['buyer_id'],
-          f"Seller countered your offer for {offer['product_name']}: RM {float(counter_price):.2f}",
-          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+          f"Seller countered your offer for {offer['product_name']}: RM {float(counter_price):.2f}"))
     
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True})
 
 
 @app.route('/api/offer/<int:offer_id>/accept-counter', methods=['POST'])
-#accept counter offer route by Eileen
 def accept_counter_offer(offer_id):
     """Accept a counter offer (buyer)"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     db = get_db()
+    cur = db.cursor()
     
     # Get offer details
-    offer = db.execute('''
+    cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = ?
-    ''', (offer_id,)).fetchone()
+        WHERE o.id = %s
+    ''', (offer_id,))
+    offer = cur.fetchone()
     
     if not offer:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     # Verify buyer
     if offer['buyer_id'] != session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Update offer with counter price as accepted
-    db.execute('''
+    cur.execute('''
         UPDATE offers 
         SET offer_price = counter_price, status = 'accepted', counter_price = NULL
-        WHERE id = ?
+        WHERE id = %s
     ''', (offer_id,))
     
     # Mark product as sold
-    db.execute(
-    'UPDATE products SET status = "sold" WHERE id = ?',
-    (offer['product_id'],)
-    )
+    cur.execute('UPDATE products SET status = "sold" WHERE id = %s', (offer['product_id'],))
     
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True})
@@ -1148,24 +1155,20 @@ def accept_counter_offer(offer_id):
 # ============================================================
 # Eileen's Route - Get product
 @app.route('/api/product/<int:product_id>')
-
 def api_get_product(product_id):
     """Get product details for editing"""
     if 'user_id' not in session:
         return jsonify({'error': 'Not logged in'}), 401
 
     db = get_db()
-    product = db.execute('''
-        SELECT id, 
-        name, price, 
-        description, 
-        condition, 
-        category, 
-        images, 
-                         images_blob, status
+    cur = db.cursor()
+    cur.execute('''
+        SELECT id, name, price, description, condition, category, images, images_blob, status
         FROM products
-        WHERE id = ? AND seller_id = ?
-    ''', (product_id, session['user_id'])).fetchone()
+        WHERE id = %s AND seller_id = %s
+    ''', (product_id, session['user_id']))
+    product = cur.fetchone()
+    cur.close()
     db.close()
 
     if not product:
@@ -1175,7 +1178,6 @@ def api_get_product(product_id):
 
 # Eileen's Route - Update product
 @app.route('/api/product/<int:product_id>/update', methods=['PUT'])
-
 def api_update_product(product_id):
     """Update product details"""
     if 'user_id' not in session:
@@ -1201,22 +1203,24 @@ def api_update_product(product_id):
         return jsonify({'success': False, 'error': ', '.join(errors)}), 400
 
     db = get_db()
+    cur = db.cursor()
 
     # Verify product belongs to user
-    product = db.execute('SELECT id FROM products WHERE id = ? AND seller_id = ?',
-                         (product_id, session['user_id'])).fetchone()
+    cur.execute('SELECT id FROM products WHERE id = %s AND seller_id = %s', (product_id, session['user_id']))
+    product = cur.fetchone()
     if not product:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Product not found'}), 404
 
     # Update product (status becomes pending again for admin review)
-    db.execute('''
+    cur.execute('''
         UPDATE products
-        SET name = ?, 
-        price = ?, description = ?, condition = ?, category = ?, status = 'pending'
-        WHERE id = ?
+        SET name = %s, price = %s, description = %s, condition = %s, category = %s, status = 'pending'
+        WHERE id = %s
     ''', (name, price, description, condition, category, product_id))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
@@ -1225,17 +1229,18 @@ def api_update_product(product_id):
 # Eileen's route - update product full
 # ============================================================
 @app.route('/api/product/<int:product_id>/update-full', methods=['POST'])
-
 def api_update_product_full(product_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
     db = get_db()
+    cur = db.cursor()
     
     # Verify product belongs to user
-    product = db.execute('SELECT id FROM products WHERE id = ? AND seller_id = ?', 
-                         (product_id, session['user_id'])).fetchone()
+    cur.execute('SELECT id FROM products WHERE id = %s AND seller_id = %s', (product_id, session['user_id']))
+    product = cur.fetchone()
     if not product:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Product not found'}), 404
     
@@ -1257,40 +1262,36 @@ def api_update_product_full(product_id):
         return jsonify({'success': False, 'error': 'Invalid price'}), 400
     
     # Update database with images_blob
-    db.execute('''
+    cur.execute('''
         UPDATE products 
-        SET name = ?, price = ?, description = ?, condition = ?, category = ?, 
-            images_blob = ?, status = 'pending'
-        WHERE id = ?
+        SET name = %s, price = %s, description = %s, condition = %s, category = %s, 
+            images_blob = %s, status = 'pending'
+        WHERE id = %s
     ''', (name, price, description, condition, category, images_blob, product_id))
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True})
+
 # Eileen's Route - Delete product
 @app.route('/api/product/<int:product_id>/delete', methods=['DELETE'])
-
 def api_delete_product(product_id):
     """Delete a product listing"""
     if 'user_id' not in session:
-        return jsonify(
-            {'success': False, 'error': 'Not logged in'}
-        ), 401
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
     db = get_db()
+    cur = db.cursor()
 
     # Verify product belongs to user
-    product = db.execute(
-        'SELECT id, name, images FROM products '
-        'WHERE id = ? AND seller_id = ?',
-        (product_id, session['user_id'])
-    ).fetchone()
+    cur.execute('SELECT id, name, images FROM products WHERE id = %s AND seller_id = %s', (product_id, session['user_id']))
+    product = cur.fetchone()
 
     if not product:
+        cur.close()
         db.close()
-        return jsonify(
-            {'success': False, 'error': 'Product not found'}
-        ), 404
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
 
     # Delete associated images from filesystem
     if product['images']:
@@ -1303,8 +1304,9 @@ def api_delete_product(product_id):
                     pass
 
     # Delete product from database
-    db.execute('DELETE FROM products WHERE id = ?', (product_id,))
+    cur.execute('DELETE FROM products WHERE id = %s', (product_id,))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
@@ -1313,7 +1315,6 @@ def api_delete_product(product_id):
 # Eileen's Route - My profile
 # ============================================================
 @app.route('/my-profile')
-
 def my_profile():
 
     if 'user_id' not in session:
@@ -1322,30 +1323,23 @@ def my_profile():
 
     db = get_db()
     user_id = session['user_id']
+    cur = db.cursor()
 
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (user_id,)
-    ).fetchone()
+    cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
 
     if not user:
         session.clear()
         flash('User not found', 'error')
         return redirect(url_for('login'))
 
-    listing_count = db.execute(
-        'SELECT COUNT(*) FROM products WHERE seller_id = ?',
-        (user_id,)
-    ).fetchone()[0]
-
+    cur.execute('SELECT COUNT(*) AS count FROM products WHERE seller_id = %s', (user_id,))
+    listing_count = cur.fetchone()['count']
 
     sold_count = 0
     try:
-        sold_count = db.execute(
-            'SELECT COUNT(*) FROM orders '
-            'WHERE seller_id = ? AND status = "completed"',
-            (user_id,)
-        ).fetchone()[0]
+        cur.execute('SELECT COUNT(*) AS count FROM orders WHERE seller_id = %s AND status = "completed"', (user_id,))
+        sold_count = cur.fetchone()['count']
     except:
         pass
 
@@ -1365,6 +1359,7 @@ def my_profile():
     response_rate = max(response_rate, 40)
     # ========================================
 
+    cur.close()
     db.close()
 
     return render_template(
@@ -1380,21 +1375,17 @@ def my_profile():
 # Eileen's Route - Edit Profile
 # ============================================================
 @app.route('/edit_profile', methods=['GET'])
-
 def edit_profile():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     db = get_db()
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
 
-    listing_count = db.execute(
-        'SELECT COUNT(*) FROM products WHERE seller_id = ?',
-        (session['user_id'],)
-    ).fetchone()[0]
+    cur.execute('SELECT COUNT(*) AS count FROM products WHERE seller_id = %s', (session['user_id'],))
+    listing_count = cur.fetchone()['count']
 
     # 使用公共函数
     trust_score = calculate_trust_score(user, listing_count)
@@ -1417,6 +1408,7 @@ def edit_profile():
     response_rate = min(response_rate, 98)
     response_rate = max(response_rate, 40)
 
+    cur.close()
     db.close()
 
     return render_template(
@@ -1432,7 +1424,6 @@ def edit_profile():
 # Eileen's Route - Update Profile
 # ============================================================
 @app.route('/update-profile', methods=['POST'])
-
 def update_profile():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -1445,27 +1436,27 @@ def update_profile():
     active_hours = request.form.get('active_hours')
 
     db = get_db()
+    cur = db.cursor()
 
     # Check if username already taken
-    existing = db.execute(
-        'SELECT id FROM users WHERE username = ? AND id != ?',
-        (username, session['user_id'])
-    ).fetchone()
+    cur.execute('SELECT id FROM users WHERE username = %s AND id != %s', (username, session['user_id']))
+    existing = cur.fetchone()
     if existing:
+        cur.close()
         db.close()
         flash('Username already taken', 'error')
         return redirect(url_for('edit_profile'))
 
     # Update all fields
-    db.execute("""
+    cur.execute("""
         UPDATE users
-        SET username = ?, full_name = ?, bio = ?,
-            contact = ?, gender = ?, active_hours = ?
-        WHERE id = ?
-    """, (username, full_name, bio, contact, gender,
-          active_hours, session['user_id']))
+        SET username = %s, full_name = %s, bio = %s,
+            contact = %s, gender = %s, active_hours = %s
+        WHERE id = %s
+    """, (username, full_name, bio, contact, gender, active_hours, session['user_id']))
 
     db.commit()
+    cur.close()
     db.close()
 
     session['username'] = username
@@ -1477,7 +1468,6 @@ def update_profile():
 # Eileen's Route - Change Password
 # ============================================================
 @app.route('/change-password', methods=['POST'])
-
 def change_password():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -1487,32 +1477,32 @@ def change_password():
     confirm_password = request.form.get('confirm_password')
 
     db = get_db()
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
 
     if not user:
+        cur.close()
         db.close()
         flash('User not found', 'error')
         return redirect(url_for('edit_profile'))
 
     if not check_password_hash(user['password'], current_password):
+        cur.close()
         db.close()
         flash('Current password is incorrect', 'error')
         return redirect(url_for('edit_profile'))
 
     if new_password != confirm_password:
+        cur.close()
         db.close()
         flash('New passwords do not match', 'error')
         return redirect(url_for('edit_profile'))
 
     hashed = generate_password_hash(new_password)
-    db.execute(
-        'UPDATE users SET password = ? WHERE id = ?',
-        (hashed, session['user_id'])
-    )
+    cur.execute('UPDATE users SET password = %s WHERE id = %s', (hashed, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     flash('Password changed successfully!', 'success')
@@ -1523,7 +1513,6 @@ def change_password():
 # Eileen's Route - Delete Account
 # ============================================================
 @app.route('/delete-account', methods=['POST'])
-
 def delete_account():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -1536,22 +1525,22 @@ def delete_account():
         return redirect(url_for('edit_profile'))
 
     db = get_db()
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
 
     if not check_password_hash(user['password'], password):
+        cur.close()
+        db.close()
         flash('Password is incorrect', 'error')
         return redirect(url_for('edit_profile'))
 
-    db.execute('DELETE FROM products WHERE seller_id = ?', (session['user_id'],))
-    db.execute("""
-        DELETE FROM orders WHERE buyer_id = ? OR seller_id = ?
-    """, (session['user_id'], session['user_id']))
-    db.execute('DELETE FROM notifications WHERE user_id = ?', (session['user_id'],))
-    db.execute('DELETE FROM users WHERE id = ?', (session['user_id'],))
+    cur.execute('DELETE FROM products WHERE seller_id = %s', (session['user_id'],))
+    cur.execute('DELETE FROM orders WHERE buyer_id = %s OR seller_id = %s', (session['user_id'], session['user_id']))
+    cur.execute('DELETE FROM notifications WHERE user_id = %s', (session['user_id'],))
+    cur.execute('DELETE FROM users WHERE id = %s', (session['user_id'],))
     db.commit()
+    cur.close()
     db.close()
 
     session.clear()
@@ -1562,14 +1551,13 @@ def delete_account():
     response.set_cookie('remember_token', '', expires=0)
 
     flash('Your account has been permanently deleted', 'info')
-    return redirect(url_for('login'))
+    return response
 
 
 # ============================================================
 # Eileen's Route - Verify Password
 # ============================================================
 @app.route('/verify-password', methods=['POST'])
-
 def verify_password():
     if 'user_id' not in session:
         return jsonify({'valid': False}), 401
@@ -1578,10 +1566,10 @@ def verify_password():
     password = data.get('password', '')
 
     db = get_db()
-    user = db.execute(
-        'SELECT password FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT password FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
     db.close()
 
     if user and check_password_hash(user['password'], password):
@@ -1594,7 +1582,6 @@ def verify_password():
 # Eileen's Route - Forgot Password
 # ============================================================
 @app.route('/forgot-password', methods=['GET', 'POST'])
-
 def forgot_password():
     if request.method == 'POST':
         step = request.form.get('step')
@@ -1610,10 +1597,10 @@ def forgot_password():
                 return render_template('forgot_password.html')
 
             db = get_db()
-            user = db.execute(
-                'SELECT id, security_q1, security_q2 FROM users WHERE email = ?',
-                (email,)
-            ).fetchone()
+            cur = db.cursor()
+            cur.execute('SELECT id, security_q1, security_q2 FROM users WHERE email = %s', (email,))
+            user = cur.fetchone()
+            cur.close()
             db.close()
 
             if not user:
@@ -1641,10 +1628,10 @@ def forgot_password():
             a2_input = request.form.get('fp_a2', '').strip().lower()
 
             db = get_db()
-            user = db.execute(
-                'SELECT id, security_a1, security_a2 FROM users WHERE email = ?',
-                (email,)
-            ).fetchone()
+            cur = db.cursor()
+            cur.execute('SELECT id, security_a1, security_a2 FROM users WHERE email = %s', (email,))
+            user = cur.fetchone()
+            cur.close()
             db.close()
 
             if not user:
@@ -1698,11 +1685,10 @@ def forgot_password():
 
             hashed = generate_password_hash(new_password)
             db = get_db()
-            db.execute(
-                'UPDATE users SET password = ? WHERE email = ?',
-                (hashed, email)
-            )
+            cur = db.cursor()
+            cur.execute('UPDATE users SET password = %s WHERE email = %s', (hashed, email))
             db.commit()
+            cur.close()
             db.close()
 
             session.pop('fp_email', None)
@@ -1720,17 +1706,16 @@ def forgot_password():
 # Eileen's Route - Admin Login
 # ============================================================
 @app.route('/admin/login', methods=['GET', 'POST'])
-
 def admin_login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
 
         db = get_db()
-        user = db.execute(
-            'SELECT * FROM users WHERE email = ? AND is_admin = 1',
-            (email,)
-        ).fetchone()
+        cur = db.cursor()
+        cur.execute('SELECT * FROM users WHERE email = %s AND is_admin = 1', (email,))
+        user = cur.fetchone()
+        cur.close()
         db.close()
 
         if user and check_password_hash(user['password'], password):
@@ -1749,34 +1734,34 @@ def admin_login():
 # Keting's Route - Admin Dashboard
 # ============================================================
 @app.route('/admin/dashboard')
-
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
 
     db = get_db()
+    cur = db.cursor()
 
-    total_products = db.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+    cur.execute("SELECT COUNT(*) AS count FROM products")
+    total_products = cur.fetchone()['count']
 
     # Total registered users
-    total_users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    cur.execute("SELECT COUNT(*) AS count FROM users")
+    total_users = cur.fetchone()['count']
 
     # Approved products count
-    approved_count = db.execute(
-        "SELECT COUNT(*) FROM products WHERE status = 'approved'"
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(*) AS count FROM products WHERE status = 'approved'")
+    approved_count = cur.fetchone()['count']
 
     # Pending products count
-    pending_count = db.execute(
-        "SELECT COUNT(*) FROM products WHERE status = 'pending'"
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(*) AS count FROM products WHERE status = 'pending'")
+    pending_count = cur.fetchone()['count']
 
     # Active sellers count (users with at least one product)
-    seller_count = db.execute(
-        "SELECT COUNT(DISTINCT seller_id) FROM products"
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(DISTINCT seller_id) AS count FROM products")
+    seller_count = cur.fetchone()['count']
 
+    cur.close()
     db.close()
 
     return render_template("admin_dashboard.html",
@@ -1787,49 +1772,55 @@ def admin_dashboard():
 
 
 @app.route('/admin/users')
-
 def admin_users():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
 
     db = get_db()
-    users = db.execute("SELECT * FROM users").fetchall()
+    cur = db.cursor()
+    cur.execute("SELECT * FROM users")
+    users = cur.fetchall()
+    cur.close()
     db.close()
     return render_template("admin_users.html", users=users)
 
 
 @app.route('/admin/products')
-
 def admin_products():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
 
     db = get_db()
-    pending = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'pending' ORDER BY p.created_at DESC
-    ''').fetchall()
+    ''')
+    pending = cur.fetchall()
 
-    approved = db.execute('''
+    cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'approved' ORDER BY p.created_at DESC
-    ''').fetchall()
+    ''')
+    approved = cur.fetchall()
 
-    rejected = db.execute('''
+    cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'rejected' ORDER BY p.created_at DESC
-    ''').fetchall()
+    ''')
+    rejected = cur.fetchall()
     
     # Convert database rows to Python dictionaries
     pending = [dict(row) for row in pending]
     approved = [dict(row) for row in approved]
     rejected = [dict(row) for row in rejected]
 
+    cur.close()
     db.close()
 
     return render_template("admin_product.html",
@@ -1840,20 +1831,21 @@ def admin_products():
 
 # Approve product
 @app.route('/admin/product/approve/<int:pid>')
-
 def approve_product(pid):
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
         return redirect(url_for('admin_login'))
 
     db = get_db()
-    db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         UPDATE products
         SET status = 'approved', reject_reason = ''
-        WHERE id = ?
+        WHERE id = %s
     ''', (pid,))
 
     db.commit()
+    cur.close()
     db.close()
 
     flash("Product approved successfully, now visible on homepage", "success")
@@ -1862,7 +1854,6 @@ def approve_product(pid):
 
 # Reject product with reason
 @app.route('/admin/product/reject/<int:pid>', methods=['POST'])
-
 def reject_product(pid):
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
@@ -1874,13 +1865,15 @@ def reject_product(pid):
         return redirect(url_for('admin_products'))
 
     db = get_db()
-    db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         UPDATE products
-        SET status = 'rejected', reject_reason = ?
-        WHERE id = ?
+        SET status = 'rejected', reject_reason = %s
+        WHERE id = %s
     ''', (reject_reason, pid))
 
     db.commit()
+    cur.close()
     db.close()
 
     flash("Product rejected successfully", "success")
@@ -1889,18 +1882,20 @@ def reject_product(pid):
 
 # Admin API - Get product info for modal
 @app.route('/admin/api/product/<int:pid>')
-
 def admin_get_product_info(pid):
     if not session.get('admin_logged_in'):
         return {"error": "no permission"}, 403
 
     db = get_db()
-    product = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.id = ?
-    ''', (pid,)).fetchone()
+        WHERE p.id = %s
+    ''', (pid,))
+    product = cur.fetchone()
+    cur.close()
     db.close()
 
     if not product:
@@ -1911,7 +1906,6 @@ def admin_get_product_info(pid):
 
 # Freeze user for 7 days(limited 3 times)
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
-
 def freeze_7day(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
@@ -1921,17 +1915,20 @@ def freeze_7day(user_id):
     now = datetime.now()
     
     db = get_db()
+    cur = db.cursor()
     
     # Check current freeze count
-    user = db.execute('SELECT freeze_count, is_blocked FROM users WHERE id = ?',
-                      (user_id,)).fetchone()
+    cur.execute('SELECT freeze_count, is_blocked FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
     
     if not user:
+        cur.close()
         db.close()
         flash("User not found", "error")
         return redirect(url_for("admin_users"))
     
     if user['is_blocked'] == 1:
+        cur.close()
         db.close()
         flash("User is already permanently blocked", "error")
         return redirect(url_for("admin_users"))
@@ -1940,14 +1937,14 @@ def freeze_7day(user_id):
     
     if freeze_count >= 3:
         # Auto-block permanently
-        db.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = ?", (user_id,))
-        db.execute("""
+        cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = %s", (user_id,))
+        cur.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, NOW())
         """, (user_id,
-              f"Your account has been PERMANENTLY BLOCKED after 3 freezes.",
-              now.strftime("%Y-%m-%d %H:%M:%S")))
+              f"Your account has been PERMANENTLY BLOCKED after 3 freezes."))
         db.commit()
+        cur.close()
         db.close()
         flash("User has been permanently blocked after 3 freezes.", "warning")
         return redirect(url_for("admin_users"))
@@ -1956,47 +1953,47 @@ def freeze_7day(user_id):
     frozen_end_time = now + timedelta(days=7)
     time_str = frozen_end_time.strftime("%Y-%m-%d %H:%M:%S")
     
-    db.execute("""
+    cur.execute("""
         UPDATE users
         SET is_frozen = 1,
-            frozen_until = ?,
-            freeze_reason = ?,
+            frozen_until = %s,
+            freeze_reason = %s,
             freeze_count = freeze_count + 1
-        WHERE id = ?
+        WHERE id = %s
     """, (time_str, reason, user_id))
 
-    db.execute("""
+    cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, ?)
+        VALUES (%s, %s, NOW())
     """, (user_id,
           f"Your account has been frozen for 7 days (Freeze {freeze_count + 1}/3).\n"
           f"Reason: {reason}\nAuto unfreeze: {time_str}\n"
-          f"After 3 freezes, your account will be permanently blocked.",
-          now.strftime("%Y-%m-%d %H:%M:%S")))
+          f"After 3 freezes, your account will be permanently blocked."))
 
     db.commit()
+    cur.close()
     db.close()
     flash(f"User frozen for 7 days (Freeze {freeze_count + 1}/3).", "success")
     return redirect(url_for("admin_users"))
 
 # Block user permanently
 @app.route('/admin/user/<int:user_id>/block', methods=['POST'])
-
 def block_user(user_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
 
     reason = request.form.get('reason', 'No reason provided')
     db = get_db()
+    cur = db.cursor()
 
-    db.execute("UPDATE users SET is_blocked = 1 WHERE id = ?", (user_id,))
-    db.execute("""
+    cur.execute("UPDATE users SET is_blocked = 1 WHERE id = %s", (user_id,))
+    cur.execute("""
         INSERT INTO notifications (user_id, message, is_read)
-        VALUES (?, ?, 0)
-    """, (user_id, f"Your account has been PERMANENTLY blocked. "
-                   f"Reason: {reason}"))
+        VALUES (%s, %s, 0)
+    """, (user_id, f"Your account has been PERMANENTLY blocked. Reason: {reason}"))
 
     db.commit()
+    cur.close()
     db.close()
     flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
 
@@ -2004,19 +2001,20 @@ def block_user(user_id):
 
 
 @app.route("/admin/unfreeze/<int:user_id>", methods=["POST"])
-
 def unfreeze_user(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
         return redirect(url_for("admin_login"))
 
     db = get_db()
-    db.execute("""
+    cur = db.cursor()
+    cur.execute("""
         UPDATE users
         SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
-        WHERE id = ?
+        WHERE id = %s
     """, (user_id,))
     db.commit()
+    cur.close()
     db.close()
 
     flash("User has been unfrozen successfully.", "success")
@@ -2024,19 +2022,20 @@ def unfreeze_user(user_id):
 
 
 @app.route("/admin/unblock/<int:user_id>", methods=["POST"])
-
 def unblock_user(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
         return redirect(url_for("admin_login"))
 
     db = get_db()
-    db.execute("""
+    cur = db.cursor()
+    cur.execute("""
         UPDATE users
         SET is_blocked = 0
-        WHERE id = ?
+        WHERE id = %s
     """, (user_id,))
     db.commit()
+    cur.close()
     db.close()
 
     flash("User ban has been lifted successfully.", "success")
@@ -2048,7 +2047,6 @@ def unblock_user(user_id):
 # ============================================================
 # ==================== Keting's Chat Routes ====================
 @app.route('/chat/send', methods=['POST'])
-
 def chat_send():
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'})
@@ -2062,18 +2060,19 @@ def chat_send():
         return jsonify({'success': False, 'error': 'Missing data'})
 
     db = get_db()
-    db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         INSERT INTO messages (sender_id, receiver_id, product_id, content, created_at)
-        VALUES (?, ?, ?, ?, datetime('now', 'localtime'))
+        VALUES (%s, %s, %s, %s, NOW())
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, content))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
 
 
 @app.route('/chat/send-image', methods=['POST'])
-
 def chat_send_image():
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
@@ -2090,28 +2089,32 @@ def chat_send_image():
     file.save(filepath)
 
     db = get_db()
-    db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         INSERT INTO messages (sender_id, receiver_id, product_id, content, image, created_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))
+        VALUES (%s, %s, %s, %s, %s, NOW())
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, '', filename))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
 
 @app.route('/chat/<int:other_user_id>')
 @app.route('/chat/<int:other_user_id>/<int:product_id>')
-
 def chat_page(other_user_id, product_id=None):
     if 'user_id' not in session:
         flash("Please login first", "error")
         return redirect(url_for('login'))
 
     db = get_db()
+    cur = db.cursor()
     
     # 对方用户信息
-    other_user = db.execute('SELECT * FROM users WHERE id = ?', (other_user_id,)).fetchone()
+    cur.execute('SELECT * FROM users WHERE id = %s', (other_user_id,))
+    other_user = cur.fetchone()
     if not other_user:
+        cur.close()
         db.close()
         flash("User not found", "error")
         return redirect(url_for('home'))
@@ -2119,26 +2122,29 @@ def chat_page(other_user_id, product_id=None):
     # 关联商品信息
     product_info = None
     if product_id:
-        product_info = db.execute('''
+        cur.execute('''
             SELECT p.*, u.username as seller_name
             FROM products p JOIN users u ON p.seller_id = u.id
-            WHERE p.id = ?
-        ''', (product_id,)).fetchone()
+            WHERE p.id = %s
+        ''', (product_id,))
+        product_info = cur.fetchone()
 
     # 历史消息
-    messages = db.execute('''
+    cur.execute('''
         SELECT * FROM messages
-        WHERE (sender_id = ? AND receiver_id = ?)
-           OR (sender_id = ? AND receiver_id = ?)
+        WHERE (sender_id = %s AND receiver_id = %s)
+           OR (sender_id = %s AND receiver_id = %s)
         ORDER BY created_at ASC
-    ''', (session['user_id'], other_user_id, other_user_id, session['user_id'])).fetchall()
+    ''', (session['user_id'], other_user_id, other_user_id, session['user_id']))
+    messages = cur.fetchall()
 
     # 标记对方消息为已读
-    db.execute('''
+    cur.execute('''
         UPDATE messages SET is_read = 1
-        WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
+        WHERE sender_id = %s AND receiver_id = %s AND is_read = 0
     ''', (other_user_id, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     return render_template('chat_page.html',
@@ -2147,9 +2153,7 @@ def chat_page(other_user_id, product_id=None):
                            messages=messages)
 
 
-
 @app.route('/api/chat/messages/<int:other_user_id>')
-
 def chat_get_messages(other_user_id):
     if 'user_id' not in session:
         return jsonify([])
@@ -2157,21 +2161,22 @@ def chat_get_messages(other_user_id):
     since = request.args.get('since', 0, type=int)
     
     db = get_db()
-    messages = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT * FROM messages
-        WHERE ((sender_id = ? AND receiver_id = ?)
-            OR (sender_id = ? AND receiver_id = ?))
-          AND id > ?
+        WHERE ((sender_id = %s AND receiver_id = %s)
+            OR (sender_id = %s AND receiver_id = %s))
+          AND id > %s
         ORDER BY created_at ASC
-    ''', (session['user_id'], other_user_id, other_user_id, session['user_id'], since)).fetchall()
+    ''', (session['user_id'], other_user_id, other_user_id, session['user_id'], since))
+    messages = cur.fetchall()
+    cur.close()
     db.close()
 
     return jsonify([dict(row) for row in messages])
 
 
-
 @app.route('/chatlist')
-
 def chat_list():
     if 'user_id' not in session:
         flash("Please login first", "error")
@@ -2179,26 +2184,28 @@ def chat_list():
 
     db = get_db()
     user_id = session['user_id']
+    cur = db.cursor()
 
     # 用户聊天列表
-    chats = db.execute('''
+    cur.execute('''
         SELECT u.id, u.username, u.full_name, u.avatar,
                m.content as last_message, m.image as last_image,
                m.created_at as last_time,
                m.is_read, m.sender_id,
                (SELECT COUNT(*) FROM messages
-                WHERE sender_id = u.id AND receiver_id = ? AND is_read = 0) as unread_count
+                WHERE sender_id = u.id AND receiver_id = %s AND is_read = 0) as unread_count
         FROM users u
         JOIN (
-            SELECT CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_id,
+            SELECT CASE WHEN sender_id = %s THEN receiver_id ELSE sender_id END as other_id,
                    MAX(id) as max_id
             FROM messages
-            WHERE sender_id = ? OR receiver_id = ?
+            WHERE sender_id = %s OR receiver_id = %s
             GROUP BY other_id
         ) latest ON u.id = latest.other_id
         JOIN messages m ON m.id = latest.max_id
         ORDER BY m.created_at DESC
-    ''', (user_id, user_id, user_id, user_id)).fetchall()
+    ''', (user_id, user_id, user_id, user_id))
+    chats = cur.fetchall()
     
     chat_list = []
     for chat in chats:
@@ -2210,14 +2217,13 @@ def chat_list():
         chat_list.append(chat)
 
     # 未读通知数
-    unread_notifications = db.execute(
-        "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0",
-        (user_id,)
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
+    unread_notifications = cur.fetchone()['count']
 
     # 未读评论数（暂用0，评论区做完再改）
     unread_reviews = 0
     
+    cur.close()
     db.close()
 
     return render_template('user_chatlist.html', 
@@ -2227,20 +2233,21 @@ def chat_list():
 
 # 系统公告列表
 @app.route('/announcements')
-
 def announcements():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
     db = get_db()
-    anns = db.execute('SELECT * FROM announcements ORDER BY created_at DESC').fetchall()
+    cur = db.cursor()
+    cur.execute('SELECT * FROM announcements ORDER BY created_at DESC')
+    anns = cur.fetchall()
+    cur.close()
     db.close()
     return render_template('announcements.html', announcements=anns)
 
 
 # 管理员发公告
 @app.route('/admin/announcement/add', methods=['POST'])
-
 def add_announcement():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
@@ -2249,32 +2256,31 @@ def add_announcement():
     content = request.form.get('content', '').strip()
     if title and content:
         db = get_db()
-        db.execute('INSERT INTO announcements (title, content) VALUES (?, ?)', (title, content))
+        cur = db.cursor()
+        cur.execute('INSERT INTO announcements (title, content) VALUES (%s, %s)', (title, content))
         db.commit()
+        cur.close()
         db.close()
     return redirect(url_for('admin_dashboard'))
 
 
 # 导航栏未读数量 API
 @app.route('/api/unread-count')
-
 def unread_count():
     if 'user_id' not in session:
         return jsonify({'chat': 0, 'notifications': 0})
 
     user_id = session['user_id']
     db = get_db()
+    cur = db.cursor()
 
-    chat_unread = db.execute(
-        "SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0",
-        (user_id,)
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(*) AS count FROM messages WHERE receiver_id = %s AND is_read = 0", (user_id,))
+    chat_unread = cur.fetchone()['count']
 
-    notif_unread = db.execute(
-        "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0",
-        (user_id,)
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
+    notif_unread = cur.fetchone()['count']
 
+    cur.close()
     db.close()
     return jsonify({'chat': chat_unread, 'notifications': notif_unread})
 
@@ -2282,7 +2288,6 @@ def unread_count():
 # Xingru's Route - Upload Product
 # ============================================================
 @app.route('/upload', methods=['GET', 'POST'])
-
 def upload_product():
     if 'user_id' not in session:
         flash("You must be logged in to post an item.", "error")
@@ -2322,7 +2327,6 @@ def upload_product():
         except ValueError:
             errors.append("Please enter a valid price.")
 
-
         import base64
         import json
         
@@ -2332,13 +2336,9 @@ def upload_product():
         
         for file in files:
             if file and file.filename:
-
                 file_data = file.read()
-                
-
                 if len(file_data) > 10 * 1024 * 1024:
                     continue
- 
                 ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
                 mime_type = 'image/jpeg'
                 if ext in ['mp4', 'webm', 'mov']:
@@ -2370,13 +2370,13 @@ def upload_product():
         images_string = ",".join(image_filenames)
         
         db = get_db()
-        db.execute('''
-            INSERT INTO products (seller_id, name, price,
-                    description, condition, category, images, images_blob, created_at, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
-        ''', (seller_id, name, price_val, description,
-              condition, category, images_string, images_json, 'pending'))
+        cur = db.cursor()
+        cur.execute('''
+            INSERT INTO products (seller_id, name, price, description, condition, category, images, images_blob, created_at, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s)
+        ''', (seller_id, name, price_val, description, condition, category, images_string, images_json, 'pending'))
         db.commit()
+        cur.close()
         db.close()
 
         flash("Your item has been submitted for admin approval.", "success")
@@ -2389,12 +2389,17 @@ def upload_product():
 # Xingru's Route - Testing (Clear products)
 # ============================================================
 @app.route('/clear-products')
-
 def clear_products():
     db = get_db()
-    db.execute("DELETE FROM products")
-    db.execute("DELETE FROM sqlite_sequence WHERE name='products'")
+    cur = db.cursor()
+    cur.execute("DELETE FROM products")
+    # Reset sequence in PostgreSQL: ALTER SEQUENCE products_id_seq RESTART WITH 1
+    try:
+        cur.execute("ALTER SEQUENCE products_id_seq RESTART WITH 1")
+    except:
+        pass
     db.commit()
+    cur.close()
     db.close()
     return "All products deleted."
 
@@ -2403,20 +2408,22 @@ def clear_products():
 # Xingru's Route - Product Details
 # ============================================================
 @app.route('/product/<int:product_id>')
-
 def product_detail(product_id):
     if 'user_id' not in session:
         flash('Please login to view product details.', 'error')
         return redirect(url_for('login'))
 
     db = get_db()
-    product = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name,
             u.avatar_blob as seller_avatar, u.id as seller_id, u.created_at as user_joined
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.id = ? AND p.status = 'approved'
-    ''', (product_id,)).fetchone()
+        WHERE p.id = %s AND p.status = 'approved'
+    ''', (product_id,))
+    product = cur.fetchone()
+    cur.close()
     db.close()
 
     if not product:
@@ -2432,7 +2439,6 @@ def product_detail(product_id):
 # Xingru's Route - Temporary route for testing product page only
 # ============================================================
 @app.route('/user/<int:user_id>')
-
 def user_profile(user_id):
     if 'user_id' not in session:
         flash('Please login to view profiles.', 'error')
