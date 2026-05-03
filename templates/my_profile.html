@@ -270,15 +270,22 @@ function escapeHtml(str) {
 }
 
 // ============================================================
-// SHOW TOAST
+// SHOW TOAST MESSAGE (统一使用 showToastMessage，与 edit_profile 一致)
 // ============================================================
-function showToast(message, type) {
-    var toast = document.getElementById('pfToast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(function() {
-        toast.classList.remove('show');
-    }, 3000);
+function showToastMessage(message, type) {
+    // 移除已存在的 toast
+    var existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    
+    var container = document.createElement('div');
+    container.className = 'toast-container';
+    var toastDiv = document.createElement('div');
+    toastDiv.className = 'toast toast-' + type;
+    toastDiv.innerHTML = '<span>' + message + '</span>';
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    
+    setTimeout(function() { container.remove(); }, 3000);
 }
 
 // ============================================================
@@ -287,65 +294,79 @@ function showToast(message, type) {
 function loadListings() {
     var container = document.getElementById('listings-grid');
     var countSpan = document.getElementById('cnt-listings');
-    container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
+    if (!container) return;
     
+    // 定义上传链接变量，避免 Jinja2 转义问题
+    var uploadUrl = "{{ url_for('upload_product') }}";
+    
+    container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
+
     fetch('/api/user/listings', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (!data || data.length === 0) {
-                container.innerHTML = '<div class="empty-state">No listings yet</div>';
+                container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><p>You haven\'t listed any items yet</p><small><a href="' + uploadUrl + '">Click here to post your first item!</a></small></div>';
                 if (countSpan) countSpan.textContent = '0';
                 return;
             }
+
             if (countSpan) countSpan.textContent = data.length;
-            
-            var html = '';
+
+            var html = '<div class="products-grid">';
             for (var i = 0; i < data.length; i++) {
                 var item = data[i];
-                
-                var firstImage = null;
-                var isVideo = false;
-                if (item.first_image) {
-                    firstImage = item.first_image;
-                    isVideo = firstImage.startsWith('data:video') || firstImage.match(/\.(mp4|webm|mov)/i);
+                var firstImage = item.first_image || null;
+                var isVideo = item.first_image_is_video || false;
+
+                var statusClass = (item.status || 'pending').toLowerCase();
+                var statusText = item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Pending';
+                var condLabel = (item.condition || 'good').replace('_', ' ');
+                condLabel = condLabel.charAt(0).toUpperCase() + condLabel.slice(1);
+
+                var offerBtn = '';
+                if (item.status === 'approved') {
+                    offerBtn = '<button class="offer-view-btn" onclick="event.stopPropagation();viewOffers(' + item.id + ', \'' + escapeHtml(item.name).replace(/\'/g,"\\\'") + '\')">💰 Offers</button>';
                 }
-                
-                var statusText = item.status || 'Pending';
-                var statusColor = 'pending';
-                if (statusText === 'approved') { statusText = 'For Sale'; statusColor = 'active'; }
-                if (statusText === 'rejected') { statusText = 'Rejected'; statusColor = 'rejected'; }
-                if (statusText === 'sold') { statusText = 'Sold'; statusColor = 'sold'; }
-                
-                var postedDate = item.created_at ? item.created_at.split(' ')[0] : 'Recently';
-                var productUrl = '/product/' + item.id;
-                
-                html += `
-                    <div class="listing-row">
-                        <a href="${productUrl}" class="listing-row-link" target="_blank">
-                            <div class="listing-row-thumb">
-                                ${firstImage ? (isVideo ? 
-                                    `<video src="${firstImage}" style="width:100%;height:100%;object-fit:cover;"></video><span class="video-badge-thumb">🎬</span>` : 
-                                    `<img src="${firstImage}" alt="${escapeHtml(item.name)}">`) : 
-                                    `<div class="thumb-placeholder">📦</div>`}
-                            </div>
-                            <div class="listing-row-info">
-                                <div class="listing-row-name">${escapeHtml(item.name)}</div>
-                                <div class="listing-row-price">RM ${parseFloat(item.price).toFixed(2)}</div>
-                                <div class="listing-row-meta">Posted: ${escapeHtml(postedDate)}</div>
-                                <div class="listing-row-status ${statusColor}">${escapeHtml(statusText)}</div>
-                            </div>
-                        </a>
-                        <div class="listing-row-actions">
-                            <button class="edit-listing-row-btn" onclick="event.stopPropagation(); editListing(${item.id})">✏️ Edit</button>
-                            <button class="delete-listing-row-btn" onclick="event.stopPropagation(); deleteListing(${item.id}, '${escapeHtml(item.name)}')">🗑️ Delete</button>
-                        </div>
-                    </div>
-                `;
+
+                html += '<div class="product-card">';
+                html += '<a href="/product/' + item.id + '" class="product-card-link">';
+                html += '<div class="product-image-container">';
+                html += '<span class="condition-badge">' + escapeHtml(condLabel) + '</span>';
+
+                if (firstImage) {
+                    if (isVideo) {
+                        html += '<video class="product-thumb-img" src="' + escapeHtml(firstImage) + '" muted preload="metadata"></video>';
+                        html += '<span class="video-overlay-badge">🎬</span>';
+                    } else {
+                        html += '<img src="' + escapeHtml(firstImage) + '" class="product-thumb-img" alt="' + escapeHtml(item.name) + '" ' +
+                            'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+                            '<div class="carousel-placeholder" style="display:none">📦</div>';
+                    }
+                } else {
+                    html += '<div class="carousel-placeholder">📦</div>';
+                }
+
+                html += '</div>';
+                html += '<div class="product-info">';
+                html += '<div class="product-name">' + escapeHtml(item.name) + '</div>';
+                html += '<div class="product-price">RM ' + parseFloat(item.price).toFixed(2) + '</div>';
+                html += '<div class="product-status ' + statusClass + '">' + escapeHtml(statusText) + '</div>';
+                html += '</div>';
+                html += '</a>';
+
+                html += '<div class="product-actions">' +
+                    offerBtn +
+                    '<button class="edit-product-btn" onclick="editListing(' + item.id + ')">✏️ Edit</button>' +
+                    '<button class="delete-product-btn" onclick="deleteListing(' + item.id + ', \'' + escapeHtml(item.name).replace(/\'/g,"\\\'") + '\')">🗑️</button>' +
+                    '</div>';
+                html += '</div>';
             }
+            html += '</div>';
             container.innerHTML = html;
         })
-        .catch(function() {
-            container.innerHTML = '<div class="empty-state">Failed to load listings</div>';
+        .catch(function(err) {
+            console.error('Load listings error:', err);
+            container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings.<br><small>' + err.message + '</small></div>';
         });
 }
 
@@ -479,7 +500,7 @@ function closeOfferModal() {
 }
 
 function respondToOffer(offerId, action) {
-    showToast((action === 'accept' ? 'Accepting' : 'Rejecting') + ' offer...', 'info');
+    showToastMessage((action === 'accept' ? 'Accepting' : 'Rejecting') + ' offer...', 'info');
     fetch('/api/offer/' + offerId + '/' + action, {
         method: 'POST',
         credentials: 'same-origin',
@@ -488,21 +509,21 @@ function respondToOffer(offerId, action) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            showToast('Offer ' + action + 'ed successfully!', 'success');
+            showToastMessage('Offer ' + action + 'ed successfully!', 'success');
             if (currentProductId) viewOffers(currentProductId, document.getElementById('offerProductName').innerText);
             loadListings();
         } else {
             throw new Error(data.error || 'Failed to respond');
         }
     })
-    .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
+    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); });
 }
 
 function makeCounterOffer(offerId) {
     var newPrice = prompt('Enter your counter offer price (RM):', '0');
     if (!newPrice || parseFloat(newPrice) <= 0) return;
     
-    showToast('Sending counter offer...', 'info');
+    showToastMessage('Sending counter offer...', 'info');
     fetch('/api/offer/' + offerId + '/counter', {
         method: 'POST',
         credentials: 'same-origin',
@@ -512,57 +533,39 @@ function makeCounterOffer(offerId) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            showToast('Counter offer sent!', 'success');
+            showToastMessage('Counter offer sent!', 'success');
             if (currentProductId) viewOffers(currentProductId, document.getElementById('offerProductName').innerText);
         } else {
             throw new Error(data.error || 'Failed to send counter offer');
         }
     })
-    .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
+    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); });
 }
 
 function contactBuyer(buyerId) {
     window.location.href = '/chat/' + buyerId;
 }
-// ============================================================
-// EDIT PRODUCT MODAL FUNCTIONS (Images & Videos, Max 12 files)
-// ============================================================
-var currentMediaFiles = [];
-var newMediaFiles = [];
-var mediaToDelete = [];
 
+// ============================================================
+// EDIT PRODUCT MODAL FUNCTIONS - 修复版（与 edit_profile.html 完全一致）
+// ============================================================
+var currentMediaFiles = [];    // 现有媒体数组（Base64 字符串或 URL）
+var newMediaFiles = [];        // 新增的 File 对象数组
+var mediaToDelete = [];        // 标记删除的媒体索引数组
+
+// 加载商品数据用于编辑
 function editListing(productId) {
     fetch('/api/product/' + productId, { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(product) {
-            console.log('Product data:', product);
+            console.log('Product data received:', product);
             
-            // Try to get images from multiple possible fields
-            if (product.images_blob) {
-                try {
-                    currentMediaFiles = JSON.parse(product.images_blob);
-                    console.log('Loaded from images_blob:', currentMediaFiles.length);
-                } catch(e) {
-                    currentMediaFiles = [];
-                }
-            } else if (product.images) {
-                // Convert file paths to displayable format
-                var imagePaths = product.images.split(',');
-                currentMediaFiles = [];
-                for (var i = 0; i < imagePaths.length; i++) {
-                    var path = imagePaths[i];
-                    if (path) {
-                        currentMediaFiles.push('/static/uploads/' + path);
-                    }
-                }
-                console.log('Loaded from images field:', currentMediaFiles.length);
-            } else {
-                currentMediaFiles = [];
-            }
-            
+            // 重置状态
+            currentMediaFiles = [];
             newMediaFiles = [];
             mediaToDelete = [];
             
+            // 填充表单字段
             document.getElementById('edit_product_id').value = product.id;
             document.getElementById('edit_name').value = product.name;
             document.getElementById('edit_price').value = product.price;
@@ -570,21 +573,72 @@ function editListing(productId) {
             document.getElementById('edit_condition').value = product.condition || 'good';
             document.getElementById('edit_category').value = product.category || 'others';
             
+            // ========== 关键修复：优先从 images_blob 读取 Base64 数据 ==========
+            if (product.images_blob) {
+                try {
+                    // 如果是字符串，解析 JSON
+                    if (typeof product.images_blob === 'string') {
+                        var parsed = JSON.parse(product.images_blob);
+                        if (Array.isArray(parsed)) {
+                            currentMediaFiles = parsed;
+                        } else {
+                            currentMediaFiles = [parsed];
+                        }
+                    } 
+                    // 如果已经是数组
+                    else if (Array.isArray(product.images_blob)) {
+                        currentMediaFiles = product.images_blob;
+                    }
+                    // 其他情况
+                    else {
+                        currentMediaFiles = [];
+                    }
+                    console.log('Loaded from images_blob:', currentMediaFiles.length);
+                } catch(e) {
+                    console.error('Parse images_blob error:', e);
+                    // 如果不是 JSON，可能是单个 base64 字符串
+                    if (product.images_blob && typeof product.images_blob === 'string' && product.images_blob.startsWith('data:')) {
+                        currentMediaFiles = [product.images_blob];
+                    } else {
+                        currentMediaFiles = [];
+                    }
+                }
+            }
+            
+            // 备选方案：使用 images 字段（磁盘文件）
+            if (currentMediaFiles.length === 0 && product.images && typeof product.images === 'string' && product.images.trim()) {
+                var imagePaths = product.images.split(',');
+                for (var i = 0; i < imagePaths.length; i++) {
+                    var path = imagePaths[i];
+                    if (path && path.trim()) {
+                        currentMediaFiles.push('/static/uploads/' + path.trim());
+                    }
+                }
+                console.log('Loaded from images field (fallback):', currentMediaFiles.length);
+            }
+            // ================================================================
+            
+            // 渲染现有媒体
             renderExistingMedia();
             document.getElementById('new_media_preview').innerHTML = '';
             updateUploadButtonState();
-            document.getElementById('editProductModal').style.display = 'flex';
+            
+            // 显示模态框
+            var modal = document.getElementById('editProductModal');
+            if (modal) modal.style.display = 'flex';
         })
-        .catch(function(err) { 
+        .catch(function(err) {
             console.error('Error loading product:', err);
-            showToast('Failed to load product details', 'error'); 
+            showToastMessage('Failed to load product details: ' + err.message, 'error');
         });
 }
 
+// 计算总媒体数量（现有 - 删除 + 新增）
 function getTotalMediaCount() {
     return (currentMediaFiles.length - mediaToDelete.length) + newMediaFiles.length;
 }
 
+// 根据媒体数量限制更新上传按钮状态
 function updateUploadButtonState() {
     var uploadBtn = document.getElementById('uploadBtn');
     var warning = document.getElementById('mediaLimitWarning');
@@ -605,6 +659,7 @@ function updateUploadButtonState() {
     }
 }
 
+// 渲染现有媒体缩略图
 function renderExistingMedia() {
     var container = document.getElementById('existing_media_container');
     if (!container) {
@@ -612,7 +667,7 @@ function renderExistingMedia() {
         return;
     }
     
-    if (!currentMediaFiles.length) {
+    if (!currentMediaFiles || currentMediaFiles.length === 0) {
         container.innerHTML = '<p class="no-media">No media uploaded</p>';
         return;
     }
@@ -620,24 +675,44 @@ function renderExistingMedia() {
     var html = '';
     for (var i = 0; i < currentMediaFiles.length; i++) {
         var media = currentMediaFiles[i];
-        var isVideo = media.startsWith('data:video') || media.match(/\.(mp4|webm|mov|avi)$/i);
+        
+        // 检测是否为视频
+        var isVideo = false;
+        if (media) {
+            if (media.startsWith('data:video/')) {
+                isVideo = true;
+            }
+            else if (media.match(/\.(mp4|webm|mov|avi)$/i)) {
+                isVideo = true;
+            }
+        }
+        
         var isMarkedForDelete = mediaToDelete.indexOf(i) !== -1;
         
-        html += `
-            <div class="media-preview ${isMarkedForDelete ? 'marked-for-delete' : ''}" data-index="${i}">
-                ${isVideo ? 
-                    '<video src="' + media + '" style="width:100%;height:100%;object-fit:cover;"></video>' : 
-                    '<img src="' + media + '" alt="Product media" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\' viewBox=\'0 0 24 24\' fill=\'%2398948e\'%3E%3Crect width=\'24\' height=\'24\' fill=\'%23f5f3ee\'/%3E%3Ctext x=\'12\' y=\'16\' text-anchor=\'middle\' font-size=\'12\' fill=\'%2398948e\'%3E📦%3C/text%3E%3C/svg%3E\';" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\' viewBox=\'0 0 24 24\' fill=\'%2398948e\'%3E%3Crect width=\'24\' height=\'24\' fill=\'%23f5f3ee\'/%3E%3Ctext x=\'12\' y=\'16\' text-anchor=\'middle\' font-size=\'12\' fill=\'%2398948e\'%3E📦%3C/text%3E%3C/svg%3E\';">'}
-                <button type="button" class="remove-media-btn" onclick="toggleMediaDeletion(${i})">
-                    ${isMarkedForDelete ? '↩️' : '✕'}
-                </button>
-                ${isVideo ? '<span class="video-badge">🎬</span>' : ''}
-            </div>
-        `;
+        html += '<div class="media-preview ' + (isMarkedForDelete ? 'marked-for-delete' : '') + '" data-index="' + i + '">';
+        
+        if (isVideo) {
+            html += '<video controls preload="metadata" style="width:100%;height:100%;object-fit:cover;">';
+            html += '<source src="' + media + '">';
+            html += '</video>';
+        } else {
+            html += '<img src="' + media + '" alt="Product media" style="width:100%;height:100%;object-fit:cover;" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'100\\\' height=\\\'100\\\' viewBox=\\\'0 0 100 100\\\'%3E%3Crect width=\\\'100\\\' height=\\\'100\\\' fill=\\\'%23f0f0f0\\\'/%3E%3Ctext x=\\\'50\\\' y=\\\'55\\\' text-anchor=\\\'middle\\\' fill=\\\'%23999\\\'%3E📷%3C/text%3E%3C/svg%3E\';">';
+        }
+        
+        html += '<button type="button" class="remove-media-btn" onclick="toggleMediaDeletion(' + i + ')">';
+        html += isMarkedForDelete ? '↩️' : '✕';
+        html += '</button>';
+        
+        if (isVideo) {
+            html += '<span class="video-badge">🎬</span>';
+        }
+        
+        html += '</div>';
     }
     container.innerHTML = html;
 }
 
+// 标记/取消标记媒体删除
 function toggleMediaDeletion(index) {
     var idx = mediaToDelete.indexOf(index);
     if (idx !== -1) {
@@ -649,113 +724,189 @@ function toggleMediaDeletion(index) {
     updateUploadButtonState();
 }
 
+// 预览新选择的媒体文件
 function previewNewMedia(input) {
     var preview = document.getElementById('new_media_preview');
     var files = Array.from(input.files);
-    var remainingSlots = MAX_MEDIA_FILES - getTotalMediaCount();
-    
-    if (files.length > remainingSlots) {
-        showToast('You can only add ' + remainingSlots + ' more file(s). Max ' + MAX_MEDIA_FILES + ' total.', 'error');
-        input.value = '';
-        return;
-    }
-    
+    var addedCount = 0;
+    var skippedDuplicate = 0;
+    var skippedSlot = 0;
+
     for (var i = 0; i < files.length; i++) {
         var file = files[i];
+
+        // 检查剩余槽位（每次迭代重新计算，因为 addedCount 在增长）
+        var remainingSlots = MAX_MEDIA_FILES - getTotalMediaCount() - addedCount;
+        if (remainingSlots <= 0) {
+            skippedSlot++;
+            continue;
+        }
+
+        // 验证文件格式
         if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-            showToast(file.name + ' is not a supported format', 'error');
+            showToastMessage(file.name + ' is not a supported format', 'error');
             continue;
         }
-        
-        var maxSize = 10 * 1024 * 1024;
+
+        // 验证文件大小（最大 50MB）
+        var maxSize = 50 * 1024 * 1024;
         if (file.size > maxSize) {
-            showToast(file.name + ' is too large (max 10MB)', 'error');
+            showToastMessage(file.name + ' is too large (max 50MB)', 'error');
             continue;
         }
-        
+
+        // 重复检测：相同名称 + 大小
+        var isDuplicate = false;
+        for (var d = 0; d < newMediaFiles.length; d++) {
+            if (newMediaFiles[d].name === file.name && newMediaFiles[d].size === file.size) {
+                isDuplicate = true;
+                break;
+            }
+        }
+        if (isDuplicate) {
+            skippedDuplicate++;
+            continue;
+        }
+
         newMediaFiles.push(file);
+        addedCount++;
+
         var reader = new FileReader();
         reader.onload = (function(f, filename) {
             return function(e) {
                 var div = document.createElement('div');
                 div.className = 'media-preview new';
                 var isVideo = f.type.startsWith('video/');
-                
+
                 if (isVideo) {
-                    div.innerHTML = `
-                        <video src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;"></video>
-                        <button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, '${filename}')">✕</button>
-                        <span class="video-badge">🎬</span>
-                    `;
+                    div.innerHTML = '<video src="' + e.target.result + '" controls preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>' +
+                        '<button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, \'' + filename + '\')">✕</button>' +
+                        '<span class="video-badge">🎬</span>';
                 } else {
-                    div.innerHTML = `
-                        <img src="${e.target.result}" alt="Preview">
-                        <button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, '${filename}')">✕</button>
-                    `;
+                    div.innerHTML = '<img src="' + e.target.result + '" alt="Preview">' +
+                        '<button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, \'' + filename + '\')">✕</button>';
                 }
                 preview.appendChild(div);
             };
         })(file, file.name);
         reader.readAsDataURL(file);
     }
+
     input.value = '';
+
+    if (skippedDuplicate > 0) {
+        showToastMessage(skippedDuplicate + ' duplicate file(s) skipped.', 'error');
+    }
+    if (skippedSlot > 0) {
+        showToastMessage('Max ' + MAX_MEDIA_FILES + ' media files reached. ' + skippedSlot + ' file(s) not added.', 'error');
+    }
+
     updateUploadButtonState();
 }
 
+// 移除新添加的媒体项
 function removeNewMediaItem(btn, filename) {
     var container = btn.closest('.media-preview');
     if (container) container.remove();
-    var index = -1;
+    // 按名称移除第一个匹配项
     for (var i = 0; i < newMediaFiles.length; i++) {
         if (newMediaFiles[i].name === filename) {
-            index = i;
+            newMediaFiles.splice(i, 1);
             break;
         }
     }
-    if (index !== -1) newMediaFiles.splice(index, 1);
     updateUploadButtonState();
 }
 
+// 保存商品修改 - 核心函数（与 edit_profile.html 完全一致）
 function saveProductChanges(event) {
     event.preventDefault();
     var id = document.getElementById('edit_product_id').value;
     
-    // Keep media that are NOT marked for deletion
+    if (!id) {
+        showToastMessage('Product ID missing', 'error');
+        return;
+    }
+    
+    // 收集未被删除的现有媒体（保留的）
     var remainingMedia = [];
     for (var i = 0; i < currentMediaFiles.length; i++) {
         if (mediaToDelete.indexOf(i) === -1) {
             remainingMedia.push(currentMediaFiles[i]);
         }
     }
+    
     var totalAfterSave = remainingMedia.length + newMediaFiles.length;
     
     if (totalAfterSave > MAX_MEDIA_FILES) {
-        showToast('Maximum ' + MAX_MEDIA_FILES + ' media files allowed. Current: ' + totalAfterSave, 'error');
+        showToastMessage('Maximum ' + MAX_MEDIA_FILES + ' media files allowed. Current: ' + totalAfterSave, 'error');
         return;
     }
     
     if (totalAfterSave === 0) {
-        showToast('Please add at least one photo or video', 'error');
+        showToastMessage('Please add at least one photo or video', 'error');
         return;
     }
     
-    showToast('Updating product...', 'info');
+    showToastMessage('Updating product...', 'info');
     
-    // Convert new files to base64
-    var uploadPromises = [];
-    for (var i = 0; i < newMediaFiles.length; i++) {
-        var file = newMediaFiles[i];
-        var promise = new Promise(function(resolve) {
-            var reader = new FileReader();
-            reader.onload = function(e) { resolve(e.target.result); };
-            reader.readAsDataURL(file);
+    // 将所有新文件转换为 Base64
+    if (newMediaFiles.length > 0) {
+        var uploadPromises = [];
+        for (var i = 0; i < newMediaFiles.length; i++) {
+            var file = newMediaFiles[i];
+            var promise = new Promise(function(resolve) {
+                var reader = new FileReader();
+                reader.onload = function(e) { resolve(e.target.result); };
+                reader.readAsDataURL(file);
+            });
+            uploadPromises.push(promise);
+        }
+        
+        Promise.all(uploadPromises).then(function(newBase64Media) {
+            // 合并保留的媒体和新媒体
+            var allMedia = remainingMedia.concat(newBase64Media);
+            var imagesBlobJson = JSON.stringify(allMedia);
+            
+            // 获取表单数据
+            var name = document.getElementById('edit_name').value;
+            var price = document.getElementById('edit_price').value;
+            var description = document.getElementById('edit_description').value;
+            var condition = document.getElementById('edit_condition').value;
+            var category = document.getElementById('edit_category').value;
+            
+            // 发送到后端
+            var fd = new FormData();
+            fd.append('name', name);
+            fd.append('price', price);
+            fd.append('description', description);
+            fd.append('condition', condition);
+            fd.append('category', category);
+            fd.append('images_blob', imagesBlobJson);
+            
+            fetch('/api/product/' + id + '/update-full', {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin'
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    showToastMessage('Product updated successfully!', 'success');
+                    closeEditModal();
+                    loadListings();  // 刷新列表
+                } else {
+                    throw new Error(data.error || 'Update failed');
+                }
+            })
+            .catch(function(err) {
+                console.error('Save error:', err);
+                showToastMessage('Failed to update: ' + err.message, 'error');
+            });
         });
-        uploadPromises.push(promise);
-    }
-    
-    Promise.all(uploadPromises).then(function(newBase64Media) {
-        var allMedia = remainingMedia.concat(newBase64Media);
-        var imagesBlobJson = JSON.stringify(allMedia);
+    } else {
+        // 没有新文件，直接保存现有媒体
+        var imagesBlobJson = JSON.stringify(remainingMedia);
         
         var fd = new FormData();
         fd.append('name', document.getElementById('edit_name').value);
@@ -765,34 +916,52 @@ function saveProductChanges(event) {
         fd.append('category', document.getElementById('edit_category').value);
         fd.append('images_blob', imagesBlobJson);
         
-        fetch('/api/product/' + id + '/update-full', { 
-            method: 'POST', 
-            body: fd, 
-            credentials: 'same-origin' 
+        fetch('/api/product/' + id + '/update-full', {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin'
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) {
-                showToast('Product updated successfully!', 'success');
+                showToastMessage('Product updated successfully!', 'success');
                 closeEditModal();
-                loadListings();
+                loadListings();  // 刷新列表
             } else {
                 throw new Error(data.error || 'Update failed');
             }
         })
-        .catch(function(err) { 
+        .catch(function(err) {
             console.error('Save error:', err);
-            showToast('Failed to update: ' + err.message, 'error'); 
+            showToastMessage('Failed to update: ' + err.message, 'error');
         });
-    });
+    }
 }
 
+// 关闭编辑模态框并重置状态
 function closeEditModal() {
     var modal = document.getElementById('editProductModal');
     if (modal) modal.style.display = 'none';
     currentMediaFiles = [];
     newMediaFiles = [];
     mediaToDelete = [];
+}
+
+// 删除商品
+function deleteListing(id, name) {
+    if (confirm('Are you sure you want to delete "' + name + '"? This cannot be undone.')) {
+        fetch('/api/product/' + id + '/delete', { method: 'DELETE', credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    showToastMessage('"' + name + '" deleted', 'success');
+                    loadListings();
+                } else {
+                    throw new Error(data.error);
+                }
+            })
+            .catch(function() { showToastMessage('Failed to delete', 'error'); });
+    }
 }
 
 // ============================================================

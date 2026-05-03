@@ -29,44 +29,54 @@
             </div>
         </div>
         
-          {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        <div class="toast-container">
-            {% for category, message in messages %}
-                <div class="toast toast-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
-{% endwith %}
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="toast-container">
+                    {% for category, message in messages %}
+                        <div class="toast toast-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
 
         <!-- Right Column: Form -->
-            <div class="auth-right">
-            <form method="POST" action="{{ url_for('admin_login') }}" id="admin-login-form">
+        <div class="auth-right">
+            <form method="POST" action="{{ url_for('admin_login') }}" id="admin-login-form" autocomplete="on">
                 <h2>🔑 Admin Portal</h2>
                 <p class="form-sub">Welcome back, administrator!</p>
 
                 <div class="info-box">
                     <span class="info-ic">⚠️</span>
-                    <span>This portal is for E-bye system administrators only. Only @student.mmu.edu.my accounts flagged as admin can log in here..</span>
+                    <span>This portal is for E-bye system administrators only. Only @student.mmu.edu.my accounts flagged as admin can log in here.</span>
                 </div>
 
                 <div class="form-group">
                     <label>Admin Email</label>
-                    <input type="email" name="email" id="admin-email" placeholder="admin@student.mmu.edu.my" required>
+                    <input type="email" name="email" id="admin-email" placeholder="admin@student.mmu.edu.my" required autocomplete="username">
                     <div class="form-error" id="admin-email-error" style="display: none;"></div>
                 </div>
 
                 <div class="form-group">
                     <label>Password</label>
                     <div class="input-wrap">
-                    <input type="password" name="password" id="admin-password" placeholder="Enter your password" required>
-                    <button type="button" class="eye-btn" onclick="toggleAdminPassword(this)">👀</button>
+                        <input type="password" name="password" id="admin-password" placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button" class="eye-btn" onclick="toggleAdminPassword(this)">👀</button>
+                    </div>
+                    <div class="form-error" id="admin-password-error" style="display: none;"></div>
                 </div>
-                    <div class="form-error" id="admin-password-error"></div>
+
+                <!-- Remember Me Checkbox -->
+                <div class="form-options">
+                    <div class="remember-me">
+                        <input type="checkbox" name="remember_me" id="remember_me" autocomplete="off">
+                        <label for="remember_me">Remember me</label>
+                    </div>
                 </div>
+
                 <button type="submit" class="btn-login">Admin Login</button>
                 <p class="switch-link">
-                    <a href="{{ url_for('login') }}">←Back to User Login</a>
+                    <a href="{{ url_for('login') }}">← Back to User Login</a>
                 </p>
             </form>
         </div>
@@ -74,29 +84,30 @@
 </div>
 
 <script>
-    function toggleAdminPassword(btn)  {
-      const input = document.getElementById('admin-password');
-      if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = '🫣';
-      } else {
-        input.type = 'password';
-        btn.textContent = '👀';
-      }
-    }
-
-    function showAdminError(field, message) {
-    const errorDiv = document.getElementById(`admin-${field}-error`);
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        const input = document.getElementById(`admin-${field}`);
-        if (input) {
-            input.classList.add('field-error');
+    // Toggle password visibility
+    function toggleAdminPassword(btn) {
+        const input = document.getElementById('admin-password');
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = '🫣';
+        } else {
+            input.type = 'password';
+            btn.textContent = '👀';
         }
-      }
     }
 
+    // Display error message
+    function showAdminError(field, message) {
+        const errorDiv = document.getElementById(`admin-${field}-error`);
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            const input = document.getElementById(`admin-${field}`);
+            if (input) input.classList.add('field-error');
+        }
+    }
+
+    // Clear error message
     function clearAdminError(field) {
         const errorDiv = document.getElementById(`admin-${field}-error`);
         if (errorDiv) errorDiv.style.display = 'none';
@@ -104,6 +115,50 @@
         if (input) input.classList.remove('field-error');
     }
 
+    // Save admin credentials to localStorage
+    function saveAdminCredentials(email, password) {
+        try {
+            localStorage.setItem('adminSavedEmail', email);
+            localStorage.setItem('adminSavedPassword', password);
+            localStorage.setItem('adminSavedTimestamp', Date.now().toString());
+            console.log('✅ Admin credentials saved to localStorage');
+        } catch (e) {
+            console.error('Failed to save admin credentials:', e);
+        }
+    }
+
+    // Clear admin credentials from localStorage
+    function clearAdminCredentials() {
+        localStorage.removeItem('adminSavedEmail');
+        localStorage.removeItem('adminSavedPassword');
+        localStorage.removeItem('adminSavedTimestamp');
+        console.log('🗑️ Admin credentials cleared from localStorage');
+    }
+
+    // Load admin credentials from localStorage
+    function loadAdminCredentials() {
+        const savedEmail = localStorage.getItem('adminSavedEmail');
+        const savedPassword = localStorage.getItem('adminSavedPassword');
+        const rememberCheckbox = document.getElementById('remember_me');
+        
+        if (savedEmail && savedPassword) {
+            document.getElementById('admin-email').value = savedEmail;
+            document.getElementById('admin-password').value = savedPassword;
+            if (rememberCheckbox) {
+                rememberCheckbox.checked = true;
+            }
+            console.log('✅ Admin credentials loaded and filled');
+            return true;
+        }
+        return false;
+    }
+
+    // Load credentials on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAdminCredentials();
+    });
+
+    // Clear errors on input
     document.getElementById('admin-email').addEventListener('input', function() {
         clearAdminError('email');
     });
@@ -111,14 +166,18 @@
         clearAdminError('password');
     });
 
-     document.getElementById('admin-login-form').addEventListener('submit', function(event) {
+    // Handle form submission
+    document.getElementById('admin-login-form').addEventListener('submit', function(event) {
         const email = document.getElementById('admin-email').value;
         const password = document.getElementById('admin-password').value;
+        const rememberMe = document.getElementById('remember_me')?.checked || false;
         let hasError = false;
 
+        // Reset errors
         document.querySelectorAll('.form-error').forEach(el => el.style.display = 'none');
         document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
 
+        // Validate email
         if (!email) {
             showAdminError('email', 'Email address is required.');
             hasError = true;
@@ -127,13 +186,25 @@
             hasError = true;
         }
 
+        // Validate password
         if (!password) {
             showAdminError('password', 'Password is required.');
             hasError = true;
         }
 
+        // Save or clear credentials
+        if (!hasError) {
+            if (rememberMe) {
+                saveAdminCredentials(email, password);
+            } else {
+                clearAdminCredentials();
+            }
+        }
+
         if (hasError) {
             event.preventDefault();
+        } else {
+            console.log('📤 Admin form submitting with rememberMe =', rememberMe);
         }
     });
 </script>

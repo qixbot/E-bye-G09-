@@ -20,6 +20,9 @@ from database import init_db, get_db, init_products, init_messages, init_announc
 
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026-new'
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024      # 100MB max upload size
+app.config['MAX_FORM_MEMORY_SIZE'] = 100 * 1024 * 1024    # Fix: allow large base64 form fields (Werkzeug >=3.0 default is only 500KB)
+app.config['MAX_FORM_PARTS'] = 1000                        # Fix: allow many form parts
 
 # ============================================================
 # Helper function for emoji (was missing)
@@ -226,10 +229,17 @@ def check_remember_me():
         return
     
     db = get_db()
+<<<<<<< HEAD
     cur = db.cursor()
     cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = %s', (token,))
     user = cur.fetchone()
     cur.close()
+=======
+    user = db.execute(
+        'SELECT id, username, student_id, is_admin FROM users WHERE remember_token = ?',
+        (token,)
+    ).fetchone()
+>>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
     db.close()
     
     if user:
@@ -237,6 +247,7 @@ def check_remember_me():
         session['username'] = user['username']
         session['student_id'] = user['student_id']
         print(f"Auto-logged in user: {user['username']}")
+
 
 # ============================================================
 # Eileen's Route - Register
@@ -356,7 +367,12 @@ def home():
     cur.execute('''
         SELECT p.*, 
         u.username as seller_name, 
+<<<<<<< HEAD
         u.full_name as seller_full_name, u.id as seller_id
+=======
+        u.full_name as seller_full_name, u.id as seller_id,
+        COALESCE(json_array_length(p.images_blob), 0) as blob_count
+>>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'approved'
@@ -369,26 +385,55 @@ def home():
     products = []
     for row in products_data:
         product = dict(row)
-        images_str = product.get('images', '')
-        if images_str:
-            img_list = images_str.split(',')
-            # Filter only image files for carousel (max 3)
-            image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
-            image_only = []
-            for f in img_list:
-                f = f.strip()
-                ext = f.split('.')[-1].lower()
-                if ext in image_extensions:
-                    image_only.append(f)
-            product['images_list'] = image_only[:3]
-            product['actual_total'] = len(img_list)
-            product['image_1'] = image_only[0] if len(image_only) > 0 else None
-            product['image_2'] = image_only[1] if len(image_only) > 1 else None
+
+        # Use SQL-computed blob_count to avoid parsing full base64 JSON
+        blob_count = product.get('blob_count', 0) or 0
+        images_blob = product.get('images_blob', '')
+
+        blob_list = []
+        if blob_count == 0 and images_blob:
+            # Fallback: parse to verify (handles older SQLite without json_array_length)
+            try:
+                import json as _json
+                if isinstance(images_blob, str):
+                    blob_list = _json.loads(images_blob)
+                elif isinstance(images_blob, list):
+                    blob_list = images_blob
+                blob_count = len(blob_list)
+            except Exception as e:
+                print(f"Error parsing blob: {e}")
+                blob_count = 0
+
+        if blob_count > 0:
+            # Use URL endpoints — no base64 in HTML, loads fast
+            product['images_list'] = [f"/api/product-image/{product['id']}/{i}"
+                                      for i in range(min(3, blob_count))]
+            product['actual_total'] = blob_count
+            product['image_1'] = f"/api/product-image/{product['id']}/0"
+            product['image_2'] = f"/api/product-image/{product['id']}/1" if blob_count > 1 else None
         else:
-            product['images_list'] = []
-            product['actual_total'] = 0
-            product['image_1'] = None
-            product['image_2'] = None
+            # Fallback to disk files
+            images_str = product.get('images', '')
+            if images_str:
+                img_list = images_str.split(',')
+                image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
+                image_only = []
+                for f in img_list:
+                    f = f.strip()
+                    if f:
+                        ext = f.split('.')[-1].lower() if '.' in f else ''
+                        if ext in image_extensions:
+                            image_only.append('/static/uploads/' + f)
+                product['images_list'] = image_only[:3]
+                product['actual_total'] = len(img_list)
+                product['image_1'] = image_only[0] if image_only else None
+                product['image_2'] = image_only[1] if len(image_only) > 1 else None
+            else:
+                product['images_list'] = []
+                product['actual_total'] = 0
+                product['image_1'] = None
+                product['image_2'] = None
+        
         products.append(product)
 
     return render_template('home.html',
@@ -506,10 +551,27 @@ def search():
     for row in products_data:
         product = dict(row)
         images_str = product.get('images', '')
-        if images_str:
+        images_blob = product.get('images_blob', '')
+
+        blob_list = []
+        if images_blob:
+            try:
+                import json as _json
+                blob_list = _json.loads(images_blob)
+            except Exception:
+                blob_list = []
+
+        if blob_list:
+            product['images_list'] = [f"/api/product-image/{product['id']}/{i}"
+                                      for i in range(min(3, len(blob_list)))]
+            product['actual_total'] = len(blob_list)
+            product['image_1'] = f"/api/product-image/{product['id']}/0"
+            product['image_2'] = f"/api/product-image/{product['id']}/1" if len(blob_list) > 1 else None
+        elif images_str:
             img_list = images_str.split(',')
             image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
-            image_only = [f for f in img_list if f.split('.')[-1].lower() in image_extensions]
+            image_only = ['/static/uploads/' + f.strip() for f in img_list
+                          if f.strip().split('.')[-1].lower() in image_extensions]
             product['images_list'] = image_only[:3]
             product['actual_total'] = len(img_list)
             product['image_1'] = image_only[0] if image_only else None
@@ -784,14 +846,17 @@ def api_user_purchases():
 # Eileen's Route - Api for listing
 @app.route('/api/user/listings')
 def api_user_listings():
+    """Get user's product listings with first image from blob or disk"""
     if 'user_id' not in session:
         return jsonify([])
     
+    import json as _json
+
     db = get_db()
     cur = db.cursor()
     cur.execute("""
         SELECT p.id, p.name, p.price, p.status, p.created_at, 
-               p.images, p.images_blob,
+               p.images, p.images_blob, p.condition,
                CASE p.category
                    WHEN 'books' THEN '📚'
                    WHEN 'gadgets' THEN '💻'
@@ -803,8 +868,7 @@ def api_user_listings():
                    WHEN 'stationery' THEN '✏️'
                    WHEN 'music' THEN '🎸'
                    ELSE '📦'
-               END as emoji,
-               (SELECT COUNT(*) FROM offers WHERE product_id = p.id AND status = 'pending') as offer_count
+               END as emoji
         FROM products p
         WHERE p.seller_id = %s
         ORDER BY p.created_at DESC
@@ -814,23 +878,39 @@ def api_user_listings():
     db.close()
     
     listings = []
+    
     for row in rows:
         item = dict(row)
-        if item.get('images_blob'):
+        first_image = None
+        is_video = False
+
+        # Priority 1: Use images_blob (base64) - most reliable source
+        images_blob = item.get('images_blob')
+        if images_blob:
             try:
-                import json
-                images = json.loads(item['images_blob'])
-                if images and len(images) > 0:
-                    item['first_image'] = images[0]
-                else:
-                    item['first_image'] = None
-            except:
-                item['first_image'] = None
-        elif item.get('images'):
-            img_list = item['images'].split(',')
-            item['first_image'] = img_list[0] if img_list else None
-        else:
-            item['first_image'] = None
+                blob_list = _json.loads(images_blob) if isinstance(images_blob, str) else images_blob
+                if isinstance(blob_list, list) and len(blob_list) > 0:
+                    first_blob = blob_list[0]
+                    if isinstance(first_blob, str) and first_blob.startswith('data:'):
+                        first_image = first_blob
+                        is_video = first_blob.startswith('data:video/')
+            except Exception as e:
+                print(f"Error parsing images_blob for listing: {e}")
+
+        # Priority 2: Fallback to disk files
+        if not first_image and item.get('images'):
+            img_str = item['images']
+            if img_str:
+                img_list = [x.strip() for x in img_str.split(',') if x.strip()]
+                if img_list:
+                    first_image = '/static/uploads/' + img_list[0]
+                    ext = img_list[0].split('.')[-1].lower()
+                    is_video = ext in ['mp4', 'webm', 'mov', 'avi', 'mkv']
+
+        # Remove heavy blob from response to keep it lightweight
+        item.pop('images_blob', None)
+        item['first_image'] = first_image
+        item['first_image_is_video'] = is_video
         listings.append(item)
     
     return jsonify(listings)
@@ -1161,9 +1241,15 @@ def api_get_product(product_id):
         return jsonify({'error': 'Not logged in'}), 401
 
     db = get_db()
+<<<<<<< HEAD
     cur = db.cursor()
     cur.execute('''
         SELECT id, name, price, description, condition, category, images, images_blob, status
+=======
+    product = db.execute('''
+        SELECT id, name, price, description, condition, category, 
+               images, images_blob, status
+>>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
         FROM products
         WHERE id = %s AND seller_id = %s
     ''', (product_id, session['user_id']))
@@ -1174,10 +1260,78 @@ def api_get_product(product_id):
     if not product:
         return jsonify({'error': 'Product not found'}), 404
 
-    return jsonify(dict(product))
+    import json as _json
+    result = dict(product)
 
+    # Normalize images_blob → always a JSON string (list of base64 data URIs)
+    blob = result.get('images_blob')
+    if blob:
+        try:
+            parsed = _json.loads(blob) if isinstance(blob, str) else blob
+            if isinstance(parsed, list):
+                result['images_blob'] = _json.dumps(parsed)
+            elif isinstance(parsed, str) and parsed.startswith('data:'):
+                result['images_blob'] = _json.dumps([parsed])
+            else:
+                result['images_blob'] = None
+        except Exception:
+            result['images_blob'] = None
+    else:
+        result['images_blob'] = None
+
+    return jsonify(result)
+
+# ============================================================
+# Serve individual product image by product_id + index
+# Used by _product_card.html so we don't embed base64 in HTML attrs
+# ============================================================
+@app.route('/api/product-image/<int:product_id>/<int:index>')
+def api_product_image(product_id, index):
+    """Serve a single product image as binary (avoids putting base64 in HTML)"""
+    import json as _json
+    db = get_db()
+    row = db.execute('SELECT images_blob, images FROM products WHERE id = ?',
+                     (product_id,)).fetchone()
+    db.close()
+
+    if not row:
+        return '', 404
+
+    # Try images_blob first
+    if row['images_blob']:
+        try:
+            blob_list = _json.loads(row['images_blob'])
+            if isinstance(blob_list, list) and index < len(blob_list):
+                data_uri = blob_list[index]
+                if isinstance(data_uri, str) and data_uri.startswith('data:'):
+                    header, b64data = data_uri.split(',', 1)
+                    mime_type = header.split(';')[0].split(':')[1]
+                    img_bytes = base64.b64decode(b64data)
+                    response = make_response(img_bytes)
+                    response.headers.set('Content-Type', mime_type)
+                    response.headers.set('Cache-Control', 'public, max-age=86400')
+                    return response
+        except Exception:
+            pass
+
+    # Fallback: disk file
+    if row['images'] and index == 0:
+        parts = [p.strip() for p in row['images'].split(',') if p.strip()]
+        if parts:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], parts[0])
+            if os.path.exists(filepath):
+                from flask import send_file
+                return send_file(filepath)
+
+    return '', 404
+
+
+<<<<<<< HEAD
 # Eileen's Route - Update product
 @app.route('/api/product/<int:product_id>/update', methods=['PUT'])
+=======
+
+>>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
 def api_update_product(product_id):
     """Update product details"""
     if 'user_id' not in session:
@@ -1231,31 +1385,123 @@ def api_update_product(product_id):
 @app.route('/api/product/<int:product_id>/update-full', methods=['POST'])
 def api_update_product_full(product_id):
     if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+        return jsonify({'success': False, 'error': 'Session expired. Please login again.'}), 401
 
     db = get_db()
+<<<<<<< HEAD
     cur = db.cursor()
     
     # Verify product belongs to user
     cur.execute('SELECT id FROM products WHERE id = %s AND seller_id = %s', (product_id, session['user_id']))
     product = cur.fetchone()
+=======
+    product = db.execute('SELECT id, images FROM products WHERE id = ? AND seller_id = ?',
+                         (product_id, session['user_id'])).fetchone()
     if not product:
-        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Product not found'}), 404
-    
-    # Get form data
+
     name = request.form.get('name', '').strip()
     price = request.form.get('price', 0)
     description = request.form.get('description', '').strip()
     condition = request.form.get('condition', '')
     category = request.form.get('category', '')
-    images_blob = request.form.get('images_blob', '[]')
-    
-    # Validation
+    images_blob_json = request.form.get('images_blob', '')   # ✅ 关键：接收前端传来的 Base64 数组 JSON
+
     if not name or not price or not description:
         return jsonify({'success': False, 'error': 'Name, price and description required'}), 400
+
+    try:
+        price = float(price)
+    except:
+        return jsonify({'success': False, 'error': 'Invalid price'}), 400
+
+    # ── Server-side media count limit ──
+    import json, base64, uuid
+    MAX_MEDIA = 12
+    if images_blob_json:
+        try:
+            blob_check = json.loads(images_blob_json)
+            if isinstance(blob_check, list) and len(blob_check) > MAX_MEDIA:
+                return jsonify({'success': False,
+                                'error': f'Maximum {MAX_MEDIA} media files allowed.'}), 400
+        except Exception:
+            pass
+
+    # 处理 Base64 数据并保存到磁盘（用于 product_detail 页面）
+    saved_filenames = []
+
+    if images_blob_json:
+        try:
+            blob_list = json.loads(images_blob_json)
+            for idx, blob in enumerate(blob_list):
+                if not isinstance(blob, str) or not blob.startswith('data:'):
+                    continue
+                header, b64data = blob.split(',', 1)
+                mime_type = header.split(';')[0].split(':')[1]
+                ext_map = {
+                    'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp',
+                    'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov'
+                }
+                ext = ext_map.get(mime_type, 'bin')
+                if ext == 'bin':
+                    continue
+                file_data = base64.b64decode(b64data)
+                unique_name = f"product_{product_id}_{uuid.uuid4().hex}.{ext}"
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+                with open(save_path, 'wb') as f:
+                    f.write(file_data)
+                saved_filenames.append(unique_name)
+        except Exception as e:
+            print(f"Error processing images_blob: {e}")
+            saved_filenames = []
+
+    images_str = ','.join(saved_filenames)
+
+    db.execute('''
+        UPDATE products
+        SET name = ?, price = ?, description = ?, condition = ?, category = ?,
+            images = ?, images_blob = ?, status = 'pending'
+        WHERE id = ?
+    ''', (name, price, description, condition, category,
+          images_str, images_blob_json, product_id))
+    db.commit()
+    db.close()
+
+    return jsonify({'success': True})
+
+@app.route('/api/product/<int:product_id>/upload-images', methods=['POST'])
+
+def upload_product_images(product_id):
+    """Upload new images for a product"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
+    # Verify product belongs to user
+    db = get_db()
+    product = db.execute('SELECT id FROM products WHERE id = ? AND seller_id = ?', 
+                         (product_id, session['user_id'])).fetchone()
+>>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
+    if not product:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # Get existing images
+    existing_images = request.form.get('existing_images', '[]')
+    import json
+    existing = json.loads(existing_images)
+    
+    # Upload new images
+    new_files = request.files.getlist('new_images')
+    for file in new_files:
+        if file and file.filename:
+            ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+            filename = secure_filename(f"product_{product_id}_{uuid.uuid4().hex}.{ext}")
+            file.save(os.path.join('static/uploads', filename))
+            existing.append(filename)
+    
+<<<<<<< HEAD
     try:
         price = float(price)
     except:
@@ -1273,6 +1519,11 @@ def api_update_product_full(product_id):
     db.close()
     
     return jsonify({'success': True})
+=======
+    db.close()
+    
+    return jsonify({'success': True, 'all_images': existing})
+>>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
 
 # Eileen's Route - Delete product
 @app.route('/api/product/<int:product_id>/delete', methods=['DELETE'])
@@ -1705,11 +1956,15 @@ def forgot_password():
 # ============================================================
 # Eileen's Route - Admin Login
 # ============================================================
+# ============================================================
+# Eileen's Route - Admin Login (with Remember Me)
+# ============================================================
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
+        remember_me = request.form.get('remember_me') 
 
         db = get_db()
         cur = db.cursor()
@@ -1722,13 +1977,107 @@ def admin_login():
             session['admin_logged_in'] = True
             session['admin_email'] = user['email']
             session['admin_username'] = user['username']
-            flash('Admin login successful!', 'success')
-            return redirect(url_for('admin_dashboard'))
+            
+            # Handle Remember Me - generate and save token to database
+            if remember_me:
+                import secrets
+                token = secrets.token_urlsafe(64)  # Generate secure random token
+                db = get_db()
+                db.execute(
+                    'UPDATE users SET remember_token = ? WHERE id = ?',
+                    (token, user['id'])
+                )
+                db.commit()
+                db.close()
+                # Store token in cookie (expires in 30 days)
+                response = redirect(url_for('admin_dashboard'))
+                response.set_cookie('admin_remember_token', token, 
+                                    max_age=30*24*60*60, httponly=True, secure=False)
+                flash('Admin login successful!', 'success')
+                return response
+            else:
+                # Clear any existing token if admin doesn't want to be remembered
+                db = get_db()
+                db.execute(
+                    'UPDATE users SET remember_token = NULL WHERE id = ?',
+                    (user['id'],)
+                )
+                db.commit()
+                db.close()
+                response = redirect(url_for('admin_dashboard'))
+                response.set_cookie('admin_remember_token', '', expires=0)
+                flash('Admin login successful!', 'success')
+                return response
         else:
             flash('Invalid admin credentials', 'error')
 
     return render_template('admin_login.html')
 
+
+@app.before_request
+
+def check_admin_remember_me():
+    """Auto-login admin if valid admin_remember_token cookie exists"""
+    # Only check if not already in admin session
+    if session.get('admin_logged_in'):
+        return
+    
+    # Skip authentication for public routes
+    public_routes = ['login', 'admin_login', 'register', 'forgot_password', 'static', 'welcome']
+    if request.endpoint in public_routes:
+        return
+    
+    token = request.cookies.get('admin_remember_token')
+    if not token:
+        return
+    
+    db = get_db()
+    user = db.execute(
+        'SELECT id, email, username, is_admin FROM users WHERE remember_token = ? AND is_admin = 1',
+        (token,)
+    ).fetchone()
+    db.close()
+    
+    if user:
+        session['admin_logged_in'] = True
+        session['admin_email'] = user['email']
+        session['admin_username'] = user['username']
+        print(f"Auto-logged in admin: {user['username']}")
+        
+        
+@app.route('/logout')
+
+def logout():
+    # Clear admin token if exists
+    if session.get('admin_logged_in'):
+        db = get_db()
+        db.execute(
+            'UPDATE users SET remember_token = NULL WHERE email = ?',
+            (session.get('admin_email'),)
+        )
+        db.commit()
+        db.close()
+        response = redirect(url_for('login'))
+        response.set_cookie('admin_remember_token', '', expires=0)
+        session.clear()
+        flash('Admin logged out', 'info')
+        return response
+    
+    # Clear user token if exists
+    if session.get('user_id'):
+        db = get_db()
+        db.execute(
+            'UPDATE users SET remember_token = NULL WHERE id = ?',
+            (session['user_id'],)
+        )
+        db.commit()
+        db.close()
+        response = redirect(url_for('login'))
+        response.set_cookie('remember_token', '', expires=0)
+    
+    session.clear()
+    flash('Logged out', 'info')
+    return redirect(url_for('login'))
 
 # ============================================================
 # Keting's Route - Admin Dashboard
@@ -1901,7 +2250,27 @@ def admin_get_product_info(pid):
     if not product:
         return {"error": "not found"}, 404
 
-    return dict(product)
+    product_dict = dict(product)
+
+    # Parse images_blob (JSON array of base64 data URIs)
+    import json as _json
+    images_list = []
+    if product_dict.get('images_blob'):
+        try:
+            images_list = _json.loads(product_dict['images_blob'])
+        except Exception:
+            # Fallback: treat as single item
+            images_list = [product_dict['images_blob']]
+
+    # Fallback: if no base64 blobs, try to build URLs from disk filenames
+    if not images_list and product_dict.get('images'):
+        for fname in product_dict['images'].split(','):
+            fname = fname.strip()
+            if fname:
+                images_list.append(f"/static/uploads/{fname}")
+
+    product_dict['images_list'] = images_list
+    return product_dict
 
 
 # Freeze user for 7 days(limited 3 times)
@@ -2329,12 +2698,21 @@ def upload_product():
 
         import base64
         import json
-        
+
+        MIME_MAP = {
+            'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+            'gif': 'image/gif', 'webp': 'image/webp', 'bmp': 'image/bmp',
+            'mp4': 'video/mp4', 'webm': 'video/webm', 'mov': 'video/mp4',
+        }
+        VIDEO_EXTS = {'mp4', 'webm', 'mov'}
+        IMAGE_EXTS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}
+
         files = request.files.getlist('product_images')
         images_base64 = []
         image_filenames = []
-        
+
         for file in files:
+<<<<<<< HEAD
             if file and file.filename:
                 file_data = file.read()
                 if len(file_data) > 10 * 1024 * 1024:
@@ -2358,14 +2736,45 @@ def upload_product():
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 image_filenames.append(filename)
         
+=======
+            if not file or not file.filename:
+                continue
+
+            # Read all data first
+            file_data = file.read()
+
+            # Skip empty or oversized files (50MB per file)
+            if not file_data or len(file_data) > 50 * 1024 * 1024:
+                continue
+
+            # Determine extension and mime type
+            ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+            mime_type = MIME_MAP.get(ext, 'image/jpeg')
+
+            # Build base64 data URI
+            base64_str = base64.b64encode(file_data).decode('utf-8')
+            images_base64.append(f"data:{mime_type};base64,{base64_str}")
+
+            # Also save to disk as backup (for product detail page)
+            filename = secure_filename(file.filename)
+            if not filename or filename.strip() == '':
+                filename = f"media_{uuid.uuid4().hex}.{ext}"
+            # Ensure unique filename to avoid collisions
+            unique_filename = f"{uuid.uuid4().hex}_{filename}"
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            with open(save_path, 'wb') as f:
+                f.write(file_data)
+            image_filenames.append(unique_filename)
+
+>>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
         if not images_base64:
             errors.append("Please upload at least one photo or video.")
-        
+
         if errors:
             for err in errors:
                 flash(err, "error")
             return render_template('upload.html')
-        
+
         images_json = json.dumps(images_base64)
         images_string = ",".join(image_filenames)
         
@@ -2430,10 +2839,25 @@ def product_detail(product_id):
         flash('Product not found or not yet approved.', 'error')
         return redirect(url_for('home'))
 
-    images = product['images'].split(',') if product['images'] else []
+    import json as _json
+
+    images = []
+    images_blob = product['images_blob'] if product['images_blob'] else ''
+    if images_blob:
+        try:
+            blob_list = _json.loads(images_blob) if isinstance(images_blob, str) else images_blob
+            if isinstance(blob_list, list) and blob_list:
+                # Use API endpoints instead of embedding base64 directly in HTML
+                images = [f"/api/product-image/{product_id}/{i}" for i in range(len(blob_list))]
+        except Exception:
+            pass
+
+    # Fallback to disk files if no blob data
+    if not images and product['images']:
+        images = ['/static/uploads/' + f.strip()
+                  for f in product['images'].split(',') if f.strip()]
 
     return render_template('product.html', product=product, images=images)
-
 
 # ============================================================
 # Xingru's Route - Temporary route for testing product page only
