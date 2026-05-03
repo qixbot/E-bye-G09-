@@ -2486,7 +2486,6 @@ def chat_get_messages(other_user_id):
 
     return jsonify([dict(row) for row in messages])
 
-
 @app.route('/chatlist')
 def chat_list():
     if 'user_id' not in session:
@@ -2497,9 +2496,9 @@ def chat_list():
     user_id = session['user_id']
     cur = db.cursor()
 
-    # 用户聊天列表
+    # 用户聊天列表 - 关键修复：使用 avatar_blob 而不是 avatar
     cur.execute('''
-        SELECT u.id, u.username, u.full_name, u.avatar,
+        SELECT u.id, u.username, u.full_name, u.avatar_blob,
                m.content as last_message, m.image as last_image,
                m.created_at as last_time,
                m.is_read, m.sender_id,
@@ -2518,27 +2517,27 @@ def chat_list():
     ''', (user_id, user_id, user_id, user_id))
     chats = cur.fetchall()
     
-    chat_list = []
+    chat_list_data = []
     for chat in chats:
         chat = dict(chat)
-        if chat['last_image']:
+        if chat.get('last_image'):
             chat['last_message'] = '(Picture)'
-        elif chat['last_message'] and 'Tap to view product' in (chat['last_message'] or ''):
+        elif chat.get('last_message') and 'Tap to view product' in (chat.get('last_message') or ''):
             chat['last_message'] = '(Product)'
-        chat_list.append(chat)
+        chat_list_data.append(chat)
 
     # 未读通知数
     cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
     unread_notifications = cur.fetchone()['count']
 
-    # 未读评论数（暂用0，评论区做完再改）
+    # 未读评论数（暂用0）
     unread_reviews = 0
     
     cur.close()
     db.close()
 
     return render_template('user_chatlist.html', 
-                           chats=chat_list,
+                           chats=chat_list_data,
                            unread_notifications=unread_notifications,
                            unread_reviews=unread_reviews)
 
