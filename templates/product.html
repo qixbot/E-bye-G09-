@@ -65,7 +65,7 @@
             </div>
         </a>
     </div>
-            <div class="upload-date">Posted on {{ product.created_at.split(' ')[0] }}</div>
+            <div class="upload-date">Posted on {{ product.created_at.strftime('%Y-%m-%d') if product.created_at else 'Unknown' }}</div>
             </div>
 
             <div class="description">

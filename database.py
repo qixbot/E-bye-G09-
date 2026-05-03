@@ -1,17 +1,21 @@
 import os
+
 import psycopg2
+
 from psycopg2.extras import RealDictCursor
+
 from werkzeug.security import generate_password_hash
 
 # Read database URL from environment variable (safer)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
-    # Fallback for local testing – replace with your actual Supabase URL (but don't commit to git!)
+    # Fallback for local testing
     DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
 
 def get_db():
-    """Return a PostgreSQL database connection"""
+    """Return a PostgreSQL database connection with dictionary cursor"""
     conn = psycopg2.connect(DATABASE_URL)
+    conn.cursor_factory = RealDictCursor 
     return conn
 
 def init_db():

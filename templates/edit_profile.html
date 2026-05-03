@@ -474,58 +474,12 @@ document.querySelector('.ep-bg-close')?.addEventListener('click', function() { i
 // COVER & AVATAR FUNCTIONS
 // ============================================================
 var coverCropper = null;
-var $coverFileInput = document.getElementById('coverFileInput');
-var $coverCropModal = document.getElementById('coverCropModal');
-
-function loadCoverFromServer() { var d = document.getElementById('coverImage'); if (d) d.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')'; }
-document.getElementById('coverChangeBtn')?.addEventListener('click', function() { if ($coverFileInput) $coverFileInput.click(); });
-if ($coverFileInput) {
-    $coverFileInput.addEventListener('change', function(e) {
-        if (!e.target.files[0]) return;
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-            var img = document.getElementById('coverCropImage');
-            if (img) img.src = ev.target.result;
-            if ($coverCropModal) $coverCropModal.classList.add('open');
-            if (coverCropper) coverCropper.destroy();
-            if (typeof Cropper !== 'undefined') {
-                coverCropper = new Cropper(document.getElementById('coverCropImage'), { aspectRatio: 16/5, viewMode: 1, autoCropArea: 1 });
-            }
-        };
-        reader.readAsDataURL(e.target.files[0]);
-    });
-}
-function closeCoverCrop() {
-    if ($coverCropModal) $coverCropModal.classList.remove('open');
-    if (coverCropper) { coverCropper.destroy(); coverCropper = null; }
-    if ($coverFileInput) $coverFileInput.value = '';
-}
-document.querySelector('#coverCropModal .crop-close')?.addEventListener('click', closeCoverCrop);
-document.querySelector('#coverCropModal .crop-cancel')?.addEventListener('click', closeCoverCrop);
-document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click', function() {
-    if (!coverCropper) return;
-    coverCropper.getCroppedCanvas().toBlob(function(blob) {
-        var fd = new FormData();
-        fd.append('cover_image', blob, 'cover.jpg');
-        showToastMessage('Uploading cover...', 'info');
-        fetch('/update-cover', { method: 'POST', body: fd, credentials: 'same-origin' })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    document.getElementById('coverImage').style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
-                    closeCoverCrop();
-                    showToastMessage('Cover updated', 'success');
-                } else {
-                    throw new Error(data.error);
-                }
-            })
-            .catch(function() { showToastMessage('Cover update failed', 'error'); });
-    }, 'image/jpeg', 0.9);
-});
-
 var avatarCropper = null;
-var $avatarFileInput = document.getElementById('avatarFileInput');
-var $avatarCropModal = document.getElementById('avatarCropModal');
+
+function loadCoverFromServer() {
+    var d = document.getElementById('coverImage');
+    if (d) d.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
+}
 
 function loadAvatarFromServer() {
     var img = document.getElementById('side-av-img');
@@ -536,50 +490,136 @@ function loadAvatarFromServer() {
         img.onerror = function() { img.style.display = 'none'; if (init) init.style.display = 'flex'; };
     }
 }
-document.getElementById('avatarRing')?.addEventListener('click', function() { if ($avatarFileInput) $avatarFileInput.click(); });
-if ($avatarFileInput) {
-    $avatarFileInput.addEventListener('change', function(e) {
-        if (!e.target.files[0]) return;
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-            var img = document.getElementById('avatarCropImage');
-            if (img) img.src = ev.target.result;
-            if ($avatarCropModal) $avatarCropModal.classList.add('open');
-            if (avatarCropper) avatarCropper.destroy();
-            if (typeof Cropper !== 'undefined') {
-                avatarCropper = new Cropper(document.getElementById('avatarCropImage'), { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
-            }
-        };
-        reader.readAsDataURL(e.target.files[0]);
-    });
+
+function closeCoverCrop() {
+    var $coverCropModal = document.getElementById('coverCropModal');
+    var $coverFileInput = document.getElementById('coverFileInput');
+    if ($coverCropModal) $coverCropModal.classList.remove('open');
+    if (coverCropper) { coverCropper.destroy(); coverCropper = null; }
+    if ($coverFileInput) $coverFileInput.value = '';
 }
+
 function closeAvatarCrop() {
+    var $avatarCropModal = document.getElementById('avatarCropModal');
+    var $avatarFileInput = document.getElementById('avatarFileInput');
     if ($avatarCropModal) $avatarCropModal.classList.remove('open');
     if (avatarCropper) { avatarCropper.destroy(); avatarCropper = null; }
     if ($avatarFileInput) $avatarFileInput.value = '';
 }
-document.querySelector('.avatar-crop-close')?.addEventListener('click', closeAvatarCrop);
-document.getElementById('avatarCropCancel')?.addEventListener('click', closeAvatarCrop);
-document.getElementById('avatarCropConfirm')?.addEventListener('click', function() {
-    if (!avatarCropper) return;
-    avatarCropper.getCroppedCanvas().toBlob(function(blob) {
-        var fd = new FormData();
-        fd.append('avatar', blob, 'avatar.jpg');
-        showToastMessage('Uploading avatar...', 'info');
-        fetch('/update-profile-avatar', { method: 'POST', body: fd, credentials: 'same-origin' })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    document.getElementById('side-av-img').src = '/avatar-image?t=' + Date.now();
-                    closeAvatarCrop();
-                    showToastMessage('Avatar updated', 'success');
-                } else {
-                    throw new Error(data.error);
-                }
-            })
-            .catch(function() { showToastMessage('Avatar update failed', 'error'); });
-    }, 'image/jpeg', 0.9);
-});
+
+// ⚠️ All DOM addEventListener calls must be inside DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    var $coverFileInput = document.getElementById('coverFileInput');
+    var $coverCropModal = document.getElementById('coverCropModal');
+    var $avatarFileInput = document.getElementById('avatarFileInput');
+    var $avatarCropModal = document.getElementById('avatarCropModal');
+
+    // --- Cover ---
+    var coverChangeBtn = document.getElementById('coverChangeBtn');
+    if (coverChangeBtn) {
+        coverChangeBtn.addEventListener('click', function() { if ($coverFileInput) $coverFileInput.click(); });
+    }
+    if ($coverFileInput) {
+        $coverFileInput.addEventListener('change', function(e) {
+            if (!e.target.files || !e.target.files[0]) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                var img = document.getElementById('coverCropImage');
+                if (img) img.src = ev.target.result;
+                if ($coverCropModal) $coverCropModal.classList.add('open');
+                if (coverCropper) coverCropper.destroy();
+                setTimeout(function() {
+                    var cropImg = document.getElementById('coverCropImage');
+                    if (cropImg && typeof Cropper !== 'undefined') {
+                        coverCropper = new Cropper(cropImg, { aspectRatio: 16/5, viewMode: 1, autoCropArea: 1 });
+                    }
+                }, 100);
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+    }
+    var coverClose = document.querySelector('#coverCropModal .crop-close');
+    var coverCancel = document.querySelector('#coverCropModal .crop-cancel');
+    var coverConfirm = document.querySelector('#coverCropModal .crop-confirm');
+    if (coverClose) coverClose.addEventListener('click', closeCoverCrop);
+    if (coverCancel) coverCancel.addEventListener('click', closeCoverCrop);
+    if (coverConfirm) {
+        coverConfirm.addEventListener('click', function() {
+            if (!coverCropper) return;
+            coverCropper.getCroppedCanvas().toBlob(function(blob) {
+                var fd = new FormData();
+                fd.append('cover_image', blob, 'cover.jpg');
+                showToastMessage('Uploading cover...', 'info');
+                fetch('/update-cover', { method: 'POST', body: fd, credentials: 'same-origin' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            document.getElementById('coverImage').style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
+                            closeCoverCrop();
+                            showToastMessage('Cover updated!', 'success');
+                        } else { throw new Error(data.error || 'Upload failed'); }
+                    })
+                    .catch(function(e) { showToastMessage('Cover update failed: ' + (e.message || ''), 'error'); });
+            }, 'image/jpeg', 0.9);
+        });
+    }
+
+    // --- Avatar ---
+    var avatarRing = document.getElementById('avatarRing');
+    if (avatarRing) {
+        avatarRing.addEventListener('click', function() { if ($avatarFileInput) $avatarFileInput.click(); });
+    }
+    if ($avatarFileInput) {
+        $avatarFileInput.addEventListener('change', function(e) {
+            if (!e.target.files || !e.target.files[0]) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                var img = document.getElementById('avatarCropImage');
+                if (img) img.src = ev.target.result;
+                if ($avatarCropModal) $avatarCropModal.classList.add('open');
+                if (avatarCropper) avatarCropper.destroy();
+                setTimeout(function() {
+                    var cropImg = document.getElementById('avatarCropImage');
+                    if (cropImg && typeof Cropper !== 'undefined') {
+                        avatarCropper = new Cropper(cropImg, { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
+                    }
+                }, 100);
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+    }
+    var avatarClose = document.querySelector('.avatar-crop-close');
+    var avatarCancel = document.getElementById('avatarCropCancel');
+    var avatarConfirm = document.getElementById('avatarCropConfirm');
+    if (avatarClose) avatarClose.addEventListener('click', closeAvatarCrop);
+    if (avatarCancel) avatarCancel.addEventListener('click', closeAvatarCrop);
+    if (avatarConfirm) {
+        avatarConfirm.addEventListener('click', function() {
+            if (!avatarCropper) return;
+            avatarCropper.getCroppedCanvas().toBlob(function(blob) {
+                var fd = new FormData();
+                fd.append('avatar', blob, 'avatar.jpg');
+                showToastMessage('Uploading avatar...', 'info');
+                fetch('/update-profile-avatar', { method: 'POST', body: fd, credentials: 'same-origin' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            var avImg = document.getElementById('side-av-img');
+                            var avInit = document.getElementById('side-av-init');
+                            if (avImg) {
+                                avImg.src = '/avatar-image?t=' + Date.now();
+                                avImg.style.display = 'block';
+                                if (avInit) avInit.style.display = 'none';
+                            }
+                            closeAvatarCrop();
+                            showToastMessage('Avatar updated!', 'success');
+                        } else { throw new Error(data.error || 'Upload failed'); }
+                    })
+                    .catch(function(e) { showToastMessage('Avatar update failed: ' + (e.message || ''), 'error'); });
+            }, 'image/jpeg', 0.9);
+        });
+    }
+}); // end DOMContentLoaded for cover/avatar
 
 // ============================================================
 // TAB SWITCHING

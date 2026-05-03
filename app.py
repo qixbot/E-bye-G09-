@@ -1,16 +1,25 @@
 import re
 import subprocess
+
 import os
+
 import sqlite3
+
 from datetime import datetime, timedelta
+
 import uuid
+
 import base64
+
 from flask import (
     Flask, render_template, request, redirect,
     url_for, session, flash, jsonify, make_response
 )
+
 from werkzeug.security import generate_password_hash, check_password_hash
+
 from werkzeug.utils import secure_filename
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -21,8 +30,11 @@ from database import init_db, get_db, init_products, init_messages, init_announc
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026-new'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024      # 100MB max upload size
-app.config['MAX_FORM_MEMORY_SIZE'] = 100 * 1024 * 1024    # Fix: allow large base64 form fields (Werkzeug >=3.0 default is only 500KB)
-app.config['MAX_FORM_PARTS'] = 1000                        # Fix: allow many form parts
+
+app.config['MAX_FORM_MEMORY_SIZE'] = 100 * 1024 * 1024  
+# Fix: allow large base64 form fields (Werkzeug >=3.0 default is only 500KB)
+app.config['MAX_FORM_PARTS'] = 1000   
+# Fix: allow many form parts
 
 # ============================================================
 # Helper function for emoji (was missing)
@@ -54,7 +66,7 @@ def calculate_trust_score(user, listing_count):
     """Calculate trust score based on user profile and activity"""
     trust_score = 60
     
-    # Profile completeness
+
     if user['avatar_blob']:
         trust_score += 8
     if user['bio']:
@@ -67,8 +79,12 @@ def calculate_trust_score(user, listing_count):
     # Account age bonus
     if user['created_at']:
         try:
-            created_date = datetime.strptime(user['created_at'], '%Y-%m-%d %H:%M:%S')
-            days_since_join = (datetime.now() - created_date).days
+            ca = user['created_at']
+            if isinstance(ca, str):
+                created_date = datetime.strptime(ca[:19], '%Y-%m-%d %H:%M:%S')
+            else:
+                created_date = ca  # already a datetime from psycopg2
+            days_since_join = (datetime.now() - created_date.replace(tzinfo=None)).days
             if days_since_join >= 365:
                 trust_score += 20
             elif days_since_join >= 180:
@@ -96,6 +112,7 @@ def calculate_trust_score(user, listing_count):
 
 # jinja2 time filter
 @app.template_filter('time_since')
+
 def time_since(date):
     if not date:
         return 'New'
@@ -151,7 +168,7 @@ init_reviews()
 
 @app.route('/')
 def index():
-    return render_template('welcome.html')  # 未登录 → 欢迎页
+    return render_template('welcome.html')  
 
 # ============================================================
 # Eileen's Route - Login
@@ -359,8 +376,7 @@ def home():
     cur.execute('''
         SELECT p.*, 
         u.username as seller_name, 
-        u.full_name as seller_full_name, u.id as seller_id,
-        COALESCE(json_array_length(p.images_blob), 0) as blob_count
+        u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'approved'
@@ -372,50 +388,40 @@ def home():
 
     products = []
     for row in products_data:
-        product = dict(row)
-
-        # Use SQL-computed blob_count to avoid parsing full base64 JSON
-        blob_count = product.get('blob_count', 0) or 0
+        product = row
+        
         images_blob = product.get('images_blob', '')
-
+        
+        blob_count = 0
         blob_list = []
-        if blob_count == 0 and images_blob:
-            # Fallback: parse to verify (handles older SQLite without json_array_length)
+        if images_blob:
             try:
                 import json as _json
-                if isinstance(images_blob, str):
-                    blob_list = _json.loads(images_blob)
-                elif isinstance(images_blob, list):
-                    blob_list = images_blob
+                blob_list = _json.loads(images_blob) if isinstance(images_blob, str) else images_blob
                 blob_count = len(blob_list)
             except Exception as e:
                 print(f"Error parsing blob: {e}")
                 blob_count = 0
 
         if blob_count > 0:
-            # Use URL endpoints — no base64 in HTML, loads fast
             product['images_list'] = [f"/api/product-image/{product['id']}/{i}"
                                       for i in range(min(3, blob_count))]
             product['actual_total'] = blob_count
             product['image_1'] = f"/api/product-image/{product['id']}/0"
             product['image_2'] = f"/api/product-image/{product['id']}/1" if blob_count > 1 else None
         else:
-            # Fallback to disk files
             images_str = product.get('images', '')
             if images_str:
                 img_list = images_str.split(',')
-                image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
-                image_only = []
+                image_urls = []
                 for f in img_list:
                     f = f.strip()
                     if f:
-                        ext = f.split('.')[-1].lower() if '.' in f else ''
-                        if ext in image_extensions:
-                            image_only.append('/static/uploads/' + f)
-                product['images_list'] = image_only[:3]
+                        image_urls.append('/static/uploads/' + f)
+                product['images_list'] = image_urls[:3]
                 product['actual_total'] = len(img_list)
-                product['image_1'] = image_only[0] if image_only else None
-                product['image_2'] = image_only[1] if len(image_only) > 1 else None
+                product['image_1'] = image_urls[0] if image_urls else None
+                product['image_2'] = image_urls[1] if len(image_urls) > 1 else None
             else:
                 product['images_list'] = []
                 product['actual_total'] = 0
@@ -427,7 +433,9 @@ def home():
     return render_template('home.html',
         username=session.get('username'), latest_products=products)
 
+# ============================================================
 # Xingru's Route - Search with filters
+# ============================================================
 @app.route('/search')
 def search():
     if 'user_id' not in session:
@@ -573,12 +581,6 @@ def search():
 
     return render_template('search.html', products=products)
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash('Logged out', 'info')
-    return redirect(url_for('login'))
-
 # ============================================================
 # AVATAR ROUTES - Store as BLOB in database
 # ============================================================
@@ -603,8 +605,9 @@ def avatar_image():
         return response
     return '', 404
 
-
+# ============================================================
 # Eileen's Route - Update avatar image
+# ============================================================
 @app.route('/update-profile-avatar', methods=['POST'])
 def update_profile_avatar():
     """Upload avatar and store directly as BLOB in database"""
@@ -634,8 +637,9 @@ def update_profile_avatar():
 
     return jsonify({'success': True})
 
-
+# ============================================================
 # Added by Xingru - public route to serve avatar by user_id (for displaying other users' avatars)
+# ============================================================
 @app.route('/user-avatar/<int:user_id>')
 def user_avatar(user_id):
     db = get_db()
@@ -731,8 +735,9 @@ def save_background_preset():
 
     return jsonify({'success': True})
 
-
+# ============================================================
 # Eileen's Route - Upload custom background image
+# ============================================================
 @app.route('/upload-background', methods=['POST'])
 def upload_background():
     """Upload custom background image and store as data URL in database"""
@@ -808,8 +813,8 @@ def api_user_purchases():
     db = get_db()
     cur = db.cursor()
     cur.execute('''
-        SELECT o.id, o.product_id, o.final_price as price, 
-               o.original_price, o.status, o.meetup_location, o.created_at,
+        SELECT o.id, o.product_id, o.offer_price as price,
+               o.status, o.meeting_point as meetup_location, o.created_at,
                p.name,
                u.username as seller_name
         FROM orders o
@@ -1292,7 +1297,7 @@ def api_product_image(product_id, index):
                     img_bytes = base64.b64decode(b64data)
                     response = make_response(img_bytes)
                     response.headers.set('Content-Type', mime_type)
-                    response.headers.set('Cache-Control', 'public, max-age=86400')
+                    response.headers.set('Cache-Control', 'public, max-age=604800')
                     return response
         except Exception:
             pass
@@ -1510,13 +1515,13 @@ def my_profile():
         flash('User not found', 'error')
         return redirect(url_for('login'))
 
-    cur.execute('SELECT COUNT(*) AS count FROM products WHERE seller_id = %s', (user_id,))
-    listing_count = cur.fetchone()['count']
+    cur.execute('SELECT COUNT(*) FROM products WHERE seller_id = %s', (user_id,))
+    listing_count = cur.fetchone()['count'] 
 
     sold_count = 0
     try:
-        cur.execute('SELECT COUNT(*) AS count FROM orders WHERE seller_id = %s AND status = "completed"', (user_id,))
-        sold_count = cur.fetchone()['count']
+        cur.execute('SELECT COUNT(*) FROM orders WHERE seller_id = %s AND status = "completed"', (user_id,))
+        sold_count = cur.fetchone()['count']  
     except:
         pass
 
@@ -1526,12 +1531,14 @@ def my_profile():
     response_rate = 50
     if listing_count > 0:
         response_rate += 15
+    
     if user['bio'] and user['contact']:
         response_rate += 10
     if user['active_hours'] and user['active_hours'] != 'Not set':
         response_rate += 10
     if user['avatar_blob']:
         response_rate += 5
+    
     response_rate = min(response_rate, 98)
     response_rate = max(response_rate, 40)
     # ========================================
@@ -1561,27 +1568,22 @@ def edit_profile():
     cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
     user = cur.fetchone()
 
-    cur.execute('SELECT COUNT(*) AS count FROM products WHERE seller_id = %s', (session['user_id'],))
-    listing_count = cur.fetchone()['count']
+    cur.execute('SELECT COUNT(*) FROM products WHERE seller_id = %s', (session['user_id'],))
+    listing_count = cur.fetchone()['count']  
 
-    # 使用公共函数
     trust_score = calculate_trust_score(user, listing_count)
 
-    # Calculate response rate
     response_rate = 50
-
     if listing_count > 0:
         response_rate += 15
-
+    
     if user['bio'] and user['contact']:
         response_rate += 10
-
     if user['active_hours'] and user['active_hours'] != 'Not set':
         response_rate += 10
-
     if user['avatar_blob']:
         response_rate += 5
-
+    
     response_rate = min(response_rate, 98)
     response_rate = max(response_rate, 40)
 
@@ -1882,9 +1884,6 @@ def forgot_password():
 # ============================================================
 # Eileen's Route - Admin Login
 # ============================================================
-# ============================================================
-# Eileen's Route - Admin Login (with Remember Me)
-# ============================================================
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
@@ -1899,36 +1898,32 @@ def admin_login():
         cur.close()
         db.close()
 
-        if user and check_password_hash(user['password'], password):
+        # ✅ user 现在是字典，用字符串键名访问
+        if user and check_password_hash(user['password'], password):  # 用 'password' 不是 5
             session['admin_logged_in'] = True
             session['admin_email'] = user['email']
             session['admin_username'] = user['username']
             
-            # Handle Remember Me - generate and save token to database
             if remember_me:
                 import secrets
-                token = secrets.token_urlsafe(64)  # Generate secure random token
+                token = secrets.token_urlsafe(64)
                 db = get_db()
-                db.execute(
-                    'UPDATE users SET remember_token = ? WHERE id = ?',
-                    (token, user['id'])
-                )
+                cur = db.cursor()
+                cur.execute('UPDATE users SET remember_token = %s WHERE id = %s', (token, user['id']))
                 db.commit()
+                cur.close()
                 db.close()
-                # Store token in cookie (expires in 30 days)
                 response = redirect(url_for('admin_dashboard'))
                 response.set_cookie('admin_remember_token', token, 
                                     max_age=30*24*60*60, httponly=True, secure=False)
                 flash('Admin login successful!', 'success')
                 return response
             else:
-                # Clear any existing token if admin doesn't want to be remembered
                 db = get_db()
-                db.execute(
-                    'UPDATE users SET remember_token = NULL WHERE id = ?',
-                    (user['id'],)
-                )
+                cur = db.cursor()
+                cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (user['id'],))
                 db.commit()
+                cur.close()
                 db.close()
                 response = redirect(url_for('admin_dashboard'))
                 response.set_cookie('admin_remember_token', '', expires=0)
@@ -1939,17 +1934,13 @@ def admin_login():
 
     return render_template('admin_login.html')
 
-
 @app.before_request
-
 def check_admin_remember_me():
-    """Auto-login admin if valid admin_remember_token cookie exists"""
-    # Only check if not already in admin session
     if session.get('admin_logged_in'):
         return
     
-    # Skip authentication for public routes
-    public_routes = ['login', 'admin_login', 'register', 'forgot_password', 'static', 'welcome']
+    public_routes = [
+        'login', 'admin_login', 'register', 'forgot_password', 'static', 'welcome']
     if request.endpoint in public_routes:
         return
     
@@ -1958,30 +1949,27 @@ def check_admin_remember_me():
         return
     
     db = get_db()
-    user = db.execute(
-        'SELECT id, email, username, is_admin FROM users WHERE remember_token = ? AND is_admin = 1',
-        (token,)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = %s AND is_admin = 1', (token,))
+    user = cur.fetchone()
+    cur.close()
     db.close()
     
     if user:
         session['admin_logged_in'] = True
-        session['admin_email'] = user['email']
-        session['admin_username'] = user['username']
-        print(f"Auto-logged in admin: {user['username']}")
-        
+        session['admin_email'] = user[1]   # email 是第 2 列（索引 1）
+        session['admin_username'] = user[2] # username 是第 3 列（索引 2）
+        print(f"Auto-logged in admin: {user[2]}")
         
 @app.route('/logout')
-
 def logout():
     # Clear admin token if exists
     if session.get('admin_logged_in'):
         db = get_db()
-        db.execute(
-            'UPDATE users SET remember_token = NULL WHERE email = ?',
-            (session.get('admin_email'),)
-        )
+        cur = db.cursor()
+        cur.execute('UPDATE users SET remember_token = NULL WHERE email = %s', (session.get('admin_email'),))
         db.commit()
+        cur.close()
         db.close()
         response = redirect(url_for('login'))
         response.set_cookie('admin_remember_token', '', expires=0)
@@ -1992,11 +1980,10 @@ def logout():
     # Clear user token if exists
     if session.get('user_id'):
         db = get_db()
-        db.execute(
-            'UPDATE users SET remember_token = NULL WHERE id = ?',
-            (session['user_id'],)
-        )
+        cur = db.cursor()
+        cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (session['user_id'],))
         db.commit()
+        cur.close()
         db.close()
         response = redirect(url_for('login'))
         response.set_cookie('remember_token', '', expires=0)
@@ -2017,23 +2004,23 @@ def admin_dashboard():
     db = get_db()
     cur = db.cursor()
 
-    cur.execute("SELECT COUNT(*) AS count FROM products")
-    total_products = cur.fetchone()['count']
+    cur.execute("SELECT COUNT(*) FROM products")
+    total_products = cur.fetchone()['count']  
 
     # Total registered users
-    cur.execute("SELECT COUNT(*) AS count FROM users")
+    cur.execute("SELECT COUNT(*) FROM users")
     total_users = cur.fetchone()['count']
 
     # Approved products count
-    cur.execute("SELECT COUNT(*) AS count FROM products WHERE status = 'approved'")
+    cur.execute("SELECT COUNT(*) FROM products WHERE status = 'approved'")
     approved_count = cur.fetchone()['count']
 
     # Pending products count
-    cur.execute("SELECT COUNT(*) AS count FROM products WHERE status = 'pending'")
+    cur.execute("SELECT COUNT(*) FROM products WHERE status = 'pending'")
     pending_count = cur.fetchone()['count']
 
     # Active sellers count (users with at least one product)
-    cur.execute("SELECT COUNT(DISTINCT seller_id) AS count FROM products")
+    cur.execute("SELECT COUNT(DISTINCT seller_id) FROM products")
     seller_count = cur.fetchone()['count']
 
     cur.close()
