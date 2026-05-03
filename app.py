@@ -2035,9 +2035,9 @@ def check_admin_remember_me():
     
     if user:
         session['admin_logged_in'] = True
-        session['admin_email'] = user[1]   # email 是第 2 列（索引 1）
-        session['admin_username'] = user[2] # username 是第 3 列（索引 2）
-        print(f"Auto-logged in admin: {user[2]}")
+        session['admin_email'] = user['email']      # 修复：用字典键名
+        session['admin_username'] = user['username'] # 修复：用字典键名
+        print(f"Auto-logged in admin: {user['username']}")
         
 @app.route('/logout')
 def logout():
