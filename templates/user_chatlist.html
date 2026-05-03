@@ -13,7 +13,8 @@
     .section-title { font-size: 14px; color: #888; padding: 16px 0 8px; font-weight: 600; }
     
     .chat-item { display: flex; align-items: center; padding: 14px; background: #fff; border-radius: 14px; margin-bottom: 8px; text-decoration: none; color: #333; box-shadow: 0 1px 3px rgba(0,0,0,0.04); gap: 12px; }
-    .chat-avatar { width: 46px; height: 46px; border-radius: 50%; background: #205c30; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; flex-shrink: 0; }
+    .chat-avatar { width: 46px; height: 46px; border-radius: 50%; background: #205c30; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; flex-shrink: 0; position: relative; overflow: hidden; }
+    .chat-avatar-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
     .chat-info { flex: 1; min-width: 0; }
     .chat-name { font-weight: 600; font-size: 15px; }
     .chat-last { font-size: 13px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -45,7 +46,11 @@
     {% if chats and chats|length > 0 %}
         {% for chat in chats %}
         <a href="{{ url_for('chat_page', other_user_id=chat.id) }}" class="chat-item">
-            <div class="chat-avatar">{{ chat.username[0].upper() }}</div>
+            <!-- 头像：优先显示图片，失败时显示文字首字母 -->
+            <div class="chat-avatar">
+                <img class="chat-avatar-img" src="{{ url_for('user_avatar', user_id=chat.id) }}" 
+                     onerror="this.style.display='none'; this.parentElement.style.background='#205c30'; this.parentElement.innerHTML='{{ chat.username[0].upper() }}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center';">
+            </div>
             <div class="chat-info">
                 <div class="chat-name">{{ chat.full_name or chat.username }}</div>
                 <div class="chat-last">
@@ -54,7 +59,7 @@
                 </div>
             </div>
             <div class="chat-meta">
-                <div class="chat-time">{{ chat.last_time[:19] if chat.last_time else '' }}</div>
+                <div class="chat-time">{{ chat.last_time.strftime('%Y-%m-%d %H:%M:%S') if chat.last_time else '' }}</div>
                 {% if chat.unread_count > 0 and chat.sender_id != session['user_id'] %}
                 <span class="unread-dot">{{ chat.unread_count }}</span>
                 {% endif %}

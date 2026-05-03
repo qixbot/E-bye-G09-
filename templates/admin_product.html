@@ -248,8 +248,10 @@ async function loadProduct(pid){
         }
         const data = await res.json();
 
-        if (data.images && typeof data.images === 'string' && data.images.trim().length > 0) {
-            pics = data.images.split(',').map(function(x){ return x.trim(); }).filter(function(x){ return x.length > 0; });
+        if (data.images_list && Array.isArray(data.images_list) && data.images_list.length > 0) {
+            pics = data.images_list;
+        } else if (data.images && typeof data.images === 'string' && data.images.trim().length > 0) {
+            pics = data.images.split(',').map(function(x){ return '/static/uploads/' + x.trim(); }).filter(function(x){ return x.length > '/static/uploads/'.length; });
         } else {
             pics = [];
         }
@@ -302,7 +304,7 @@ function refreshPic() {
     if (nowIndex >= pics.length) nowIndex = pics.length - 1;
 
     imgElement.style.display = "block";
-    imgElement.src = "/static/uploads/" + pics[nowIndex];
+    imgElement.src = pics[nowIndex];
     imgElement.alt = "Product image " + (nowIndex + 1);
     
     pageText.innerText = (nowIndex + 1) + " / " + pics.length;

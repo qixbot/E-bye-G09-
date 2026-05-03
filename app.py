@@ -4,36 +4,72 @@ import subprocess
 
 import os
 
-import sqlite3
-
 from datetime import datetime, timedelta
 
 import uuid
 
 import base64
 
+import psycopg2  
+
+from psycopg2 import Binary  
+
 from flask import (
     Flask, render_template, request, redirect,
     url_for, session, flash, jsonify, make_response
 )
 
-
-
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
 from werkzeug.utils import secure_filename
+
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from database import init_db, get_db, init_products, init_messages, init_announcements, init_reviews
 
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026-new'
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024      # 100MB max upload size
+
+app.config['MAX_FORM_MEMORY_SIZE'] = 100 * 1024 * 1024  
+# Fix: allow large base64 form fields (Werkzeug >=3.0 default is only 500KB)
+app.config['MAX_FORM_PARTS'] = 1000   
+# Fix: allow many form parts
+
+# ============================================================
+# Helper function for emoji (was missing)
+# ============================================================
+def get_emoji_by_category(name):
+    """Return an emoji based on product name (fallback for purchases)"""
+    name_lower = str(name).lower()
+    if 'book' in name_lower:
+        return '📚'
+    if 'gadget' in name_lower or 'phone' in name_lower or 'laptop' in name_lower:
+        return '💻'
+    if 'dorm' in name_lower or 'bed' in name_lower or 'furniture' in name_lower:
+        return '🛏️'
+    if 'fashion' in name_lower or 'shirt' in name_lower or 'shoe' in name_lower:
+        return '👕'
+    if 'beauty' in name_lower or 'makeup' in name_lower:
+        return '💄'
+    if 'sport' in name_lower:
+        return '⚽'
+    if 'grocery' in name_lower or 'food' in name_lower:
+        return '🛒'
+    if 'stationery' in name_lower or 'pen' in name_lower:
+        return '✏️'
+    if 'music' in name_lower:
+        return '🎸'
+    return '📦'
 
 def calculate_trust_score(user, listing_count):
     """Calculate trust score based on user profile and activity"""
     trust_score = 60
     
-    # Profile completeness
+
     if user['avatar_blob']:
         trust_score += 8
     if user['bio']:
@@ -46,8 +82,12 @@ def calculate_trust_score(user, listing_count):
     # Account age bonus
     if user['created_at']:
         try:
-            created_date = datetime.strptime(user['created_at'], '%Y-%m-%d %H:%M:%S')
-            days_since_join = (datetime.now() - created_date).days
+            ca = user['created_at']
+            if isinstance(ca, str):
+                created_date = datetime.strptime(ca[:19], '%Y-%m-%d %H:%M:%S')
+            else:
+                created_date = ca  # already a datetime from psycopg2
+            days_since_join = (datetime.now() - created_date.replace(tzinfo=None)).days
             if days_since_join >= 365:
                 trust_score += 20
             elif days_since_join >= 180:
@@ -77,7 +117,6 @@ def calculate_trust_score(user, listing_count):
 @app.template_filter('time_since')
 
 def time_since(date):
-
     if not date:
         return 'New'
     now = datetime.now()
@@ -99,7 +138,6 @@ def time_since(date):
         return f"{diff.seconds//60}m"
     return 'Just now'
 
-
 def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
     """Extract a frame from video at given time offset and save as JPEG."""
     cmd = [
@@ -119,7 +157,6 @@ def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
         print(f"FFmpeg error for {video_path}: {e.stderr}")
         return False
 
-
 # --- Setup folder for uploaded product images ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -132,39 +169,9 @@ init_messages()
 init_announcements()
 init_reviews()
 
-def init_messages():
-    db = get_db()
-    db.execute('''
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_id INTEGER NOT NULL,
-            receiver_id INTEGER NOT NULL,
-            product_id INTEGER,
-            content TEXT,
-            msg_type TEXT DEFAULT 'text',
-            image TEXT,
-            is_read INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (sender_id) REFERENCES users(id),
-            FOREIGN KEY (receiver_id) REFERENCES users(id)
-        )
-    ''')
-    # 为旧表添加 msg_type 列
-    try:
-        db.execute("ALTER TABLE messages ADD COLUMN msg_type TEXT DEFAULT 'text'")
-    except:
-        pass
-    db.commit()
-    db.close()
-    print("Messages table ready.")
-
-
 @app.route('/')
-
-
 def index():
-    return render_template('welcome.html')  # 未登录 → 欢迎页
-
+    return render_template('welcome.html')  
 
 # ============================================================
 # Eileen's Route - Login
@@ -177,10 +184,10 @@ def login():
         remember_me = request.form.get('remember_me')
 
         db = get_db()
-        user = db.execute(
-            'SELECT * FROM users WHERE LOWER(email) = LOWER(?)',
-            (email,)
-        ).fetchone()
+        cur = db.cursor()
+        cur.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(%s)', (email,))
+        user = cur.fetchone()
+        cur.close()
         db.close()
 
         if user and check_password_hash(user['password'], password):
@@ -216,69 +223,74 @@ def login():
             session['username'] = user['username']
             session['student_id'] = user['student_id']
 
-            if remember_me:
+        if remember_me:
                 import secrets
                 token = secrets.token_urlsafe(64)
                 db = get_db()
-                db.execute('UPDATE users SET remember_token = ? WHERE id = ?', (token, user['id']))
+                cur = db.cursor()
+                cur.execute('UPDATE users SET remember_token = %s WHERE id = %s', (token, user['id']))
                 db.commit()
+                cur.close()
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', token, max_age=30*24*60*60, httponly=True, secure=False)
                 flash('✅ Login successful!', 'success')
                 return response
-            else:
+        else:
                 db = get_db()
-                db.execute('UPDATE users SET remember_token = NULL WHERE id = ?', (user['id'],))
+                cur = db.cursor()
+                cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (user['id'],))
                 db.commit()
+                cur.close()
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', '', expires=0)
                 flash('✅ Login successful!', 'success')
                 return response
-        else:
+    else:
             flash('Invalid email or password', 'error')
 
     return render_template('login.html')
 
 from flask import request, redirect, url_for, session
 
-
 @app.before_request
 def auto_unfreeze_expired():
     if 'user_id' in session or 'admin_logged_in' in session:
         db = get_db()
+        cur = db.cursor()
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        expired = db.execute("""
+        cur.execute("""
             SELECT id, username FROM users
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < ?
-        """, (now,)).fetchall()
+            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+        """, (now,))
+        expired = cur.fetchall()
         
-        db.execute("""
+        cur.execute("""
             UPDATE users
             SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < ?
+            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
         """, (now,))
         
         for user in expired:
-            db.execute("""
+            cur.execute("""
                 INSERT INTO notifications (user_id, message, created_at)
-                VALUES (?, ?, datetime('now', 'localtime'))
+                VALUES (%s, %s, NOW())
             """, (user['id'],
                   f"✅ Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
                   f"Your freeze count remains. Please follow community guidelines.\n"
                   f"After 3 freezes, your account will be permanently blocked."))
         
         db.commit()
+        cur.close()
         db.close()
-        
+
+@app.before_request
 def check_remember_me():
-    """Auto-login user if valid remember_token cookie exists"""
     if 'user_id' in session:
-        return  # Already logged in
+        return
     
-    # Skip authentication for public routes
     public_routes = ['login', 'register', 'forgot_password', 'static', 'welcome']
     if request.endpoint in public_routes:
         return
@@ -286,25 +298,24 @@ def check_remember_me():
     token = request.cookies.get('remember_token')
     if not token:
         return
-    
     db = get_db()
-    user = db.execute(
-        'SELECT id, username, student_id FROM users WHERE remember_token = ?',
-        (token,)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = %s', (token,))
+    user = cur.fetchone()
+    cur.close()
     db.close()
-    
+
     if user:
         session['user_id'] = user['id']
         session['username'] = user['username']
         session['student_id'] = user['student_id']
         print(f"Auto-logged in user: {user['username']}")
 
+
 # ============================================================
 # Eileen's Route - Register
 # ============================================================
 @app.route('/register', methods=['GET', 'POST'])
-
 def register():
     if request.method == 'POST':
         student_id = request.form.get('student_id')
@@ -367,37 +378,37 @@ def register():
             return render_template('register.html')
 
         db = get_db()
+        cur = db.cursor()
 
         # Check existing student_id or email
-        existing = db.execute(
-            'SELECT * FROM users WHERE student_id = ? OR LOWER(email) = LOWER(?)',
-            (student_id, email)
-        ).fetchone()
+        cur.execute('SELECT * FROM users WHERE student_id = %s OR LOWER(email) = LOWER(%s)', (student_id, email))
+        existing = cur.fetchone()
         if existing:
+            cur.close()
             db.close()
             flash('Student ID or Email already registered', 'error')
             return render_template('register.html')
 
         # Check existing username
-        username_exists = db.execute(
-            'SELECT * FROM users WHERE LOWER(username) = LOWER(?)',
-            (username,)
-        ).fetchone()
+        cur.execute('SELECT * FROM users WHERE LOWER(username) = LOWER(%s)', (username,))
+        username_exists = cur.fetchone()
         if username_exists:
+            cur.close()
             db.close()
             flash('Username already taken. Please choose another one.', 'error')
             return render_template('register.html')
 
         # Create user
         hashed_password = generate_password_hash(password)
-        db.execute('''
+        cur.execute('''
             INSERT INTO users (
                 student_id, email, username, password, gender,
                 security_q1, security_a1, security_q2, security_a2
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (student_id, email, username, hashed_password, gender,
               q1, a1, q2, a2))
         db.commit()
+        cur.close()
         db.close()
 
         flash('Account created successfully! Please login.', 'success')
@@ -410,54 +421,72 @@ def register():
 # Xingru's Route - Homepage
 # ============================================================
 @app.route('/home')
-
 def home():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     db = get_db()
-    products_data = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT p.*, 
         u.username as seller_name, 
-                               u.full_name as seller_full_name, u.id as seller_id
+        u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'approved'
         ORDER BY p.created_at DESC
-    ''').fetchall()
+    ''')
+    products_data = cur.fetchall()
+    cur.close()
     db.close()
 
     products = []
     for row in products_data:
         product = dict(row)
-        images_str = product.get('images', '')
-        if images_str:
-            img_list = images_str.split(',')
-            # Filter only image files for carousel (max 3)
-            image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
-            image_only = []
-            for f in img_list:
-                f = f.strip()
-                ext = f.split('.')[-1].lower()
-                if ext in image_extensions:
-                    image_only.append(f)
-            product['images_list'] = image_only[:3]
-            product['actual_total'] = len(img_list)
-            product['image_1'] = image_only[0] if len(image_only) > 0 else None
-            product['image_2'] = image_only[1] if len(image_only) > 1 else None
-        else:
-            product['images_list'] = []
-            product['actual_total'] = 0
-            product['image_1'] = None
-            product['image_2'] = None
+        
+        images_blob = product.get('images_blob', '')
+        
+        blob_count = 0
+        blob_list = []
+        
+        if images_blob:
+            try:
+                import json as _json
+                blob_list = _json.loads(images_blob) if isinstance(images_blob, str) else images_blob
+                if isinstance(blob_list, list):
+                    blob_count = len(blob_list)
+                    product['images_list'] = [f"/api/product-image/{product['id']}/{i}" 
+                                              for i in range(min(blob_count, 3))]
+                else:
+                    blob_count = 0
+                    product['images_list'] = []
+            except Exception as e:
+                print(f"Error parsing blob: {e}")
+                blob_count = 0
+                product['images_list'] = []
+
+        if blob_count == 0:
+            images_str = product.get('images', '')
+            if images_str:
+                img_list = [f.strip() for f in images_str.split(',') if f.strip()]
+                blob_count = len(img_list)
+                product['images_list'] = [f"/static/uploads/{f}" for f in img_list[:3]]
+            else:
+                product['images_list'] = []
+        
+        product['actual_total'] = blob_count
+        product['image_1'] = product['images_list'][0] if product['images_list'] else None
+        product['image_2'] = product['images_list'][1] if len(product['images_list']) > 1 else None
+        
         products.append(product)
 
     return render_template('home.html',
         username=session.get('username'), latest_products=products)
 
-#Xingru's Route - Search with filters
+# ============================================================
+# Xingru's Route - Search with filters
+# ============================================================
 @app.route('/search')
-
 def search():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -495,41 +524,41 @@ def search():
 
     # Keyword search
     if keyword:
-        query += " AND (p.name LIKE ? OR p.description LIKE ?)"
+        query += " AND (p.name LIKE %s OR p.description LIKE %s)"
         like = f"%{keyword}%"
         params.extend([like, like])
 
     # Category filter
     if categories:
-        placeholders = ','.join('?' for _ in categories)
+        placeholders = ','.join('%s' for _ in categories)
         query += f" AND p.category IN ({placeholders})"
         params.extend(categories)
 
     # Condition filter (multi)
     if conditions:
-        placeholders = ','.join('?' for _ in conditions)
+        placeholders = ','.join('%s' for _ in conditions)
         query += f" AND p.condition IN ({placeholders})"
         params.extend(conditions)
 
     # Date range – prioritise date_range if provided, else use custom dates
     if date_range and date_range.isdigit():
         days = int(date_range)
-        query += " AND p.created_at >= datetime('now', ?)"
-        params.append(f"-{days} days")
+        query += " AND p.created_at >= NOW() - INTERVAL '%s days'"
+        params.append(days)
     else:
         if date_from:
-            query += " AND p.created_at >= ?"
+            query += " AND p.created_at >= %s"
             params.append(date_from)
         if date_to:
-            query += " AND p.created_at <= ?"
+            query += " AND p.created_at <= %s"
             params.append(date_to + " 23:59:59")
 
     # Price range
     if min_price is not None:
-        query += " AND p.price >= ?"
+        query += " AND p.price >= %s"
         params.append(min_price)
     if max_price is not None:
-        query += " AND p.price <= ?"
+        query += " AND p.price <= %s"
         params.append(max_price)
 
     # Sorting
@@ -557,7 +586,10 @@ def search():
     query += " " + order_clause
 
     db = get_db()
-    products_data = db.execute(query, params).fetchall()
+    cur = db.cursor()
+    cur.execute(query, params)
+    products_data = cur.fetchall()
+    cur.close()
     db.close()
 
     # Process each product (same as home route)
@@ -565,10 +597,27 @@ def search():
     for row in products_data:
         product = dict(row)
         images_str = product.get('images', '')
-        if images_str:
+        images_blob = product.get('images_blob', '')
+
+        blob_list = []
+        if images_blob:
+            try:
+                import json as _json
+                blob_list = _json.loads(images_blob)
+            except Exception:
+                blob_list = []
+
+        if blob_list:
+            product['images_list'] = [f"/api/product-image/{product['id']}/{i}"
+                                      for i in range(min(3, len(blob_list)))]
+            product['actual_total'] = len(blob_list)
+            product['image_1'] = f"/api/product-image/{product['id']}/0"
+            product['image_2'] = f"/api/product-image/{product['id']}/1" if len(blob_list) > 1 else None
+        elif images_str:
             img_list = images_str.split(',')
             image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
-            image_only = [f for f in img_list if f.split('.')[-1].lower() in image_extensions]
+            image_only = ['/static/uploads/' + f.strip() for f in img_list
+                          if f.strip().split('.')[-1].lower() in image_extensions]
             product['images_list'] = image_only[:3]
             product['actual_total'] = len(img_list)
             product['image_1'] = image_only[0] if image_only else None
@@ -582,40 +631,36 @@ def search():
 
     return render_template('search.html', products=products)
 
-@app.route('/logout')
-
-def logout():
-    session.clear()
-    flash('Logged out', 'info')
-    return redirect(url_for('login'))
-
 # ============================================================
 # AVATAR ROUTES - Store as BLOB in database
 # ============================================================
 # Eileen's Route - Avatar image
 @app.route('/avatar-image')
-
 def avatar_image():
     """Serve avatar image from database BLOB - PERSISTENT storage"""
     if 'user_id' not in session:
         return '', 404
 
     db = get_db()
-    user = db.execute('SELECT avatar_blob FROM users WHERE id = ?',
-                      (session['user_id'],)).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT avatar_blob FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
     db.close()
 
     if user and user['avatar_blob']:
-        response = make_response(user['avatar_blob'])
+
+        avatar_data = bytes(user['avatar_blob']) if hasattr(user['avatar_blob'], 'tobytes') else user['avatar_blob']
+        response = make_response(avatar_data)
         response.headers.set('Content-Type', 'image/jpeg')
         response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
         return response
     return '', 404
 
-
+# ============================================================
 # Eileen's Route - Update avatar image
+# ============================================================
 @app.route('/update-profile-avatar', methods=['POST'])
-
 def update_profile_avatar():
     """Upload avatar and store directly as BLOB in database"""
     if 'user_id' not in session:
@@ -636,51 +681,72 @@ def update_profile_avatar():
         return jsonify({'success': False, 'error': 'Image too large (max 2MB)'}), 400
 
     db = get_db()
-    db.execute('UPDATE users SET avatar_blob = ? WHERE id = ?',
-               (image_data, session['user_id']))
+    cur = db.cursor()
+    cur.execute('UPDATE users SET avatar_blob = %s WHERE id = %s', (image_data, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
 
-
+# ============================================================
 # Added by Xingru - public route to serve avatar by user_id (for displaying other users' avatars)
+# ============================================================
 @app.route('/user-avatar/<int:user_id>')
-
 def user_avatar(user_id):
     db = get_db()
-    user = db.execute('SELECT avatar_blob FROM users WHERE id = ?', (user_id,)).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT avatar_blob FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
+    cur.close()
     db.close()
+    
     if user and user['avatar_blob']:
-        response = make_response(user['avatar_blob'])
+        avatar_data = bytes(user['avatar_blob']) if hasattr(user['avatar_blob'], 'tobytes') else user['avatar_blob']
+        response = make_response(avatar_data)
         response.headers.set('Content-Type', 'image/jpeg')
+        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
         return response
     return '', 404
 
+def make_blob_response(blob_data, content_type='image/jpeg'):
+    """Convert PostgreSQL BYTEA (memoryview) to Flask response"""
+    if blob_data is None:
+        return None
+    # Convert memoryview to bytes if needed
+    if hasattr(blob_data, 'tobytes'):
+        blob_data = blob_data.tobytes()
+    elif isinstance(blob_data, memoryview):
+        blob_data = bytes(blob_data)
+    response = make_response(blob_data)
+    response.headers.set('Content-Type', content_type)
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+    return response
 
 # ============================================================
 # COVER ROUTES - Store as BLOB in database
 # ============================================================
 # Eileen's Route - Upload custom cover image
 @app.route('/cover-image')
-
 def cover_image():
     """Serve cover image from database BLOB - PERSISTENT storage"""
     if 'user_id' not in session:
         return '', 404
 
     db = get_db()
-    user = db.execute('SELECT cover_blob FROM users WHERE id = ?',
-                      (session['user_id'],)).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT cover_blob FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
     db.close()
 
     if user and user['cover_blob']:
-        response = make_response(user['cover_blob'])
+        cover_data = bytes(user['cover_blob']) if hasattr(user['cover_blob'], 'tobytes') else user['cover_blob']
+        response = make_response(cover_data)
         response.headers.set('Content-Type', 'image/jpeg')
         response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
         return response
     return '', 404
-
 
 @app.route('/update-cover', methods=['POST'])
 
@@ -704,9 +770,12 @@ def update_cover():
         return jsonify({'success': False, 'error': 'Image too large (max 5MB)'}), 400
 
     db = get_db()
-    db.execute('UPDATE users SET cover_blob = ? WHERE id = ?',
-               (image_data, session['user_id']))
+    cur = db.cursor()
+
+    cur.execute('UPDATE users SET cover_blob = %s WHERE id = %s', 
+                (image_data, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
@@ -717,7 +786,6 @@ def update_cover():
 # ============================================================
 # Eileen's Route - Save custom background image
 @app.route('/save-background-preset', methods=['POST'])
-
 def save_background_preset():
     """Save background preset (color/gradient) - PERSISTENT storage"""
     if 'user_id' not in session:
@@ -728,18 +796,20 @@ def save_background_preset():
     bg_value = data.get('bg_value')
 
     db = get_db()
-    db.execute('''
-        UPDATE users SET background_type = ?, background_value = ? WHERE id = ?
+    cur = db.cursor()
+    cur.execute('''
+        UPDATE users SET background_type = %s, background_value = %s WHERE id = %s
     ''', (bg_type, bg_value, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
 
-
+# ============================================================
 # Eileen's Route - Upload custom background image
+# ============================================================
 @app.route('/upload-background', methods=['POST'])
-
 def upload_background():
     """Upload custom background image and store as data URL in database"""
     if 'user_id' not in session:
@@ -763,10 +833,12 @@ def upload_background():
     bg_value = f"data:{mime_type};base64,{base64.b64encode(image_data).decode('utf-8')}"
 
     db = get_db()
-    db.execute('''
-        UPDATE users SET background_type = ?, background_value = ? WHERE id = ?
+    cur = db.cursor()
+    cur.execute('''
+        UPDATE users SET background_type = %s, background_value = %s WHERE id = %s
     ''', ('image', bg_value, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({
@@ -776,17 +848,19 @@ def upload_background():
 
 
 @app.route('/api/user/background')
-
 def api_user_background():
     """Get user background data for cross-device sync"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
     db = get_db()
-    user = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT background_type, background_value
-        FROM users WHERE id = ?
-    ''', (session['user_id'],)).fetchone()
+        FROM users WHERE id = %s
+    ''', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
     db.close()
 
     if user:
@@ -803,23 +877,25 @@ def api_user_background():
 # ============================================================
 # Eileen's Route - Api for purchase
 @app.route('/api/user/purchases')
-
 def api_user_purchases():
     if 'user_id' not in session:
         return jsonify([])
     
     db = get_db()
-    rows = db.execute('''
-        SELECT o.id, o.product_id, o.final_price as price, 
-               o.original_price, o.status, o.meetup_location, o.created_at,
+    cur = db.cursor()
+    cur.execute('''
+        SELECT o.id, o.product_id, o.offer_price as price,
+               o.status, o.meeting_point as meetup_location, o.created_at,
                p.name,
                u.username as seller_name
         FROM orders o
         JOIN products p ON o.product_id = p.id
         JOIN users u ON p.seller_id = u.id
-        WHERE o.buyer_id = ?
+        WHERE o.buyer_id = %s
         ORDER BY o.created_at DESC
-    ''', (session['user_id'],)).fetchall()
+    ''', (session['user_id'],))
+    rows = cur.fetchall()
+    cur.close()
     db.close()
     
     purchases = []
@@ -833,15 +909,18 @@ def api_user_purchases():
 
 # Eileen's Route - Api for listing
 @app.route('/api/user/listings')
-
 def api_user_listings():
+    """Get user's product listings with first image from blob or disk"""
     if 'user_id' not in session:
         return jsonify([])
     
+    import json as _json
+
     db = get_db()
-    rows = db.execute("""
+    cur = db.cursor()
+    cur.execute("""
         SELECT p.id, p.name, p.price, p.status, p.created_at, 
-               p.images, p.images_blob,
+               p.images, p.images_blob, p.condition,
                CASE p.category
                    WHEN 'books' THEN '📚'
                    WHEN 'gadgets' THEN '💻'
@@ -853,32 +932,49 @@ def api_user_listings():
                    WHEN 'stationery' THEN '✏️'
                    WHEN 'music' THEN '🎸'
                    ELSE '📦'
-               END as emoji,
-               (SELECT COUNT(*) FROM offers WHERE product_id = p.id AND status = 'pending') as offer_count
+               END as emoji
         FROM products p
-        WHERE p.seller_id = ?
+        WHERE p.seller_id = %s
         ORDER BY p.created_at DESC
-    """, (session['user_id'],)).fetchall()
+    """, (session['user_id'],))
+    rows = cur.fetchall()
+    cur.close()
     db.close()
     
     listings = []
+    
     for row in rows:
         item = dict(row)
-        if item.get('images_blob'):
+        first_image = None
+        is_video = False
+
+        # Priority 1: Use images_blob (base64) - most reliable source
+        images_blob = item.get('images_blob')
+        if images_blob:
             try:
-                import json
-                images = json.loads(item['images_blob'])
-                if images and len(images) > 0:
-                    item['first_image'] = images[0]
-                else:
-                    item['first_image'] = None
-            except:
-                item['first_image'] = None
-        elif item.get('images'):
-            img_list = item['images'].split(',')
-            item['first_image'] = img_list[0] if img_list else None
-        else:
-            item['first_image'] = None
+                blob_list = _json.loads(images_blob) if isinstance(images_blob, str) else images_blob
+                if isinstance(blob_list, list) and len(blob_list) > 0:
+                    first_blob = blob_list[0]
+                    if isinstance(first_blob, str) and first_blob.startswith('data:'):
+                        first_image = first_blob
+                        is_video = first_blob.startswith('data:video/')
+            except Exception as e:
+                print(f"Error parsing images_blob for listing: {e}")
+
+        # Priority 2: Fallback to disk files
+        if not first_image and item.get('images'):
+            img_str = item['images']
+            if img_str:
+                img_list = [x.strip() for x in img_str.split(',') if x.strip()]
+                if img_list:
+                    first_image = '/static/uploads/' + img_list[0]
+                    ext = img_list[0].split('.')[-1].lower()
+                    is_video = ext in ['mp4', 'webm', 'mov', 'avi', 'mkv']
+
+        # Remove heavy blob from response to keep it lightweight
+        item.pop('images_blob', None)
+        item['first_image'] = first_image
+        item['first_image_is_video'] = is_video
         listings.append(item)
     
     return jsonify(listings)
@@ -888,26 +984,30 @@ def api_user_listings():
 # ============================================================
 
 @app.route('/api/product/<int:product_id>/offers')
-#get offer route by Eileen
 def get_product_offers(product_id):
     """Get all offers for a product (seller only)"""
     if 'user_id' not in session:
         return jsonify({'error': 'Not logged in'}), 401
     
     db = get_db()
+    cur = db.cursor()
     # Verify product belongs to user
-    product = db.execute('SELECT seller_id FROM products WHERE id = ?', (product_id,)).fetchone()
+    cur.execute('SELECT seller_id FROM products WHERE id = %s', (product_id,))
+    product = cur.fetchone()
     if not product or product['seller_id'] != session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'error': 'Unauthorized'}), 403
     
-    offers = db.execute('''
+    cur.execute('''
         SELECT o.*, u.username as buyer_name
         FROM offers o
         JOIN users u ON o.buyer_id = u.id
-        WHERE o.product_id = ?
+        WHERE o.product_id = %s
         ORDER BY o.created_at DESC
-    ''', (product_id,)).fetchall()
+    ''', (product_id,))
+    offers = cur.fetchall()
+    cur.close()
     db.close()
     
     # Add offer_count to product for listing display
@@ -922,24 +1022,23 @@ def get_product_offers(product_id):
 
 
 @app.route('/api/product/<int:product_id>/offer-count')
-#accept get product offer route by Eileen
 def get_product_offer_count(product_id):
     """Get offer count for a product"""
     if 'user_id' not in session:
         return jsonify({'count': 0})
     
     db = get_db()
-    count = db.execute(
-        'SELECT COUNT(*) FROM offers WHERE product_id = ?',
-        (product_id,)
-    ).fetchone()[0]
+    cur = db.cursor()
+    cur.execute('SELECT COUNT(*) AS count FROM offers WHERE product_id = %s', (product_id,))
+    row = cur.fetchone()
+    count = row['count'] if row else 0
+    cur.close()
     db.close()
     
     return jsonify({'count': count})
 
 
 @app.route('/api/product/<int:product_id>/offers/send', methods=['POST'])
-#accept send offer route by Eileen
 def send_offer(product_id):
     """Send an offer for a product (buyer)"""
     if 'user_id' not in session:
@@ -953,143 +1052,148 @@ def send_offer(product_id):
         return jsonify({'success': False, 'error': 'Invalid offer price'}), 400
     
     db = get_db()
+    cur = db.cursor()
     
     # Get product info
-    product = db.execute(
-        'SELECT id, name, price, seller_id FROM products WHERE id = ? AND status = "approved"',
-        (product_id,)
-    ).fetchone()
+    cur.execute('SELECT id, name, price, seller_id FROM products WHERE id = %s AND status = "approved"', (product_id,))
+    product = cur.fetchone()
     
     if not product:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Product not found'}), 404
     
     # Check if buyer is not the seller
     if product['seller_id'] == session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'You cannot make an offer on your own product'}), 400
     
     # Check if offer already exists
-    existing = db.execute(
-        'SELECT id FROM offers WHERE product_id = ? AND buyer_id = ? AND status = "pending"',
-        (product_id, session['user_id'])
-    ).fetchone()
+    cur.execute('SELECT id FROM offers WHERE product_id = %s AND buyer_id = %s AND status = "pending"', (product_id, session['user_id']))
+    existing = cur.fetchone()
     
     if existing:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'You already have a pending offer for this product'}), 400
     
     # Create offer
-    db.execute('''
+    cur.execute('''
         INSERT INTO offers (product_id, buyer_id, offer_price, original_price, message, status)
-        VALUES (?, ?, ?, ?, ?, 'pending')
+        VALUES (%s, %s, %s, %s, %s, 'pending')
     ''', (product_id, session['user_id'], float(offer_price), product['price'], message))
     
     # Create notification for seller
-    db.execute('''
+    cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, ?)
+        VALUES (%s, %s, NOW())
     ''', (product['seller_id'],
-          f"New offer of RM {float(offer_price):.2f} on your item: {product['name']}",
-          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+          f"New offer of RM {float(offer_price):.2f} on your item: {product['name']}"))
     
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True, 'message': 'Offer sent successfully'})
 
 
 @app.route('/api/offer/<int:offer_id>/accept', methods=['POST'])
-#accept offer route by Eileen
 def accept_offer(offer_id):
     """Accept an offer (seller)"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     db = get_db()
+    cur = db.cursor()
     
     # Get offer details
-    offer = db.execute('''
+    cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id, p.id as product_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = ?
-    ''', (offer_id,)).fetchone()
+        WHERE o.id = %s
+    ''', (offer_id,))
+    offer = cur.fetchone()
     
     if not offer:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     # Verify seller
     if offer['seller_id'] != session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Update offer status
-    db.execute('UPDATE offers SET status = "accepted" WHERE id = ?', (offer_id,))
+    cur.execute('UPDATE offers SET status = "accepted" WHERE id = %s', (offer_id,))
     
     # Mark product as sold
-    db.execute('UPDATE products SET status = "sold" WHERE id = ?', (offer['product_id'],))
+    cur.execute('UPDATE products SET status = "sold" WHERE id = %s', (offer['product_id'],))
     
     # Create notification for buyer
-    db.execute('''
+    cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, ?)
+        VALUES (%s, %s, NOW())
     ''', (offer['buyer_id'],
-          f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} has been accepted!",
-          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+          f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} has been accepted!"))
     
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True})
 
 
 @app.route('/api/offer/<int:offer_id>/reject', methods=['POST'])
-#accept reject route by Eileen
 def reject_offer(offer_id):
     """Reject an offer (seller)"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     db = get_db()
+    cur = db.cursor()
     
     # Get offer details
-    offer = db.execute('''
+    cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = ?
-    ''', (offer_id,)).fetchone()
+        WHERE o.id = %s
+    ''', (offer_id,))
+    offer = cur.fetchone()
     
     if not offer:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     # Verify seller
     if offer['seller_id'] != session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Update offer status
-    db.execute('UPDATE offers SET status = "rejected" WHERE id = ?', (offer_id,))
+    cur.execute('UPDATE offers SET status = "rejected" WHERE id = %s', (offer_id,))
     
     # Create notification for buyer
-    db.execute('''
+    cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, ?)
+        VALUES (%s, %s, NOW())
     ''', (offer['buyer_id'],
-          f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} was rejected.",
-          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+          f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} was rejected."))
     
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True})
 
 
 @app.route('/api/offer/<int:offer_id>/counter', methods=['POST'])
-#counter offer route by Eileen
 def counter_offer(offer_id):
     """Counter an offer (seller)"""
     if 'user_id' not in session:
@@ -1102,85 +1206,90 @@ def counter_offer(offer_id):
         return jsonify({'success': False, 'error': 'Invalid counter price'}), 400
     
     db = get_db()
+    cur = db.cursor()
     
     # Get offer details
-    offer = db.execute('''
+    cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = ?
-    ''', (offer_id,)).fetchone()
+        WHERE o.id = %s
+    ''', (offer_id,))
+    offer = cur.fetchone()
     
     if not offer:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     # Verify seller
     if offer['seller_id'] != session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Create counter offer (insert new offer or update)
-    db.execute('''
+    cur.execute('''
         UPDATE offers 
-        SET counter_price = ?, status = 'countered'
-        WHERE id = ?
+        SET counter_price = %s, status = 'countered'
+        WHERE id = %s
     ''', (float(counter_price), offer_id))
     
     # Create notification for buyer
-    db.execute('''
+    cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, ?)
+        VALUES (%s, %s, NOW())
     ''', (offer['buyer_id'],
-          f"Seller countered your offer for {offer['product_name']}: RM {float(counter_price):.2f}",
-          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+          f"Seller countered your offer for {offer['product_name']}: RM {float(counter_price):.2f}"))
     
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True})
 
 
 @app.route('/api/offer/<int:offer_id>/accept-counter', methods=['POST'])
-#accept counter offer route by Eileen
 def accept_counter_offer(offer_id):
     """Accept a counter offer (buyer)"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     db = get_db()
+    cur = db.cursor()
     
     # Get offer details
-    offer = db.execute('''
+    cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = ?
-    ''', (offer_id,)).fetchone()
+        WHERE o.id = %s
+    ''', (offer_id,))
+    offer = cur.fetchone()
     
     if not offer:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     # Verify buyer
     if offer['buyer_id'] != session['user_id']:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Update offer with counter price as accepted
-    db.execute('''
+    cur.execute('''
         UPDATE offers 
         SET offer_price = counter_price, status = 'accepted', counter_price = NULL
-        WHERE id = ?
+        WHERE id = %s
     ''', (offer_id,))
     
     # Mark product as sold
-    db.execute(
-    'UPDATE products SET status = "sold" WHERE id = ?',
-    (offer['product_id'],)
-    )
+    cur.execute('UPDATE products SET status = "sold" WHERE id = %s', (offer['product_id'],))
     
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True})
@@ -1197,25 +1306,92 @@ def api_get_product(product_id):
         return jsonify({'error': 'Not logged in'}), 401
 
     db = get_db()
-    product = db.execute('''
-        SELECT id, 
-        name, price, 
-        description, 
-        condition, 
-        category, 
-        images, 
-                         images_blob, status
+    cur = db.cursor()
+    cur.execute('''
+        SELECT id, name, price, description, condition, category, images, images_blob, status
         FROM products
-        WHERE id = ? AND seller_id = ?
-    ''', (product_id, session['user_id'])).fetchone()
+        WHERE id = %s AND seller_id = %s
+    ''', (product_id, session['user_id']))
+    product = cur.fetchone()
+    cur.close()
     db.close()
 
     if not product:
         return jsonify({'error': 'Product not found'}), 404
 
-    return jsonify(dict(product))
+    import json as _json
+    result = dict(product)
 
+    # Normalize images_blob → always a JSON string (list of base64 data URIs)
+    blob = result.get('images_blob')
+    if blob:
+        try:
+            parsed = _json.loads(blob) if isinstance(blob, str) else blob
+            if isinstance(parsed, list):
+                result['images_blob'] = _json.dumps(parsed)
+            elif isinstance(parsed, str) and parsed.startswith('data:'):
+                result['images_blob'] = _json.dumps([parsed])
+            else:
+                result['images_blob'] = None
+        except Exception:
+            result['images_blob'] = None
+    else:
+        result['images_blob'] = None
+
+    return jsonify(result)
+
+# ============================================================
+# Serve individual product image by product_id + index
+# Used by _product_card.html so we don't embed base64 in HTML attrs
+# ============================================================
+@app.route('/api/product-image/<int:product_id>/<int:index>')
+
+def api_product_image(product_id, index):
+    """Serve a single product image as binary (avoids putting base64 in HTML)"""
+    import json as _json
+    import base64
+    
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute('SELECT images_blob, images FROM products WHERE id = %s', (product_id,))
+    row = cur.fetchone()
+    cur.close()
+    db.close()
+
+    if not row:
+        return '', 404
+
+    # Try images_blob first
+    if row.get('images_blob'):
+        try:
+            blob_list = _json.loads(row['images_blob']) if isinstance(row['images_blob'], str) else row['images_blob']
+            if isinstance(blob_list, list) and index < len(blob_list):
+                data_uri = blob_list[index]
+                if isinstance(data_uri, str) and data_uri.startswith('data:'):
+                    header, b64data = data_uri.split(',', 1)
+                    mime_type = header.split(';')[0].split(':')[1]
+                    img_bytes = base64.b64decode(b64data)
+                    response = make_response(img_bytes)
+                    response.headers.set('Content-Type', mime_type)
+                    response.headers.set('Cache-Control', 'public, max-age=604800')
+                    return response
+        except Exception as e:
+            print(f"Error serving product image: {e}")
+
+    # Fallback: disk file
+    if row.get('images'):
+        parts = [p.strip() for p in row['images'].split(',') if p.strip()]
+        if parts and index < len(parts):
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], parts[index])
+            if os.path.exists(filepath):
+                from flask import send_file
+                return send_file(filepath)
+
+    return '', 404
+# ============================================================
 # Eileen's Route - Update product
+# ============================================================
 @app.route('/api/product/<int:product_id>/update', methods=['PUT'])
 
 def api_update_product(product_id):
@@ -1243,22 +1419,24 @@ def api_update_product(product_id):
         return jsonify({'success': False, 'error': ', '.join(errors)}), 400
 
     db = get_db()
+    cur = db.cursor()
 
     # Verify product belongs to user
-    product = db.execute('SELECT id FROM products WHERE id = ? AND seller_id = ?',
-                         (product_id, session['user_id'])).fetchone()
+    cur.execute('SELECT id FROM products WHERE id = %s AND seller_id = %s', (product_id, session['user_id']))
+    product = cur.fetchone()
     if not product:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Product not found'}), 404
 
     # Update product (status becomes pending again for admin review)
-    db.execute('''
+    cur.execute('''
         UPDATE products
-        SET name = ?, 
-        price = ?, description = ?, condition = ?, category = ?, status = 'pending'
-        WHERE id = ?
+        SET name = %s, price = %s, description = %s, condition = %s, category = %s, status = 'pending'
+        WHERE id = %s
     ''', (name, price, description, condition, category, product_id))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
@@ -1267,95 +1445,136 @@ def api_update_product(product_id):
 # Eileen's route - update product full
 # ============================================================
 @app.route('/api/product/<int:product_id>/update-full', methods=['POST'])
-
 def api_update_product_full(product_id):
     if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+        return jsonify({'success': False, 'error': 'Session expired. Please login again.'}), 401
 
     db = get_db()
+    cur = db.cursor()
     
     # Verify product belongs to user
-    product = db.execute('SELECT id FROM products WHERE id = ? AND seller_id = ?', 
-                         (product_id, session['user_id'])).fetchone()
+    cur.execute('SELECT id, images FROM products WHERE id = %s AND seller_id = %s', 
+                (product_id, session['user_id']))
+    product = cur.fetchone()
+    
     if not product:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Product not found'}), 404
-    
-    # Get form data
+
     name = request.form.get('name', '').strip()
     price = request.form.get('price', 0)
     description = request.form.get('description', '').strip()
     condition = request.form.get('condition', '')
     category = request.form.get('category', '')
-    images_blob = request.form.get('images_blob', '[]')
-    
-    # Validation
+    images_blob_json = request.form.get('images_blob', '')
+
     if not name or not price or not description:
         return jsonify({'success': False, 'error': 'Name, price and description required'}), 400
-    
+
     try:
         price = float(price)
     except:
         return jsonify({'success': False, 'error': 'Invalid price'}), 400
-    
-    # Update database with images_blob
-    db.execute('''
-        UPDATE products 
-        SET name = ?, price = ?, description = ?, condition = ?, category = ?, 
-            images_blob = ?, status = 'pending'
-        WHERE id = ?
-    ''', (name, price, description, condition, category, images_blob, product_id))
-    db.commit()
-    db.close()
-    
-    return jsonify({'success': True})
-# Eileen's Route - Delete product
-@app.route('/api/product/<int:product_id>/delete', methods=['DELETE'])
 
-def api_delete_product(product_id):
-    """Delete a product listing"""
+    # Server-side media count limit
+    import json, base64, uuid
+    MAX_MEDIA = 12
+    if images_blob_json:
+        try:
+            blob_check = json.loads(images_blob_json)
+            if isinstance(blob_check, list) and len(blob_check) > MAX_MEDIA:
+                return jsonify({'success': False,
+                                'error': f'Maximum {MAX_MEDIA} media files allowed.'}), 400
+        except Exception:
+            pass
+
+    # Process Base64 data and save to disk
+    saved_filenames = []
+
+    if images_blob_json:
+        try:
+            blob_list = json.loads(images_blob_json)
+            for idx, blob in enumerate(blob_list):
+                if not isinstance(blob, str) or not blob.startswith('data:'):
+                    continue
+                header, b64data = blob.split(',', 1)
+                mime_type = header.split(';')[0].split(':')[1]
+                ext_map = {
+                    'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp',
+                    'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov'
+                }
+                ext = ext_map.get(mime_type, 'bin')
+                if ext == 'bin':
+                    continue
+                file_data = base64.b64decode(b64data)
+                unique_name = f"product_{product_id}_{uuid.uuid4().hex}.{ext}"
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+                with open(save_path, 'wb') as f:
+                    f.write(file_data)
+                saved_filenames.append(unique_name)
+        except Exception as e:
+            print(f"Error processing images_blob: {e}")
+            saved_filenames = []
+
+    images_str = ','.join(saved_filenames)
+
+    cur.execute('''
+        UPDATE products
+        SET name = %s, price = %s, description = %s, condition = %s, category = %s,
+            images = %s, images_blob = %s, status = 'pending'
+        WHERE id = %s
+    ''', (name, price, description, condition, category,
+          images_str, images_blob_json, product_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/product/<int:product_id>/upload-images', methods=['POST'])
+def upload_product_images(product_id):
+    """Upload new images for a product"""
     if 'user_id' not in session:
-        return jsonify(
-            {'success': False, 'error': 'Not logged in'}
-        ), 401
-
-    db = get_db()
-
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
     # Verify product belongs to user
-    product = db.execute(
-        'SELECT id, name, images FROM products '
-        'WHERE id = ? AND seller_id = ?',
-        (product_id, session['user_id'])
-    ).fetchone()
-
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT id FROM products WHERE id = %s AND seller_id = %s', 
+                (product_id, session['user_id']))
+    product = cur.fetchone()
+    
     if not product:
+        cur.close()
         db.close()
-        return jsonify(
-            {'success': False, 'error': 'Product not found'}
-        ), 404
-
-    # Delete associated images from filesystem
-    if product['images']:
-        for img in product['images'].split(','):
-            img_path = os.path.join('static/uploads', img)
-            if os.path.exists(img_path):
-                try:
-                    os.remove(img_path)
-                except:
-                    pass
-
-    # Delete product from database
-    db.execute('DELETE FROM products WHERE id = ?', (product_id,))
-    db.commit()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # Get existing images
+    existing_images = request.form.get('existing_images', '[]')
+    import json
+    existing = json.loads(existing_images)
+    
+    # Upload new images
+    new_files = request.files.getlist('new_images')
+    for file in new_files:
+        if file and file.filename:
+            ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+            filename = secure_filename(f"product_{product_id}_{uuid.uuid4().hex}.{ext}")
+            file.save(os.path.join('static/uploads', filename))
+            existing.append(filename)
+    
+    cur.close()
     db.close()
-
-    return jsonify({'success': True})
+    
+    return jsonify({'success': True, 'all_images': existing})
 
 # ============================================================
 # Eileen's Route - My profile
 # ============================================================
 @app.route('/my-profile')
-
 def my_profile():
 
     if 'user_id' not in session:
@@ -1364,30 +1583,23 @@ def my_profile():
 
     db = get_db()
     user_id = session['user_id']
+    cur = db.cursor()
 
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (user_id,)
-    ).fetchone()
+    cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
 
     if not user:
         session.clear()
         flash('User not found', 'error')
         return redirect(url_for('login'))
 
-    listing_count = db.execute(
-        'SELECT COUNT(*) FROM products WHERE seller_id = ?',
-        (user_id,)
-    ).fetchone()[0]
-
+    cur.execute('SELECT COUNT(*) FROM products WHERE seller_id = %s', (user_id,))
+    listing_count = cur.fetchone()['count'] 
 
     sold_count = 0
     try:
-        sold_count = db.execute(
-            'SELECT COUNT(*) FROM orders '
-            'WHERE seller_id = ? AND status = "completed"',
-            (user_id,)
-        ).fetchone()[0]
+        cur.execute('SELECT COUNT(*) FROM orders WHERE seller_id = %s AND status = "completed"', (user_id,))
+        sold_count = cur.fetchone()['count']  
     except:
         pass
 
@@ -1397,16 +1609,19 @@ def my_profile():
     response_rate = 50
     if listing_count > 0:
         response_rate += 15
+    
     if user['bio'] and user['contact']:
         response_rate += 10
     if user['active_hours'] and user['active_hours'] != 'Not set':
         response_rate += 10
     if user['avatar_blob']:
         response_rate += 5
+    
     response_rate = min(response_rate, 98)
     response_rate = max(response_rate, 40)
     # ========================================
 
+    cur.close()
     db.close()
 
     return render_template(
@@ -1422,43 +1637,35 @@ def my_profile():
 # Eileen's Route - Edit Profile
 # ============================================================
 @app.route('/edit_profile', methods=['GET'])
-
 def edit_profile():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     db = get_db()
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
 
-    listing_count = db.execute(
-        'SELECT COUNT(*) FROM products WHERE seller_id = ?',
-        (session['user_id'],)
-    ).fetchone()[0]
+    cur.execute('SELECT COUNT(*) FROM products WHERE seller_id = %s', (session['user_id'],))
+    listing_count = cur.fetchone()['count']  
 
-    # 使用公共函数
     trust_score = calculate_trust_score(user, listing_count)
 
-    # Calculate response rate
     response_rate = 50
-
     if listing_count > 0:
         response_rate += 15
-
+    
     if user['bio'] and user['contact']:
         response_rate += 10
-
     if user['active_hours'] and user['active_hours'] != 'Not set':
         response_rate += 10
-
     if user['avatar_blob']:
         response_rate += 5
-
+    
     response_rate = min(response_rate, 98)
     response_rate = max(response_rate, 40)
 
+    cur.close()
     db.close()
 
     return render_template(
@@ -1471,10 +1678,58 @@ def edit_profile():
     )
 
 # ============================================================
+# Check if user is admin - API endpoint
+# ============================================================
+@app.route('/api/user/is-admin')
+def api_user_is_admin():
+    """Check if current user is an admin"""
+    if 'user_id' not in session:
+        return jsonify({'is_admin': False}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT is_admin FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user and user['is_admin'] == 1:
+        return jsonify({'is_admin': True})
+    return jsonify({'is_admin': False})
+
+
+# ============================================================
+# Switch to Admin Dashboard
+# ============================================================
+@app.route('/switch-to-admin')
+def switch_to_admin():
+    """Switch from user session to admin session"""
+    if 'user_id' not in session:
+        flash('Please login first', 'error')
+        return redirect(url_for('login'))
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT is_admin, email, username FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user and user['is_admin'] == 1:
+        # Set admin session
+        session['admin_logged_in'] = True
+        session['admin_email'] = user['email']
+        session['admin_username'] = user['username']
+        flash('Switched to Admin mode', 'success')
+        return redirect(url_for('admin_dashboard'))
+    else:
+        flash('You do not have admin privileges', 'error')
+        return redirect(url_for('edit_profile'))
+    
+# ============================================================
 # Eileen's Route - Update Profile
 # ============================================================
 @app.route('/update-profile', methods=['POST'])
-
 def update_profile():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -1487,27 +1742,27 @@ def update_profile():
     active_hours = request.form.get('active_hours')
 
     db = get_db()
+    cur = db.cursor()
 
     # Check if username already taken
-    existing = db.execute(
-        'SELECT id FROM users WHERE username = ? AND id != ?',
-        (username, session['user_id'])
-    ).fetchone()
+    cur.execute('SELECT id FROM users WHERE username = %s AND id != %s', (username, session['user_id']))
+    existing = cur.fetchone()
     if existing:
+        cur.close()
         db.close()
         flash('Username already taken', 'error')
         return redirect(url_for('edit_profile'))
 
     # Update all fields
-    db.execute("""
+    cur.execute("""
         UPDATE users
-        SET username = ?, full_name = ?, bio = ?,
-            contact = ?, gender = ?, active_hours = ?
-        WHERE id = ?
-    """, (username, full_name, bio, contact, gender,
-          active_hours, session['user_id']))
+        SET username = %s, full_name = %s, bio = %s,
+            contact = %s, gender = %s, active_hours = %s
+        WHERE id = %s
+    """, (username, full_name, bio, contact, gender, active_hours, session['user_id']))
 
     db.commit()
+    cur.close()
     db.close()
 
     session['username'] = username
@@ -1519,7 +1774,6 @@ def update_profile():
 # Eileen's Route - Change Password
 # ============================================================
 @app.route('/change-password', methods=['POST'])
-
 def change_password():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -1529,32 +1783,32 @@ def change_password():
     confirm_password = request.form.get('confirm_password')
 
     db = get_db()
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
 
     if not user:
+        cur.close()
         db.close()
         flash('User not found', 'error')
         return redirect(url_for('edit_profile'))
 
     if not check_password_hash(user['password'], current_password):
+        cur.close()
         db.close()
         flash('Current password is incorrect', 'error')
         return redirect(url_for('edit_profile'))
 
     if new_password != confirm_password:
+        cur.close()
         db.close()
         flash('New passwords do not match', 'error')
         return redirect(url_for('edit_profile'))
 
     hashed = generate_password_hash(new_password)
-    db.execute(
-        'UPDATE users SET password = ? WHERE id = ?',
-        (hashed, session['user_id'])
-    )
+    cur.execute('UPDATE users SET password = %s WHERE id = %s', (hashed, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     flash('Password changed successfully!', 'success')
@@ -1565,7 +1819,6 @@ def change_password():
 # Eileen's Route - Delete Account
 # ============================================================
 @app.route('/delete-account', methods=['POST'])
-
 def delete_account():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -1578,22 +1831,22 @@ def delete_account():
         return redirect(url_for('edit_profile'))
 
     db = get_db()
-    user = db.execute(
-        'SELECT * FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
 
     if not check_password_hash(user['password'], password):
+        cur.close()
+        db.close()
         flash('Password is incorrect', 'error')
         return redirect(url_for('edit_profile'))
 
-    db.execute('DELETE FROM products WHERE seller_id = ?', (session['user_id'],))
-    db.execute("""
-        DELETE FROM orders WHERE buyer_id = ? OR seller_id = ?
-    """, (session['user_id'], session['user_id']))
-    db.execute('DELETE FROM notifications WHERE user_id = ?', (session['user_id'],))
-    db.execute('DELETE FROM users WHERE id = ?', (session['user_id'],))
+    cur.execute('DELETE FROM products WHERE seller_id = %s', (session['user_id'],))
+    cur.execute('DELETE FROM orders WHERE buyer_id = %s OR seller_id = %s', (session['user_id'], session['user_id']))
+    cur.execute('DELETE FROM notifications WHERE user_id = %s', (session['user_id'],))
+    cur.execute('DELETE FROM users WHERE id = %s', (session['user_id'],))
     db.commit()
+    cur.close()
     db.close()
 
     session.clear()
@@ -1604,14 +1857,13 @@ def delete_account():
     response.set_cookie('remember_token', '', expires=0)
 
     flash('Your account has been permanently deleted', 'info')
-    return redirect(url_for('login'))
+    return response
 
 
 # ============================================================
 # Eileen's Route - Verify Password
 # ============================================================
 @app.route('/verify-password', methods=['POST'])
-
 def verify_password():
     if 'user_id' not in session:
         return jsonify({'valid': False}), 401
@@ -1620,10 +1872,10 @@ def verify_password():
     password = data.get('password', '')
 
     db = get_db()
-    user = db.execute(
-        'SELECT password FROM users WHERE id = ?',
-        (session['user_id'],)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT password FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
     db.close()
 
     if user and check_password_hash(user['password'], password):
@@ -1636,7 +1888,6 @@ def verify_password():
 # Eileen's Route - Forgot Password
 # ============================================================
 @app.route('/forgot-password', methods=['GET', 'POST'])
-
 def forgot_password():
     if request.method == 'POST':
         step = request.form.get('step')
@@ -1652,10 +1903,10 @@ def forgot_password():
                 return render_template('forgot_password.html')
 
             db = get_db()
-            user = db.execute(
-                'SELECT id, security_q1, security_q2 FROM users WHERE email = ?',
-                (email,)
-            ).fetchone()
+            cur = db.cursor()
+            cur.execute('SELECT id, security_q1, security_q2 FROM users WHERE email = %s', (email,))
+            user = cur.fetchone()
+            cur.close()
             db.close()
 
             if not user:
@@ -1683,10 +1934,10 @@ def forgot_password():
             a2_input = request.form.get('fp_a2', '').strip().lower()
 
             db = get_db()
-            user = db.execute(
-                'SELECT id, security_a1, security_a2 FROM users WHERE email = ?',
-                (email,)
-            ).fetchone()
+            cur = db.cursor()
+            cur.execute('SELECT id, security_a1, security_a2 FROM users WHERE email = %s', (email,))
+            user = cur.fetchone()
+            cur.close()
             db.close()
 
             if not user:
@@ -1740,11 +1991,10 @@ def forgot_password():
 
             hashed = generate_password_hash(new_password)
             db = get_db()
-            db.execute(
-                'UPDATE users SET password = ? WHERE email = ?',
-                (hashed, email)
-            )
+            cur = db.cursor()
+            cur.execute('UPDATE users SET password = %s WHERE email = %s', (hashed, email))
             db.commit()
+            cur.close()
             db.close()
 
             session.pop('fp_email', None)
@@ -1762,63 +2012,145 @@ def forgot_password():
 # Eileen's Route - Admin Login
 # ============================================================
 @app.route('/admin/login', methods=['GET', 'POST'])
-
 def admin_login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
+        remember_me = request.form.get('remember_me') 
 
         db = get_db()
-        user = db.execute(
-            'SELECT * FROM users WHERE email = ? AND is_admin = 1',
-            (email,)
-        ).fetchone()
+        cur = db.cursor()
+        cur.execute('SELECT * FROM users WHERE email = %s AND is_admin = 1', (email,))
+        user = cur.fetchone()
+        cur.close()
         db.close()
 
-        if user and check_password_hash(user['password'], password):
+        # ✅ user 现在是字典，用字符串键名访问
+        if user and check_password_hash(user['password'], password):  # 用 'password' 不是 5
             session['admin_logged_in'] = True
             session['admin_email'] = user['email']
             session['admin_username'] = user['username']
-            flash('Admin login successful!', 'success')
-            return redirect(url_for('admin_dashboard'))
+            
+            if remember_me:
+                import secrets
+                token = secrets.token_urlsafe(64)
+                db = get_db()
+                cur = db.cursor()
+                cur.execute('UPDATE users SET remember_token = %s WHERE id = %s', (token, user['id']))
+                db.commit()
+                cur.close()
+                db.close()
+                response = redirect(url_for('admin_dashboard'))
+                response.set_cookie('admin_remember_token', token, 
+                                    max_age=30*24*60*60, httponly=True, secure=False)
+                flash('Admin login successful!', 'success')
+                return response
+            else:
+                db = get_db()
+                cur = db.cursor()
+                cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (user['id'],))
+                db.commit()
+                cur.close()
+                db.close()
+                response = redirect(url_for('admin_dashboard'))
+                response.set_cookie('admin_remember_token', '', expires=0)
+                flash('Admin login successful!', 'success')
+                return response
         else:
             flash('Invalid admin credentials', 'error')
 
     return render_template('admin_login.html')
 
+@app.before_request
+def check_admin_remember_me():
+    if session.get('admin_logged_in'):
+        return
+    
+    public_routes = [
+        'login', 'admin_login', 'register', 'forgot_password', 'static', 'welcome']
+    if request.endpoint in public_routes:
+        return
+    
+    token = request.cookies.get('admin_remember_token')
+    if not token:
+        return
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = %s AND is_admin = 1', (token,))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user:
+        session['admin_logged_in'] = True
+        session['admin_email'] = user['email']      # 修复：用字典键名
+        session['admin_username'] = user['username'] # 修复：用字典键名
+        print(f"Auto-logged in admin: {user['username']}")
+        
+@app.route('/logout')
+def logout():
+    # Clear admin token if exists
+    if session.get('admin_logged_in'):
+        db = get_db()
+        cur = db.cursor()
+        cur.execute('UPDATE users SET remember_token = NULL WHERE email = %s', (session.get('admin_email'),))
+        db.commit()
+        cur.close()
+        db.close()
+        response = redirect(url_for('login'))
+        response.set_cookie('admin_remember_token', '', expires=0)
+        session.clear()
+        flash('Admin logged out', 'info')
+        return response
+    
+    # Clear user token if exists
+    if session.get('user_id'):
+        db = get_db()
+        cur = db.cursor()
+        cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (session['user_id'],))
+        db.commit()
+        cur.close()
+        db.close()
+        response = redirect(url_for('login'))
+        response.set_cookie('remember_token', '', expires=0)
+    
+    session.clear()
+    flash('Logged out', 'info')
+    return redirect(url_for('login'))
 
 # ============================================================
 # Keting's Route - Admin Dashboard
 # ============================================================
 @app.route('/admin/dashboard')
-
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
 
     db = get_db()
+    cur = db.cursor()
 
-    total_products = db.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM products")
+    total_products = cur.fetchone()['count']  
 
     # Total registered users
-    total_users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM users")
+    total_users = cur.fetchone()['count']
 
     # Approved products count
-    approved_count = db.execute(
-        "SELECT COUNT(*) FROM products WHERE status = 'approved'"
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM products WHERE status = 'approved'")
+    approved_count = cur.fetchone()['count']
 
     # Pending products count
-    pending_count = db.execute(
-        "SELECT COUNT(*) FROM products WHERE status = 'pending'"
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM products WHERE status = 'pending'")
+    pending_count = cur.fetchone()['count']
 
     # Active sellers count (users with at least one product)
-    seller_count = db.execute(
-        "SELECT COUNT(DISTINCT seller_id) FROM products"
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(DISTINCT seller_id) FROM products")
+    seller_count = cur.fetchone()['count']
 
+    cur.close()
     db.close()
 
     return render_template("admin_dashboard.html",
@@ -1852,36 +2184,40 @@ def admin_users():
 
 
 @app.route('/admin/products')
-
 def admin_products():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
 
     db = get_db()
-    pending = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'pending' ORDER BY p.created_at DESC
-    ''').fetchall()
+    ''')
+    pending = cur.fetchall()
 
-    approved = db.execute('''
+    cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'approved' ORDER BY p.created_at DESC
-    ''').fetchall()
+    ''')
+    approved = cur.fetchall()
 
-    rejected = db.execute('''
+    cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'rejected' ORDER BY p.created_at DESC
-    ''').fetchall()
+    ''')
+    rejected = cur.fetchall()
     
     # Convert database rows to Python dictionaries
     pending = [dict(row) for row in pending]
     approved = [dict(row) for row in approved]
     rejected = [dict(row) for row in rejected]
 
+    cur.close()
     db.close()
 
     return render_template("admin_product.html",
@@ -1892,20 +2228,21 @@ def admin_products():
 
 # Approve product
 @app.route('/admin/product/approve/<int:pid>')
-
 def approve_product(pid):
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
         return redirect(url_for('admin_login'))
 
     db = get_db()
-    db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         UPDATE products
         SET status = 'approved', reject_reason = ''
-        WHERE id = ?
+        WHERE id = %s
     ''', (pid,))
 
     db.commit()
+    cur.close()
     db.close()
 
     flash("Product approved successfully, now visible on homepage", "success")
@@ -1914,7 +2251,6 @@ def approve_product(pid):
 
 # Reject product with reason
 @app.route('/admin/product/reject/<int:pid>', methods=['POST'])
-
 def reject_product(pid):
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
@@ -1926,13 +2262,15 @@ def reject_product(pid):
         return redirect(url_for('admin_products'))
 
     db = get_db()
-    db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         UPDATE products
-        SET status = 'rejected', reject_reason = ?
-        WHERE id = ?
+        SET status = 'rejected', reject_reason = %s
+        WHERE id = %s
     ''', (reject_reason, pid))
 
     db.commit()
+    cur.close()
     db.close()
 
     flash("Product rejected successfully", "success")
@@ -1941,24 +2279,46 @@ def reject_product(pid):
 
 # Admin API - Get product info for modal
 @app.route('/admin/api/product/<int:pid>')
-
 def admin_get_product_info(pid):
     if not session.get('admin_logged_in'):
         return {"error": "no permission"}, 403
 
     db = get_db()
-    product = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.id = ?
-    ''', (pid,)).fetchone()
+        WHERE p.id = %s
+    ''', (pid,))
+    product = cur.fetchone()
+    cur.close()
     db.close()
 
     if not product:
         return {"error": "not found"}, 404
 
-    return dict(product)
+    product_dict = dict(product)
+
+    # Parse images_blob (JSON array of base64 data URIs)
+    import json as _json
+    images_list = []
+    if product_dict.get('images_blob'):
+        try:
+            images_list = _json.loads(product_dict['images_blob'])
+        except Exception:
+            # Fallback: treat as single item
+            images_list = [product_dict['images_blob']]
+
+    # Fallback: if no base64 blobs, try to build URLs from disk filenames
+    if not images_list and product_dict.get('images'):
+        for fname in product_dict['images'].split(','):
+            fname = fname.strip()
+            if fname:
+                images_list.append(f"/static/uploads/{fname}")
+
+    product_dict['images_list'] = images_list
+    return product_dict
 
 
 # Freeze user for 7 days(limited 3 times)
@@ -1972,15 +2332,19 @@ def freeze_7day(user_id):
     now = datetime.now()
     
     db = get_db()
+    cur = db.cursor()
     
-    user = db.execute("SELECT freeze_count, is_blocked FROM users WHERE id = ?", (user_id,)).fetchone()
+    cur.execute("SELECT freeze_count, is_blocked FROM users WHERE id = %s", (user_id,))
+    user = cur.fetchone()
     
     if not user:
+        cur.close()
         db.close()
         flash("User not found", "error")
         return redirect(url_for("admin_users"))
     
     if user['is_blocked'] == 1:
+        cur.close()
         db.close()
         flash("User is already permanently blocked", "error")
         return redirect(url_for("admin_users"))
@@ -1988,15 +2352,16 @@ def freeze_7day(user_id):
     freeze_count = user['freeze_count'] if user['freeze_count'] else 0
     
     if freeze_count >= 3:
-        db.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = ?", (user_id,))
-        db.execute("""
+        cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = %s", (user_id,))
+        cur.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (?, ?, datetime('now', 'localtime'))
+            VALUES (%s, %s, NOW())
         """, (user_id,
               f"🚫 Your account has been PERMANENTLY BLOCKED after 3 freezes.\n"
               f"Reason: Your account reached the maximum freeze limit (3/3).\n"
               f"If you believe this is a mistake, please contact admin."))
         db.commit()
+        cur.close()
         db.close()
         flash("User permanently blocked after 3 freezes.", "warning")
         return redirect(url_for("admin_users"))
@@ -2004,22 +2369,23 @@ def freeze_7day(user_id):
     frozen_end_time = now + timedelta(days=7)
     time_str = frozen_end_time.strftime("%Y-%m-%d %H:%M:%S")
     
-    db.execute("""
+    cur.execute("""
         UPDATE users
-        SET is_frozen = 1, frozen_until = ?, freeze_reason = ?, freeze_count = freeze_count + 1
-        WHERE id = ?
+        SET is_frozen = 1, frozen_until = %s, freeze_reason = %s, freeze_count = freeze_count + 1
+        WHERE id = %s
     """, (time_str, reason, user_id))
 
-    db.execute("""
+    cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, datetime('now', 'localtime'))
+        VALUES (%s, %s, NOW())
     """, (user_id,
           f"⚠️ Your account has been frozen for 7 days (Freeze {freeze_count + 1}/3).\n"
           f"Reason: {reason}\n"
-          f"Auto unfreeze: {frozen_end_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+          f"Auto unfreeze: {time_str}\n"
           f"After 3 freezes, your account will be permanently blocked."))
 
     db.commit()
+    cur.close()
     db.close()
     
     flash(f"User frozen (Freeze {freeze_count + 1}/3). Notification sent.", "success")
@@ -2034,15 +2400,19 @@ def block_user(user_id):
     reason = request.form.get('reason', 'No reason provided')
     
     db = get_db()
-    db.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = ?", (user_id,))
-    db.execute("""
+    cur = db.cursor()
+
+    cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = %s", (user_id,))
+    cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, datetime('now', 'localtime'))
+        VALUES (%s, %s, NOW())
     """, (user_id,
           f"🚫 Your account has been PERMANENTLY BLOCKED by admin.\n"
           f"Reason: {reason}\n"
           f"If you believe this is a mistake, please contact admin."))
+
     db.commit()
+    cur.close()
     db.close()
     
     flash("User permanently blocked. Notification sent.", "success")
@@ -2056,22 +2426,20 @@ def unfreeze_user(user_id):
         return redirect(url_for("admin_login"))
 
     reason = request.form.get('reason', 'Manual unfreeze').strip()
-    now = datetime.now()
 
     db = get_db()
+    cur = db.cursor()
     
-    # 手动解冻：清状态 + freeze_count -1
-    db.execute("""
+    cur.execute("""
         UPDATE users
         SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL,
             freeze_count = CASE WHEN freeze_count > 0 THEN freeze_count - 1 ELSE 0 END
-        WHERE id = ?
+        WHERE id = %s
     """, (user_id,))
     
-    # 发通知给用户
-    db.execute("""
+    cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, datetime('now', 'localtime'))
+        VALUES (%s, %s, NOW())
     """, (user_id,
           f"🔓 Your account has been manually unfrozen by admin.\n"
           f"Reason: {reason}\n"
@@ -2079,6 +2447,7 @@ def unfreeze_user(user_id):
           f"After 3 freezes, your account will be permanently blocked."))
 
     db.commit()
+    cur.close()
     db.close()
 
     flash("User unfrozen. Freeze count reduced by 1. Notification sent.", "success")
@@ -2092,19 +2461,22 @@ def unblock_user(user_id):
         return redirect(url_for("admin_login"))
 
     db = get_db()
-    db.execute("UPDATE users SET is_blocked = 0, freeze_count = 0 WHERE id = ?", (user_id,))
-    db.execute("""
+    cur = db.cursor()
+    cur.execute("UPDATE users SET is_blocked = 0, freeze_count = 0 WHERE id = %s", (user_id,))
+    cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, datetime('now', 'localtime'))
+        VALUES (%s, %s, NOW())
     """, (user_id,
           f"✅ Your account has been UNBLOCKED by admin.\n"
           f"Your freeze count has been reset to 0.\n"
           f"Welcome back! Please follow the community guidelines."))
     db.commit()
+    cur.close()
     db.close()
 
     flash("User unblocked. Notification sent.", "success")
     return redirect(url_for("admin_users"))
+
 
 @app.route('/admin/report/<int:report_id>/<action>', methods=['POST'])
 def handle_report(report_id, action):
@@ -2112,46 +2484,51 @@ def handle_report(report_id, action):
         return jsonify({'success': False}), 403
 
     db = get_db()
-    report = db.execute("SELECT * FROM reports WHERE id = ?", (report_id,)).fetchone()
+    cur = db.cursor()
+    cur.execute("SELECT * FROM reports WHERE id = %s", (report_id,))
+    report = cur.fetchone()
     
     if not report:
+        cur.close()
         db.close()
         return jsonify({'success': False}), 404
 
     if action == 'dismiss':
-        db.execute("UPDATE reports SET status = 'dismissed' WHERE id = ?", (report_id,))
-        db.execute("""
+        cur.execute("UPDATE reports SET status = 'dismissed' WHERE id = %s", (report_id,))
+        cur.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (?, ?, datetime('now', 'localtime'))
+            VALUES (%s, %s, NOW())
         """, (report['reporter_id'],
               f"📋 Your report has been reviewed and DISMISSED by admin.\nNo action was taken."))
               
     elif action == 'block':
-        db.execute("UPDATE users SET is_blocked = 1 WHERE id = ?", (report['reported_user_id'],))
-        db.execute("UPDATE reports SET status = 'resolved' WHERE id = ?", (report_id,))
+        cur.execute("UPDATE users SET is_blocked = 1 WHERE id = %s", (report['reported_user_id'],))
+        cur.execute("UPDATE reports SET status = 'resolved' WHERE id = %s", (report_id,))
         
-        db.execute("""
+        cur.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (?, ?, datetime('now', 'localtime'))
+            VALUES (%s, %s, NOW())
         """, (report['reported_user_id'],
               f"🚫 Your account has been BLOCKED due to user reports.\nIf you believe this is a mistake, please contact admin."))
         
-        db.execute("""
+        cur.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (?, ?, datetime('now', 'localtime'))
+            VALUES (%s, %s, NOW())
         """, (report['reporter_id'],
               f"✅ Your report has been reviewed. The reported user has been BLOCKED.\nThank you!"))
 
     db.commit()
+    cur.close()
     db.close()
     return jsonify({'success': True})
+
+
 
 # ============================================================
 # Keting's Route - Chat List
 # ============================================================
 # ==================== Keting's Chat Routes ====================
 @app.route('/chat/send', methods=['POST'])
-
 def chat_send():
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'})
@@ -2165,16 +2542,19 @@ def chat_send():
         return jsonify({'success': False, 'error': 'Missing data'})
 
     db = get_db()
-    db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         INSERT INTO messages (sender_id, receiver_id, product_id, content, created_at)
-        VALUES (?, ?, ?, ?, datetime('now', 'localtime'))
+        VALUES (%s, %s, %s, %s, NOW())
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, content))
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
 
 
+# ========== 多发图片（你的）==========
 @app.route('/chat/send-images', methods=['POST'])
 def chat_send_images():
     if 'user_id' not in session:
@@ -2204,9 +2584,36 @@ def chat_send_images():
 
     return jsonify({'success': True})
 
+
+# ========== 单发图片（组员的）==========
+@app.route('/chat/send-image', methods=['POST'])
+def chat_send_image():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    receiver_id = request.form.get('receiver_id')
+    product_id = request.form.get('product_id', 0)
+    file = request.files.get('image')
+
+    if not receiver_id or not file:
+        return jsonify({'success': False, 'error': 'Missing data'}), 400
+
+    filename = secure_filename("chat_" + str(session['user_id']) + "_" + uuid.uuid4().hex + ".jpg")
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    db = get_db()
+    db.execute('''
+        INSERT INTO messages (sender_id, receiver_id, product_id, content, image, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))
+    ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, '', filename))
+    db.commit()
+    db.close()
+
+    return jsonify({'success': True})
+
 @app.route('/chat/<int:other_user_id>')
 @app.route('/chat/<int:other_user_id>/<int:product_id>')
-
 def chat_page(other_user_id, product_id=None):
     if 'user_id' not in session:
         flash("Please login first", "error")
@@ -2235,7 +2642,7 @@ def chat_page(other_user_id, product_id=None):
             WHERE p.id = ?
         ''', (product_id,)).fetchone()
 
-    # 历史消息 —— 这是正确的双向查询！
+    # 历史消息
     messages = db.execute('''
         SELECT * FROM messages
         WHERE (sender_id = ? AND receiver_id = ?)
@@ -2243,7 +2650,7 @@ def chat_page(other_user_id, product_id=None):
         ORDER BY created_at ASC
     ''', (session['user_id'], other_user_id, other_user_id, session['user_id'])).fetchall()
 
-    # 标记对方消息为已读 —— 正确！
+    # 标记对方消息为已读
     db.execute('''
         UPDATE messages SET is_read = 1
         WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
@@ -2251,16 +2658,13 @@ def chat_page(other_user_id, product_id=None):
     db.commit()
     db.close()
 
-    # 这里保持和你前端一致的变量名：other_user 、messages 就够了
     return render_template('chat_page.html',
                            other_user=other_user,
                            product_info=product_info,
                            messages=messages)
 
 
-
 @app.route('/api/chat/messages/<int:other_user_id>')
-
 def chat_get_messages(other_user_id):
     if 'user_id' not in session:
         return jsonify([])
@@ -2268,13 +2672,16 @@ def chat_get_messages(other_user_id):
     since = request.args.get('since', 0, type=int)
     
     db = get_db()
-    messages = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT * FROM messages
-        WHERE ((sender_id = ? AND receiver_id = ?)
-            OR (sender_id = ? AND receiver_id = ?))
-          AND id > ?
+        WHERE ((sender_id = %s AND receiver_id = %s)
+            OR (sender_id = %s AND receiver_id = %s))
+          AND id > %s
         ORDER BY created_at ASC
-    ''', (session['user_id'], other_user_id, other_user_id, session['user_id'], since)).fetchall()
+    ''', (session['user_id'], other_user_id, other_user_id, session['user_id'], since))
+    messages = cur.fetchall()
+    cur.close()
     db.close()
 
     return jsonify([dict(row) for row in messages])
@@ -2292,11 +2699,13 @@ def report_user(user_id):
         return jsonify({'success': False, 'error': 'Reason required'}), 400
     
     db = get_db()
-    db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         INSERT INTO reports (reporter_id, reported_user_id, reason, details)
-        VALUES (?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s)
     ''', (session['user_id'], user_id, reason, details))
     db.commit()
+    cur.close()
     db.close()
     
     return jsonify({'success': True})
@@ -2304,7 +2713,10 @@ def report_user(user_id):
 @app.route('/api/user/<int:user_id>/status')
 def user_status(user_id):
     db = get_db()
-    user = db.execute('SELECT last_seen FROM users WHERE id = ?', (user_id,)).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT last_seen FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
+    cur.close()
     db.close()
     
     if not user:
@@ -2313,9 +2725,12 @@ def user_status(user_id):
     last_seen = user['last_seen']
     if last_seen:
         try:
-            last_dt = datetime.strptime(last_seen, '%Y-%m-%d %H:%M:%S')
+            if isinstance(last_seen, str):
+                last_dt = datetime.strptime(last_seen[:19], '%Y-%m-%d %H:%M:%S')
+            else:
+                last_dt = last_seen
             diff = (datetime.now() - last_dt).seconds
-            online = diff < 300  # 5分钟内在线
+            online = diff < 300
         except:
             online = False
     else:
@@ -2323,13 +2738,12 @@ def user_status(user_id):
     
     return jsonify({
         'online': online,
-        'last_seen': last_seen[:19] if last_seen else 'Unknown'
+        'last_seen': str(last_seen)[:19] if last_seen else 'Unknown'
     })
 
 
 
 @app.route('/chatlist')
-
 def chat_list():
     if 'user_id' not in session:
         flash("Please login first", "error")
@@ -2337,68 +2751,70 @@ def chat_list():
 
     db = get_db()
     user_id = session['user_id']
+    cur = db.cursor()
 
-    # 用户聊天列表
-    chats = db.execute('''
-        SELECT u.id, u.username, u.full_name, u.avatar,
+    # 用户聊天列表 - 关键修复：使用 avatar_blob 而不是 avatar
+    cur.execute('''
+        SELECT u.id, u.username, u.full_name, u.avatar_blob,
                m.content as last_message, m.image as last_image,
                m.created_at as last_time,
                m.is_read, m.sender_id,
                (SELECT COUNT(*) FROM messages
-                WHERE sender_id = u.id AND receiver_id = ? AND is_read = 0) as unread_count
+                WHERE sender_id = u.id AND receiver_id = %s AND is_read = 0) as unread_count
         FROM users u
         JOIN (
-            SELECT CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_id,
+            SELECT CASE WHEN sender_id = %s THEN receiver_id ELSE sender_id END as other_id,
                    MAX(id) as max_id
             FROM messages
-            WHERE sender_id = ? OR receiver_id = ?
+            WHERE sender_id = %s OR receiver_id = %s
             GROUP BY other_id
         ) latest ON u.id = latest.other_id
         JOIN messages m ON m.id = latest.max_id
         ORDER BY m.created_at DESC
-    ''', (user_id, user_id, user_id, user_id)).fetchall()
+    ''', (user_id, user_id, user_id, user_id))
+    chats = cur.fetchall()
     
-    chat_list = []
+    chat_list_data = []
     for chat in chats:
         chat = dict(chat)
-        if chat['last_image']:
+        if chat.get('last_image'):
             chat['last_message'] = '(Picture)'
-        elif chat['last_message'] and 'Tap to view product' in (chat['last_message'] or ''):
+        elif chat.get('last_message') and 'Tap to view product' in (chat.get('last_message') or ''):
             chat['last_message'] = '(Product)'
-        chat_list.append(chat)
+        chat_list_data.append(chat)
 
     # 未读通知数
-    unread_notifications = db.execute(
-        "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0",
-        (user_id,)
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
+    unread_notifications = cur.fetchone()['count']
 
-    # 未读评论数（暂用0，评论区做完再改）
+    # 未读评论数（暂用0）
     unread_reviews = 0
     
+    cur.close()
     db.close()
 
     return render_template('user_chatlist.html', 
-                           chats=chat_list,
+                           chats=chat_list_data,
                            unread_notifications=unread_notifications,
                            unread_reviews=unread_reviews)
 
 # 系统公告列表
 @app.route('/announcements')
-
 def announcements():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
     db = get_db()
-    anns = db.execute('SELECT * FROM announcements ORDER BY created_at DESC').fetchall()
+    cur = db.cursor()
+    cur.execute('SELECT * FROM announcements ORDER BY created_at DESC')
+    anns = cur.fetchall()
+    cur.close()
     db.close()
     return render_template('announcements.html', announcements=anns)
 
 
 # 管理员发公告
 @app.route('/admin/announcement/add', methods=['POST'])
-
 def add_announcement():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
@@ -2407,32 +2823,31 @@ def add_announcement():
     content = request.form.get('content', '').strip()
     if title and content:
         db = get_db()
-        db.execute('INSERT INTO announcements (title, content) VALUES (?, ?)', (title, content))
+        cur = db.cursor()
+        cur.execute('INSERT INTO announcements (title, content) VALUES (%s, %s)', (title, content))
         db.commit()
+        cur.close()
         db.close()
     return redirect(url_for('admin_dashboard'))
 
 
 # 导航栏未读数量 API
 @app.route('/api/unread-count')
-
 def unread_count():
     if 'user_id' not in session:
         return jsonify({'chat': 0, 'notifications': 0})
 
     user_id = session['user_id']
     db = get_db()
+    cur = db.cursor()
 
-    chat_unread = db.execute(
-        "SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0",
-        (user_id,)
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(*) AS count FROM messages WHERE receiver_id = %s AND is_read = 0", (user_id,))
+    chat_unread = cur.fetchone()['count']
 
-    notif_unread = db.execute(
-        "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0",
-        (user_id,)
-    ).fetchone()[0]
+    cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
+    notif_unread = cur.fetchone()['count']
 
+    cur.close()
     db.close()
     return jsonify({'chat': chat_unread, 'notifications': notif_unread})
 
@@ -2480,61 +2895,68 @@ def upload_product():
         except ValueError:
             errors.append("Please enter a valid price.")
 
-
         import base64
         import json
-        
+
+        MIME_MAP = {
+            'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+            'gif': 'image/gif', 'webp': 'image/webp', 'bmp': 'image/bmp',
+            'mp4': 'video/mp4', 'webm': 'video/webm', 'mov': 'video/mp4',
+        }
+
         files = request.files.getlist('product_images')
         images_base64 = []
         image_filenames = []
-        
+
         for file in files:
-            if file and file.filename:
+            if not file or not file.filename:
+                continue
 
-                file_data = file.read()
-                
+            # Read all data first
+            file_data = file.read()
 
-                if len(file_data) > 10 * 1024 * 1024:
-                    continue
- 
-                ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
-                mime_type = 'image/jpeg'
-                if ext in ['mp4', 'webm', 'mov']:
-                    mime_type = 'video/mp4'
-                elif ext in ['png']:
-                    mime_type = 'image/png'
-                elif ext in ['gif']:
-                    mime_type = 'image/gif'
-                
-                base64_str = base64.b64encode(file_data).decode('utf-8')
-                images_base64.append(f"data:{mime_type};base64,{base64_str}")
-                
-                filename = secure_filename(file.filename)
-                if not filename:
-                    filename = f"media_{uuid.uuid4().hex}.{ext}"
-                file.seek(0)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                image_filenames.append(filename)
+            # Skip empty or oversized files (50MB per file)
+            if not file_data or len(file_data) > 50 * 1024 * 1024:
+                continue
+
+            # Determine extension and mime type
+            ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+            mime_type = MIME_MAP.get(ext, 'image/jpeg')
+
+            # Build base64 data URI
+            base64_str = base64.b64encode(file_data).decode('utf-8')
+            images_base64.append(f"data:{mime_type};base64,{base64_str}")
+
+            # Also save to disk as backup (for product detail page)
+            filename = secure_filename(file.filename)
+            if not filename or filename.strip() == '':
+                filename = f"media_{uuid.uuid4().hex}.{ext}"
+            # Ensure unique filename to avoid collisions
+            unique_filename = f"{uuid.uuid4().hex}_{filename}"
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            with open(save_path, 'wb') as f:
+                f.write(file_data)
+            image_filenames.append(unique_filename)
         
         if not images_base64:
             errors.append("Please upload at least one photo or video.")
-        
+
         if errors:
             for err in errors:
                 flash(err, "error")
             return render_template('upload.html')
-        
+
         images_json = json.dumps(images_base64)
         images_string = ",".join(image_filenames)
         
         db = get_db()
-        db.execute('''
-            INSERT INTO products (seller_id, name, price,
-                    description, condition, category, images, images_blob, created_at, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
-        ''', (seller_id, name, price_val, description,
-              condition, category, images_string, images_json, 'pending'))
+        cur = db.cursor()
+        cur.execute('''
+            INSERT INTO products (seller_id, name, price, description, condition, category, images, images_blob, created_at, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s)
+        ''', (seller_id, name, price_val, description, condition, category, images_string, images_json, 'pending'))
         db.commit()
+        cur.close()
         db.close()
 
         flash("Your item has been submitted for admin approval.", "success")
@@ -2542,17 +2964,21 @@ def upload_product():
 
     return render_template('upload.html')
 
-
 # ============================================================
 # Xingru's Route - Testing (Clear products)
 # ============================================================
 @app.route('/clear-products')
-
 def clear_products():
     db = get_db()
-    db.execute("DELETE FROM products")
-    db.execute("DELETE FROM sqlite_sequence WHERE name='products'")
+    cur = db.cursor()
+    cur.execute("DELETE FROM products")
+    # Reset sequence in PostgreSQL: ALTER SEQUENCE products_id_seq RESTART WITH 1
+    try:
+        cur.execute("ALTER SEQUENCE products_id_seq RESTART WITH 1")
+    except:
+        pass
     db.commit()
+    cur.close()
     db.close()
     return "All products deleted."
 
@@ -2561,36 +2987,52 @@ def clear_products():
 # Xingru's Route - Product Details
 # ============================================================
 @app.route('/product/<int:product_id>')
-
 def product_detail(product_id):
     if 'user_id' not in session:
         flash('Please login to view product details.', 'error')
         return redirect(url_for('login'))
 
     db = get_db()
-    product = db.execute('''
+    cur = db.cursor()
+    cur.execute('''
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name,
             u.avatar_blob as seller_avatar, u.id as seller_id, u.created_at as user_joined
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.id = ? AND p.status = 'approved'
-    ''', (product_id,)).fetchone()
+        WHERE p.id = %s AND p.status = 'approved'
+    ''', (product_id,))
+    product = cur.fetchone()
+    cur.close()
     db.close()
 
     if not product:
         flash('Product not found or not yet approved.', 'error')
         return redirect(url_for('home'))
 
-    images = product['images'].split(',') if product['images'] else []
+    import json as _json
+
+    images = []
+    images_blob = product['images_blob'] if product['images_blob'] else ''
+    if images_blob:
+        try:
+            blob_list = _json.loads(images_blob) if isinstance(images_blob, str) else images_blob
+            if isinstance(blob_list, list) and blob_list:
+                # Use API endpoints instead of embedding base64 directly in HTML
+                images = [f"/api/product-image/{product_id}/{i}" for i in range(len(blob_list))]
+        except Exception:
+            pass
+
+    # Fallback to disk files if no blob data
+    if not images and product['images']:
+        images = ['/static/uploads/' + f.strip()
+                  for f in product['images'].split(',') if f.strip()]
 
     return render_template('product.html', product=product, images=images)
-
 
 # ============================================================
 # Xingru's Route - Temporary route for testing product page only
 # ============================================================
 @app.route('/user/<int:user_id>')
-
 def user_profile(user_id):
     if 'user_id' not in session:
         flash('Please login to view profiles.', 'error')

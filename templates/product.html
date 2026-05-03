@@ -17,34 +17,28 @@
         <!-- Left: Images -->
         <div>
             <div class="main-image">
-                {% set first_media = images[0] %}
-                {% set ext = first_media.split('.')[-1].lower() if first_media else '' %}
-                {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
-                    <video id="main-product-video" controls autoplay muted loop poster="{{ url_for('static', filename='uploads/' ~ first_media.split('.')[0] + '_thumb.jpg') }}">
-                        <source src="{{ url_for('static', filename='uploads/' ~ first_media) }}" type="video/{{ ext }}">
-                        Your browser does not support the video tag.
-                    </video>
+                {% set first_media = images[0] if images else None %}
+                {% if first_media %}
+                    <img id="main-product-img" src="{{ first_media }}" alt="{{ product.name }}"
+                         onerror="this.style.display='none'; document.getElementById('main-product-fallback').style.display='flex';">
+                    <div id="main-product-fallback" class="no-image-placeholder" style="display:none;">📷 No image available</div>
                 {% else %}
-                    <img id="main-product-img" src="{{ url_for('static', filename='uploads/' ~ first_media) }}" alt="{{ product.name }}">
+                    <div class="no-image-placeholder">📷 No image available</div>
                 {% endif %}
             </div>
             <div class="image-counter" id="image-counter">1 / {{ images|length }}</div>
             {% if images|length > 1 %}
             <div class="thumbnail-list">
                 {% for img in images %}
-                    {% set ext = img.split('.')[-1].lower() %}
-                    {% if ext in ['mp4','webm','mov','avi','mkv'] %}
-                        {% set thumb_path = img.split('.')[0] + '_thumb.jpg' %}
-                    {% else %}
-                        {% set thumb_path = img %}
-                    {% endif %}
-                    <img src="{{ url_for('static', filename='uploads/' ~ thumb_path) }}"
-                        class="thumbnail"
-                        data-index="{{ loop.index0 }}"
-                        data-original="{{ url_for('static', filename='uploads/' ~ img) }}"
-                        onclick="changeMainMedia(this.getAttribute('data-original'), {{ loop.index0 }})"
-                        alt="Thumbnail"
-                        onerror="this.onerror=null; this.src='{{ url_for('static', filename='uploads/' ~ img) }}';">
+                    <div class="thumbnail-wrapper">
+                        <img src="{{ img }}"
+                            class="thumbnail {% if loop.first %}active{% endif %}"
+                            data-index="{{ loop.index0 }}"
+                            data-src="{{ img }}"
+                            onclick="changeMainMedia('{{ img }}', {{ loop.index0 }})"
+                            alt="Thumbnail {{ loop.index }}"
+                            onerror="this.style.opacity='0.3';">
+                    </div>
                 {% endfor %}
             </div>
             {% endif %}
@@ -71,7 +65,7 @@
             </div>
         </a>
     </div>
-            <div class="upload-date">Posted on {{ product.created_at.split(' ')[0] }}</div>
+            <div class="upload-date">Posted on {{ product.created_at.strftime('%Y-%m-%d') if product.created_at else 'Unknown' }}</div>
             </div>
 
             <div class="description">
@@ -145,42 +139,43 @@
             showGlobalToast('Failed to copy link.', 'error');
         });
     });
+
     function changeMainMedia(src, index) {
-        const ext = src.split('.').pop().toLowerCase();
         const mainContainer = document.querySelector('.main-image');
         const currentCounter = document.getElementById('image-counter');
         const total = {{ images|length }};
 
-        if (ext === 'mp4' || ext === 'webm' || ext === 'mov') {
-            // Build thumbnail filename from the video source (e.g., video.mp4 -> video_thumb.jpg)
-            const thumb = src.replace(/\.(mp4|webm|mov)$/, '_thumb.jpg');
-            mainContainer.innerHTML = `
-                <video id="main-product-video" controls autoplay muted loop poster="${thumb}">
-                    <source src="${src}" type="video/${ext}">
-                    Your browser does not support the video tag.
-                </video>
-            `;
-        } else {
-            mainContainer.innerHTML = `<img id="main-product-img" src="${src}" alt="Product image">`;
-        }
+        // Render as image (the /api/product-image endpoint serves correct MIME type)
+        // Videos stored as blob will be served with video/* content-type
+        // We detect by checking if content-type is video via a HEAD request is too slow;
+        // instead we try img first and fall back on error
+        mainContainer.innerHTML = `<img id="main-product-img" src="${src}" alt="Product image"
+            onerror="this.style.display='none'; this.insertAdjacentHTML('afterend',
+                '<video id=\\'main-product-video\\' controls autoplay muted loop style=\\'width:100%;height:100%;object-fit:contain;\\'><source src=\\'${src}\\'></video>');">`;
+
         if (currentCounter) currentCounter.textContent = (index + 1) + ' / ' + total;
-        
+
         document.querySelectorAll('.thumbnail').forEach(thumb => {
             thumb.classList.remove('active');
-            if (thumb.src === src) thumb.classList.add('active');
         });
+        const activeThumb = document.querySelectorAll('.thumbnail')[index];
+        if (activeThumb) activeThumb.classList.add('active');
     }
+
     function confirmPurchase() {
         if (confirm("Are you sure you want to buy this item?")) {
             alert("Purchase flow not implemented yet.");
         }
     }
+
     function openOfferModal() {
         document.getElementById('offerModal').style.display = 'flex';
     }
+
     function closeOfferModal() {
         document.getElementById('offerModal').style.display = 'none';
     }
+
     function sendOffer() {
         const offerInput = document.getElementById('offerAmount');
         const offer = offerInput.value;
@@ -191,13 +186,15 @@
         }
 
         showGlobalToast(`Offer of RM ${parseFloat(offer).toFixed(2)} sent to seller.`, "success");
-        offerInput.value = '';   // clear the input field
+        offerInput.value = '';
         closeOfferModal();
     }
+
     window.onclick = function(event) {
         const modal = document.getElementById('offerModal');
         if (event.target === modal) closeOfferModal();
     }
+
     function goBack() {
         if (document.referrer && document.referrer !== "") {
             window.location.href = document.referrer;
@@ -205,6 +202,7 @@
             window.location.href = "{{ url_for('home') }}";
         }
     }
+
     // Report modal
     const reportModal = document.getElementById('reportModal');
     const reportBtn = document.getElementById('reportBtn');
@@ -249,7 +247,6 @@
                 return;
             }
         }
-        // For now: just show an alert and log to console
         const reportData = {
             product_id: {{ product.id }},
             reason: selectedReason,
@@ -260,7 +257,6 @@
         closeReportModal();
     });
 
-    // Close modal when clicking outside
     window.onclick = function(event) {
         const modal = document.getElementById('reportModal');
         if (event.target === modal) closeReportModal();

@@ -30,6 +30,24 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='edit_profile.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
 
+<style>
+    .admin-tab {
+        background: linear-gradient(135deg, #8e44ad, #6c3483) !important;
+        color: white !important;
+        border: none;
+        border-radius: 30px;
+        padding: 10px 20px;
+        margin-left: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .admin-tab:hover {
+        background: linear-gradient(135deg, #6c3483, #4a235a) !important;
+        transform: translateY(-2px);
+    }
+</style>
+
 <div class="ep-page" id="epPage">
     <div class="ep-bg-layer" id="epBgLayer"></div>
 
@@ -136,6 +154,7 @@
                     <button class="ep-main-tab" data-main-tab="purchases" onclick="switchMainTab('purchases')">🛍️ My Purchases</button>
                     <button class="ep-main-tab" data-main-tab="listings" onclick="switchMainTab('listings')">📦 My Listings</button>
                     <button class="ep-main-tab active" data-main-tab="edit" onclick="switchMainTab('edit')">✏️ Edit Profile</button>
+                    <button id="adminSwitchBtn" class="ep-main-tab admin-tab" style="display: none;" onclick="switchToAdmin()">👑 Admin Panel</button>
                 </div>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -171,13 +190,28 @@
                     <div class="ep-sub-pane active" id="sub-pane-edit-profile">
                         <form method="POST" action="{{ url_for('update_profile') }}" enctype="multipart/form-data" id="edit-form">
                             <div class="ep-grid-2">
-                                <div class="ep-fg"><label>Display Name</label><input type="text" name="full_name" value="{{ user.full_name or '' }}" placeholder="Your full name"></div>
-                                <div class="ep-fg"><label>Username</label><input type="text" name="username" value="{{ user.username or '' }}" placeholder="@username"></div>
+                                <div class="ep-fg"><label>Display Name</label>
+                                    <input type="text" name="full_name" value="{{ user.full_name or '' }}" placeholder="Your full name"></div>
+                                <div class="ep-fg"><label>Username</label>
+                                    <input type="text" name="username" value="{{ user.username or '' }}" placeholder="@username"></div>
                             </div>
-                            <div class="ep-fg"><label>Bio</label><textarea name="bio" placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea></div>
+                            <div class="ep-fg">
+                                <label>Bio</label>
+                                <textarea name="bio" placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
+                            </div>
                             <div class="ep-grid-2">
-                                <div class="ep-fg"><label>Phone Number</label><input type="tel" name="contact" value="{{ user.contact or '' }}" placeholder="+60 12-345 6789"></div>
-                                <div class="ep-fg"><label>Gender</label><select name="gender"><option value="" {% if not user.gender %}selected{% endif %}>Prefer not to say</option><option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>Female</option><option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>Male</option></select></div>
+                                <div class="ep-fg">
+                                    <label>Phone Number</label>
+                                    <input type="tel" name="contact" value="{{ user.contact or '' }}" placeholder="+60 12-345 6789">
+                                </div>
+                                <div class="ep-fg">
+                                    <label>Gender</label>
+                                    <select name="gender">
+                                        <option value="" {% if not user.gender %}selected{% endif %}>Prefer not to say</option>
+                                        <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>Female</option>
+                                        <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>Male</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="ep-fg">
                                 <label>Active Hours</label>
@@ -279,7 +313,7 @@
     </div>
 </div>
 
-<!-- Edit Product Modal - Supports Images & Videos (Max 12 files) -->
+<!-- Edit Product Modal -->
 <div id="editProductModal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
@@ -366,6 +400,13 @@ const COLOR_CONFIG = {
     gradient: ['linear-gradient(135deg,#FF6B6B,#FFE66D)','linear-gradient(135deg,#FBC2EB,#A6C1EE)','linear-gradient(135deg,#84FAB0,#8FD3F4)','linear-gradient(135deg,#FF9A9E,#FECFEF)','linear-gradient(135deg,#FFD26F,#FF6B6B)','linear-gradient(135deg,#A18CD1,#FBC2EB)','linear-gradient(135deg,#43C6AC,#191654)','linear-gradient(135deg,#FAD961,#F76B1C)','linear-gradient(135deg,#4CB8C4,#3CD3AD)','linear-gradient(135deg,#F53844,#42378F)','linear-gradient(135deg,#DD5E89,#F7BB97)','linear-gradient(135deg,#00B4DB,#0083B0)']
 };
 
+var $bgLayer = null;
+var $bgPreview = null;
+var $bgPanel = null;
+var selectedBgValue = null;
+var coverCropper = null;
+var avatarCropper = null;
+
 function buildGrid(containerId, colors, isGradient) {
     var c = document.getElementById(containerId);
     if (!c) return;
@@ -386,16 +427,6 @@ function buildGrid(containerId, colors, isGradient) {
         c.appendChild(s);
     }
 }
-
-buildGrid('rainbowGrid', COLOR_CONFIG.rainbow, false);
-buildGrid('lightGrid', COLOR_CONFIG.light, false);
-buildGrid('darkGrid', COLOR_CONFIG.dark, false);
-buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
-
-var $bgLayer = document.getElementById('epBgLayer');
-var $bgPreview = document.getElementById('currentBgPreview');
-var $bgPanel = document.getElementById('epBgPanel');
-var selectedBgValue = null;
 
 function previewBg(val) {
     if ($bgLayer) $bgLayer.style.background = val;
@@ -430,87 +461,14 @@ function saveBackgroundToServer(bgValue) {
     });
 }
 
-document.getElementById('bgSaveBtn')?.addEventListener('click', function() {
-    if (!selectedBgValue) { showToastMessage('Please select a background first', 'error'); return; }
-    var btn = document.getElementById('bgSaveBtn');
-    var orig = btn.textContent;
-    btn.textContent = 'Saving...';
-    btn.disabled = true;
-    saveBackgroundToServer(selectedBgValue)
-        .then(function() {
-            showToastMessage('Background saved', 'success');
-            if ($bgPanel) $bgPanel.classList.remove('open');
-        })
-        .catch(function() { showToastMessage('Failed to save background', 'error'); })
-        .finally(function() { btn.textContent = orig; btn.disabled = false; });
-});
-
-document.getElementById('bgCancelBtn')?.addEventListener('click', function() {
-    restoreBackgroundFromServer();
-    selectedBgValue = null;
-    if ($bgPanel) $bgPanel.classList.remove('open');
-    showToastMessage('Reverted', 'info');
-});
-
-function toggleBgPanel() { if ($bgPanel) $bgPanel.classList.toggle('open'); }
-document.querySelector('.ep-bg-close')?.addEventListener('click', function() { if ($bgPanel) $bgPanel.classList.remove('open'); });
-
-// ============================================================
-// COVER & AVATAR FUNCTIONS
-// ============================================================
-var coverCropper = null;
-var $coverFileInput = document.getElementById('coverFileInput');
-var $coverCropModal = document.getElementById('coverCropModal');
-
-function loadCoverFromServer() { var d = document.getElementById('coverImage'); if (d) d.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')'; }
-document.getElementById('coverChangeBtn')?.addEventListener('click', function() { if ($coverFileInput) $coverFileInput.click(); });
-if ($coverFileInput) {
-    $coverFileInput.addEventListener('change', function(e) {
-        if (!e.target.files[0]) return;
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-            var img = document.getElementById('coverCropImage');
-            if (img) img.src = ev.target.result;
-            if ($coverCropModal) $coverCropModal.classList.add('open');
-            if (coverCropper) coverCropper.destroy();
-            if (typeof Cropper !== 'undefined') {
-                coverCropper = new Cropper(document.getElementById('coverCropImage'), { aspectRatio: 16/5, viewMode: 1, autoCropArea: 1 });
-            }
-        };
-        reader.readAsDataURL(e.target.files[0]);
-    });
+function toggleBgPanel() { 
+    if ($bgPanel) $bgPanel.classList.toggle('open'); 
 }
-function closeCoverCrop() {
-    if ($coverCropModal) $coverCropModal.classList.remove('open');
-    if (coverCropper) { coverCropper.destroy(); coverCropper = null; }
-    if ($coverFileInput) $coverFileInput.value = '';
-}
-document.querySelector('#coverCropModal .crop-close')?.addEventListener('click', closeCoverCrop);
-document.querySelector('#coverCropModal .crop-cancel')?.addEventListener('click', closeCoverCrop);
-document.querySelector('#coverCropModal .crop-confirm')?.addEventListener('click', function() {
-    if (!coverCropper) return;
-    coverCropper.getCroppedCanvas().toBlob(function(blob) {
-        var fd = new FormData();
-        fd.append('cover_image', blob, 'cover.jpg');
-        showToastMessage('Uploading cover...', 'info');
-        fetch('/update-cover', { method: 'POST', body: fd, credentials: 'same-origin' })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    document.getElementById('coverImage').style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
-                    closeCoverCrop();
-                    showToastMessage('Cover updated', 'success');
-                } else {
-                    throw new Error(data.error);
-                }
-            })
-            .catch(function() { showToastMessage('Cover update failed', 'error'); });
-    }, 'image/jpeg', 0.9);
-});
 
-var avatarCropper = null;
-var $avatarFileInput = document.getElementById('avatarFileInput');
-var $avatarCropModal = document.getElementById('avatarCropModal');
+function loadCoverFromServer() {
+    var d = document.getElementById('coverImage');
+    if (d) d.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
+}
 
 function loadAvatarFromServer() {
     var img = document.getElementById('side-av-img');
@@ -521,59 +479,41 @@ function loadAvatarFromServer() {
         img.onerror = function() { img.style.display = 'none'; if (init) init.style.display = 'flex'; };
     }
 }
-document.getElementById('avatarRing')?.addEventListener('click', function() { if ($avatarFileInput) $avatarFileInput.click(); });
-if ($avatarFileInput) {
-    $avatarFileInput.addEventListener('change', function(e) {
-        if (!e.target.files[0]) return;
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-            var img = document.getElementById('avatarCropImage');
-            if (img) img.src = ev.target.result;
-            if ($avatarCropModal) $avatarCropModal.classList.add('open');
-            if (avatarCropper) avatarCropper.destroy();
-            if (typeof Cropper !== 'undefined') {
-                avatarCropper = new Cropper(document.getElementById('avatarCropImage'), { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
-            }
-        };
-        reader.readAsDataURL(e.target.files[0]);
-    });
+
+function closeCoverCrop() {
+    var $coverCropModal = document.getElementById('coverCropModal');
+    var $coverFileInput = document.getElementById('coverFileInput');
+    if ($coverCropModal) $coverCropModal.classList.remove('open');
+    if (coverCropper) { coverCropper.destroy(); coverCropper = null; }
+    if ($coverFileInput) $coverFileInput.value = '';
 }
+
 function closeAvatarCrop() {
+    var $avatarCropModal = document.getElementById('avatarCropModal');
+    var $avatarFileInput = document.getElementById('avatarFileInput');
     if ($avatarCropModal) $avatarCropModal.classList.remove('open');
     if (avatarCropper) { avatarCropper.destroy(); avatarCropper = null; }
     if ($avatarFileInput) $avatarFileInput.value = '';
 }
-document.querySelector('.avatar-crop-close')?.addEventListener('click', closeAvatarCrop);
-document.getElementById('avatarCropCancel')?.addEventListener('click', closeAvatarCrop);
-document.getElementById('avatarCropConfirm')?.addEventListener('click', function() {
-    if (!avatarCropper) return;
-    avatarCropper.getCroppedCanvas().toBlob(function(blob) {
-        var fd = new FormData();
-        fd.append('avatar', blob, 'avatar.jpg');
-        showToastMessage('Uploading avatar...', 'info');
-        fetch('/update-profile-avatar', { method: 'POST', body: fd, credentials: 'same-origin' })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    document.getElementById('side-av-img').src = '/avatar-image?t=' + Date.now();
-                    closeAvatarCrop();
-                    showToastMessage('Avatar updated', 'success');
-                } else {
-                    throw new Error(data.error);
-                }
-            })
-            .catch(function() { showToastMessage('Avatar update failed', 'error'); });
-    }, 'image/jpeg', 0.9);
-});
 
 // ============================================================
-// TAB SWITCHING
+// BUILD COLOR GRIDS
+// ============================================================
+buildGrid('rainbowGrid', COLOR_CONFIG.rainbow, false);
+buildGrid('lightGrid', COLOR_CONFIG.light, false);
+buildGrid('darkGrid', COLOR_CONFIG.dark, false);
+buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
+
+// ============================================================
+// TAB SWITCHING FUNCTIONS
 // ============================================================
 function switchMainTab(tabName) {
     document.querySelectorAll('.ep-main-tab').forEach(function(b) { b.classList.remove('active'); });
-    document.querySelector('.ep-main-tab[data-main-tab="' + tabName + '"]').classList.add('active');
+    var activeTab = document.querySelector('.ep-main-tab[data-main-tab="' + tabName + '"]');
+    if (activeTab) activeTab.classList.add('active');
     document.querySelectorAll('.ep-main-pane').forEach(function(p) { p.classList.remove('active'); });
-    document.getElementById('main-pane-' + tabName).classList.add('active');
+    var activePane = document.getElementById('main-pane-' + tabName);
+    if (activePane) activePane.classList.add('active');
     if (tabName === 'listings') loadListings();
     if (tabName === 'purchases') loadPurchases();
     if (tabName === 'edit') switchSubTab('edit-profile');
@@ -581,37 +521,65 @@ function switchMainTab(tabName) {
 
 function switchSubTab(subtabName) {
     document.querySelectorAll('.ep-sub-tab').forEach(function(b) { b.classList.remove('active'); });
+    var activeSubTab = document.querySelector('.ep-sub-tab[data-subtab="' + subtabName + '"]');
+    if (activeSubTab) activeSubTab.classList.add('active');
     document.querySelectorAll('.ep-sub-pane').forEach(function(p) { p.classList.remove('active'); });
-    document.querySelector('.ep-sub-tab[data-subtab="' + subtabName + '"]').classList.add('active');
-    document.getElementById('sub-pane-' + subtabName).classList.add('active');
+    var activeSubPane = document.getElementById('sub-pane-' + subtabName);
+    if (activeSubPane) activeSubPane.classList.add('active');
 }
 
 // ============================================================
-// LOAD LISTINGS
+// LOAD LISTINGS & PURCHASES
 // ============================================================
 function loadListings() {
     var container = document.getElementById('listings-grid');
     if (!container) return;
+    
+    var uploadUrl = "{{ url_for('upload_product') }}";
+    
     container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
     fetch('/api/user/listings', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (!data || data.length === 0) {
-                container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><p>You haven\'t listed any items yet</p><small><a href="{{ url_for('upload_product') }}">Click here to post your first item!</a></small></div>';
+                container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><p>You haven\'t listed any items yet</p><small><a href="' + uploadUrl + '">Click here to post your first item!</a></small></div>';
                 return;
             }
             var html = '';
             for (var i = 0; i < data.length; i++) {
                 var item = data[i];
-                var firstImage = null;
-                if (item.first_image) {
-                    firstImage = item.first_image.startsWith('data:') ? item.first_image : '/static/uploads/' + item.first_image;
-                }
+                var firstImage = item.first_image || null;
+                var isVideo = item.first_image_is_video || false;
                 var statusClass = (item.status || 'pending').toLowerCase();
-                var statusText = item.status || 'Pending';
-                if (statusText === 'approved') statusText = 'Approved';
-                if (statusText === 'rejected') statusText = 'Rejected';
-                html += '<div class="product-card"><a href="/product/' + item.id + '" class="product-card-link"><div class="product-image-container"><span class="condition-badge">' + escapeHtml(item.condition || 'Good') + '</span><div class="carousel-window"><div class="carousel-track">' + (firstImage ? '<img src="' + firstImage + '" class="carousel-img" alt="' + escapeHtml(item.name) + '">' : '<div class="carousel-placeholder">📦</div>') + '</div></div></div><div class="product-info"><h4 class="product-name">' + escapeHtml(item.name) + '</h4><div class="product-price">RM ' + parseFloat(item.price).toFixed(2) + '</div><div class="product-status ' + statusClass + '">' + escapeHtml(statusText) + '</div></div></a><div class="product-actions"><button class="edit-product-btn" onclick="editListing(' + item.id + ')">✏️ Edit</button><button class="delete-product-btn" onclick="deleteListing(' + item.id + ', \'' + escapeHtml(item.name) + '\')">🗑️ Delete</button></div></div>';
+                var statusText = item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Pending';
+                var condLabel = (item.condition || 'good').replace('_', ' ');
+                condLabel = condLabel.charAt(0).toUpperCase() + condLabel.slice(1);
+
+                var thumbHtml = '';
+                if (firstImage) {
+                    if (isVideo) {
+                        thumbHtml = '<video class="product-thumb-img" src="' + firstImage + '" muted preload="metadata"></video>';
+                    } else {
+                        thumbHtml = '<img src="' + firstImage + '" class="product-thumb-img" alt="' + escapeHtml(item.name) + '" ' +
+                            'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+                            '<div class="carousel-placeholder" style="display:none">📦</div>';
+                    }
+                } else {
+                    thumbHtml = '<div class="carousel-placeholder">📦</div>';
+                }
+
+                html += '<div class="product-card">' +
+                    '<a href="/product/' + item.id + '" class="product-card-link">' +
+                    '<div class="product-image-container"><span class="condition-badge">' + escapeHtml(condLabel) + '</span>' + thumbHtml + '</div>' +
+                    '<div class="product-info">' +
+                    '<div class="product-name">' + escapeHtml(item.name) + '</div>' +
+                    '<div class="product-price">RM ' + parseFloat(item.price).toFixed(2) + '</div>' +
+                    '<div class="product-status ' + statusClass + '">' + escapeHtml(statusText) + '</div>' +
+                    '</div></a>' +
+                    '<div class="product-actions">' +
+                    '<button class="edit-product-btn" onclick="editListing(' + item.id + ')">✏️ Edit</button>' +
+                    '<button class="delete-product-btn" onclick="deleteListing(' + item.id + ', \'' + escapeHtml(item.name).replace(/\'/g,"\\\'") + '\')">🗑️</button>' +
+                    '</div></div>';
             }
             container.innerHTML = html;
         })
@@ -640,7 +608,7 @@ function loadPurchases() {
 }
 
 // ============================================================
-// EDIT PRODUCT MODAL FUNCTIONS (Images & Videos, Max 12 files)
+// EDIT PRODUCT FUNCTIONS
 // ============================================================
 var currentMediaFiles = [];
 var newMediaFiles = [];
@@ -650,16 +618,9 @@ function editListing(productId) {
     fetch('/api/product/' + productId, { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(product) {
-            if (product.images_blob) {
-                try {
-                    currentMediaFiles = JSON.parse(product.images_blob);
-                } catch(e) {
-                    currentMediaFiles = [];
-                }
-            } else {
-                currentMediaFiles = [];
-            }
+            console.log('Product data received:', product);
             
+            currentMediaFiles = [];
             newMediaFiles = [];
             mediaToDelete = [];
             
@@ -670,14 +631,52 @@ function editListing(productId) {
             document.getElementById('edit_condition').value = product.condition || 'good';
             document.getElementById('edit_category').value = product.category || 'others';
             
+            if (product.images_blob) {
+                try {
+                    if (typeof product.images_blob === 'string') {
+                        var parsed = JSON.parse(product.images_blob);
+                        if (Array.isArray(parsed)) {
+                            currentMediaFiles = parsed;
+                        } else {
+                            currentMediaFiles = [parsed];
+                        }
+                    } else if (Array.isArray(product.images_blob)) {
+                        currentMediaFiles = product.images_blob;
+                    } else {
+                        currentMediaFiles = [];
+                    }
+                    console.log('Loaded from images_blob:', currentMediaFiles.length);
+                } catch(e) {
+                    console.error('Parse images_blob error:', e);
+                    if (product.images_blob && typeof product.images_blob === 'string' && product.images_blob.startsWith('data:')) {
+                        currentMediaFiles = [product.images_blob];
+                    } else {
+                        currentMediaFiles = [];
+                    }
+                }
+            }
+            
+            if (currentMediaFiles.length === 0 && product.images && typeof product.images === 'string' && product.images.trim()) {
+                var imagePaths = product.images.split(',');
+                for (var i = 0; i < imagePaths.length; i++) {
+                    var path = imagePaths[i];
+                    if (path && path.trim()) {
+                        currentMediaFiles.push('/static/uploads/' + path.trim());
+                    }
+                }
+                console.log('Loaded from images field (fallback):', currentMediaFiles.length);
+            }
+            
             renderExistingMedia();
             document.getElementById('new_media_preview').innerHTML = '';
             updateUploadButtonState();
-            document.getElementById('editProductModal').style.display = 'flex';
+            
+            var modal = document.getElementById('editProductModal');
+            if (modal) modal.style.display = 'flex';
         })
-        .catch(function(err) { 
+        .catch(function(err) {
             console.error('Error loading product:', err);
-            showToastMessage('Failed to load product details', 'error'); 
+            showToastMessage('Failed to load product details: ' + err.message, 'error');
         });
 }
 
@@ -707,9 +706,12 @@ function updateUploadButtonState() {
 
 function renderExistingMedia() {
     var container = document.getElementById('existing_media_container');
-    if (!container) return;
+    if (!container) {
+        console.error('existing_media_container not found');
+        return;
+    }
     
-    if (!currentMediaFiles.length) {
+    if (!currentMediaFiles || currentMediaFiles.length === 0) {
         container.innerHTML = '<p class="no-media">No media uploaded</p>';
         return;
     }
@@ -717,14 +719,38 @@ function renderExistingMedia() {
     var html = '';
     for (var i = 0; i < currentMediaFiles.length; i++) {
         var media = currentMediaFiles[i];
-        var isVideo = media.startsWith('data:video') || media.match(/\.(mp4|webm|mov|avi)$/i);
+        
+        var isVideo = false;
+        if (media) {
+            if (media.startsWith('data:video/')) {
+                isVideo = true;
+            }
+            else if (media.match(/\.(mp4|webm|mov|avi)$/i)) {
+                isVideo = true;
+            }
+        }
+        
         var isMarkedForDelete = mediaToDelete.indexOf(i) !== -1;
         
-        html += '<div class="media-preview ' + (isMarkedForDelete ? 'marked-for-delete' : '') + '" data-index="' + i + '">' +
-            (isVideo ? '<video src="' + media + '" style="width:100%;height:100%;object-fit:cover;"></video>' : '<img src="' + media + '" alt="Product media">') +
-            '<button type="button" class="remove-media-btn" onclick="toggleMediaDeletion(' + i + ')">' + (isMarkedForDelete ? '↩️' : '✕') + '</button>' +
-            (isVideo ? '<span class="video-badge">🎬</span>' : '') +
-            '</div>';
+        html += '<div class="media-preview ' + (isMarkedForDelete ? 'marked-for-delete' : '') + '" data-index="' + i + '">';
+        
+        if (isVideo) {
+            html += '<video controls preload="metadata" style="width:100%;height:100%;object-fit:cover;">';
+            html += '<source src="' + media + '">';
+            html += '</video>';
+        } else {
+            html += '<img src="' + media + '" alt="Product media" style="width:100%;height:100%;object-fit:cover;" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'100\\\' height=\\\'100\\\' viewBox=\\\'0 0 100 100\\\'%3E%3Crect width=\\\'100\\\' height=\\\'100\\\' fill=\\\'%23f0f0f0\\\'/%3E%3Ctext x=\\\'50\\\' y=\\\'55\\\' text-anchor=\\\'middle\\\' fill=\\\'%23999\\\'%3E📷%3C/text%3E%3C/svg%3E\';">';
+        }
+        
+        html += '<button type="button" class="remove-media-btn" onclick="toggleMediaDeletion(' + i + ')">';
+        html += isMarkedForDelete ? '↩️' : '✕';
+        html += '</button>';
+        
+        if (isVideo) {
+            html += '<span class="video-badge">🎬</span>';
+        }
+        
+        html += '</div>';
     }
     container.innerHTML = html;
 }
@@ -743,37 +769,53 @@ function toggleMediaDeletion(index) {
 function previewNewMedia(input) {
     var preview = document.getElementById('new_media_preview');
     var files = Array.from(input.files);
-    var remainingSlots = MAX_MEDIA_FILES - getTotalMediaCount();
-    
-    if (files.length > remainingSlots) {
-        showToastMessage('You can only add ' + remainingSlots + ' more file(s). Max ' + MAX_MEDIA_FILES + ' total.', 'error');
-        input.value = '';
-        return;
-    }
-    
+    var addedCount = 0;
+    var skippedDuplicate = 0;
+    var skippedSlot = 0;
+
     for (var i = 0; i < files.length; i++) {
         var file = files[i];
+        var remainingSlots = MAX_MEDIA_FILES - getTotalMediaCount() - addedCount;
+        if (remainingSlots <= 0) {
+            skippedSlot++;
+            continue;
+        }
+
         if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
             showToastMessage(file.name + ' is not a supported format', 'error');
             continue;
         }
-        
-        var maxSize = 10 * 1024 * 1024;
+
+        var maxSize = 50 * 1024 * 1024;
         if (file.size > maxSize) {
-            showToastMessage(file.name + ' is too large (max 10MB)', 'error');
+            showToastMessage(file.name + ' is too large (max 50MB)', 'error');
             continue;
         }
-        
+
+        var isDuplicate = false;
+        for (var d = 0; d < newMediaFiles.length; d++) {
+            if (newMediaFiles[d].name === file.name && newMediaFiles[d].size === file.size) {
+                isDuplicate = true;
+                break;
+            }
+        }
+        if (isDuplicate) {
+            skippedDuplicate++;
+            continue;
+        }
+
         newMediaFiles.push(file);
+        addedCount++;
+
         var reader = new FileReader();
         reader.onload = (function(f, filename) {
             return function(e) {
                 var div = document.createElement('div');
                 div.className = 'media-preview new';
                 var isVideo = f.type.startsWith('video/');
-                
+
                 if (isVideo) {
-                    div.innerHTML = '<video src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;"></video>' +
+                    div.innerHTML = '<video src="' + e.target.result + '" controls preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>' +
                         '<button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, \'' + filename + '\')">✕</button>' +
                         '<span class="video-badge">🎬</span>';
                 } else {
@@ -785,21 +827,28 @@ function previewNewMedia(input) {
         })(file, file.name);
         reader.readAsDataURL(file);
     }
+
     input.value = '';
+
+    if (skippedDuplicate > 0) {
+        showToastMessage(skippedDuplicate + ' duplicate file(s) skipped.', 'error');
+    }
+    if (skippedSlot > 0) {
+        showToastMessage('Max ' + MAX_MEDIA_FILES + ' media files reached. ' + skippedSlot + ' file(s) not added.', 'error');
+    }
+
     updateUploadButtonState();
 }
 
 function removeNewMediaItem(btn, filename) {
     var container = btn.closest('.media-preview');
     if (container) container.remove();
-    var index = -1;
     for (var i = 0; i < newMediaFiles.length; i++) {
         if (newMediaFiles[i].name === filename) {
-            index = i;
+            newMediaFiles.splice(i, 1);
             break;
         }
     }
-    if (index !== -1) newMediaFiles.splice(index, 1);
     updateUploadButtonState();
 }
 
@@ -807,12 +856,18 @@ function saveProductChanges(event) {
     event.preventDefault();
     var id = document.getElementById('edit_product_id').value;
     
+    if (!id) {
+        showToastMessage('Product ID missing', 'error');
+        return;
+    }
+    
     var remainingMedia = [];
     for (var i = 0; i < currentMediaFiles.length; i++) {
         if (mediaToDelete.indexOf(i) === -1) {
             remainingMedia.push(currentMediaFiles[i]);
         }
     }
+    
     var totalAfterSave = remainingMedia.length + newMediaFiles.length;
     
     if (totalAfterSave > MAX_MEDIA_FILES) {
@@ -827,20 +882,53 @@ function saveProductChanges(event) {
     
     showToastMessage('Updating product...', 'info');
     
-    var uploadPromises = [];
-    for (var i = 0; i < newMediaFiles.length; i++) {
-        var file = newMediaFiles[i];
-        var promise = new Promise(function(resolve) {
-            var reader = new FileReader();
-            reader.onload = function(e) { resolve(e.target.result); };
-            reader.readAsDataURL(file);
+    if (newMediaFiles.length > 0) {
+        var uploadPromises = [];
+        for (var i = 0; i < newMediaFiles.length; i++) {
+            var promise = (function(f) {
+                return new Promise(function(resolve) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) { resolve(e.target.result); };
+                    reader.readAsDataURL(f);
+                });
+            })(newMediaFiles[i]);
+            uploadPromises.push(promise);
+        }
+        
+        Promise.all(uploadPromises).then(function(newBase64Media) {
+            var allMedia = remainingMedia.concat(newBase64Media);
+            var imagesBlobJson = JSON.stringify(allMedia);
+            
+            var fd = new FormData();
+            fd.append('name', document.getElementById('edit_name').value);
+            fd.append('price', document.getElementById('edit_price').value);
+            fd.append('description', document.getElementById('edit_description').value);
+            fd.append('condition', document.getElementById('edit_condition').value);
+            fd.append('category', document.getElementById('edit_category').value);
+            fd.append('images_blob', imagesBlobJson);
+            
+            fetch('/api/product/' + id + '/update-full', {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin'
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    showToastMessage('Product updated successfully!', 'success');
+                    closeEditModal();
+                    if (typeof loadListings === 'function') loadListings();
+                } else {
+                    throw new Error(data.error || 'Update failed');
+                }
+            })
+            .catch(function(err) {
+                console.error('Save error:', err);
+                showToastMessage('Failed to update: ' + err.message, 'error');
+            });
         });
-        uploadPromises.push(promise);
-    }
-    
-    Promise.all(uploadPromises).then(function(newBase64Media) {
-        var allMedia = remainingMedia.concat(newBase64Media);
-        var imagesBlobJson = JSON.stringify(allMedia);
+    } else {
+        var imagesBlobJson = JSON.stringify(remainingMedia);
         
         var fd = new FormData();
         fd.append('name', document.getElementById('edit_name').value);
@@ -850,26 +938,26 @@ function saveProductChanges(event) {
         fd.append('category', document.getElementById('edit_category').value);
         fd.append('images_blob', imagesBlobJson);
         
-        fetch('/api/product/' + id + '/update-full', { 
-            method: 'POST', 
-            body: fd, 
-            credentials: 'same-origin' 
+        fetch('/api/product/' + id + '/update-full', {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin'
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) {
                 showToastMessage('Product updated successfully!', 'success');
                 closeEditModal();
-                loadListings();
+                if (typeof loadListings === 'function') loadListings();
             } else {
                 throw new Error(data.error || 'Update failed');
             }
         })
-        .catch(function(err) { 
+        .catch(function(err) {
             console.error('Save error:', err);
-            showToastMessage('Failed to update: ' + err.message, 'error'); 
+            showToastMessage('Failed to update: ' + err.message, 'error');
         });
-    });
+    }
 }
 
 function closeEditModal() {
@@ -881,19 +969,64 @@ function closeEditModal() {
 }
 
 function deleteListing(id, name) {
-    if (confirm('Are you sure you want to delete "' + name + '"? This cannot be undone.')) {
-        fetch('/api/product/' + id + '/delete', { method: 'DELETE', credentials: 'same-origin' })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    showToastMessage('"' + name + '" deleted', 'success');
-                    loadListings();
-                } else {
-                    throw new Error(data.error);
-                }
-            })
-            .catch(function() { showToastMessage('Failed to delete', 'error'); });
-    }
+    // 创建自定义确认弹窗
+    var modalHtml = `
+        <div id="deleteConfirmModal" class="custom-modal">
+            <div class="modal-card">
+                <div class="modal-icon">🗑️</div>
+                <div class="modal-title">Delete "${escapeHtml(name)}"?</div>
+                <div class="modal-message">This action cannot be undone. The item will be permanently removed.</div>
+                <div class="modal-buttons">
+                    <button class="modal-cancel" id="deleteCancelBtn">Cancel</button>
+                    <button class="modal-confirm" id="deleteConfirmBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 移除已存在的弹窗
+    var existingModal = document.getElementById('deleteConfirmModal');
+    if (existingModal) existingModal.remove();
+    
+    // 添加弹窗
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    var modal = document.getElementById('deleteConfirmModal');
+    var cancelBtn = document.getElementById('deleteCancelBtn');
+    var confirmBtn = document.getElementById('deleteConfirmBtn');
+    
+    // 取消按钮
+    cancelBtn.onclick = function() {
+        modal.remove();
+    };
+    
+    // 确认按钮
+    confirmBtn.onclick = function() {
+        modal.remove();
+        showToastMessage('Deleting "' + name + '"...', 'info');
+        
+        fetch('/api/product/' + id + '/delete', { 
+            method: 'DELETE', 
+            credentials: 'same-origin' 
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showToastMessage('"' + name + '" deleted', 'success');
+                loadListings();
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(function() { 
+            showToastMessage('Failed to delete', 'error'); 
+        });
+    };
+    
+    // 点击背景关闭
+    modal.onclick = function(e) {
+        if (e.target === modal) modal.remove();
+    };
 }
 
 // ============================================================
@@ -1013,9 +1146,6 @@ function confirmDelete() {
     return confirm('⚠️ Permanent deletion. Are you sure?');
 }
 
-document.getElementById('delete_password')?.addEventListener('input', checkDeletePasswordMatch);
-document.querySelector('#delete-form input[name="confirm_text"]')?.addEventListener('input', checkDeleteConfirm);
-
 // ============================================================
 // UTILITY FUNCTIONS
 // ============================================================
@@ -1043,16 +1173,284 @@ function showToastMessage(message, type) {
 }
 
 // ============================================================
-// PAGE INITIALIZATION
+// CHECK ADMIN STATUS & SWITCH TO ADMIN
+// ============================================================
+
+// 检查是否为管理员，决定是否显示 Admin 按钮
+function checkAdminStatus() {
+    fetch('/api/user/is-admin', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var adminBtn = document.getElementById('adminSwitchBtn');
+            if (adminBtn && data.is_admin) {
+                adminBtn.style.display = 'inline-flex';
+            }
+        })
+        .catch(function(err) {
+            console.log('Admin check failed:', err);
+        });
+}
+
+window.switchToAdmin = function() {
+    if (confirm('👑 Switch to Admin Dashboard?\n\nYou can return to user mode by logging out and logging back in.')) {
+        // 显示 toast
+        var container = document.createElement('div');
+        container.className = 'toast-container';
+        var toastDiv = document.createElement('div');
+        toastDiv.className = 'toast toast-info';
+        toastDiv.innerHTML = '<span>🔄 Switching to admin mode...</span>';
+        container.appendChild(toastDiv);
+        document.body.appendChild(container);
+        
+        // 1.5秒后跳转
+        setTimeout(function() {
+            window.location.href = '/switch-to-admin';
+        }, 400);
+    }
+};
+
+function showToastMessage(message, type) {
+    var existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    var container = document.createElement('div');
+    container.className = 'toast-container';
+    var toastDiv = document.createElement('div');
+    toastDiv.className = 'toast toast-' + type;
+    toastDiv.innerHTML = '<span>' + message + '</span>';
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    setTimeout(function() { container.remove(); }, 3000);
+}
+
+// ============================================================
+// PAGE INITIALIZATION - SINGLE DOMContentLoaded
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DOM references
+    $bgLayer = document.getElementById('epBgLayer');
+    $bgPreview = document.getElementById('currentBgPreview');
+    $bgPanel = document.getElementById('epBgPanel');
+    
+    // Initialize background
+    restoreBackgroundFromServer();
+    
+    // Initialize cover and avatar
     loadCoverFromServer();
     loadAvatarFromServer();
-    restoreBackgroundFromServer();
+    
+    // Color grid click handlers are already set in buildGrid
+    
+    // Background panel buttons
+    var bgSaveBtn = document.getElementById('bgSaveBtn');
+    var bgCancelBtn = document.getElementById('bgCancelBtn');
+    var bgCloseBtn = document.querySelector('.ep-bg-close');
+    
+    if (bgSaveBtn) {
+        bgSaveBtn.addEventListener('click', function() {
+            if (!selectedBgValue) { 
+                showToastMessage('Please select a background first', 'error'); 
+                return; 
+            }
+            var btn = bgSaveBtn;
+            var orig = btn.textContent;
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+            saveBackgroundToServer(selectedBgValue)
+                .then(function() {
+                    showToastMessage('Background saved', 'success');
+                    if ($bgPanel) $bgPanel.classList.remove('open');
+                })
+                .catch(function() { showToastMessage('Failed to save background', 'error'); })
+                .finally(function() { btn.textContent = orig; btn.disabled = false; });
+        });
+    }
+    
+    if (bgCancelBtn) {
+        bgCancelBtn.addEventListener('click', function() {
+            restoreBackgroundFromServer();
+            selectedBgValue = null;
+            if ($bgPanel) $bgPanel.classList.remove('open');
+            showToastMessage('Reverted', 'info');
+        });
+    }
+    
+    if (bgCloseBtn) {
+        bgCloseBtn.addEventListener('click', function() { 
+            if ($bgPanel) $bgPanel.classList.remove('open'); 
+        });
+    }
+    
+    // Cover and Avatar event listeners
+    var $coverFileInput = document.getElementById('coverFileInput');
+    var $coverCropModal = document.getElementById('coverCropModal');
+    var $avatarFileInput = document.getElementById('avatarFileInput');
+    var $avatarCropModal = document.getElementById('avatarCropModal');
+
+    // Cover
+    var coverChangeBtn = document.getElementById('coverChangeBtn');
+    if (coverChangeBtn) {
+        coverChangeBtn.addEventListener('click', function() { if ($coverFileInput) $coverFileInput.click(); });
+    }
+    if ($coverFileInput) {
+        $coverFileInput.addEventListener('change', function(e) {
+            if (!e.target.files || !e.target.files[0]) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                var img = document.getElementById('coverCropImage');
+                if (img) img.src = ev.target.result;
+                if ($coverCropModal) $coverCropModal.classList.add('open');
+                if (coverCropper) coverCropper.destroy();
+                setTimeout(function() {
+                    var cropImg = document.getElementById('coverCropImage');
+                    if (cropImg && typeof Cropper !== 'undefined') {
+                        coverCropper = new Cropper(cropImg, { aspectRatio: 16/5, viewMode: 1, autoCropArea: 1 });
+                    }
+                }, 100);
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+    }
+    
+    var coverClose = document.querySelector('#coverCropModal .crop-close');
+    var coverCancel = document.querySelector('#coverCropModal .crop-cancel');
+    var coverConfirm = document.querySelector('#coverCropModal .crop-confirm');
+    
+    if (coverClose) coverClose.addEventListener('click', closeCoverCrop);
+    if (coverCancel) coverCancel.addEventListener('click', closeCoverCrop);
+    if (coverConfirm) {
+        coverConfirm.addEventListener('click', function() {
+            if (!coverCropper) {
+                showToastMessage('Please select an image first', 'error');
+                return;
+            }
+            coverCropper.getCroppedCanvas().toBlob(function(blob) {
+                if (!blob) {
+                    showToastMessage('Failed to process image', 'error');
+                    return;
+                }
+                var fd = new FormData();
+                fd.append('cover_image', blob, 'cover.jpg');  
+                showToastMessage('Uploading cover...', 'info');
+                fetch('/update-cover', { 
+                    method: 'POST', 
+                    body: fd, 
+                    credentials: 'same-origin'
+                })
+                .then(function(r) { 
+                    if (!r.ok) throw new Error('Server error: ' + r.status);
+                    return r.json(); 
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        var coverDiv = document.getElementById('coverImage');
+                        if (coverDiv) {
+                            coverDiv.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
+                        }
+                        closeCoverCrop();
+                        showToastMessage('Cover updated!', 'success');
+                    } else {
+                        throw new Error(data.error || 'Upload failed');
+                    }
+                })
+                .catch(function(e) { 
+                    console.error('Cover upload error:', e);
+                    showToastMessage('Cover update failed: ' + (e.message || ''), 'error'); 
+                });
+            }, 'image/jpeg', 0.9);
+        });
+    }
+
+    // Avatar
+    var avatarRing = document.getElementById('avatarRing');
+    if (avatarRing) {
+        avatarRing.addEventListener('click', function() { if ($avatarFileInput) $avatarFileInput.click(); });
+    }
+    if ($avatarFileInput) {
+        $avatarFileInput.addEventListener('change', function(e) {
+            if (!e.target.files || !e.target.files[0]) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                var img = document.getElementById('avatarCropImage');
+                if (img) img.src = ev.target.result;
+                if ($avatarCropModal) $avatarCropModal.classList.add('open');
+                if (avatarCropper) avatarCropper.destroy();
+                setTimeout(function() {
+                    var cropImg = document.getElementById('avatarCropImage');
+                    if (cropImg && typeof Cropper !== 'undefined') {
+                        avatarCropper = new Cropper(cropImg, { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
+                    }
+                }, 100);
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+    }
+    
+    var avatarClose = document.querySelector('.avatar-crop-close');
+    var avatarCancel = document.getElementById('avatarCropCancel');
+    var avatarConfirm = document.getElementById('avatarCropConfirm');
+    
+    if (avatarClose) avatarClose.addEventListener('click', closeAvatarCrop);
+    if (avatarCancel) avatarCancel.addEventListener('click', closeAvatarCrop);
+    if (avatarConfirm) {
+        avatarConfirm.addEventListener('click', function() {
+            if (!avatarCropper) {
+                showToastMessage('Please select an image first', 'error');
+                return;
+            }
+            avatarCropper.getCroppedCanvas().toBlob(function(blob) {
+                if (!blob) {
+                    showToastMessage('Failed to process image', 'error');
+                    return;
+                }
+                var fd = new FormData();
+                fd.append('avatar', blob, 'avatar.jpg');
+                showToastMessage('Uploading avatar...', 'info');
+                fetch('/update-profile-avatar', { 
+                    method: 'POST', 
+                    body: fd, 
+                    credentials: 'same-origin'
+                })
+                .then(function(r) { 
+                    if (!r.ok) throw new Error('Server error: ' + r.status);
+                    return r.json(); 
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        var avImg = document.getElementById('side-av-img');
+                        var avInit = document.getElementById('side-av-init');
+                        if (avImg) {
+                            avImg.src = '/avatar-image?t=' + Date.now();
+                            avImg.style.display = 'block';
+                            if (avInit) avInit.style.display = 'none';
+                        }
+                        closeAvatarCrop();
+                        showToastMessage('Avatar updated!', 'success');
+                    } else {
+                        throw new Error(data.error || 'Upload failed');
+                    }
+                })
+                .catch(function(e) { 
+                    console.error('Avatar upload error:', e);
+                    showToastMessage('Avatar update failed: ' + (e.message || ''), 'error'); 
+                });
+            }, 'image/jpeg', 0.9);
+        });
+    }
+    
+    // Password event listeners
     var newPw = document.getElementById('new_password');
     var confPw = document.getElementById('confirm_password');
     if (newPw) newPw.addEventListener('input', function() { checkPwStrength(); checkPwMatch(); });
     if (confPw) confPw.addEventListener('input', checkPwMatch);
+    
+    // Delete account event listeners
+    var deletePwInput = document.getElementById('delete_password');
+    var deleteConfirmInput = document.querySelector('#delete-form input[name="confirm_text"]');
+    if (deletePwInput) deletePwInput.addEventListener('input', checkDeletePasswordMatch);
+    if (deleteConfirmInput) deleteConfirmInput.addEventListener('input', checkDeleteConfirm);
+    
+    // Check admin status - 显示管理员按钮（如果是管理员）
+    checkAdminStatus();
 });
 </script>
 {% endblock %}
