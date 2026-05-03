@@ -2,10 +2,6 @@ import re
 
 import subprocess
 
-import psycopg2
-
-from psycopg2 import Binary
-
 import os
 
 import sqlite3
@@ -15,6 +11,10 @@ from datetime import datetime, timedelta
 import uuid
 
 import base64
+
+import psycopg2  
+
+from psycopg2 import Binary  
 
 from flask import (
     Flask, render_template, request, redirect,
@@ -600,7 +600,9 @@ def avatar_image():
     db.close()
 
     if user and user['avatar_blob']:
-        response = make_response(user['avatar_blob'])
+
+        avatar_data = bytes(user['avatar_blob']) if hasattr(user['avatar_blob'], 'tobytes') else user['avatar_blob']
+        response = make_response(avatar_data)
         response.headers.set('Content-Type', 'image/jpeg')
         response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
         return response
@@ -651,12 +653,26 @@ def user_avatar(user_id):
     db.close()
     
     if user and user['avatar_blob']:
-        response = make_response(user['avatar_blob'])
+        avatar_data = bytes(user['avatar_blob']) if hasattr(user['avatar_blob'], 'tobytes') else user['avatar_blob']
+        response = make_response(avatar_data)
         response.headers.set('Content-Type', 'image/jpeg')
         response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
         return response
     return '', 404
 
+def make_blob_response(blob_data, content_type='image/jpeg'):
+    """Convert PostgreSQL BYTEA (memoryview) to Flask response"""
+    if blob_data is None:
+        return None
+    # Convert memoryview to bytes if needed
+    if hasattr(blob_data, 'tobytes'):
+        blob_data = blob_data.tobytes()
+    elif isinstance(blob_data, memoryview):
+        blob_data = bytes(blob_data)
+    response = make_response(blob_data)
+    response.headers.set('Content-Type', content_type)
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+    return response
 
 # ============================================================
 # COVER ROUTES - Store as BLOB in database
@@ -676,7 +692,8 @@ def cover_image():
     db.close()
 
     if user and user['cover_blob']:
-        response = make_response(user['cover_blob'])
+        cover_data = bytes(user['cover_blob']) if hasattr(user['cover_blob'], 'tobytes') else user['cover_blob']
+        response = make_response(cover_data)
         response.headers.set('Content-Type', 'image/jpeg')
         response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
         return response
@@ -705,6 +722,7 @@ def update_cover():
 
     db = get_db()
     cur = db.cursor()
+
     cur.execute('UPDATE users SET cover_blob = %s WHERE id = %s', 
                 (image_data, session['user_id']))
     db.commit()
@@ -1286,6 +1304,7 @@ def api_product_image(product_id, index):
     
     db = get_db()
     cur = db.cursor()
+
     cur.execute('SELECT images_blob, images FROM products WHERE id = %s', (product_id,))
     row = cur.fetchone()
     cur.close()
@@ -1301,7 +1320,6 @@ def api_product_image(product_id, index):
             if isinstance(blob_list, list) and index < len(blob_list):
                 data_uri = blob_list[index]
                 if isinstance(data_uri, str) and data_uri.startswith('data:'):
-                    # Parse data URI
                     header, b64data = data_uri.split(',', 1)
                     mime_type = header.split(';')[0].split(':')[1]
                     img_bytes = base64.b64decode(b64data)
@@ -1322,8 +1340,9 @@ def api_product_image(product_id, index):
                 return send_file(filepath)
 
     return '', 404
-
+# ============================================================
 # Eileen's Route - Update product
+# ============================================================
 @app.route('/api/product/<int:product_id>/update', methods=['PUT'])
 
 def api_update_product(product_id):
