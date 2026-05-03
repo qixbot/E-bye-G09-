@@ -12,8 +12,6 @@ if not DATABASE_URL:
 def get_db():
     """Return a PostgreSQL database connection"""
     conn = psycopg2.connect(DATABASE_URL)
-    # Use RealDictCursor so rows behave like dictionaries (similar to sqlite3.Row)
-    conn.cursor_factory = RealDictCursor
     return conn
 
 def init_db():
@@ -67,83 +65,8 @@ def init_db():
         )
     ''')
 
-<<<<<<< HEAD
     # Products table
     cur.execute('''
-=======
-    # Create offers table (for offer system)
-    db.execute('''
-        CREATE TABLE IF NOT EXISTS offers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            product_id INTEGER NOT NULL,
-            buyer_id INTEGER NOT NULL,
-            offer_price REAL NOT NULL,
-            original_price REAL,
-            message TEXT,
-            counter_price REAL,
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (product_id) REFERENCES products(id),
-            FOREIGN KEY (buyer_id) REFERENCES users(id)
-        )
-    ''')
-
-    # Add missing columns for existing databases
-    columns_to_add = [
-        ('full_name', 'TEXT'),
-        ('contact', 'TEXT'),
-        ('bio', 'TEXT'),
-        ('avatar_blob', 'BLOB'),
-        ('cover_blob', 'BLOB'),
-        ('background_type', "TEXT DEFAULT 'default'"),
-        ('background_value', 'TEXT'),
-        ('active_hours', 'TEXT'),
-        ('frozen_until', 'TIMESTAMP'),
-        ('freeze_reason', 'TEXT'),
-        ('freeze_count', 'INTEGER DEFAULT 0'),
-        ('trust_score', 'INTEGER DEFAULT 85'),
-        ('response_rate', 'INTEGER DEFAULT 98'),
-        ('rating', "TEXT DEFAULT '--'"),
-        ('remember_token', 'TEXT')
-    ]
-
-    for col_name, col_def in columns_to_add:
-        try:
-            db.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}")
-            print(f"Added column: {col_name}")
-        except sqlite3.OperationalError:
-            pass
-
-    db.commit()
-
-    # Create default admin user
-    admin_email = 'admin@student.mmu.edu.my'
-    admin_password = generate_password_hash('Admin123!')
-
-    existing_admin = db.execute(
-        'SELECT * FROM users WHERE email = ?', (admin_email,)
-    ).fetchone()
-
-    if not existing_admin:
-        db.execute('''
-            INSERT INTO users (student_id, email, username, password, is_admin)
-            VALUES (?, ?, ?, ?, ?)
-        ''', ('ADMIN001', admin_email, 'Administrator', admin_password, 1))
-        db.commit()
-        print("✅ Default admin created: admin@student.mmu.edu.my / Admin123!")
-    else:
-        print("✅ Admin user already exists")
-
-    db.close()
-    print("✅ Database ready with users and notifications tables")
-
-
-def init_products():
-    """Initialize products table (without images_blob)"""
-    db = get_db()
-
-    db.execute('''
->>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
         CREATE TABLE IF NOT EXISTS products (
             id SERIAL PRIMARY KEY,
             seller_id INTEGER NOT NULL REFERENCES users(id),
@@ -160,34 +83,8 @@ def init_products():
         )
     ''')
 
-<<<<<<< HEAD
     # Messages table
     cur.execute('''
-=======
-    # Add missing columns for products table
-    products_cols = [
-        ('status', "TEXT DEFAULT 'pending'"),
-        ('reject_reason', "TEXT DEFAULT ''"),
-        ('images_blob', 'TEXT'),
-    ]
-    for col_name, col_def in products_cols:
-        try:
-            db.execute(f"ALTER TABLE products ADD COLUMN {col_name} {col_def}")
-            print(f"Added column: {col_name} to products")
-        except sqlite3.OperationalError:
-            pass
-
-    db.commit()
-    db.close()
-    print("✅ Products table ready")
-
-
-def init_messages():
-    """Initialize messages table for chat system"""
-    db = get_db()
-
-    db.execute('''
->>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
         CREATE TABLE IF NOT EXISTS messages (
             id SERIAL PRIMARY KEY,
             sender_id INTEGER NOT NULL REFERENCES users(id),
@@ -201,7 +98,6 @@ def init_messages():
         )
     ''')
 
-<<<<<<< HEAD
     # Offers table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS offers (
@@ -216,13 +112,6 @@ def init_messages():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-=======
-    try:
-        db.execute("ALTER TABLE messages ADD COLUMN msg_type TEXT DEFAULT 'text'")
-        print("Added column: msg_type to messages")
-    except sqlite3.OperationalError:
-        pass
->>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
 
     # Announcements table
     cur.execute('''
@@ -269,7 +158,7 @@ def init_messages():
 
     conn.commit()
 
-    # Insert default admin user (if not exists)
+    # Create default admin user
     admin_email = 'admin@student.mmu.edu.my'
     admin_password = generate_password_hash('Admin123!')
     cur.execute("SELECT id FROM users WHERE email = %s", (admin_email,))
@@ -279,7 +168,7 @@ def init_messages():
             VALUES (%s, %s, %s, %s, %s)
         ''', ('ADMIN001', admin_email, 'Administrator', admin_password, 1))
         conn.commit()
-        print("✅ Default admin created")
+        print("✅ Default admin created: admin@student.mmu.edu.my / Admin123!")
     else:
         print("✅ Admin user already exists")
 
@@ -287,15 +176,9 @@ def init_messages():
     conn.close()
     print("✅ All tables ready in PostgreSQL")
 
-# Keep the other init functions (init_products, init_messages, etc.) but remove their table creation
-# because we already created all tables above. Alternatively, just call init_db() once at startup.
-
-# For simplicity, you can remove init_products(), init_messages(), etc., and only use init_db().
-
-# But to keep compatibility with existing app.py calls, define empty functions or just let init_db() do all.
-
+# Keep empty functions for compatibility with app.py calls
 def init_products():
-    pass  # already done in init_db()
+    pass
 
 def init_messages():
     pass
