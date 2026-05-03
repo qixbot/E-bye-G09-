@@ -31,6 +31,7 @@
                     <th style="padding:16px 30px;">Student ID</th>
                     <th style="padding:16px 30px;">Email</th>
                     <th style="padding:16px 30px;">Username</th>
+                    <th style="padding:16px 30px;">Freezes</th>
                     <th style="padding:16px 30px;">Status</th>
                     <th style="padding:16px 30px;">Actions</th>
                 </tr>
@@ -39,7 +40,7 @@
                 {% set active_list = users | selectattr('is_blocked', '==', 0) | selectattr('is_frozen', '==', 0) | list %}
                 {% if active_list | length == 0 %}
                 <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">No active users at the moment</td>
+                    <td colspan="7" class="text-center py-4 text-muted">No active users at the moment</td>
                 </tr>
                 {% else %}
                 {% for u in active_list %}
@@ -48,6 +49,7 @@
                     <td style="padding:16px 30px;">{{ u.student_id }}</td>
                     <td style="padding:16px 30px;" class="user-email">{{ u.email }}</td>
                     <td style="padding:16px 30px;" class="user-username">{{ u.username }}</td>
+                    <td style="padding:16px 30px;">{{ u.freeze_count if u.freeze_count else 0 }}/3</td>
                     <td style="padding:16px 30px;"><span style="color:green;font-weight:500;">✅ Active</span></td>
                     <td style="padding:16px 30px;">
                         <button onclick='openModal({{ u.id }}, "freeze")' style="background-color:#ffc107;color:#000;border:none;border-radius:20px;padding:7px 18px;margin-right:8px;">Freeze 7 Days</button>
@@ -72,6 +74,7 @@
                     <th style="padding:16px 30px;">Student ID</th>
                     <th style="padding:16px 30px;">Email</th>
                     <th style="padding:16px 30px;">Username</th>
+                    <th style="padding:16px 30px;">Freezes</th>
                     <th style="padding:16px 30px;">Auto Unfreeze Time</th>
                     <th style="padding:16px 30px;">Action</th>
                 </tr>
@@ -80,7 +83,7 @@
                 {% set frozen_list = users | selectattr('is_frozen', '==', 1) | selectattr('is_blocked', '==', 0) | list %}
                 {% if frozen_list | length == 0 %}
                 <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">No users are currently frozen</td>
+                    <td colspan="7" class="text-center py-4 text-muted">No users are currently frozen</td>
                 </tr>
                 {% else %}
                 {% for u in frozen_list %}
@@ -89,17 +92,16 @@
                     <td style="padding:16px 30px;">{{ u.student_id }}</td>
                     <td style="padding:16px 30px;" class="user-email">{{ u.email }}</td>
                     <td style="padding:16px 30px;" class="user-username">{{ u.username }}</td>
+                    <td style="padding:16px 30px;">{{ u.freeze_count if u.freeze_count else 0 }}/3</td>
                     <td style="padding:16px 30px;">
                         {% if u.frozen_until %}
-                        <span style="color:orange;">{{ u.frozen_until.split(' ')[0] }}</span>
+                        <span style="color:orange;">{{ u.frozen_until[:10] }}</span>
                         {% else %}
                         <span style="color:orange;">Processing</span>
                         {% endif %}
                     </td>
                     <td style="padding:16px 30px;">
-                        <form method="post" action="{{ url_for('unfreeze_user', user_id=u.id) }}" onsubmit="return confirm('Unfreeze this user early?')">
-                            <button type="submit" style="background-color:#17a2b8;color:white;border:none;border-radius:20px;padding:7px 18px;font-weight:bold;">Unfreeze Now</button>
-                        </form>
+                        <button onclick="openUnfreezeModal({{ u.id }}, '{{ u.username }}')" style="background-color:#17a2b8;color:white;border:none;border-radius:20px;padding:7px 18px;font-weight:bold;">Unfreeze Now</button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -150,6 +152,48 @@
         </table>
     </div>
 
+    <br><br><br>
+
+    <!-- 🚨 被举报用户 -->
+    <h4 class="mb-3 text-danger">🚨 Reported Users (Pending)</h4>
+    <div style="background:white;border-radius:16px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <table class="table table-hover w-100">
+            <thead>
+                <tr>
+                    <th style="padding:16px 30px;">No.</th>
+                    <th style="padding:16px 30px;">Reported User</th>
+                    <th style="padding:16px 30px;">Reported By</th>
+                    <th style="padding:16px 30px;">Reason</th>
+                    <th style="padding:16px 30px;">Details</th>
+                    <th style="padding:16px 30px;">Date</th>
+                    <th style="padding:16px 30px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if reports and reports|length > 0 %}
+                    {% for r in reports %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ r.reported_username }}</td>
+                        <td>{{ r.reporter_username }}</td>
+                        <td>{{ r.reason }}</td>
+                        <td>{{ r.details or '-' }}</td>
+                        <td>{{ r.created_at[:10] if r.created_at else '' }}</td>
+                        <td>
+                            <button onclick="handleReport({{ r.id }}, 'dismiss')" style="background:#888;color:white;border:none;border-radius:20px;padding:7px 14px;margin-right:6px;">Dismiss</button>
+                            <button onclick="handleReport({{ r.id }}, 'block')" style="background:#e74c3c;color:white;border:none;border-radius:20px;padding:7px 14px;">Block User</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No pending reports</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
 </div>
 
 <!-- 理由弹窗 -->
@@ -161,6 +205,25 @@
     <div style="display:flex;justify-content:flex-end;gap:10px;">
         <button onclick="closeModal()" class="btn btn-secondary">Cancel</button>
         <button onclick="submitAction()" class="btn btn-primary">Confirm</button>
+    </div>
+</div>
+
+<!-- 手动解冻弹窗 -->
+<div id="unfreezeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;">
+    <div style="background:#fff;width:420px;margin:150px auto;padding:24px;border-radius:16px;">
+        <h5 style="margin-bottom:12px;">🔓 Unfreeze <span id="unfreezeUsername"></span></h5>
+        <label style="font-size:13px;">Reason for early unfreeze:</label>
+        <select id="unfreezeReason" style="width:100%;padding:10px;border-radius:10px;border:1px solid #ccc;margin:8px 0;">
+            <option value="Mistaken freeze">❌ Mistaken freeze</option>
+            <option value="Appeal accepted">✅ Appeal accepted</option>
+            <option value="Admin discretion">📝 Admin discretion</option>
+            <option value="Other">💬 Other</option>
+        </select>
+        <textarea id="unfreezeDetails" placeholder="Additional details (optional)..." style="width:100%;height:60px;border-radius:10px;border:1px solid #ccc;padding:8px;resize:none;"></textarea>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+            <button onclick="closeUnfreezeModal()" style="padding:8px 20px;border-radius:10px;border:1px solid #999;background:#fff;cursor:pointer;">Cancel</button>
+            <button onclick="confirmUnfreeze()" style="padding:8px 20px;border-radius:10px;background:#17a2b8;color:white;border:none;cursor:pointer;">Confirm Unfreeze</button>
+        </div>
     </div>
 </div>
 
@@ -200,6 +263,51 @@ function submitAction(){
     const i=document.createElement('input');i.type='hidden';i.name='reason';i.value=r;
     f.appendChild(i);document.body.appendChild(f);f.submit();closeModal();
 }
+
+// 手动解冻
+var unfreezeUserId = null;
+
+function openUnfreezeModal(uid, username) {
+    unfreezeUserId = uid;
+    document.getElementById('unfreezeUsername').textContent = username;
+    document.getElementById('unfreezeModal').style.display = 'block';
+}
+
+function closeUnfreezeModal() {
+    document.getElementById('unfreezeModal').style.display = 'none';
+    document.getElementById('unfreezeDetails').value = '';
+}
+
+function confirmUnfreeze() {
+    var reason = document.getElementById('unfreezeReason').value;
+    var details = document.getElementById('unfreezeDetails').value.trim();
+    var fullReason = reason + (details ? ': ' + details : '');
+    
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/unfreeze/' + unfreezeUserId;
+    
+    var r = document.createElement('input');
+    r.type = 'hidden';
+    r.name = 'reason';
+    r.value = fullReason;
+    form.appendChild(r);
+    
+    document.body.appendChild(form);
+    form.submit();
+    closeUnfreezeModal();
+}
+
+// 举报处理
+function handleReport(reportId, action) {
+    if (!confirm('Are you sure?')) return;
+    fetch('/admin/report/' + reportId + '/' + action, { method: 'POST' })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if (d.success) location.reload();
+        else alert('Failed');
+    });
+}
 </script>
 
 <!-- 全局2秒自动消失提示 -->
@@ -215,7 +323,6 @@ function submitAction(){
 {% endwith %}
 
 <script>
-// 2秒后自动淡出消失
 setTimeout(()=>{
     const toast = document.getElementById('globalToast');
     if(toast){

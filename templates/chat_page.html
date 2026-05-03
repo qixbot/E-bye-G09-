@@ -6,167 +6,459 @@
     <title>Chat - {{ other_user.username }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; }
-        .chat-container { display: flex; flex-direction: column; height: 100vh; width: 100%; background: #fff; }
-        .chat-header { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e0e0e0; background: #fff; min-height: 55px; }
-        .chat-header a { text-decoration: none; color: #205c30; font-size: 18px; margin-right: 12px; }
-        .avatar-circle { width: 38px; height: 38px; border-radius: 50%; background: #205c30; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; margin-right: 10px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f6f5; }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            background: #fff;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #205c30;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: #eaf4ed;
+            margin-right: 10px;
+            transition: 0.2s;
+        }
+        .back-btn:hover { background: #d4e8d8; }
+        .avatar-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #205c30;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .header-info { flex: 1; }
         .header-name { font-weight: 600; font-size: 15px; }
-        .header-username { font-size: 11px; color: #888; }
-        .product-card { display: flex; align-items: center; padding: 10px 16px; background: #f0f7f2; border-bottom: 1px solid #d4e8d8; cursor: pointer; gap: 10px; }
-        .product-card img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
-        .pname { font-weight: 600; font-size: 13px; }
-        .pprice { color: #205c30; font-weight: bold; font-size: 12px; }
-        .messages-area { flex: 1; overflow-y: auto; padding: 16px; background: #f5f6f5; }
-        .msg-row { margin-bottom: 14px; display: flex; flex-direction: column; }
+        .header-status { font-size: 11px; }
+        .header-status.online { color: #27ae60; }
+        .header-status.offline { color: #888; }
+
+        /* 举报按钮 */
+        .report-btn {
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 16px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #888;
+            transition: 0.2s;
+        }
+        .report-btn:hover { background: #fee; color: #e74c3c; border-color: #e74c3c; }
+
+        .product-picker {
+            display: none;
+            padding: 12px 16px;
+            background: #f0f7f2;
+            border-bottom: 1px solid #d4e8d8;
+        }
+        .product-picker.show { display: block; }
+        .product-picker select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        .product-picker button {
+            margin-top: 8px;
+            background: #205c30;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-right: 6px;
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            background: #f5f6f5;
+        }
+        .msg-row {
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+        }
         .msg-row.right { align-items: flex-end; }
         .msg-row.left { align-items: flex-start; }
-        .msg-bubble { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; word-break: break-word; }
-        .msg-bubble.sent { background: #205c30; color: white; border-bottom-right-radius: 4px; }
-        .msg-bubble.received { background: #fff; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .msg-bubble img { max-width: 180px; border-radius: 8px; margin: 4px 0; cursor: pointer; }
-        .msg-meta { font-size: 10px; color: #999; margin-top: 3px; padding: 0 2px; }
-        .input-bar { display: flex; align-items: center; padding: 10px 12px; border-top: 1px solid #e0e0e0; gap: 6px; background: #fff; min-height: 55px; }
+
+        /* 日期分隔线 */
+        .date-divider {
+            text-align: center;
+            margin: 20px 0 14px;
+            position: sticky;
+            top: 60px;
+            z-index: 5;
+        }
+        .date-divider span {
+            background: rgba(0,0,0,0.08);
+            color: #666;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .msg-bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .msg-bubble.sent {
+            background: #205c30;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .msg-bubble.received {
+            background: #fff;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .msg-bubble img {
+            max-width: 200px;
+            border-radius: 8px;
+            margin: 4px 0;
+            cursor: pointer;
+            display: block;
+        }
+        .msg-meta {
+            font-size: 10px;
+            color: #999;
+            margin-top: 3px;
+            padding: 0 4px;
+        }
+
+        .input-bar {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border-top: 1px solid #e0e0e0;
+            gap: 6px;
+            background: #fff;
+            position: sticky;
+            bottom: 0;
+        }
         .input-bar button { background: none; border: none; font-size: 22px; cursor: pointer; padding: 4px; }
         .input-bar button:active { transform: scale(1.2); }
-        .input-bar input[type="text"] { flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 8px 14px; font-size: 14px; outline: none; background: #f9f9f9; }
+        .input-bar input[type="text"] {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 14px;
+            outline: none;
+            background: #f9f9f9;
+        }
         .input-bar input[type="text"]:focus { border-color: #205c30; background: #fff; }
-        .btn-send { background: #205c30 !important; color: white !important; padding: 6px 16px !important; border-radius: 18px !important; font-size: 13px !important; font-weight: 600; }
+        .btn-send {
+            background: #205c30 !important;
+            color: white !important;
+            padding: 6px 16px !important;
+            border-radius: 18px !important;
+            font-size: 13px !important;
+            font-weight: 600;
+        }
+
         #imageInput { display: none; }
-        .emoji-panel { display: none; flex-wrap: wrap; gap: 2px; padding: 6px 12px; background: #f9f9f9; border-top: 1px solid #eee; max-height: 100px; overflow-y: auto; }
+        .image-preview { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px 12px; }
+        .emoji-panel {
+            display: none;
+            flex-wrap: wrap;
+            gap: 2px;
+            padding: 6px 12px;
+            background: #f9f9f9;
+            border-top: 1px solid #eee;
+            max-height: 100px;
+            overflow-y: auto;
+        }
         .emoji-panel.show { display: flex; }
         .emoji-panel span { font-size: 20px; cursor: pointer; padding: 2px 4px; }
-        .image-preview-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; }
+
+        .image-preview-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
         .image-preview-overlay.show { display: flex; }
         .image-preview-overlay img { max-width: 95%; max-height: 95%; border-radius: 8px; }
-        
+
+        /* 举报弹窗 */
+        .report-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .report-modal.show { display: flex; }
+        .report-box {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 380px;
+        }
+        .report-box h3 { margin-bottom: 12px; }
+        .report-box textarea {
+            width: 100%;
+            height: 80px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 14px;
+            resize: none;
+        }
+        .report-box select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+        .report-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 12px;
+        }
     </style>
 </head>
 <body>
 
 <div class="chat-container">
+    <!-- Header -->
     <div class="chat-header">
-        <a href="{{ url_for('chat_list') }}">← Back</a>
+        <a href="{{ url_for('chat_list') }}" class="back-btn">◀ Back</a>
         <div class="avatar-circle">{{ other_user.username[0].upper() }}</div>
-        <div>
+        <div class="header-info">
             <div class="header-name">{{ other_user.full_name or other_user.username }}</div>
-            <div class="header-username">@{{ other_user.username }}</div>
+            <div class="header-status" id="userStatus">Loading...</div>
         </div>
+        <button class="report-btn" onclick="openReportModal()">⚠️ Report</button>
     </div>
 
-    {% if product_info %}
-    {% set imgs = product_info.images.split(',') if product_info.images else [] %}
-    <div class="product-card" onclick="window.location.href='{{ url_for('product_detail', product_id=product_info.id) }}'">
-        {% if imgs and imgs[0] %}
-        <img src="{{ url_for('static', filename='uploads/' ~ imgs[0]) }}" alt="">
-        {% endif %}
-        <div>
-            <div class="pname">{{ product_info.name }}</div>
-            <div class="pprice">RM {{ "%.2f"|format(product_info.price) }}</div>
-        </div>
-    </div>
-    {% endif %}
-
+    <!-- Messages -->
     <div class="messages-area" id="chatMessages">
+        {% set last_date = namespace(value='') %}
         {% for msg in messages %}
-        <div class="msg-row {% if msg.sender_id == session['user_id'] %}right{% else %}left{% endif %}">
-            <div class="msg-bubble {% if msg.sender_id == session['user_id'] %}sent{% else %}received{% endif %}">
-                {% if msg.image %}
-                <img src="{{ url_for('static', filename='uploads/' ~ msg.image) }}" onclick="previewImage(this.src)" loading="lazy">
-                {% endif %}
-                {{ msg.content | safe }}
+            {% set msg_date = msg.created_at[:10] if msg.created_at else '' %}
+            {% if msg_date != last_date.value %}
+                <div class="date-divider"><span>{{ msg_date }}</span></div>
+                {% set last_date.value = msg_date %}
+            {% endif %}
+            <div class="msg-row {% if msg.sender_id == session['user_id'] %}right{% else %}left{% endif %}">
+                <div class="msg-bubble {% if msg.sender_id == session['user_id'] %}sent{% else %}received{% endif %}">
+                    {% if msg.image %}
+                        {% set imgs = msg.image.split(',') %}
+                        {% for img in imgs %}
+                        <img src="{{ url_for('static', filename='uploads/' ~ img.strip()) }}" onclick="previewImage(this.src)" loading="lazy">
+                        {% endfor %}
+                    {% endif %}
+                    {{ msg.content | safe }}
+                </div>
+                <div class="msg-meta">
+                    {{ msg.created_at[11:19] if msg.created_at else '' }}
+                    {% if msg.sender_id == session['user_id'] %}
+                        {% if msg.is_read %}✓✓ Read{% else %}✓ Sent{% endif %}
+                    {% endif %}
+                </div>
             </div>
-            <div class="msg-meta">
-                {{ msg.created_at[:19] if msg.created_at else '' }}
-                {% if msg.sender_id == session['user_id'] %}
-                    {% if msg.is_read %}✓✓ Read{% else %}✓ Sent{% endif %}
-                {% endif %}
-            </div>
-        </div>
         {% endfor %}
     </div>
 
+    <!-- Product Picker -->
+    <div class="product-picker" id="productPicker">
+        <select id="productSelect"><option value="">Select a product...</option></select>
+        <button onclick="sendSelectedProduct()">Send Product Info</button>
+        <button onclick="document.getElementById('productPicker').classList.remove('show')" style="background:#999;">Cancel</button>
+    </div>
+
+    <!-- Emoji Panel -->
     <div class="emoji-panel" id="emojiPanel">
-        {% set emojis = ['😀','😂','😍','🥰','😎','🤩','👍','👎','❤️','🔥','🎉','💯','✅','👋','🙏','💪','📦','💰','💬'] %}
+        {% set emojis = ['😀','😂','😍','🥰','😎','🤩','👍','❤️','🔥','🎉','💯','✅','👋','🙏','💪','📦','💰','💬'] %}
         {% for emoji in emojis %}
         <span onclick="insertEmoji('{{ emoji }}')">{{ emoji }}</span>
         {% endfor %}
     </div>
 
+    <!-- Image Preview Bar -->
+    <div class="image-preview" id="imagePreviewBar"></div>
+
+    <!-- Input Bar -->
     <div class="input-bar">
-        <input type="file" id="imageInput" accept="image/*" onchange="sendImage()">
+        <input type="file" id="imageInput" accept="image/*" multiple onchange="previewImages()">
         <button onclick="document.getElementById('imageInput').click()" title="Photo">🖼️</button>
         <button onclick="toggleEmoji()" title="Emoji">😀</button>
-        <button onclick="sendProduct()" title="Send Product">📦</button>
+        <button onclick="openProductPicker()" title="Send Product">📦</button>
         <input type="text" id="msgInput" placeholder="Message...">
         <button class="btn-send" onclick="sendMsg()">Send</button>
     </div>
 </div>
 
-<div class="image-preview-overlay" id="imagePreview" onclick="this.classList.remove('show')">
+<!-- Image Overlay -->
+<div class="image-preview-overlay" id="imagePreviewOverlay" onclick="this.classList.remove('show')">
     <img id="previewImg" src="">
+</div>
+
+<!-- Report Modal -->
+<div class="report-modal" id="reportModal">
+    <div class="report-box">
+        <h3>⚠️ Report {{ other_user.username }}</h3>
+        <select id="reportReason">
+            <option value="Spam">Spam</option>
+            <option value="Harassment">Harassment</option>
+            <option value="Fake item">Fake item</option>
+            <option value="Inappropriate">Inappropriate content</option>
+            <option value="Other">Other</option>
+        </select>
+        <textarea id="reportDetails" placeholder="Add details (optional)..."></textarea>
+        <div class="report-actions">
+            <button onclick="closeReportModal()" style="background:#eee;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;">Cancel</button>
+            <button onclick="submitReport()" style="background:#e74c3c;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;">Submit Report</button>
+        </div>
+    </div>
 </div>
 
 <script>
 var otherId = {{ other_user.id }};
-var prodId = {{ product_info.id if product_info else 0 }};
-var prodName = "{{ product_info.name if product_info else '' }}";
-var prodPrice = "{{ '%.2f'|format(product_info.price) if product_info and product_info.price else '0.00' }}";
-var prodUrl = "{{ url_for('product_detail', product_id=product_info.id) if product_info and product_info.id else '' }}";
+var selectedFiles = [];
 
 function sendMsg() {
     var input = document.getElementById('msgInput');
     var text = input.value.trim();
-    if (!text) return;
+    if (!text && selectedFiles.length === 0) return;
     
-    fetch('/chat/send', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ receiver_id: otherId, product_id: prodId, content: text })
-    }).then(function(r){ return r.json(); }).then(function(d){
-        if (d.success) { input.value = ''; location.reload(); }
-        else { alert('Failed: ' + (d.error || 'Unknown')); }
-    }).catch(function(e){ alert('Error: ' + e); });
+    if (selectedFiles.length > 0) {
+        sendImages();
+    } else {
+        fetch('/chat/send', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ receiver_id: otherId, content: text })
+        }).then(function(r){ return r.json(); }).then(function(d){
+            if (d.success) { input.value = ''; location.reload(); }
+        });
+    }
 }
 
-function sendProduct() {
-    var link = prodUrl || '#';
-    var cardHtml = '<a href="' + link + '" style="text-decoration:none;color:inherit;">' +
-        '<div style="background:#f0f7f2;border-radius:12px;padding:12px;max-width:260px;border:1px solid #d4e8d8;">' +
-        '<div style="font-weight:600;font-size:14px;margin-bottom:6px;">📦 ' + prodName + '</div>' +
-        '<div style="color:#205c30;font-weight:bold;font-size:16px;margin-bottom:4px;">RM ' + prodPrice + '</div>' +
-        '<div style="font-size:11px;color:#205c30;text-decoration:underline;">Tap to view product →</div>' +
-        '</div></a>';
+function sendImages() {
+    var formData = new FormData();
+    for (var i = 0; i < selectedFiles.length; i++) {
+        formData.append('images', selectedFiles[i]);
+    }
+    formData.append('receiver_id', otherId);
+    formData.append('content', document.getElementById('msgInput').value.trim());
     
-    fetch('/chat/send', {
+    fetch('/chat/send-images', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ receiver_id: otherId, product_id: prodId, content: cardHtml })
+        body: formData
     }).then(function(r){ return r.json(); }).then(function(d){
         if (d.success) location.reload();
     });
 }
 
-function sendImage() {
-    var file = document.getElementById('imageInput').files[0];
-    if (!file) return;
+function previewImages() {
+    var files = document.getElementById('imageInput').files;
+    selectedFiles = [];
+    var bar = document.getElementById('imagePreviewBar');
+    bar.innerHTML = '';
     
-    var formData = new FormData();
-    formData.append('image', file);
-    formData.append('receiver_id', otherId);
-    formData.append('product_id', prodId);
-    
-    fetch('/chat/send-image', {
-        method: 'POST',
-        body: formData
-    }).then(function(r){ return r.json(); }).then(function(d){
-        if (d.success) location.reload();
-    }).catch(function(e){ alert('Error: ' + e); });
+    var max = Math.min(files.length, 3);
+    for (var i = 0; i < max; i++) {
+        selectedFiles.push(files[i]);
+        (function(file, idx) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var div = document.createElement('div');
+                div.style.cssText = 'position:relative;display:inline-block;';
+                div.innerHTML = '<img src="' + e.target.result + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover;margin:2px;"><button style="position:absolute;top:-6px;right:-6px;background:#e74c3c;color:white;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;" onclick="removeImage(' + idx + ')">✕</button>';
+                bar.appendChild(div);
+            };
+            reader.readAsDataURL(files[i]);
+        })(files[i], i);
+    }
 }
 
-function toggleEmoji() {
-    document.getElementById('emojiPanel').classList.toggle('show');
+function removeImage(index) {
+    selectedFiles.splice(index, 1);
+    previewImages();
 }
+
+function openProductPicker() {
+    var picker = document.getElementById('productPicker');
+    picker.classList.toggle('show');
+    if (picker.classList.contains('show')) {
+        fetch('/api/user/listings')
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+            var select = document.getElementById('productSelect');
+            select.innerHTML = '<option value="">Select a product...</option>';
+            data.forEach(function(p){
+                select.innerHTML += '<option value="' + p.id + '">' + p.name + ' (RM ' + parseFloat(p.price).toFixed(2) + ')</option>';
+            });
+        });
+    }
+}
+
+function sendSelectedProduct() {
+    var select = document.getElementById('productSelect');
+    var pid = select.value;
+    if (!pid) { alert('Please select a product first'); return; }
+    var option = select.options[select.selectedIndex];
+    
+    fetch('/chat/send', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ receiver_id: otherId, product_id: parseInt(pid), content: '📦 ' + option.text })
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.success) { document.getElementById('productPicker').classList.remove('show'); location.reload(); }
+    });
+}
+
+function toggleEmoji() { document.getElementById('emojiPanel').classList.toggle('show'); }
 
 function insertEmoji(e) {
     var input = document.getElementById('msgInput');
@@ -176,41 +468,48 @@ function insertEmoji(e) {
 
 function previewImage(src) {
     document.getElementById('previewImg').src = src;
-    document.getElementById('imagePreview').classList.add('show');
+    document.getElementById('imagePreviewOverlay').classList.add('show');
 }
 
-// Enter 发送
+function openReportModal() { document.getElementById('reportModal').classList.add('show'); }
+function closeReportModal() { document.getElementById('reportModal').classList.remove('show'); }
+
+function submitReport() {
+    var reason = document.getElementById('reportReason').value;
+    var details = document.getElementById('reportDetails').value.trim();
+    
+    fetch('/report-user/' + otherId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ reason: reason, details: details })
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.success) { alert('Report submitted. Thank you.'); closeReportModal(); }
+        else { alert('Failed to submit report'); }
+    });
+}
+
+// 在线状态
+function updateStatus() {
+    fetch('/api/user/' + otherId + '/status')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        var el = document.getElementById('userStatus');
+        if (d.online) { el.textContent = '🟢 Online'; el.className = 'header-status online'; }
+        else { el.textContent = 'Last seen: ' + (d.last_seen || 'Unknown'); el.className = 'header-status offline'; }
+    });
+}
+updateStatus();
+setInterval(updateStatus, 30000);
+
 document.getElementById('msgInput').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        sendMsg();
-    }
+    if (e.key === 'Enter') { e.preventDefault(); sendMsg(); }
 });
 
-// 强制滚到底部
-function scrollToBottom() {
-    var d = document.getElementById('chatMessages');
-    if (d) {
-        d.scrollTop = d.scrollHeight;
-    }
-}
-
-// 页面加载完滚动
 window.addEventListener('load', function() {
-    scrollToBottom();
+    var d = document.getElementById('chatMessages');
+    if (d) d.scrollTop = d.scrollHeight;
 });
 
-// DOM 加载完也滚动
-document.addEventListener('DOMContentLoaded', function() {
-    scrollToBottom();
-});
-
-// 图片加载后滚动
-setTimeout(function() {
-    scrollToBottom();
-}, 500);
-
-// 轮询
 setInterval(function() {
     fetch('/api/chat/messages/' + otherId + '?since=' + ({{ messages[-1].id if messages and messages|length > 0 else 0 }}))
     .then(function(r){ return r.json(); })

@@ -229,7 +229,38 @@ def login():
 
 from flask import request, redirect, url_for, session
 
+
 @app.before_request
+def auto_unfreeze_expired():
+    if 'user_id' in session or 'admin_logged_in' in session:
+        db = get_db()
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 查出所有已过期但还没解冻的用户
+        expired = db.execute("""
+            SELECT id, username FROM users
+            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < ?
+        """, (now,)).fetchall()
+        
+        # 批量解冻
+        db.execute("""
+            UPDATE users
+            SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
+            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < ?
+        """, (now,))
+        
+        # 发通知给每个过期解冻的用户
+        for user in expired:
+            db.execute("""
+                INSERT INTO notifications (user_id, message, created_at)
+                VALUES (?, ?, datetime('now', 'localtime'))
+            """, (user['id'],
+                  f"✅ Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
+                  f"Your freeze count remains. Please follow community guidelines.\n"
+                  f"After 3 freezes, your account will be permanently blocked."))
+        
+        db.commit()
+        db.close()
 
 def check_remember_me():
     """Auto-login user if valid remember_token cookie exists"""
@@ -1787,7 +1818,6 @@ def admin_dashboard():
 
 
 @app.route('/admin/users')
-
 def admin_users():
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
@@ -1795,8 +1825,20 @@ def admin_users():
 
     db = get_db()
     users = db.execute("SELECT * FROM users").fetchall()
+    
+    # 获取被举报用户列表
+    reports = db.execute('''
+        SELECT r.*, u.username as reported_username,
+               rp.username as reporter_username
+        FROM reports r
+        JOIN users u ON r.reported_user_id = u.id
+        JOIN users rp ON r.reporter_id = rp.id
+        WHERE r.status = 'pending'
+        ORDER BY r.created_at DESC
+    ''').fetchall()
+    
     db.close()
-    return render_template("admin_users.html", users=users)
+    return render_template("admin_users.html", users=users, reports=reports)
 
 
 @app.route('/admin/products')
@@ -1911,7 +1953,6 @@ def admin_get_product_info(pid):
 
 # Freeze user for 7 days(limited 3 times)
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
-
 def freeze_7day(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
@@ -1922,9 +1963,7 @@ def freeze_7day(user_id):
     
     db = get_db()
     
-    # Check current freeze count
-    user = db.execute('SELECT freeze_count, is_blocked FROM users WHERE id = ?',
-                      (user_id,)).fetchone()
+    user = db.execute("SELECT freeze_count, is_blocked FROM users WHERE id = ?", (user_id,)).fetchone()
     
     if not user:
         db.close()
@@ -1939,20 +1978,21 @@ def freeze_7day(user_id):
     freeze_count = user['freeze_count'] if user['freeze_count'] else 0
     
     if freeze_count >= 3:
-        # Auto-block permanently
         db.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = ?", (user_id,))
+        
         db.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (?, ?, ?)
+            VALUES (?, ?, datetime('now', 'localtime'))
         """, (user_id,
-              f"Your account has been PERMANENTLY BLOCKED after 3 freezes.",
-              now.strftime("%Y-%m-%d %H:%M:%S")))
+              f"🚫 Your account has been PERMANENTLY BLOCKED after 3 freezes.\n"
+              f"Reason: Your account reached the maximum freeze limit (3/3).\n"
+              f"If you believe this is a mistake, please contact admin."))
+        
         db.commit()
         db.close()
         flash("User has been permanently blocked after 3 freezes.", "warning")
         return redirect(url_for("admin_users"))
     
-    # Increment freeze count and freeze for 7 days
     frozen_end_time = now + timedelta(days=7)
     time_str = frozen_end_time.strftime("%Y-%m-%d %H:%M:%S")
     
@@ -1967,80 +2007,171 @@ def freeze_7day(user_id):
 
     db.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (?, ?, ?)
+        VALUES (?, ?, datetime('now', 'localtime'))
     """, (user_id,
-          f"Your account has been frozen for 7 days (Freeze {freeze_count + 1}/3).\n"
-          f"Reason: {reason}\nAuto unfreeze: {time_str}\n"
-          f"After 3 freezes, your account will be permanently blocked.",
-          now.strftime("%Y-%m-%d %H:%M:%S")))
+          f"⚠️ Your account has been frozen for 7 days (Freeze {freeze_count + 1}/3).\n"
+          f"Reason: {reason}\n"
+          f"Auto unfreeze date: {frozen_end_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+          f"After 3 freezes, your account will be permanently blocked."))
 
     db.commit()
     db.close()
-    flash(f"User frozen for 7 days (Freeze {freeze_count + 1}/3).", "success")
+    
+    flash(f"User frozen for 7 days (Freeze {freeze_count + 1}/3). Notification sent.", "success")
     return redirect(url_for("admin_users"))
 
 # Block user permanently
 @app.route('/admin/user/<int:user_id>/block', methods=['POST'])
-
 def block_user(user_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
 
     reason = request.form.get('reason', 'No reason provided')
+    now = datetime.now()
+    
     db = get_db()
+    cur = db.cursor()
 
-    db.execute("UPDATE users SET is_blocked = 1 WHERE id = ?", (user_id,))
-    db.execute("""
-        INSERT INTO notifications (user_id, message, is_read)
-        VALUES (?, ?, 0)
-    """, (user_id, f"Your account has been PERMANENTLY blocked. "
-                   f"Reason: {reason}"))
+    cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = %s", (user_id,))
+    
+    # 通知：永久封禁
+    cur.execute("""
+        INSERT INTO notifications (user_id, message, created_at)
+        VALUES (%s, %s, NOW())
+    """, (user_id,
+          f"🚫 Your account has been PERMANENTLY BLOCKED by admin.\n"
+          f"Reason: {reason}\n"
+          f"If you believe this is a mistake, please contact admin via MMU support."))
 
     db.commit()
+    cur.close()
     db.close()
-    flash(f"User {user_id} has been permanently blocked, notification sent.", "success")
-
+    
+    flash(f"User {user_id} has been permanently blocked. Notification sent.", "success")
     return redirect(url_for('admin_users'))
 
 
 @app.route("/admin/unfreeze/<int:user_id>", methods=["POST"])
-
 def unfreeze_user(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
         return redirect(url_for("admin_login"))
 
+    reason = request.form.get('reason', 'Manual unfreeze').strip()
+    now = datetime.now()
+
     db = get_db()
-    db.execute("""
+    cur = db.cursor()
+    
+    # 手动解冻：只清冻结状态，不改 freeze_count
+    cur.execute("""
         UPDATE users
         SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
-        WHERE id = ?
+        WHERE id = %s
     """, (user_id,))
+    
+    # 通知：手动解冻
+    cur.execute("""
+        INSERT INTO notifications (user_id, message, created_at)
+        VALUES (%s, %s, NOW())
+    """, (user_id,
+          f"🔓 Your account has been manually unfrozen by admin.\n"
+          f"Reason: {reason}\n"
+          f"Note: This unfreeze was manual and does NOT count as a completed freeze."))
+
     db.commit()
+    cur.close()
     db.close()
 
-    flash("User has been unfrozen successfully.", "success")
+    flash("User unfrozen. Notification sent.", "success")
     return redirect(url_for("admin_users"))
 
 
 @app.route("/admin/unblock/<int:user_id>", methods=["POST"])
-
 def unblock_user(user_id):
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
         return redirect(url_for("admin_login"))
 
+    now = datetime.now()
     db = get_db()
-    db.execute("""
+    cur = db.cursor()
+    
+    cur.execute("""
         UPDATE users
-        SET is_blocked = 0
-        WHERE id = ?
+        SET is_blocked = 0, freeze_count = 0
+        WHERE id = %s
     """, (user_id,))
+    
+    # 通知：解封
+    cur.execute("""
+        INSERT INTO notifications (user_id, message, created_at)
+        VALUES (%s, %s, NOW())
+    """, (user_id,
+          f"✅ Your account has been UNBLOCKED by admin.\n"
+          f"Your freeze count has been reset to 0.\n"
+          f"Welcome back! Please follow the community guidelines."))
+
     db.commit()
+    cur.close()
     db.close()
 
-    flash("User ban has been lifted successfully.", "success")
+    flash("User unblocked. Notification sent.", "success")
     return redirect(url_for("admin_users"))
+
+@app.route('/admin/report/<int:report_id>/<action>', methods=['POST'])
+def handle_report(report_id, action):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 403
+
+    db = get_db()
+    cur = db.cursor()
+    report = cur.execute("SELECT * FROM reports WHERE id = %s", (report_id,)).fetchone()
+    
+    if not report:
+        cur.close()
+        db.close()
+        return jsonify({'success': False}), 404
+
+    reported_user_id = report[2]
+
+    if action == 'dismiss':
+        cur.execute("UPDATE reports SET status = 'dismissed' WHERE id = %s", (report_id,))
+        
+        # 通知举报人
+        cur.execute("""
+            INSERT INTO notifications (user_id, message, created_at)
+            VALUES (%s, %s, NOW())
+        """, (report[1],
+              f"📋 Your report has been reviewed and DISMISSED by admin.\n"
+              f"Reason for report: {report[3]}\n"
+              f"No action was taken."))
+              
+    elif action == 'block':
+        cur.execute("UPDATE users SET is_blocked = 1 WHERE id = %s", (reported_user_id,))
+        cur.execute("UPDATE reports SET status = 'resolved' WHERE id = %s", (report_id,))
+        
+        # 通知被举报用户
+        cur.execute("""
+            INSERT INTO notifications (user_id, message, created_at)
+            VALUES (%s, %s, NOW())
+        """, (reported_user_id,
+              f"🚫 Your account has been BLOCKED due to user reports.\n"
+              f"Report reason: {report[3]}\n"
+              f"If you believe this is a mistake, please contact admin."))
+        
+        # 通知举报人
+        cur.execute("""
+            INSERT INTO notifications (user_id, message, created_at)
+            VALUES (%s, %s, NOW())
+        """, (report[1],
+              f"✅ Your report has been reviewed. The reported user has been BLOCKED.\n"
+              f"Thank you for helping keep the community safe!"))
+
+    db.commit()
+    cur.close()
+    db.close()
+    return jsonify({'success': True})
 
 
 # ============================================================
@@ -2072,28 +2203,30 @@ def chat_send():
     return jsonify({'success': True})
 
 
-@app.route('/chat/send-image', methods=['POST'])
-
-def chat_send_image():
+@app.route('/chat/send-images', methods=['POST'])
+def chat_send_images():
     if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+        return jsonify({'success': False}), 401
 
     receiver_id = request.form.get('receiver_id')
-    product_id = request.form.get('product_id', 0)
-    file = request.files.get('image')
+    content = request.form.get('content', '').strip()
+    files = request.files.getlist('images')
 
-    if not receiver_id or not file:
-        return jsonify({'success': False, 'error': 'Missing data'}), 400
+    if not receiver_id or not files:
+        return jsonify({'success': False}), 400
 
-    filename = secure_filename("chat_" + str(session['user_id']) + "_" + uuid.uuid4().hex + ".jpg")
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
+    filenames = []
+    for file in files[:3]:
+        filename = secure_filename("chat_" + str(session['user_id']) + "_" + uuid.uuid4().hex + ".jpg")
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        filenames.append(filename)
 
     db = get_db()
     db.execute('''
-        INSERT INTO messages (sender_id, receiver_id, product_id, content, image, created_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))
-    ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, '', filename))
+        INSERT INTO messages (sender_id, receiver_id, content, image, created_at)
+        VALUES (?, ?, ?, ?, datetime('now', 'localtime'))
+    ''', (session['user_id'], int(receiver_id), content, ','.join(filenames)))
     db.commit()
     db.close()
 
@@ -2108,6 +2241,11 @@ def chat_page(other_user_id, product_id=None):
         return redirect(url_for('login'))
 
     db = get_db()
+    
+    # 更新当前用户最后上线时间
+    db.execute('UPDATE users SET last_seen = ? WHERE id = ?',
+           (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), session['user_id']))
+    db.commit()
     
     # 对方用户信息
     other_user = db.execute('SELECT * FROM users WHERE id = ?', (other_user_id,)).fetchone()
@@ -2125,7 +2263,7 @@ def chat_page(other_user_id, product_id=None):
             WHERE p.id = ?
         ''', (product_id,)).fetchone()
 
-    # 历史消息
+    # 历史消息 —— 这是正确的双向查询！
     messages = db.execute('''
         SELECT * FROM messages
         WHERE (sender_id = ? AND receiver_id = ?)
@@ -2133,7 +2271,7 @@ def chat_page(other_user_id, product_id=None):
         ORDER BY created_at ASC
     ''', (session['user_id'], other_user_id, other_user_id, session['user_id'])).fetchall()
 
-    # 标记对方消息为已读
+    # 标记对方消息为已读 —— 正确！
     db.execute('''
         UPDATE messages SET is_read = 1
         WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
@@ -2141,6 +2279,7 @@ def chat_page(other_user_id, product_id=None):
     db.commit()
     db.close()
 
+    # 这里保持和你前端一致的变量名：other_user 、messages 就够了
     return render_template('chat_page.html',
                            other_user=other_user,
                            product_info=product_info,
@@ -2167,6 +2306,53 @@ def chat_get_messages(other_user_id):
     db.close()
 
     return jsonify([dict(row) for row in messages])
+
+@app.route('/report-user/<int:user_id>', methods=['POST'])
+def report_user(user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    reason = data.get('reason', '').strip()
+    details = data.get('details', '').strip()
+    
+    if not reason:
+        return jsonify({'success': False, 'error': 'Reason required'}), 400
+    
+    db = get_db()
+    db.execute('''
+        INSERT INTO reports (reporter_id, reported_user_id, reason, details)
+        VALUES (?, ?, ?, ?)
+    ''', (session['user_id'], user_id, reason, details))
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/user/<int:user_id>/status')
+def user_status(user_id):
+    db = get_db()
+    user = db.execute('SELECT last_seen FROM users WHERE id = ?', (user_id,)).fetchone()
+    db.close()
+    
+    if not user:
+        return jsonify({'online': False, 'last_seen': ''})
+    
+    last_seen = user['last_seen']
+    if last_seen:
+        try:
+            last_dt = datetime.strptime(last_seen, '%Y-%m-%d %H:%M:%S')
+            diff = (datetime.now() - last_dt).seconds
+            online = diff < 300  # 5分钟内在线
+        except:
+            online = False
+    else:
+        online = False
+    
+    return jsonify({
+        'online': online,
+        'last_seen': last_seen[:19] if last_seen else 'Unknown'
+    })
 
 
 

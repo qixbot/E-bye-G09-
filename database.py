@@ -96,7 +96,8 @@ def init_db():
         ('trust_score', 'INTEGER DEFAULT 85'),
         ('response_rate', 'INTEGER DEFAULT 98'),
         ('rating', "TEXT DEFAULT '--'"),
-        ('remember_token', 'TEXT')
+        ('remember_token', 'TEXT'),
+        ('last_seen', 'TIMESTAMP')
     ]
 
     for col_name, col_def in columns_to_add:
@@ -258,6 +259,25 @@ def init_reviews():
     db.close()
     print("✅ Reviews table ready")
 
+def init_reports():
+    db = get_db()
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reporter_id INTEGER NOT NULL,
+            reported_user_id INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            details TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (reporter_id) REFERENCES users(id),
+            FOREIGN KEY (reported_user_id) REFERENCES users(id)
+        )
+    ''')
+    db.commit()
+    db.close()
+    print("✅ Reports table ready")
+
 
 def init_orders():
     """Initialize orders table"""
@@ -296,3 +316,4 @@ init_messages()
 init_announcements()
 init_reviews()
 init_orders()
+init_reports()
