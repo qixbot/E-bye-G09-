@@ -170,7 +170,6 @@ def index():
 # Eileen's Route - Login
 # ============================================================
 @app.route('/login', methods=['GET', 'POST'])
-
 def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
@@ -185,42 +184,57 @@ def login():
         db.close()
 
         if user and check_password_hash(user['password'], password):
-            # ... (existing freeze/block checks) ...
+            # ========== 1. 永久封禁检查 ==========
+            if user['is_blocked'] == 1:
+                flash('❌ This account is permanently blocked. Contact admin for appeal.', 'danger')
+                return redirect(url_for('login'))
 
-            # Login successful
+            # ========== 2. 冻结检查 ==========
+            if user['is_frozen'] == 1 and user['frozen_until']:
+                now = datetime.now()
+                expire_time = None
+                try:
+                    expire_time = datetime.strptime(user['frozen_until'], '%Y-%m-%d %H:%M:%S')
+                except:
+                    pass
+
+                if expire_time and now < expire_time:
+                    diff = expire_time - now
+                    days = diff.days
+                    hours = diff.seconds // 3600
+                    reason = user['freeze_reason'] or 'No reason provided'
+                    flash(f'⚠️ ACCOUNT FROZEN\nReason: {reason}\nUnlocks in: {days}d {hours}h', 'warning')
+                    return redirect(url_for('login'))
+                else:
+                    db_auto = get_db()
+                    db_auto.execute("UPDATE users SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL WHERE id = ?", (user['id'],))
+                    db_auto.commit()
+                    db_auto.close()
+
+            # ========== 登录成功 ==========
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['student_id'] = user['student_id']
 
-            # Handle Remember Me - generate and save token to database
             if remember_me:
                 import secrets
-                token = secrets.token_urlsafe(64)  # Generate secure random token
+                token = secrets.token_urlsafe(64)
                 db = get_db()
-                db.execute(
-                    'UPDATE users SET remember_token = ? WHERE id = ?',
-                    (token, user['id'])
-                )
+                db.execute('UPDATE users SET remember_token = ? WHERE id = ?', (token, user['id']))
                 db.commit()
                 db.close()
-                # Store token in cookie (expires in 30 days)
                 response = redirect(url_for('home'))
-                response.set_cookie('remember_token', token, 
-                                    max_age=30*24*60*60, httponly=True, secure=False)
-                flash('Login successful!', 'success')
+                response.set_cookie('remember_token', token, max_age=30*24*60*60, httponly=True, secure=False)
+                flash('✅ Login successful!', 'success')
                 return response
             else:
-                # Clear any existing token if user doesn't want to be remembered
                 db = get_db()
-                db.execute(
-                    'UPDATE users SET remember_token = NULL WHERE id = ?',
-                    (user['id'],)
-                )
+                db.execute('UPDATE users SET remember_token = NULL WHERE id = ?', (user['id'],))
                 db.commit()
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', '', expires=0)
-                flash('Login successful!', 'success')
+                flash('✅ Login successful!', 'success')
                 return response
         else:
             flash('Invalid email or password', 'error')
@@ -236,20 +250,17 @@ def auto_unfreeze_expired():
         db = get_db()
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        # 查出所有已过期但还没解冻的用户
         expired = db.execute("""
             SELECT id, username FROM users
             WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < ?
         """, (now,)).fetchall()
         
-        # 批量解冻
         db.execute("""
             UPDATE users
             SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
             WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < ?
         """, (now,))
         
-        # 发通知给每个过期解冻的用户
         for user in expired:
             db.execute("""
                 INSERT INTO notifications (user_id, message, created_at)
@@ -261,7 +272,7 @@ def auto_unfreeze_expired():
         
         db.commit()
         db.close()
-
+        
 def check_remember_me():
     """Auto-login user if valid remember_token cookie exists"""
     if 'user_id' in session:
@@ -1826,7 +1837,6 @@ def admin_users():
     db = get_db()
     users = db.execute("SELECT * FROM users").fetchall()
     
-    # 获取被举报用户列表
     reports = db.execute('''
         SELECT r.*, u.username as reported_username,
                rp.username as reporter_username
@@ -1979,7 +1989,6 @@ def freeze_7day(user_id):
     
     if freeze_count >= 3:
         db.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = ?", (user_id,))
-        
         db.execute("""
             INSERT INTO notifications (user_id, message, created_at)
             VALUES (?, ?, datetime('now', 'localtime'))
@@ -1987,10 +1996,9 @@ def freeze_7day(user_id):
               f"🚫 Your account has been PERMANENTLY BLOCKED after 3 freezes.\n"
               f"Reason: Your account reached the maximum freeze limit (3/3).\n"
               f"If you believe this is a mistake, please contact admin."))
-        
         db.commit()
         db.close()
-        flash("User has been permanently blocked after 3 freezes.", "warning")
+        flash("User permanently blocked after 3 freezes.", "warning")
         return redirect(url_for("admin_users"))
     
     frozen_end_time = now + timedelta(days=7)
@@ -1998,10 +2006,7 @@ def freeze_7day(user_id):
     
     db.execute("""
         UPDATE users
-        SET is_frozen = 1,
-            frozen_until = ?,
-            freeze_reason = ?,
-            freeze_count = freeze_count + 1
+        SET is_frozen = 1, frozen_until = ?, freeze_reason = ?, freeze_count = freeze_count + 1
         WHERE id = ?
     """, (time_str, reason, user_id))
 
@@ -2011,13 +2016,13 @@ def freeze_7day(user_id):
     """, (user_id,
           f"⚠️ Your account has been frozen for 7 days (Freeze {freeze_count + 1}/3).\n"
           f"Reason: {reason}\n"
-          f"Auto unfreeze date: {frozen_end_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+          f"Auto unfreeze: {frozen_end_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
           f"After 3 freezes, your account will be permanently blocked."))
 
     db.commit()
     db.close()
     
-    flash(f"User frozen for 7 days (Freeze {freeze_count + 1}/3). Notification sent.", "success")
+    flash(f"User frozen (Freeze {freeze_count + 1}/3). Notification sent.", "success")
     return redirect(url_for("admin_users"))
 
 # Block user permanently
@@ -2027,27 +2032,20 @@ def block_user(user_id):
         return redirect(url_for('admin_login'))
 
     reason = request.form.get('reason', 'No reason provided')
-    now = datetime.now()
     
     db = get_db()
-    cur = db.cursor()
-
-    cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = %s", (user_id,))
-    
-    # 通知：永久封禁
-    cur.execute("""
+    db.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = ?", (user_id,))
+    db.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now', 'localtime'))
     """, (user_id,
           f"🚫 Your account has been PERMANENTLY BLOCKED by admin.\n"
           f"Reason: {reason}\n"
-          f"If you believe this is a mistake, please contact admin via MMU support."))
-
+          f"If you believe this is a mistake, please contact admin."))
     db.commit()
-    cur.close()
     db.close()
     
-    flash(f"User {user_id} has been permanently blocked. Notification sent.", "success")
+    flash("User permanently blocked. Notification sent.", "success")
     return redirect(url_for('admin_users'))
 
 
@@ -2061,29 +2059,29 @@ def unfreeze_user(user_id):
     now = datetime.now()
 
     db = get_db()
-    cur = db.cursor()
     
-    # 手动解冻：只清冻结状态，不改 freeze_count
-    cur.execute("""
+    # 手动解冻：清状态 + freeze_count -1
+    db.execute("""
         UPDATE users
-        SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
-        WHERE id = %s
+        SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL,
+            freeze_count = CASE WHEN freeze_count > 0 THEN freeze_count - 1 ELSE 0 END
+        WHERE id = ?
     """, (user_id,))
     
-    # 通知：手动解冻
-    cur.execute("""
+    # 发通知给用户
+    db.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now', 'localtime'))
     """, (user_id,
           f"🔓 Your account has been manually unfrozen by admin.\n"
           f"Reason: {reason}\n"
-          f"Note: This unfreeze was manual and does NOT count as a completed freeze."))
+          f"Your freeze count has been reduced by 1.\n"
+          f"After 3 freezes, your account will be permanently blocked."))
 
     db.commit()
-    cur.close()
     db.close()
 
-    flash("User unfrozen. Notification sent.", "success")
+    flash("User unfrozen. Freeze count reduced by 1. Notification sent.", "success")
     return redirect(url_for("admin_users"))
 
 
@@ -2093,27 +2091,16 @@ def unblock_user(user_id):
         flash("Unauthorized", "error")
         return redirect(url_for("admin_login"))
 
-    now = datetime.now()
     db = get_db()
-    cur = db.cursor()
-    
-    cur.execute("""
-        UPDATE users
-        SET is_blocked = 0, freeze_count = 0
-        WHERE id = %s
-    """, (user_id,))
-    
-    # 通知：解封
-    cur.execute("""
+    db.execute("UPDATE users SET is_blocked = 0, freeze_count = 0 WHERE id = ?", (user_id,))
+    db.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now', 'localtime'))
     """, (user_id,
           f"✅ Your account has been UNBLOCKED by admin.\n"
           f"Your freeze count has been reset to 0.\n"
           f"Welcome back! Please follow the community guidelines."))
-
     db.commit()
-    cur.close()
     db.close()
 
     flash("User unblocked. Notification sent.", "success")
@@ -2125,54 +2112,39 @@ def handle_report(report_id, action):
         return jsonify({'success': False}), 403
 
     db = get_db()
-    cur = db.cursor()
-    report = cur.execute("SELECT * FROM reports WHERE id = %s", (report_id,)).fetchone()
+    report = db.execute("SELECT * FROM reports WHERE id = ?", (report_id,)).fetchone()
     
     if not report:
-        cur.close()
         db.close()
         return jsonify({'success': False}), 404
 
-    reported_user_id = report[2]
-
     if action == 'dismiss':
-        cur.execute("UPDATE reports SET status = 'dismissed' WHERE id = %s", (report_id,))
-        
-        # 通知举报人
-        cur.execute("""
+        db.execute("UPDATE reports SET status = 'dismissed' WHERE id = ?", (report_id,))
+        db.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (%s, %s, NOW())
-        """, (report[1],
-              f"📋 Your report has been reviewed and DISMISSED by admin.\n"
-              f"Reason for report: {report[3]}\n"
-              f"No action was taken."))
+            VALUES (?, ?, datetime('now', 'localtime'))
+        """, (report['reporter_id'],
+              f"📋 Your report has been reviewed and DISMISSED by admin.\nNo action was taken."))
               
     elif action == 'block':
-        cur.execute("UPDATE users SET is_blocked = 1 WHERE id = %s", (reported_user_id,))
-        cur.execute("UPDATE reports SET status = 'resolved' WHERE id = %s", (report_id,))
+        db.execute("UPDATE users SET is_blocked = 1 WHERE id = ?", (report['reported_user_id'],))
+        db.execute("UPDATE reports SET status = 'resolved' WHERE id = ?", (report_id,))
         
-        # 通知被举报用户
-        cur.execute("""
+        db.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (%s, %s, NOW())
-        """, (reported_user_id,
-              f"🚫 Your account has been BLOCKED due to user reports.\n"
-              f"Report reason: {report[3]}\n"
-              f"If you believe this is a mistake, please contact admin."))
+            VALUES (?, ?, datetime('now', 'localtime'))
+        """, (report['reported_user_id'],
+              f"🚫 Your account has been BLOCKED due to user reports.\nIf you believe this is a mistake, please contact admin."))
         
-        # 通知举报人
-        cur.execute("""
+        db.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (%s, %s, NOW())
-        """, (report[1],
-              f"✅ Your report has been reviewed. The reported user has been BLOCKED.\n"
-              f"Thank you for helping keep the community safe!"))
+            VALUES (?, ?, datetime('now', 'localtime'))
+        """, (report['reporter_id'],
+              f"✅ Your report has been reviewed. The reported user has been BLOCKED.\nThank you!"))
 
     db.commit()
-    cur.close()
     db.close()
     return jsonify({'success': True})
-
 
 # ============================================================
 # Keting's Route - Chat List
