@@ -381,6 +381,13 @@ const COLOR_CONFIG = {
     gradient: ['linear-gradient(135deg,#FF6B6B,#FFE66D)','linear-gradient(135deg,#FBC2EB,#A6C1EE)','linear-gradient(135deg,#84FAB0,#8FD3F4)','linear-gradient(135deg,#FF9A9E,#FECFEF)','linear-gradient(135deg,#FFD26F,#FF6B6B)','linear-gradient(135deg,#A18CD1,#FBC2EB)','linear-gradient(135deg,#43C6AC,#191654)','linear-gradient(135deg,#FAD961,#F76B1C)','linear-gradient(135deg,#4CB8C4,#3CD3AD)','linear-gradient(135deg,#F53844,#42378F)','linear-gradient(135deg,#DD5E89,#F7BB97)','linear-gradient(135deg,#00B4DB,#0083B0)']
 };
 
+var $bgLayer = null;
+var $bgPreview = null;
+var $bgPanel = null;
+var selectedBgValue = null;
+var coverCropper = null;
+var avatarCropper = null;
+
 function buildGrid(containerId, colors, isGradient) {
     var c = document.getElementById(containerId);
     if (!c) return;
@@ -401,16 +408,6 @@ function buildGrid(containerId, colors, isGradient) {
         c.appendChild(s);
     }
 }
-
-buildGrid('rainbowGrid', COLOR_CONFIG.rainbow, false);
-buildGrid('lightGrid', COLOR_CONFIG.light, false);
-buildGrid('darkGrid', COLOR_CONFIG.dark, false);
-buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
-
-var $bgLayer = document.getElementById('epBgLayer');
-var $bgPreview = document.getElementById('currentBgPreview');
-var $bgPanel = document.getElementById('epBgPanel');
-var selectedBgValue = null;
 
 function previewBg(val) {
     if ($bgLayer) $bgLayer.style.background = val;
@@ -445,36 +442,9 @@ function saveBackgroundToServer(bgValue) {
     });
 }
 
-document.getElementById('bgSaveBtn')?.addEventListener('click', function() {
-    if (!selectedBgValue) { showToastMessage('Please select a background first', 'error'); return; }
-    var btn = document.getElementById('bgSaveBtn');
-    var orig = btn.textContent;
-    btn.textContent = 'Saving...';
-    btn.disabled = true;
-    saveBackgroundToServer(selectedBgValue)
-        .then(function() {
-            showToastMessage('Background saved', 'success');
-            if ($bgPanel) $bgPanel.classList.remove('open');
-        })
-        .catch(function() { showToastMessage('Failed to save background', 'error'); })
-        .finally(function() { btn.textContent = orig; btn.disabled = false; });
-});
-
-document.getElementById('bgCancelBtn')?.addEventListener('click', function() {
-    restoreBackgroundFromServer();
-    selectedBgValue = null;
-    if ($bgPanel) $bgPanel.classList.remove('open');
-    showToastMessage('Reverted', 'info');
-});
-
-function toggleBgPanel() { if ($bgPanel) $bgPanel.classList.toggle('open'); }
-document.querySelector('.ep-bg-close')?.addEventListener('click', function() { if ($bgPanel) $bgPanel.classList.remove('open'); });
-
-// ============================================================
-// COVER & AVATAR FUNCTIONS
-// ============================================================
-var coverCropper = null;
-var avatarCropper = null;
+function toggleBgPanel() { 
+    if ($bgPanel) $bgPanel.classList.toggle('open'); 
+}
 
 function loadCoverFromServer() {
     var d = document.getElementById('coverImage');
@@ -507,128 +477,24 @@ function closeAvatarCrop() {
     if ($avatarFileInput) $avatarFileInput.value = '';
 }
 
-// ⚠️ All DOM addEventListener calls must be inside DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function() {
-    var $coverFileInput = document.getElementById('coverFileInput');
-    var $coverCropModal = document.getElementById('coverCropModal');
-    var $avatarFileInput = document.getElementById('avatarFileInput');
-    var $avatarCropModal = document.getElementById('avatarCropModal');
-
-    // --- Cover ---
-    var coverChangeBtn = document.getElementById('coverChangeBtn');
-    if (coverChangeBtn) {
-        coverChangeBtn.addEventListener('click', function() { if ($coverFileInput) $coverFileInput.click(); });
-    }
-    if ($coverFileInput) {
-        $coverFileInput.addEventListener('change', function(e) {
-            if (!e.target.files || !e.target.files[0]) return;
-            var reader = new FileReader();
-            reader.onload = function(ev) {
-                var img = document.getElementById('coverCropImage');
-                if (img) img.src = ev.target.result;
-                if ($coverCropModal) $coverCropModal.classList.add('open');
-                if (coverCropper) coverCropper.destroy();
-                setTimeout(function() {
-                    var cropImg = document.getElementById('coverCropImage');
-                    if (cropImg && typeof Cropper !== 'undefined') {
-                        coverCropper = new Cropper(cropImg, { aspectRatio: 16/5, viewMode: 1, autoCropArea: 1 });
-                    }
-                }, 100);
-            };
-            reader.readAsDataURL(e.target.files[0]);
-        });
-    }
-    var coverClose = document.querySelector('#coverCropModal .crop-close');
-    var coverCancel = document.querySelector('#coverCropModal .crop-cancel');
-    var coverConfirm = document.querySelector('#coverCropModal .crop-confirm');
-    if (coverClose) coverClose.addEventListener('click', closeCoverCrop);
-    if (coverCancel) coverCancel.addEventListener('click', closeCoverCrop);
-    if (coverConfirm) {
-        coverConfirm.addEventListener('click', function() {
-            if (!coverCropper) return;
-            coverCropper.getCroppedCanvas().toBlob(function(blob) {
-                var fd = new FormData();
-                fd.append('cover_image', blob, 'cover.jpg');
-                showToastMessage('Uploading cover...', 'info');
-                fetch('/update-cover', { method: 'POST', body: fd, credentials: 'same-origin' })
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        if (data.success) {
-                            document.getElementById('coverImage').style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
-                            closeCoverCrop();
-                            showToastMessage('Cover updated!', 'success');
-                        } else { throw new Error(data.error || 'Upload failed'); }
-                    })
-                    .catch(function(e) { showToastMessage('Cover update failed: ' + (e.message || ''), 'error'); });
-            }, 'image/jpeg', 0.9);
-        });
-    }
-
-    // --- Avatar ---
-    var avatarRing = document.getElementById('avatarRing');
-    if (avatarRing) {
-        avatarRing.addEventListener('click', function() { if ($avatarFileInput) $avatarFileInput.click(); });
-    }
-    if ($avatarFileInput) {
-        $avatarFileInput.addEventListener('change', function(e) {
-            if (!e.target.files || !e.target.files[0]) return;
-            var reader = new FileReader();
-            reader.onload = function(ev) {
-                var img = document.getElementById('avatarCropImage');
-                if (img) img.src = ev.target.result;
-                if ($avatarCropModal) $avatarCropModal.classList.add('open');
-                if (avatarCropper) avatarCropper.destroy();
-                setTimeout(function() {
-                    var cropImg = document.getElementById('avatarCropImage');
-                    if (cropImg && typeof Cropper !== 'undefined') {
-                        avatarCropper = new Cropper(cropImg, { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
-                    }
-                }, 100);
-            };
-            reader.readAsDataURL(e.target.files[0]);
-        });
-    }
-    var avatarClose = document.querySelector('.avatar-crop-close');
-    var avatarCancel = document.getElementById('avatarCropCancel');
-    var avatarConfirm = document.getElementById('avatarCropConfirm');
-    if (avatarClose) avatarClose.addEventListener('click', closeAvatarCrop);
-    if (avatarCancel) avatarCancel.addEventListener('click', closeAvatarCrop);
-    if (avatarConfirm) {
-        avatarConfirm.addEventListener('click', function() {
-            if (!avatarCropper) return;
-            avatarCropper.getCroppedCanvas().toBlob(function(blob) {
-                var fd = new FormData();
-                fd.append('avatar', blob, 'avatar.jpg');
-                showToastMessage('Uploading avatar...', 'info');
-                fetch('/update-profile-avatar', { method: 'POST', body: fd, credentials: 'same-origin' })
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        if (data.success) {
-                            var avImg = document.getElementById('side-av-img');
-                            var avInit = document.getElementById('side-av-init');
-                            if (avImg) {
-                                avImg.src = '/avatar-image?t=' + Date.now();
-                                avImg.style.display = 'block';
-                                if (avInit) avInit.style.display = 'none';
-                            }
-                            closeAvatarCrop();
-                            showToastMessage('Avatar updated!', 'success');
-                        } else { throw new Error(data.error || 'Upload failed'); }
-                    })
-                    .catch(function(e) { showToastMessage('Avatar update failed: ' + (e.message || ''), 'error'); });
-            }, 'image/jpeg', 0.9);
-        });
-    }
-}); // end DOMContentLoaded for cover/avatar
+// ============================================================
+// BUILD COLOR GRIDS
+// ============================================================
+buildGrid('rainbowGrid', COLOR_CONFIG.rainbow, false);
+buildGrid('lightGrid', COLOR_CONFIG.light, false);
+buildGrid('darkGrid', COLOR_CONFIG.dark, false);
+buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
 
 // ============================================================
-// TAB SWITCHING
+// TAB SWITCHING FUNCTIONS
 // ============================================================
 function switchMainTab(tabName) {
     document.querySelectorAll('.ep-main-tab').forEach(function(b) { b.classList.remove('active'); });
-    document.querySelector('.ep-main-tab[data-main-tab="' + tabName + '"]').classList.add('active');
+    var activeTab = document.querySelector('.ep-main-tab[data-main-tab="' + tabName + '"]');
+    if (activeTab) activeTab.classList.add('active');
     document.querySelectorAll('.ep-main-pane').forEach(function(p) { p.classList.remove('active'); });
-    document.getElementById('main-pane-' + tabName).classList.add('active');
+    var activePane = document.getElementById('main-pane-' + tabName);
+    if (activePane) activePane.classList.add('active');
     if (tabName === 'listings') loadListings();
     if (tabName === 'purchases') loadPurchases();
     if (tabName === 'edit') switchSubTab('edit-profile');
@@ -636,18 +502,20 @@ function switchMainTab(tabName) {
 
 function switchSubTab(subtabName) {
     document.querySelectorAll('.ep-sub-tab').forEach(function(b) { b.classList.remove('active'); });
+    var activeSubTab = document.querySelector('.ep-sub-tab[data-subtab="' + subtabName + '"]');
+    if (activeSubTab) activeSubTab.classList.add('active');
     document.querySelectorAll('.ep-sub-pane').forEach(function(p) { p.classList.remove('active'); });
-    document.querySelector('.ep-sub-tab[data-subtab="' + subtabName + '"]').classList.add('active');
-    document.getElementById('sub-pane-' + subtabName).classList.add('active');
+    var activeSubPane = document.getElementById('sub-pane-' + subtabName);
+    if (activeSubPane) activeSubPane.classList.add('active');
 }
+
 // ============================================================
-// LOAD LISTINGS
+// LOAD LISTINGS & PURCHASES
 // ============================================================
 function loadListings() {
     var container = document.getElementById('listings-grid');
     if (!container) return;
     
-    // ✅ 定义上传链接变量，避免 Jinja2 转义问题
     var uploadUrl = "{{ url_for('upload_product') }}";
     
     container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
@@ -655,7 +523,6 @@ function loadListings() {
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (!data || data.length === 0) {
-                // ✅ 使用变量拼接，避免反斜杠转义问题
                 container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><p>You haven\'t listed any items yet</p><small><a href="' + uploadUrl + '">Click here to post your first item!</a></small></div>';
                 return;
             }
@@ -722,11 +589,12 @@ function loadPurchases() {
 }
 
 // ============================================================
-// EDIT PRODUCT MODAL FUNCTIONS - FIXED
+// EDIT PRODUCT FUNCTIONS
 // ============================================================
 var currentMediaFiles = [];
 var newMediaFiles = [];
 var mediaToDelete = [];
+
 function editListing(productId) {
     fetch('/api/product/' + productId, { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
@@ -737,7 +605,6 @@ function editListing(productId) {
             newMediaFiles = [];
             mediaToDelete = [];
             
-            // 填充表单字段
             document.getElementById('edit_product_id').value = product.id;
             document.getElementById('edit_name').value = product.name;
             document.getElementById('edit_price').value = product.price;
@@ -745,10 +612,8 @@ function editListing(productId) {
             document.getElementById('edit_condition').value = product.condition || 'good';
             document.getElementById('edit_category').value = product.category || 'others';
             
-            // ✅ 修复：优先从 images_blob 读取 Base64 数据
             if (product.images_blob) {
                 try {
-                    // 如果是字符串，解析 JSON
                     if (typeof product.images_blob === 'string') {
                         var parsed = JSON.parse(product.images_blob);
                         if (Array.isArray(parsed)) {
@@ -756,19 +621,14 @@ function editListing(productId) {
                         } else {
                             currentMediaFiles = [parsed];
                         }
-                    } 
-                    // 如果已经是数组
-                    else if (Array.isArray(product.images_blob)) {
+                    } else if (Array.isArray(product.images_blob)) {
                         currentMediaFiles = product.images_blob;
-                    }
-                    // 其他情况
-                    else {
+                    } else {
                         currentMediaFiles = [];
                     }
                     console.log('Loaded from images_blob:', currentMediaFiles.length);
                 } catch(e) {
                     console.error('Parse images_blob error:', e);
-                    // 如果不是 JSON，可能是单个 base64 字符串
                     if (product.images_blob && typeof product.images_blob === 'string' && product.images_blob.startsWith('data:')) {
                         currentMediaFiles = [product.images_blob];
                     } else {
@@ -777,7 +637,6 @@ function editListing(productId) {
                 }
             }
             
-            // 如果没有 images_blob，才使用 images 字段（磁盘文件）
             if (currentMediaFiles.length === 0 && product.images && typeof product.images === 'string' && product.images.trim()) {
                 var imagePaths = product.images.split(',');
                 for (var i = 0; i < imagePaths.length; i++) {
@@ -789,12 +648,10 @@ function editListing(productId) {
                 console.log('Loaded from images field (fallback):', currentMediaFiles.length);
             }
             
-            // 渲染现有媒体
             renderExistingMedia();
             document.getElementById('new_media_preview').innerHTML = '';
             updateUploadButtonState();
             
-            // 显示模态框
             var modal = document.getElementById('editProductModal');
             if (modal) modal.style.display = 'flex';
         })
@@ -844,7 +701,6 @@ function renderExistingMedia() {
     for (var i = 0; i < currentMediaFiles.length; i++) {
         var media = currentMediaFiles[i];
         
-        // Detect if media is a video
         var isVideo = false;
         if (media) {
             if (media.startsWith('data:video/')) {
@@ -880,11 +736,6 @@ function renderExistingMedia() {
     container.innerHTML = html;
 }
 
-function escapeHtmlSrc(str) {
-    if (!str) return '';
-    return str;
-}
-
 function toggleMediaDeletion(index) {
     var idx = mediaToDelete.indexOf(index);
     if (idx !== -1) {
@@ -905,8 +756,6 @@ function previewNewMedia(input) {
 
     for (var i = 0; i < files.length; i++) {
         var file = files[i];
-
-        // Check remaining slots (recalculate each iteration because addedCount grows)
         var remainingSlots = MAX_MEDIA_FILES - getTotalMediaCount() - addedCount;
         if (remainingSlots <= 0) {
             skippedSlot++;
@@ -924,7 +773,6 @@ function previewNewMedia(input) {
             continue;
         }
 
-        // ── Duplicate detection: same name + size already queued ──
         var isDuplicate = false;
         for (var d = 0; d < newMediaFiles.length; d++) {
             if (newMediaFiles[d].name === file.name && newMediaFiles[d].size === file.size) {
@@ -976,7 +824,6 @@ function previewNewMedia(input) {
 function removeNewMediaItem(btn, filename) {
     var container = btn.closest('.media-preview');
     if (container) container.remove();
-    // Remove the FIRST match by name (safe because duplicates are now blocked)
     for (var i = 0; i < newMediaFiles.length; i++) {
         if (newMediaFiles[i].name === filename) {
             newMediaFiles.splice(i, 1);
@@ -984,63 +831,6 @@ function removeNewMediaItem(btn, filename) {
         }
     }
     updateUploadButtonState();
-}
-
-function uploadNewImagesToServer(productId, existingImages, callback) {
-    var formData = new FormData();
-    for (var i = 0; i < newMediaFiles.length; i++) {
-        formData.append('new_images', newMediaFiles[i]);
-    }
-    formData.append('existing_images', JSON.stringify(existingImages));
-    
-    fetch('/api/product/' + productId + '/upload-images', {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            callback(data.all_images);
-        } else {
-            throw new Error(data.error || 'Upload failed');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Upload failed: ' + err.message, 'error');
-        callback(null);
-    });
-}
-
-function saveProductOnly(productId, imageFilenames) {
-    var fd = new FormData();
-    fd.append('name', document.getElementById('edit_name').value);
-    fd.append('price', document.getElementById('edit_price').value);
-    fd.append('description', document.getElementById('edit_description').value);
-    fd.append('condition', document.getElementById('edit_condition').value);
-    fd.append('category', document.getElementById('edit_category').value);
-    fd.append('images', imageFilenames.join(','));
-    
-    showToastMessage('Saving product...', 'info');
-    
-    fetch('/api/product/' + productId + '/update-full', {
-        method: 'POST',
-        body: fd,
-        credentials: 'same-origin'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Product updated successfully!', 'success');
-            closeEditModal();
-            loadListings();
-        } else {
-            throw new Error(data.error || 'Update failed');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Failed to update: ' + err.message, 'error');
-    });
 }
 
 function saveProductChanges(event) {
@@ -1052,7 +842,6 @@ function saveProductChanges(event) {
         return;
     }
     
-    // 收集未被删除的现有媒体（保留的 Base64 数据）
     var remainingMedia = [];
     for (var i = 0; i < currentMediaFiles.length; i++) {
         if (mediaToDelete.indexOf(i) === -1) {
@@ -1074,7 +863,6 @@ function saveProductChanges(event) {
     
     showToastMessage('Updating product...', 'info');
     
-    // 将所有新文件转换为 Base64
     if (newMediaFiles.length > 0) {
         var uploadPromises = [];
         for (var i = 0; i < newMediaFiles.length; i++) {
@@ -1089,24 +877,15 @@ function saveProductChanges(event) {
         }
         
         Promise.all(uploadPromises).then(function(newBase64Media) {
-            // 合并保留的媒体和新媒体
             var allMedia = remainingMedia.concat(newBase64Media);
             var imagesBlobJson = JSON.stringify(allMedia);
             
-            // 获取表单数据
-            var name = document.getElementById('edit_name').value;
-            var price = document.getElementById('edit_price').value;
-            var description = document.getElementById('edit_description').value;
-            var condition = document.getElementById('edit_condition').value;
-            var category = document.getElementById('edit_category').value;
-            
-            // 发送到后端
             var fd = new FormData();
-            fd.append('name', name);
-            fd.append('price', price);
-            fd.append('description', description);
-            fd.append('condition', condition);
-            fd.append('category', category);
+            fd.append('name', document.getElementById('edit_name').value);
+            fd.append('price', document.getElementById('edit_price').value);
+            fd.append('description', document.getElementById('edit_description').value);
+            fd.append('condition', document.getElementById('edit_condition').value);
+            fd.append('category', document.getElementById('edit_category').value);
             fd.append('images_blob', imagesBlobJson);
             
             fetch('/api/product/' + id + '/update-full', {
@@ -1130,7 +909,6 @@ function saveProductChanges(event) {
             });
         });
     } else {
-        // 没有新文件，直接保存
         var imagesBlobJson = JSON.stringify(remainingMedia);
         
         var fd = new FormData();
@@ -1304,9 +1082,6 @@ function confirmDelete() {
     return confirm('⚠️ Permanent deletion. Are you sure?');
 }
 
-document.getElementById('delete_password')?.addEventListener('input', checkDeletePasswordMatch);
-document.querySelector('#delete-form input[name="confirm_text"]')?.addEventListener('input', checkDeleteConfirm);
-
 // ============================================================
 // UTILITY FUNCTIONS
 // ============================================================
@@ -1334,16 +1109,231 @@ function showToastMessage(message, type) {
 }
 
 // ============================================================
-// PAGE INITIALIZATION
+// PAGE INITIALIZATION - SINGLE DOMContentLoaded
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DOM references
+    $bgLayer = document.getElementById('epBgLayer');
+    $bgPreview = document.getElementById('currentBgPreview');
+    $bgPanel = document.getElementById('epBgPanel');
+    
+    // Initialize background
+    restoreBackgroundFromServer();
+    
+    // Initialize cover and avatar
     loadCoverFromServer();
     loadAvatarFromServer();
-    restoreBackgroundFromServer();
+    
+    // Color grid click handlers are already set in buildGrid
+    
+    // Background panel buttons
+    var bgSaveBtn = document.getElementById('bgSaveBtn');
+    var bgCancelBtn = document.getElementById('bgCancelBtn');
+    var bgCloseBtn = document.querySelector('.ep-bg-close');
+    
+    if (bgSaveBtn) {
+        bgSaveBtn.addEventListener('click', function() {
+            if (!selectedBgValue) { 
+                showToastMessage('Please select a background first', 'error'); 
+                return; 
+            }
+            var btn = bgSaveBtn;
+            var orig = btn.textContent;
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+            saveBackgroundToServer(selectedBgValue)
+                .then(function() {
+                    showToastMessage('Background saved', 'success');
+                    if ($bgPanel) $bgPanel.classList.remove('open');
+                })
+                .catch(function() { showToastMessage('Failed to save background', 'error'); })
+                .finally(function() { btn.textContent = orig; btn.disabled = false; });
+        });
+    }
+    
+    if (bgCancelBtn) {
+        bgCancelBtn.addEventListener('click', function() {
+            restoreBackgroundFromServer();
+            selectedBgValue = null;
+            if ($bgPanel) $bgPanel.classList.remove('open');
+            showToastMessage('Reverted', 'info');
+        });
+    }
+    
+    if (bgCloseBtn) {
+        bgCloseBtn.addEventListener('click', function() { 
+            if ($bgPanel) $bgPanel.classList.remove('open'); 
+        });
+    }
+    
+    // Cover and Avatar event listeners
+    var $coverFileInput = document.getElementById('coverFileInput');
+    var $coverCropModal = document.getElementById('coverCropModal');
+    var $avatarFileInput = document.getElementById('avatarFileInput');
+    var $avatarCropModal = document.getElementById('avatarCropModal');
+
+    // Cover
+    var coverChangeBtn = document.getElementById('coverChangeBtn');
+    if (coverChangeBtn) {
+        coverChangeBtn.addEventListener('click', function() { if ($coverFileInput) $coverFileInput.click(); });
+    }
+    if ($coverFileInput) {
+        $coverFileInput.addEventListener('change', function(e) {
+            if (!e.target.files || !e.target.files[0]) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                var img = document.getElementById('coverCropImage');
+                if (img) img.src = ev.target.result;
+                if ($coverCropModal) $coverCropModal.classList.add('open');
+                if (coverCropper) coverCropper.destroy();
+                setTimeout(function() {
+                    var cropImg = document.getElementById('coverCropImage');
+                    if (cropImg && typeof Cropper !== 'undefined') {
+                        coverCropper = new Cropper(cropImg, { aspectRatio: 16/5, viewMode: 1, autoCropArea: 1 });
+                    }
+                }, 100);
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+    }
+    
+    var coverClose = document.querySelector('#coverCropModal .crop-close');
+    var coverCancel = document.querySelector('#coverCropModal .crop-cancel');
+    var coverConfirm = document.querySelector('#coverCropModal .crop-confirm');
+    
+    if (coverClose) coverClose.addEventListener('click', closeCoverCrop);
+    if (coverCancel) coverCancel.addEventListener('click', closeCoverCrop);
+    if (coverConfirm) {
+        coverConfirm.addEventListener('click', function() {
+            if (!coverCropper) {
+                showToastMessage('Please select an image first', 'error');
+                return;
+            }
+            coverCropper.getCroppedCanvas().toBlob(function(blob) {
+                if (!blob) {
+                    showToastMessage('Failed to process image', 'error');
+                    return;
+                }
+                var fd = new FormData();
+                fd.append('cover_image', blob, 'cover.jpg');  
+                showToastMessage('Uploading cover...', 'info');
+                fetch('/update-cover', { 
+                    method: 'POST', 
+                    body: fd, 
+                    credentials: 'same-origin'
+                })
+                .then(function(r) { 
+                    if (!r.ok) throw new Error('Server error: ' + r.status);
+                    return r.json(); 
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        var coverDiv = document.getElementById('coverImage');
+                        if (coverDiv) {
+                            coverDiv.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
+                        }
+                        closeCoverCrop();
+                        showToastMessage('Cover updated!', 'success');
+                    } else {
+                        throw new Error(data.error || 'Upload failed');
+                    }
+                })
+                .catch(function(e) { 
+                    console.error('Cover upload error:', e);
+                    showToastMessage('Cover update failed: ' + (e.message || ''), 'error'); 
+                });
+            }, 'image/jpeg', 0.9);
+        });
+    }
+
+    // Avatar
+    var avatarRing = document.getElementById('avatarRing');
+    if (avatarRing) {
+        avatarRing.addEventListener('click', function() { if ($avatarFileInput) $avatarFileInput.click(); });
+    }
+    if ($avatarFileInput) {
+        $avatarFileInput.addEventListener('change', function(e) {
+            if (!e.target.files || !e.target.files[0]) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                var img = document.getElementById('avatarCropImage');
+                if (img) img.src = ev.target.result;
+                if ($avatarCropModal) $avatarCropModal.classList.add('open');
+                if (avatarCropper) avatarCropper.destroy();
+                setTimeout(function() {
+                    var cropImg = document.getElementById('avatarCropImage');
+                    if (cropImg && typeof Cropper !== 'undefined') {
+                        avatarCropper = new Cropper(cropImg, { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
+                    }
+                }, 100);
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+    }
+    
+    var avatarClose = document.querySelector('.avatar-crop-close');
+    var avatarCancel = document.getElementById('avatarCropCancel');
+    var avatarConfirm = document.getElementById('avatarCropConfirm');
+    
+    if (avatarClose) avatarClose.addEventListener('click', closeAvatarCrop);
+    if (avatarCancel) avatarCancel.addEventListener('click', closeAvatarCrop);
+    if (avatarConfirm) {
+        avatarConfirm.addEventListener('click', function() {
+            if (!avatarCropper) {
+                showToastMessage('Please select an image first', 'error');
+                return;
+            }
+            avatarCropper.getCroppedCanvas().toBlob(function(blob) {
+                if (!blob) {
+                    showToastMessage('Failed to process image', 'error');
+                    return;
+                }
+                var fd = new FormData();
+                fd.append('avatar', blob, 'avatar.jpg');
+                showToastMessage('Uploading avatar...', 'info');
+                fetch('/update-profile-avatar', { 
+                    method: 'POST', 
+                    body: fd, 
+                    credentials: 'same-origin'
+                })
+                .then(function(r) { 
+                    if (!r.ok) throw new Error('Server error: ' + r.status);
+                    return r.json(); 
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        var avImg = document.getElementById('side-av-img');
+                        var avInit = document.getElementById('side-av-init');
+                        if (avImg) {
+                            avImg.src = '/avatar-image?t=' + Date.now();
+                            avImg.style.display = 'block';
+                            if (avInit) avInit.style.display = 'none';
+                        }
+                        closeAvatarCrop();
+                        showToastMessage('Avatar updated!', 'success');
+                    } else {
+                        throw new Error(data.error || 'Upload failed');
+                    }
+                })
+                .catch(function(e) { 
+                    console.error('Avatar upload error:', e);
+                    showToastMessage('Avatar update failed: ' + (e.message || ''), 'error'); 
+                });
+            }, 'image/jpeg', 0.9);
+        });
+    }
+    
+    // Password event listeners
     var newPw = document.getElementById('new_password');
     var confPw = document.getElementById('confirm_password');
     if (newPw) newPw.addEventListener('input', function() { checkPwStrength(); checkPwMatch(); });
     if (confPw) confPw.addEventListener('input', checkPwMatch);
+    
+    // Delete account event listeners
+    var deletePwInput = document.getElementById('delete_password');
+    var deleteConfirmInput = document.querySelector('#delete-form input[name="confirm_text"]');
+    if (deletePwInput) deletePwInput.addEventListener('input', checkDeletePasswordMatch);
+    if (deleteConfirmInput) deleteConfirmInput.addEventListener('input', checkDeleteConfirm);
 });
 </script>
 {% endblock %}

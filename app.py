@@ -1,5 +1,10 @@
 import re
+
 import subprocess
+
+import psycopg2
+
+from psycopg2 import Binary
 
 import os
 
@@ -388,45 +393,41 @@ def home():
 
     products = []
     for row in products_data:
-        product = row
+        product = dict(row)
         
         images_blob = product.get('images_blob', '')
         
         blob_count = 0
         blob_list = []
+        
         if images_blob:
             try:
                 import json as _json
                 blob_list = _json.loads(images_blob) if isinstance(images_blob, str) else images_blob
-                blob_count = len(blob_list)
+                if isinstance(blob_list, list):
+                    blob_count = len(blob_list)
+                    product['images_list'] = [f"/api/product-image/{product['id']}/{i}" 
+                                              for i in range(min(blob_count, 3))]
+                else:
+                    blob_count = 0
+                    product['images_list'] = []
             except Exception as e:
                 print(f"Error parsing blob: {e}")
                 blob_count = 0
+                product['images_list'] = []
 
-        if blob_count > 0:
-            product['images_list'] = [f"/api/product-image/{product['id']}/{i}"
-                                      for i in range(min(3, blob_count))]
-            product['actual_total'] = blob_count
-            product['image_1'] = f"/api/product-image/{product['id']}/0"
-            product['image_2'] = f"/api/product-image/{product['id']}/1" if blob_count > 1 else None
-        else:
+        if blob_count == 0:
             images_str = product.get('images', '')
             if images_str:
-                img_list = images_str.split(',')
-                image_urls = []
-                for f in img_list:
-                    f = f.strip()
-                    if f:
-                        image_urls.append('/static/uploads/' + f)
-                product['images_list'] = image_urls[:3]
-                product['actual_total'] = len(img_list)
-                product['image_1'] = image_urls[0] if image_urls else None
-                product['image_2'] = image_urls[1] if len(image_urls) > 1 else None
+                img_list = [f.strip() for f in images_str.split(',') if f.strip()]
+                blob_count = len(img_list)
+                product['images_list'] = [f"/static/uploads/{f}" for f in img_list[:3]]
             else:
                 product['images_list'] = []
-                product['actual_total'] = 0
-                product['image_1'] = None
-                product['image_2'] = None
+        
+        product['actual_total'] = blob_count
+        product['image_1'] = product['images_list'][0] if product['images_list'] else None
+        product['image_2'] = product['images_list'][1] if len(product['images_list']) > 1 else None
         
         products.append(product)
 
@@ -648,9 +649,11 @@ def user_avatar(user_id):
     user = cur.fetchone()
     cur.close()
     db.close()
+    
     if user and user['avatar_blob']:
         response = make_response(user['avatar_blob'])
         response.headers.set('Content-Type', 'image/jpeg')
+        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
         return response
     return '', 404
 
@@ -679,8 +682,8 @@ def cover_image():
         return response
     return '', 404
 
-
 @app.route('/update-cover', methods=['POST'])
+
 def update_cover():
     """Upload cover and store directly as BLOB in database"""
     if 'user_id' not in session:
@@ -702,7 +705,8 @@ def update_cover():
 
     db = get_db()
     cur = db.cursor()
-    cur.execute('UPDATE users SET cover_blob = %s WHERE id = %s', (image_data, session['user_id']))
+    cur.execute('UPDATE users SET cover_blob = %s WHERE id = %s', 
+                (image_data, session['user_id']))
     db.commit()
     cur.close()
     db.close()
@@ -1274,24 +1278,30 @@ def api_get_product(product_id):
 # Used by _product_card.html so we don't embed base64 in HTML attrs
 # ============================================================
 @app.route('/api/product-image/<int:product_id>/<int:index>')
+
 def api_product_image(product_id, index):
     """Serve a single product image as binary (avoids putting base64 in HTML)"""
     import json as _json
+    import base64
+    
     db = get_db()
-    row = db.execute('SELECT images_blob, images FROM products WHERE id = ?',
-                     (product_id,)).fetchone()
+    cur = db.cursor()
+    cur.execute('SELECT images_blob, images FROM products WHERE id = %s', (product_id,))
+    row = cur.fetchone()
+    cur.close()
     db.close()
 
     if not row:
         return '', 404
 
     # Try images_blob first
-    if row['images_blob']:
+    if row.get('images_blob'):
         try:
-            blob_list = _json.loads(row['images_blob'])
+            blob_list = _json.loads(row['images_blob']) if isinstance(row['images_blob'], str) else row['images_blob']
             if isinstance(blob_list, list) and index < len(blob_list):
                 data_uri = blob_list[index]
                 if isinstance(data_uri, str) and data_uri.startswith('data:'):
+                    # Parse data URI
                     header, b64data = data_uri.split(',', 1)
                     mime_type = header.split(';')[0].split(':')[1]
                     img_bytes = base64.b64decode(b64data)
@@ -1299,14 +1309,14 @@ def api_product_image(product_id, index):
                     response.headers.set('Content-Type', mime_type)
                     response.headers.set('Cache-Control', 'public, max-age=604800')
                     return response
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error serving product image: {e}")
 
     # Fallback: disk file
-    if row['images'] and index == 0:
+    if row.get('images'):
         parts = [p.strip() for p in row['images'].split(',') if p.strip()]
-        if parts:
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], parts[0])
+        if parts and index < len(parts):
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], parts[index])
             if os.path.exists(filepath):
                 from flask import send_file
                 return send_file(filepath)
