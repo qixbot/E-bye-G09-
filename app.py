@@ -227,21 +227,13 @@ def check_remember_me():
     token = request.cookies.get('remember_token')
     if not token:
         return
-    
     db = get_db()
-<<<<<<< HEAD
     cur = db.cursor()
     cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = %s', (token,))
     user = cur.fetchone()
     cur.close()
-=======
-    user = db.execute(
-        'SELECT id, username, student_id, is_admin FROM users WHERE remember_token = ?',
-        (token,)
-    ).fetchone()
->>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
     db.close()
-    
+
     if user:
         session['user_id'] = user['id']
         session['username'] = user['username']
@@ -367,12 +359,8 @@ def home():
     cur.execute('''
         SELECT p.*, 
         u.username as seller_name, 
-<<<<<<< HEAD
-        u.full_name as seller_full_name, u.id as seller_id
-=======
         u.full_name as seller_full_name, u.id as seller_id,
         COALESCE(json_array_length(p.images_blob), 0) as blob_count
->>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'approved'
@@ -1235,21 +1223,16 @@ def accept_counter_offer(offer_id):
 # ============================================================
 # Eileen's Route - Get product
 @app.route('/api/product/<int:product_id>')
+
 def api_get_product(product_id):
     """Get product details for editing"""
     if 'user_id' not in session:
         return jsonify({'error': 'Not logged in'}), 401
 
     db = get_db()
-<<<<<<< HEAD
     cur = db.cursor()
     cur.execute('''
         SELECT id, name, price, description, condition, category, images, images_blob, status
-=======
-    product = db.execute('''
-        SELECT id, name, price, description, condition, category, 
-               images, images_blob, status
->>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
         FROM products
         WHERE id = %s AND seller_id = %s
     ''', (product_id, session['user_id']))
@@ -1325,13 +1308,9 @@ def api_product_image(product_id, index):
 
     return '', 404
 
-
-<<<<<<< HEAD
 # Eileen's Route - Update product
 @app.route('/api/product/<int:product_id>/update', methods=['PUT'])
-=======
 
->>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
 def api_update_product(product_id):
     """Update product details"""
     if 'user_id' not in session:
@@ -1388,16 +1367,15 @@ def api_update_product_full(product_id):
         return jsonify({'success': False, 'error': 'Session expired. Please login again.'}), 401
 
     db = get_db()
-<<<<<<< HEAD
     cur = db.cursor()
     
     # Verify product belongs to user
-    cur.execute('SELECT id FROM products WHERE id = %s AND seller_id = %s', (product_id, session['user_id']))
+    cur.execute('SELECT id, images FROM products WHERE id = %s AND seller_id = %s', 
+                (product_id, session['user_id']))
     product = cur.fetchone()
-=======
-    product = db.execute('SELECT id, images FROM products WHERE id = ? AND seller_id = ?',
-                         (product_id, session['user_id'])).fetchone()
+    
     if not product:
+        cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Product not found'}), 404
 
@@ -1406,7 +1384,7 @@ def api_update_product_full(product_id):
     description = request.form.get('description', '').strip()
     condition = request.form.get('condition', '')
     category = request.form.get('category', '')
-    images_blob_json = request.form.get('images_blob', '')   # ✅ 关键：接收前端传来的 Base64 数组 JSON
+    images_blob_json = request.form.get('images_blob', '')
 
     if not name or not price or not description:
         return jsonify({'success': False, 'error': 'Name, price and description required'}), 400
@@ -1416,7 +1394,7 @@ def api_update_product_full(product_id):
     except:
         return jsonify({'success': False, 'error': 'Invalid price'}), 400
 
-    # ── Server-side media count limit ──
+    # Server-side media count limit
     import json, base64, uuid
     MAX_MEDIA = 12
     if images_blob_json:
@@ -1428,7 +1406,7 @@ def api_update_product_full(product_id):
         except Exception:
             pass
 
-    # 处理 Base64 数据并保存到磁盘（用于 product_detail 页面）
+    # Process Base64 data and save to disk
     saved_filenames = []
 
     if images_blob_json:
@@ -1458,20 +1436,22 @@ def api_update_product_full(product_id):
 
     images_str = ','.join(saved_filenames)
 
-    db.execute('''
+    cur.execute('''
         UPDATE products
-        SET name = ?, price = ?, description = ?, condition = ?, category = ?,
-            images = ?, images_blob = ?, status = 'pending'
-        WHERE id = ?
+        SET name = %s, price = %s, description = %s, condition = %s, category = %s,
+            images = %s, images_blob = %s, status = 'pending'
+        WHERE id = %s
     ''', (name, price, description, condition, category,
           images_str, images_blob_json, product_id))
+    
     db.commit()
+    cur.close()
     db.close()
 
     return jsonify({'success': True})
 
-@app.route('/api/product/<int:product_id>/upload-images', methods=['POST'])
 
+@app.route('/api/product/<int:product_id>/upload-images', methods=['POST'])
 def upload_product_images(product_id):
     """Upload new images for a product"""
     if 'user_id' not in session:
@@ -1479,9 +1459,11 @@ def upload_product_images(product_id):
     
     # Verify product belongs to user
     db = get_db()
-    product = db.execute('SELECT id FROM products WHERE id = ? AND seller_id = ?', 
-                         (product_id, session['user_id'])).fetchone()
->>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
+    cur = db.cursor()
+    cur.execute('SELECT id FROM products WHERE id = %s AND seller_id = %s', 
+                (product_id, session['user_id']))
+    product = cur.fetchone()
+    
     if not product:
         cur.close()
         db.close()
@@ -1501,66 +1483,10 @@ def upload_product_images(product_id):
             file.save(os.path.join('static/uploads', filename))
             existing.append(filename)
     
-<<<<<<< HEAD
-    try:
-        price = float(price)
-    except:
-        return jsonify({'success': False, 'error': 'Invalid price'}), 400
-    
-    # Update database with images_blob
-    cur.execute('''
-        UPDATE products 
-        SET name = %s, price = %s, description = %s, condition = %s, category = %s, 
-            images_blob = %s, status = 'pending'
-        WHERE id = %s
-    ''', (name, price, description, condition, category, images_blob, product_id))
-    db.commit()
     cur.close()
-    db.close()
-    
-    return jsonify({'success': True})
-=======
     db.close()
     
     return jsonify({'success': True, 'all_images': existing})
->>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
-
-# Eileen's Route - Delete product
-@app.route('/api/product/<int:product_id>/delete', methods=['DELETE'])
-def api_delete_product(product_id):
-    """Delete a product listing"""
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    db = get_db()
-    cur = db.cursor()
-
-    # Verify product belongs to user
-    cur.execute('SELECT id, name, images FROM products WHERE id = %s AND seller_id = %s', (product_id, session['user_id']))
-    product = cur.fetchone()
-
-    if not product:
-        cur.close()
-        db.close()
-        return jsonify({'success': False, 'error': 'Product not found'}), 404
-
-    # Delete associated images from filesystem
-    if product['images']:
-        for img in product['images'].split(','):
-            img_path = os.path.join('static/uploads', img)
-            if os.path.exists(img_path):
-                try:
-                    os.remove(img_path)
-                except:
-                    pass
-
-    # Delete product from database
-    cur.execute('DELETE FROM products WHERE id = %s', (product_id,))
-    db.commit()
-    cur.close()
-    db.close()
-
-    return jsonify({'success': True})
 
 # ============================================================
 # Eileen's Route - My profile
@@ -2657,6 +2583,7 @@ def unread_count():
 # Xingru's Route - Upload Product
 # ============================================================
 @app.route('/upload', methods=['GET', 'POST'])
+
 def upload_product():
     if 'user_id' not in session:
         flash("You must be logged in to post an item.", "error")
@@ -2704,39 +2631,12 @@ def upload_product():
             'gif': 'image/gif', 'webp': 'image/webp', 'bmp': 'image/bmp',
             'mp4': 'video/mp4', 'webm': 'video/webm', 'mov': 'video/mp4',
         }
-        VIDEO_EXTS = {'mp4', 'webm', 'mov'}
-        IMAGE_EXTS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}
 
         files = request.files.getlist('product_images')
         images_base64 = []
         image_filenames = []
 
         for file in files:
-<<<<<<< HEAD
-            if file and file.filename:
-                file_data = file.read()
-                if len(file_data) > 10 * 1024 * 1024:
-                    continue
-                ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
-                mime_type = 'image/jpeg'
-                if ext in ['mp4', 'webm', 'mov']:
-                    mime_type = 'video/mp4'
-                elif ext in ['png']:
-                    mime_type = 'image/png'
-                elif ext in ['gif']:
-                    mime_type = 'image/gif'
-                
-                base64_str = base64.b64encode(file_data).decode('utf-8')
-                images_base64.append(f"data:{mime_type};base64,{base64_str}")
-                
-                filename = secure_filename(file.filename)
-                if not filename:
-                    filename = f"media_{uuid.uuid4().hex}.{ext}"
-                file.seek(0)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                image_filenames.append(filename)
-        
-=======
             if not file or not file.filename:
                 continue
 
@@ -2765,8 +2665,7 @@ def upload_product():
             with open(save_path, 'wb') as f:
                 f.write(file_data)
             image_filenames.append(unique_filename)
-
->>>>>>> 07504f0 (feat: Fix my_profile product editing + add admin Remember Me)
+        
         if not images_base64:
             errors.append("Please upload at least one photo or video.")
 
@@ -2792,7 +2691,6 @@ def upload_product():
         return redirect(url_for('home'))
 
     return render_template('upload.html')
-
 
 # ============================================================
 # Xingru's Route - Testing (Clear products)
