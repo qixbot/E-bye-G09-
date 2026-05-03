@@ -30,6 +30,24 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='edit_profile.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
 
+<style>
+    .admin-tab {
+        background: linear-gradient(135deg, #8e44ad, #6c3483) !important;
+        color: white !important;
+        border: none;
+        border-radius: 30px;
+        padding: 10px 20px;
+        margin-left: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .admin-tab:hover {
+        background: linear-gradient(135deg, #6c3483, #4a235a) !important;
+        transform: translateY(-2px);
+    }
+</style>
+
 <div class="ep-page" id="epPage">
     <div class="ep-bg-layer" id="epBgLayer"></div>
 
@@ -136,6 +154,7 @@
                     <button class="ep-main-tab" data-main-tab="purchases" onclick="switchMainTab('purchases')">🛍️ My Purchases</button>
                     <button class="ep-main-tab" data-main-tab="listings" onclick="switchMainTab('listings')">📦 My Listings</button>
                     <button class="ep-main-tab active" data-main-tab="edit" onclick="switchMainTab('edit')">✏️ Edit Profile</button>
+                    <button id="adminSwitchBtn" class="ep-main-tab admin-tab" style="display: none;" onclick="switchToAdmin()">👑 Admin Panel</button>
                 </div>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -950,19 +969,64 @@ function closeEditModal() {
 }
 
 function deleteListing(id, name) {
-    if (confirm('Are you sure you want to delete "' + name + '"? This cannot be undone.')) {
-        fetch('/api/product/' + id + '/delete', { method: 'DELETE', credentials: 'same-origin' })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    showToastMessage('"' + name + '" deleted', 'success');
-                    loadListings();
-                } else {
-                    throw new Error(data.error);
-                }
-            })
-            .catch(function() { showToastMessage('Failed to delete', 'error'); });
-    }
+    // 创建自定义确认弹窗
+    var modalHtml = `
+        <div id="deleteConfirmModal" class="custom-modal">
+            <div class="modal-card">
+                <div class="modal-icon">🗑️</div>
+                <div class="modal-title">Delete "${escapeHtml(name)}"?</div>
+                <div class="modal-message">This action cannot be undone. The item will be permanently removed.</div>
+                <div class="modal-buttons">
+                    <button class="modal-cancel" id="deleteCancelBtn">Cancel</button>
+                    <button class="modal-confirm" id="deleteConfirmBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 移除已存在的弹窗
+    var existingModal = document.getElementById('deleteConfirmModal');
+    if (existingModal) existingModal.remove();
+    
+    // 添加弹窗
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    var modal = document.getElementById('deleteConfirmModal');
+    var cancelBtn = document.getElementById('deleteCancelBtn');
+    var confirmBtn = document.getElementById('deleteConfirmBtn');
+    
+    // 取消按钮
+    cancelBtn.onclick = function() {
+        modal.remove();
+    };
+    
+    // 确认按钮
+    confirmBtn.onclick = function() {
+        modal.remove();
+        showToastMessage('Deleting "' + name + '"...', 'info');
+        
+        fetch('/api/product/' + id + '/delete', { 
+            method: 'DELETE', 
+            credentials: 'same-origin' 
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showToastMessage('"' + name + '" deleted', 'success');
+                loadListings();
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(function() { 
+            showToastMessage('Failed to delete', 'error'); 
+        });
+    };
+    
+    // 点击背景关闭
+    modal.onclick = function(e) {
+        if (e.target === modal) modal.remove();
+    };
 }
 
 // ============================================================
@@ -1094,6 +1158,56 @@ function escapeHtml(str) {
         return m;
     });
 }
+
+function showToastMessage(message, type) {
+    var existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    var container = document.createElement('div');
+    container.className = 'toast-container';
+    var toastDiv = document.createElement('div');
+    toastDiv.className = 'toast toast-' + type;
+    toastDiv.innerHTML = '<span>' + message + '</span>';
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    setTimeout(function() { container.remove(); }, 3000);
+}
+
+// ============================================================
+// CHECK ADMIN STATUS & SWITCH TO ADMIN
+// ============================================================
+
+// 检查是否为管理员，决定是否显示 Admin 按钮
+function checkAdminStatus() {
+    fetch('/api/user/is-admin', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var adminBtn = document.getElementById('adminSwitchBtn');
+            if (adminBtn && data.is_admin) {
+                adminBtn.style.display = 'inline-flex';
+            }
+        })
+        .catch(function(err) {
+            console.log('Admin check failed:', err);
+        });
+}
+
+window.switchToAdmin = function() {
+    if (confirm('👑 Switch to Admin Dashboard?\n\nYou can return to user mode by logging out and logging back in.')) {
+        // 显示 toast
+        var container = document.createElement('div');
+        container.className = 'toast-container';
+        var toastDiv = document.createElement('div');
+        toastDiv.className = 'toast toast-info';
+        toastDiv.innerHTML = '<span>🔄 Switching to admin mode...</span>';
+        container.appendChild(toastDiv);
+        document.body.appendChild(container);
+        
+        // 1.5秒后跳转
+        setTimeout(function() {
+            window.location.href = '/switch-to-admin';
+        }, 400);
+    }
+};
 
 function showToastMessage(message, type) {
     var existing = document.querySelector('.toast-container');
@@ -1334,6 +1448,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var deleteConfirmInput = document.querySelector('#delete-form input[name="confirm_text"]');
     if (deletePwInput) deletePwInput.addEventListener('input', checkDeletePasswordMatch);
     if (deleteConfirmInput) deleteConfirmInput.addEventListener('input', checkDeleteConfirm);
+    
+    // Check admin status - 显示管理员按钮（如果是管理员）
+    checkAdminStatus();
 });
 </script>
 {% endblock %}

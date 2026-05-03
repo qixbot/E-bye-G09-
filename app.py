@@ -1629,6 +1629,55 @@ def edit_profile():
     )
 
 # ============================================================
+# Check if user is admin - API endpoint
+# ============================================================
+@app.route('/api/user/is-admin')
+def api_user_is_admin():
+    """Check if current user is an admin"""
+    if 'user_id' not in session:
+        return jsonify({'is_admin': False}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT is_admin FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user and user['is_admin'] == 1:
+        return jsonify({'is_admin': True})
+    return jsonify({'is_admin': False})
+
+
+# ============================================================
+# Switch to Admin Dashboard
+# ============================================================
+@app.route('/switch-to-admin')
+def switch_to_admin():
+    """Switch from user session to admin session"""
+    if 'user_id' not in session:
+        flash('Please login first', 'error')
+        return redirect(url_for('login'))
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT is_admin, email, username FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user and user['is_admin'] == 1:
+        # Set admin session
+        session['admin_logged_in'] = True
+        session['admin_email'] = user['email']
+        session['admin_username'] = user['username']
+        flash('Switched to Admin mode', 'success')
+        return redirect(url_for('admin_dashboard'))
+    else:
+        flash('You do not have admin privileges', 'error')
+        return redirect(url_for('edit_profile'))
+    
+# ============================================================
 # Eileen's Route - Update Profile
 # ============================================================
 @app.route('/update-profile', methods=['POST'])
