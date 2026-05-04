@@ -83,7 +83,7 @@
                     <button class="offer-btn" onclick="openOfferModal()">Make an Offer</button>
                     <a href="{{ url_for('chat_page', other_user_id=product.seller_id, product_id=product.id) }}" class="chat-btn">💬 Chat with seller</a>
                 </div>
-                <button class="buy-btn" onclick="confirmPurchase()">Buy Now</button>
+                <button class="buy-btn" id="buyNowBtn">Buy Now</button>
             </div>
         </div>
     </div>
@@ -129,6 +129,27 @@
     </div>
 </div>
 
+<!-- Buy Now Modal -->
+<div id="buyModal" class="modal">
+    <div class="modal-content" style="max-width: 650px; width: 90%; padding: 20px;">
+        <span class="close" onclick="closeBuyModal()">&times;</span>
+        <h2>Confirm Purchase</h2>
+        <div id="buyProductInfo" style="margin: 12px 0 20px; padding: 12px; background: #f5f5f5; border-radius: 12px;">
+            <p><strong>{{ product.name }}</strong><br>
+            Price: RM {{ "%.2f"|format(product.price) }}<br>
+            Condition: {{ product.condition | replace('_', ' ') | title }}</p>
+        </div>
+        <p class="modal-caption">Choose a meetup location:</p>
+        <div class="location-grid" id="locationGrid">
+            <!-- 8 buttons injected via JS -->
+        </div>
+        <div class="modal-buttons" style="margin-top: 25px;">
+            <button class="modal-cancel" onclick="closeBuyModal()">Cancel</button>
+            <button class="modal-send" id="confirmBuyBtn">Confirm Purchase</button>
+        </div>
+    </div>
+</div>
+
 <script>
     document.getElementById('copyLinkBtn').addEventListener('click', function() {
         const url = window.location.href;
@@ -163,11 +184,7 @@
             if (thumb.src === src) thumb.classList.add('active');
         });
     }
-    function confirmPurchase() {
-        if (confirm("Are you sure you want to buy this item?")) {
-            alert("Purchase flow not implemented yet.");
-        }
-    }
+
     function openOfferModal() {
         document.getElementById('offerModal').style.display = 'flex';
     }
@@ -280,6 +297,92 @@
                 input.value = val.toFixed(2);
             }
         }
+    }
+
+    // Meetup locations – replace images with your own
+    const meetupLocations = [
+        { name: "Library", image: "{{ url_for('static', filename='images/library.jpg') }}" },
+        { name: "DTC", image: "{{ url_for('static', filename='images/dtc.jpg') }}" },
+        { name: "Starbee", image: "{{ url_for('static', filename='images/starbee.jpg') }}" },
+        { name: "FX", image: "{{ url_for('static', filename='images/fx.jpg') }}" },
+        { name: "Cafeteria", image: "{{ url_for('static', filename='images/cafeteria.jpg') }}" },
+        { name: "Sports Complex", image: "{{ url_for('static', filename='images/sports_complex.jpg') }}" },
+        { name: "Student Lounge", image: "{{ url_for('static', filename='images/student_lounge.jpg') }}" },
+        { name: "Parking A", image: "{{ url_for('static', filename='images/parking_a.jpg') }}" }
+    ];
+
+    let selectedLocation = null;
+
+    function openBuyModal() {
+        const modal = document.getElementById('buyModal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        generateLocationButtons();
+        selectedLocation = null;
+    }
+
+    function closeBuyModal() {
+        const modal = document.getElementById('buyModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function generateLocationButtons() {
+        const grid = document.getElementById('locationGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        meetupLocations.forEach(loc => {
+            const btn = document.createElement('button');
+            btn.className = 'location-btn';
+            btn.setAttribute('data-location', loc.name);
+            btn.innerHTML = `
+                <img src="${loc.image}" class="location-btn-img" alt="${loc.name}">
+                <div class="location-btn-label">${loc.name}</div>
+            `;
+            btn.onclick = () => selectLocation(loc.name);
+            grid.appendChild(btn);
+        });
+    }
+
+    function selectLocation(locationName) {
+        selectedLocation = locationName;
+        // Remove active class from all, then add to selected
+        document.querySelectorAll('.location-btn').forEach(btn => {
+            btn.classList.remove('active');
+            btn.style.borderColor = '#ddd';
+            btn.style.backgroundColor = 'white';
+        });
+        const btns = document.querySelectorAll('.location-btn');
+        for (let btn of btns) {
+            if (btn.querySelector('.location-btn-label').innerText === locationName) {
+                btn.classList.add('active');
+                btn.style.borderColor = '#00381f';
+                btn.style.backgroundColor = '#f0f7f2';
+                break;
+            }
+        }
+    }
+
+    // Confirm purchase – remove "not implemented", just show toast
+    document.getElementById('confirmBuyBtn')?.addEventListener('click', function() {
+        if (!selectedLocation) {
+            showGlobalToast('Please select a meetup location.', 'error');
+            return;
+        }
+        // Here you can later send to backend, but for now just confirm
+        showGlobalToast(`Purchase confirmed! Meet at ${selectedLocation}.`, 'success');
+        closeBuyModal();
+    });
+
+    // Attach to Buy Now button (remove any existing inline onclick)
+    document.getElementById('buyNowBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        openBuyModal();
+    });
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('buyModal');
+        if (event.target === modal) closeBuyModal();
     }
 </script>
 {% endblock %}

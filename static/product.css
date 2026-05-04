@@ -380,6 +380,65 @@
     font-family: 'Inter', sans-serif;
     resize: vertical;
 }
+
+/* Location grid – responsive, scrollable if too many items */
+.location-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 120px));
+    gap: 16px;
+    justify-content: center;
+    max-height: 60vh;          /* Limits height, makes grid scrollable */
+    overflow-y: auto;
+    padding: 8px;
+}
+
+/* Fixed size buttons – image fills top part, text at bottom */
+.location-btn {
+    width: 120px;
+    height: 120px;
+    padding: 0;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.location-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: #00381f;
+}
+
+/* Image takes all space except bottom 30px for label */
+.location-btn-img {
+    width: 100%;
+    height: calc(100% - 30px);
+    object-fit: cover;
+    display: block;
+    background-color: #f0f0f0;
+}
+
+.location-btn-label {
+    height: 30px;
+    line-height: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    background: #fff;
+}
+
+/* Active selected location */
+.location-btn.active {
+    border-color: #00381f;
+    background-color: #f0f7f2;
+}
+
 @media (max-width: 768px) {
     .product-grid {
         grid-template-columns: 1fr;
