@@ -383,11 +383,12 @@
     resize: vertical;
 }
 
-/* ========== BUY MODAL STYLES ========== */
+/* ========== BUY MODAL STYLES (FLEXBOX GRID - NO STACKING) ========== */
 .buy-modal-content {
     max-width: 1100px !important;
     width: 90% !important;
     padding: 30px !important;
+    overflow: visible !important;
 }
 
 .buy-modal-two-columns {
@@ -433,9 +434,10 @@
     margin: 5px 0;
 }
 
-/* Right column – flex column, fixed header + scrollable grid */
+/* Right column – must have a defined width */
 .buy-modal-right {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -460,21 +462,38 @@
     font-weight: 500;
 }
 
-/* Scrollable grid container */
+/* GRID CONTAINER - FLEXBOX, NEVER STACKS, SCROLLABLE */
 .location-grid {
     flex: 1;
     overflow-y: auto;
-    max-height: calc(70vh - 100px);
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 20px;
-    align-content: start;
-    padding: 12px 10px 8px 4px;   /* extra top padding (12px) to allow upward movement */
+    overflow-x: hidden;
+    height: 360px;                 /* fixed height for exactly 2 rows */
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+    align-content: flex-start !important;
+    justify-content: flex-start !important;
+    padding: 8px 4px !important;
 }
 
-/* Location buttons – square, fill grid */
+/* Desktop: 4 columns (each 25% minus gap) */
+@media (min-width: 768px) {
+    .location-btn {
+        flex: 0 0 calc(25% - 15px) !important;
+        max-width: calc(25% - 15px) !important;
+    }
+}
+
+/* Mobile: 2 columns */
+@media (max-width: 767px) {
+    .location-btn {
+        flex: 0 0 calc(50% - 10px) !important;
+        max-width: calc(50% - 10px) !important;
+    }
+}
+
+/* Button styles – square, upward shift on hover */
 .location-btn {
-    width: 100%;
     aspect-ratio: 1 / 1;
     border: 1px solid #ddd;
     border-radius: 16px;
@@ -485,7 +504,7 @@
     flex-direction: column;
     overflow: hidden;
     text-align: center;
-    transform: scale(1);
+    margin: 0 !important;
 }
 .location-btn:hover {
     transform: translateY(-2px);
@@ -520,10 +539,8 @@
     align-self: stretch;
 }
 
-@media (max-width: 768px) {
-    .product-grid {
-        grid-template-columns: 1fr;
-    }
+/* Responsive stack on small screens */
+@media (max-width: 700px) {
     .buy-modal-two-columns {
         flex-direction: column;
         gap: 20px;
@@ -532,6 +549,6 @@
         display: none;
     }
     .location-grid {
-        max-height: 40vh;
+        height: 340px;
     }
 }
