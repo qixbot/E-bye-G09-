@@ -11,7 +11,6 @@
             <button class="action-icon" id="reportBtn" title="Report item">⚠️</button>
         </div>
     </div>
-    <div id="copyToast" class="copy-toast">Link copied to clipboard!</div>
 
     <div class="product-grid">
         <!-- Left: Images -->
@@ -116,8 +115,8 @@
         <p class="modal-caption">Why are you reporting this product?</p>
         <div class="report-reasons">
             <button class="reason-btn" data-reason="Spam">Spam</button>
-            <button class="reason-btn" data-reason="Harassment">Harassment</button>
-            <button class="reason-btn" data-reason="Wrong product">Wrong product</button>
+            <button class="reason-btn" data-reason="Inappropriate content">Inappropriate content</button>
+            <button class="reason-btn" data-reason="Multiple listings">Multiple listings</button>
             <button class="reason-btn" id="otherReasonBtn">Others</button>
         </div>
         <div id="otherReasonBox" style="display: none; margin-top: 15px;">
@@ -131,16 +130,10 @@
 </div>
 
 <script>
-    function showCopyToast() {
-        const toast = document.getElementById('copyToast');
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2500);
-    }
-
     document.getElementById('copyLinkBtn').addEventListener('click', function() {
         const url = window.location.href;
         navigator.clipboard.writeText(url).then(() => {
-            showCopyToast();
+            showGlobalToast('Link copied to clipboard!', 'success');
         }).catch(() => {
             showGlobalToast('Failed to copy link.', 'error');
         });
