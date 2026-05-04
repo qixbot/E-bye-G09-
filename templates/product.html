@@ -135,29 +135,33 @@
 <div id="buyModal" class="modal">
     <div class="modal-content buy-modal-content">
         <span class="close" onclick="closeBuyModal()">&times;</span>
+
         <div class="buy-modal-two-columns">
-            <!-- LEFT COLUMN: product details (fixed) -->
+            <!-- LEFT COLUMN – product details (static) -->
             <div class="buy-modal-left">
-                <div class="product-image-preview">
-                    <!-- Clone the main image element dynamically? Or reuse the same logic -->
-                    <div id="modal-product-image"></div>
+                <div class="product-image-preview" id="modalProductImage">
+                    <!-- Image will be copied from main product view -->
                 </div>
-                <h3 style="margin: 15px 0 5px;">{{ product.name }}</h3>
-                <p style="font-size: 1.4rem; color: #00381f; font-weight: bold; margin: 5px 0;">RM {{ "%.2f"|format(product.price) }}</p>
-                <p><span class="condition-badge" style="background-color: #00381f; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block;">{{ product.condition | replace('_', ' ') | title }}</span></p>
+                <h3 class="modal-product-name">{{ product.name }}</h3>
+                <p class="modal-product-price">RM {{ "%.2f"|format(product.price) }}</p>
+                <p><span class="condition-badge" style="background-color:#00381f; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; display:inline-block;">{{ product.condition | replace('_', ' ') | title }}</span></p>
             </div>
 
-            <!-- VERTICAL SEPARATOR LINE -->
+            <!-- VERTICAL DIVIDER -->
             <div class="buy-modal-divider"></div>
 
-            <!-- RIGHT COLUMN: location buttons (scrollable) -->
+            <!-- RIGHT COLUMN – location selection (scrollable) -->
             <div class="buy-modal-right">
-                <p style="margin-bottom: 16px; font-weight: 600;">Choose a meetup location:</p>
+                <div class="location-header">
+                    <p class="location-instruction">Prefered meetup location(s) – seller will contact you for further confirmation</p>
+                    <div id="selectedLocationsInfo" class="selected-locations-info"></div>
+                </div>
                 <div class="location-grid" id="locationGrid">
-                    <!-- 8+ buttons injected via JS -->
+                    <!-- location buttons injected by JavaScript -->
                 </div>
             </div>
         </div>
+
         <div class="modal-buttons" style="margin-top: 20px; justify-content: flex-end;">
             <button class="modal-cancel" onclick="closeBuyModal()">Cancel</button>
             <button class="modal-send" id="confirmBuyBtn">Confirm Purchase</button>
@@ -299,39 +303,29 @@
         }
     }
 
-    // Meetup locations – replace images with your own
+    // List of meetup locations
     const meetupLocations = [
-        { name: "Library", image: "{{ url_for('static', filename='images/library.jpg') }}" },
-        { name: "DTC", image: "{{ url_for('static', filename='images/dtc.jpg') }}" },
-        { name: "Starbee", image: "{{ url_for('static', filename='images/starbee.jpg') }}" },
-        { name: "FX", image: "{{ url_for('static', filename='images/fx.jpg') }}" },
-        { name: "Cafeteria", image: "{{ url_for('static', filename='images/cafeteria.jpg') }}" },
-        { name: "Sports Complex", image: "{{ url_for('static', filename='images/sports_complex.jpg') }}" },
-        { name: "Student Lounge", image: "{{ url_for('static', filename='images/student_lounge.jpg') }}" },
-        { name: "Parking A", image: "{{ url_for('static', filename='images/parking_a.jpg') }}" }
+        { name: "Library", image: "/static/uploads/library.jpg" },
+        { name: "DTC", image: "/static/uploads/dtc.jpg" },
+        { name: "Starbees", image: "/static/uploads/starbees.jpg" },
+        { name: "CLC", image: "/static/uploads/clc.jpg" },
+        { name: "FCI", image: "/static/uploads/fci.jpg" },
+        { name: "FOM", image: "/static/uploads/fom.jpg" },
+        { name: "FAIE", image: "/static/uploads/faie.jpg" },
+        { name: "FCM", image: "/static/uploads/fcm.jpg" },
+        { name: "STC", image: "/static/uploads/stc.jpg" },
+        { name: "HB1", image: "/static/uploads/hb1.jpg" },
+        { name: "HB2", image: "/static/uploads/hb2.jpg" },
+        { name: "HB3", image: "/static/uploads/hb3.jpg" },
+        { name: "HB4", image: "/static/uploads/hb4.jpg" },
+        { name: "Masjid", image: "/static/uploads/masjid.jpg" },
+        { name: "Tekun Mart", image: "/static/uploads/tekun_mart.jpg" },
+        { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
     ];
 
-    let selectedLocation = null;
+    let selectedLocations = [];   // stores names of chosen locations
 
-    function openBuyModal() {
-        const modal = document.getElementById('buyModal');
-        if (!modal) return;
-        // Copy the main product image (or video) into the modal
-        const mainImageContainer = document.querySelector('.main-image');
-        const modalImageContainer = document.getElementById('modal-product-image');
-        if (mainImageContainer && modalImageContainer) {
-            modalImageContainer.innerHTML = mainImageContainer.innerHTML;
-        }
-        modal.style.display = 'flex';
-        generateLocationButtons();
-        selectedLocation = null;
-    }
-
-    function closeBuyModal() {
-        const modal = document.getElementById('buyModal');
-        if (modal) modal.style.display = 'none';
-    }
-
+    // Generate location buttons dynamically
     function generateLocationButtons() {
         const grid = document.getElementById('locationGrid');
         if (!grid) return;
@@ -344,51 +338,105 @@
                 <img src="${loc.image}" class="location-btn-img" alt="${loc.name}">
                 <div class="location-btn-label">${loc.name}</div>
             `;
-            btn.onclick = () => selectLocation(loc.name);
+            btn.onclick = (function(locationName) {
+                return function() { toggleLocation(locationName); };
+            })(loc.name);
             grid.appendChild(btn);
         });
     }
 
-    function selectLocation(locationName) {
-        selectedLocation = locationName;
-        // Remove active class from all, then add to selected
+    // Toggle selection (max 3)
+    function toggleLocation(locationName) {
+        const index = selectedLocations.indexOf(locationName);
+        if (index !== -1) {
+            // deselect
+            selectedLocations.splice(index, 1);
+        } else {
+            // select if under limit
+            if (selectedLocations.length >= 3) {
+                showGlobalToast('You can select up to 3 locations.', 'error');
+                return;
+            }
+            selectedLocations.push(locationName);
+        }
+        updateLocationUI();
+    }
+
+    // Update button styles and info text
+    function updateLocationUI() {
         document.querySelectorAll('.location-btn').forEach(btn => {
-            btn.classList.remove('active');
-            btn.style.borderColor = '#ddd';
-            btn.style.backgroundColor = 'white';
+            const locName = btn.querySelector('.location-btn-label').innerText;
+            if (selectedLocations.includes(locName)) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
+            }
         });
-        const btns = document.querySelectorAll('.location-btn');
-        for (let btn of btns) {
-            if (btn.querySelector('.location-btn-label').innerText === locationName) {
-                btn.classList.add('active');
-                btn.style.borderColor = '#00381f';
-                btn.style.backgroundColor = '#f0f7f2';
-                break;
+        const infoDiv = document.getElementById('selectedLocationsInfo');
+        if (infoDiv) {
+            if (selectedLocations.length === 0) {
+                infoDiv.innerHTML = '⚠️ No locations selected. Please choose 1‑3 locations.';
+                infoDiv.style.color = '#e74c3c';
+            } else {
+                infoDiv.innerHTML = `✓ Selected: ${selectedLocations.join(', ')} (${selectedLocations.length}/3)`;
+                infoDiv.style.color = '#2ecc71';
             }
         }
     }
 
-    // Confirm purchase – remove "not implemented", just show toast
+    // Open modal – copy main product image and reset selection
+    function openBuyModal() {
+        const modal = document.getElementById('buyModal');
+        if (!modal) return;
+        // Copy main image (or video) into the modal's left column
+        const mainImageContainer = document.querySelector('.main-image');
+        const modalImageContainer = document.getElementById('modalProductImage');
+        if (mainImageContainer && modalImageContainer) {
+            modalImageContainer.innerHTML = mainImageContainer.innerHTML;
+        }
+        // Reset selection
+        selectedLocations = [];
+        if (document.querySelectorAll('.location-btn').length > 0) {
+            updateLocationUI();
+        } else {
+            generateLocationButtons();
+            updateLocationUI();
+        }
+        modal.style.display = 'flex';
+    }
+
+    // Close modal
+    function closeBuyModal() {
+        const modal = document.getElementById('buyModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    // Confirm purchase – require at least 1 location
     document.getElementById('confirmBuyBtn')?.addEventListener('click', function() {
-        if (!selectedLocation) {
-            showGlobalToast('Please select a meetup location.', 'error');
+        if (selectedLocations.length === 0) {
+            showGlobalToast('Please select at least one meetup location.', 'error');
             return;
         }
-        // Here you can later send to backend, but for now just confirm
-        showGlobalToast(`Purchase confirmed! Meet at ${selectedLocation}.`, 'success');
+        // Here you would send the selected locations to the backend.
+        // For now, just show a success toast.
+        showGlobalToast(`Purchase confirmed! Meet at: ${selectedLocations.join(', ')}`, 'success');
         closeBuyModal();
     });
 
-    // Attach to Buy Now button (remove any existing inline onclick)
-    document.getElementById('buyNowBtn')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        openBuyModal();
-    });
+    // Attach Buy Now button (remove any existing inline onclick)
+    const buyNowBtn = document.querySelector('.buy-btn');
+    if (buyNowBtn) {
+        buyNowBtn.removeAttribute('onclick');
+        buyNowBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openBuyModal();
+        });
+    }
 
-    // Close modal when clicking outside
+    // Close modal when clicking outside the content
     window.onclick = function(event) {
         const modal = document.getElementById('buyModal');
         if (event.target === modal) closeBuyModal();
-    }
+    };
 </script>
 {% endblock %}
