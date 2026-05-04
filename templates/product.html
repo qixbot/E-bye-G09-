@@ -178,6 +178,7 @@
             showGlobalToast('Failed to copy link.', 'error');
         });
     });
+
     function changeMainMedia(src, index) {
         const mainContainer = document.querySelector('.main-image');
         const isVideo = src.match(/\.(mp4|webm|mov|avi|mkv)$/i);
@@ -192,9 +193,11 @@
     function openOfferModal() {
         document.getElementById('offerModal').style.display = 'flex';
     }
+
     function closeOfferModal() {
         document.getElementById('offerModal').style.display = 'none';
     }
+
     function sendOffer() {
         const offerInput = document.getElementById('offerAmount');
         const offer = offerInput.value;
@@ -205,13 +208,15 @@
         }
 
         showGlobalToast(`Offer of RM ${parseFloat(offer).toFixed(2)} sent to seller.`, "success");
-        offerInput.value = '';   // clear the input field
+        offerInput.value = '';
         closeOfferModal();
     }
+
     window.onclick = function(event) {
         const modal = document.getElementById('offerModal');
         if (event.target === modal) closeOfferModal();
     }
+
     function goBack() {
         if (document.referrer && document.referrer !== "") {
             window.location.href = document.referrer;
@@ -219,6 +224,7 @@
             window.location.href = "{{ url_for('home') }}";
         }
     }
+
     // Report modal
     const reportModal = document.getElementById('reportModal');
     const reportBtn = document.getElementById('reportBtn');
@@ -263,7 +269,6 @@
                 return;
             }
         }
-        // For now: just show an alert and log to console
         const reportData = {
             product_id: {{ product.id }},
             reason: selectedReason,
@@ -274,7 +279,6 @@
         closeReportModal();
     });
 
-    // Close modal when clicking outside
     window.onclick = function(event) {
         const modal = document.getElementById('reportModal');
         if (event.target === modal) closeReportModal();

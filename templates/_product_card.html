@@ -12,7 +12,11 @@
                     {% endfor %}
                 {% elif product.images_list[:3] %}
                     {% for img in product.images_list[:3] %}
-                        <img src="{{ url_for('static', filename='uploads/' ~ img) }}" class="carousel-img" alt="{{ product.name }}">
+                        {% if img.startswith('data:') or img.startswith('/') or img.startswith('http') %}
+                            <img src="{{ img }}" class="carousel-img" alt="{{ product.name }}" loading="lazy">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='uploads/' ~ img) }}" class="carousel-img" alt="{{ product.name }}" loading="lazy">
+                        {% endif %}
                     {% endfor %}
                 {% else %}
                     <div class="carousel-placeholder">No preview available</div>
