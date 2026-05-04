@@ -1,12 +1,16 @@
 <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-card">
     <div class="product-image-container" 
-         data-images='{{ product.images_list[:3] | tojson }}'
-         data-total="{{ product.images_list[:3]|length }}"
-         data-actual-total="{{ product.actual_total }}">
+        data-images='{{ product.images_base64_list[:3] | tojson if product.images_base64_list else product.images_list[:3] | tojson }}'
+        data-total="{{ (product.images_base64_list[:3]|length) if product.images_base64_list else (product.images_list[:3]|length) }}"
+        data-actual-total="{{ product.actual_total }}">
         <span class="condition-badge">{{ product.condition | replace('_', ' ') | title }}</span>
         <div class="carousel-window">
             <div class="carousel-track">
-                {% if product.images_list[:3] %}
+                {% if product.images_base64_list %}
+                    {% for img_b64 in product.images_base64_list[:3] %}
+                        <img src="{{ img_b64 }}" class="carousel-img" alt="{{ product.name }}">
+                    {% endfor %}
+                {% elif product.images_list[:3] %}
                     {% for img in product.images_list[:3] %}
                         <img src="{{ url_for('static', filename='uploads/' ~ img) }}" class="carousel-img" alt="{{ product.name }}">
                     {% endfor %}

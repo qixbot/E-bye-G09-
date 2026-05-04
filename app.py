@@ -367,9 +367,23 @@ def home():
     db.close()
 
     products = []
+    import json
     for row in products_data:
         product = dict(row)
         images_str = product.get('images', '')
+        images_blob_str = product.get('images_blob', '[]')
+        
+        # Parse base64 list from images_blob
+        base64_list = []
+        if images_blob_str and images_blob_str != '[]':
+            try:
+                base64_list = json.loads(images_blob_str)
+                # Keep only valid data URLs (they start with data:)
+                base64_list = [img for img in base64_list if img.startswith('data:')]
+            except:
+                base64_list = []
+        
+        # For file-based images (fallback)
         if images_str:
             img_list = images_str.split(',')
             # Filter only image files for carousel (max 3)
@@ -389,12 +403,20 @@ def home():
             product['actual_total'] = 0
             product['image_1'] = None
             product['image_2'] = None
+        
+        # Store base64 list for carousel
+        product['images_base64_list'] = base64_list
+        # Override actual_total if base64 list is the real source
+        if base64_list:
+            product['actual_total'] = len(base64_list)
         products.append(product)
 
     return render_template('home.html',
         username=session.get('username'), latest_products=products)
 
+# ============================================================
 # Xingru's Route - Search with filters
+# ============================================================
 @app.route('/search')
 def search():
     if 'user_id' not in session:
@@ -481,15 +503,17 @@ def search():
     elif sort_by == 'price_desc':
         order_clause = "ORDER BY p.price DESC, p.created_at DESC"
     elif sort_by == 'condition_asc':
-        order_clause = "ORDER BY CASE p.condition " \
-                       "WHEN 'like_new' THEN 1 " \
-                       "WHEN 'good' THEN 2 " \
-                       "WHEN 'fair' THEN 3 END ASC, p.created_at DESC"
+        order_clause = "ORDER BY CASE TRIM(LOWER(p.condition)) " \
+                    "WHEN 'like_new' THEN 1 " \
+                    "WHEN 'good' THEN 2 " \
+                    "WHEN 'fair' THEN 3 " \
+                    "ELSE 4 END ASC, p.created_at DESC"
     elif sort_by == 'condition_desc':
-        order_clause = "ORDER BY CASE p.condition " \
-                       "WHEN 'like_new' THEN 1 " \
-                       "WHEN 'good' THEN 2 " \
-                       "WHEN 'fair' THEN 3 END DESC, p.created_at DESC"
+        order_clause = "ORDER BY CASE TRIM(LOWER(p.condition)) " \
+                    "WHEN 'like_new' THEN 1 " \
+                    "WHEN 'good' THEN 2 " \
+                    "WHEN 'fair' THEN 3 " \
+                    "ELSE 4 END DESC, p.created_at DESC"
     else:
         order_clause = "ORDER BY p.created_at DESC"
     query += " " + order_clause
@@ -501,11 +525,25 @@ def search():
     cur.close()
     db.close()
 
-    # Process each product (same as home route)
+    # Process each product (same as home route, with base64 support)
+    import json
     products = []
     for row in products_data:
         product = dict(row)
         images_str = product.get('images', '')
+        images_blob_str = product.get('images_blob', '[]')
+        
+        # Parse base64 list from images_blob
+        base64_list = []
+        if images_blob_str and images_blob_str != '[]':
+            try:
+                base64_list = json.loads(images_blob_str)
+                # Keep only valid data URLs (they start with data:)
+                base64_list = [img for img in base64_list if img.startswith('data:')]
+            except:
+                base64_list = []
+        
+        # For file-based images (fallback)
         if images_str:
             img_list = images_str.split(',')
             image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
@@ -519,6 +557,12 @@ def search():
             product['actual_total'] = 0
             product['image_1'] = None
             product['image_2'] = None
+        
+        # Store base64 list for carousel
+        product['images_base64_list'] = base64_list
+        # Override actual_total if base64 list is the real source
+        if base64_list:
+            product['actual_total'] = len(base64_list)
         products.append(product)
 
     return render_template('search.html', products=products)
