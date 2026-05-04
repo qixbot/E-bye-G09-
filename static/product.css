@@ -381,39 +381,39 @@
     resize: vertical;
 }
 
-/* Buy modal – larger, two columns */
+/* Buy modal - larger, two columns */
 .buy-modal-content {
     max-width: 1100px !important;
     width: 90% !important;
-    padding: 24px !important;
+    padding: 30px !important;
 }
 
 .buy-modal-two-columns {
     display: flex;
-    gap: 30px;
+    gap: 40px;
     align-items: stretch;
-    min-height: 400px;
+    min-height: 450px;
     max-height: 70vh;
 }
 
-/* Left column – fixed, no scroll */
+/* Left column - fixed width, no scroll */
 .buy-modal-left {
-    flex: 1.2;  /* roughly 35-40% */
+    flex: 0 0 280px;
     overflow-y: hidden;
     position: sticky;
     top: 0;
     align-self: flex-start;
 }
 
-/* Right column – scrollable */
+/* Right column - scrollable, takes remaining space */
 .buy-modal-right {
-    flex: 1.8;  /* roughly 60-65% */
+    flex: 1;
     overflow-y: auto;
     max-height: 70vh;
-    padding-right: 8px;
+    padding-right: 12px;
 }
 
-/* Vertical separator line (does not touch borders) */
+/* Vertical separator */
 .buy-modal-divider {
     width: 1px;
     background-color: #e0e0e0;
@@ -421,7 +421,7 @@
     align-self: stretch;
 }
 
-/* Product image preview */
+/* Product image */
 .product-image-preview {
     background: #f5f5f5;
     border-radius: 16px;
@@ -442,21 +442,20 @@
     color: #ccc;
 }
 
-/* Location grid – adapts to right column */
+/* Location grid - bigger buttons */
 .location-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 120px));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 160px));
+    gap: 20px;
     justify-content: start;
 }
 
-/* Location buttons (unchanged, but ensure they fit) */
 .location-btn {
-    width: 120px;
-    height: 120px;
+    width: 150px;
+    height: 150px;
     padding: 0;
     border: 1px solid #ddd;
-    border-radius: 12px;
+    border-radius: 16px;
     background: white;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -465,26 +464,24 @@
     overflow: hidden;
     text-align: center;
 }
-.location-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    border-color: #00381f;
-}
+
 .location-btn-img {
     width: 100%;
-    height: calc(100% - 30px);
+    height: calc(100% - 40px);
     object-fit: cover;
     display: block;
     background-color: #f0f0f0;
 }
+
 .location-btn-label {
-    height: 30px;
-    line-height: 30px;
-    font-size: 12px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 14px;
     font-weight: 600;
     color: #333;
     background: #fff;
 }
+
 .location-btn.active {
     border-color: #00381f;
     background-color: #f0f7f2;

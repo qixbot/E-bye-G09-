@@ -16,34 +16,36 @@
         <!-- Left: Images -->
         <div>
             <div class="main-image">
-                {% set first_media = images[0] %}
-                {% set ext = first_media.split('.')[-1].lower() if first_media else '' %}
-                {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
-                    <video id="main-product-video" controls autoplay muted loop poster="{{ url_for('static', filename='uploads/' ~ first_media.split('.')[0] + '_thumb.jpg') }}">
-                        <source src="{{ url_for('static', filename='uploads/' ~ first_media) }}" type="video/{{ ext }}">
-                        Your browser does not support the video tag.
-                    </video>
+                {% set first_media = images[0] if images else '' %}
+                {% if first_media %}
+                    {% if first_media.startswith('data:') %}
+                        <img id="main-product-img" src="{{ first_media }}" alt="{{ product.name }}">
+                    {% else %}
+                        {% set ext = first_media.split('.')[-1].lower() %}
+                        {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
+                            <video id="main-product-video" controls autoplay muted loop>
+                                <source src="{{ url_for('static', filename='uploads/' ~ first_media) }}" type="video/{{ ext }}">
+                                Your browser does not support the video tag.
+                            </video>
+                        {% else %}
+                            <img id="main-product-img" src="{{ url_for('static', filename='uploads/' ~ first_media) }}" alt="{{ product.name }}">
+                        {% endif %}
+                    {% endif %}
                 {% else %}
-                    <img id="main-product-img" src="{{ url_for('static', filename='uploads/' ~ first_media) }}" alt="{{ product.name }}">
+                    <div class="no-image-placeholder">📦 No image available</div>
                 {% endif %}
             </div>
             <div class="image-counter" id="image-counter">1 / {{ images|length }}</div>
             {% if images|length > 1 %}
             <div class="thumbnail-list">
                 {% for img in images %}
-                    {% set ext = img.split('.')[-1].lower() %}
-                    {% if ext in ['mp4','webm','mov','avi','mkv'] %}
-                        {% set thumb_path = img.split('.')[0] + '_thumb.jpg' %}
-                    {% else %}
-                        {% set thumb_path = img %}
-                    {% endif %}
-                    <img src="{{ url_for('static', filename='uploads/' ~ thumb_path) }}"
+                    <img src="{% if img.startswith('data:') %}{{ img }}{% else %}{{ url_for('static', filename='uploads/' ~ img) }}{% endif %}"
                         class="thumbnail"
                         data-index="{{ loop.index0 }}"
-                        data-original="{{ url_for('static', filename='uploads/' ~ img) }}"
+                        data-original="{% if img.startswith('data:') %}{{ img }}{% else %}{{ url_for('static', filename='uploads/' ~ img) }}{% endif %}"
                         onclick="changeMainMedia(this.getAttribute('data-original'), {{ loop.index0 }})"
                         alt="Thumbnail"
-                        onerror="this.onerror=null; this.src='{{ url_for('static', filename='uploads/' ~ img) }}';">
+                        onerror="this.onerror=null; this.src='{{ url_for('static', filename='uploads/placeholder.jpg') }}';">
                 {% endfor %}
             </div>
             {% endif %}
@@ -137,19 +139,12 @@
             <!-- LEFT COLUMN: product details (fixed) -->
             <div class="buy-modal-left">
                 <div class="product-image-preview">
-                    {% set first_image = images[0] if images else '' %}
-                    {% set ext = first_image.split('.')[-1].lower() if first_image else '' %}
-                    {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
-                        <video src="{{ url_for('static', filename='uploads/' ~ first_image) }}" controls style="width:100%; border-radius:12px;"></video>
-                    {% elif first_image %}
-                        <img src="{{ url_for('static', filename='uploads/' ~ first_image) }}" alt="{{ product.name }}" style="width:100%; border-radius:12px;">
-                    {% else %}
-                        <div class="no-image-placeholder">📦</div>
-                    {% endif %}
+                    <!-- Clone the main image element dynamically? Or reuse the same logic -->
+                    <div id="modal-product-image"></div>
                 </div>
                 <h3 style="margin: 15px 0 5px;">{{ product.name }}</h3>
                 <p style="font-size: 1.4rem; color: #00381f; font-weight: bold; margin: 5px 0;">RM {{ "%.2f"|format(product.price) }}</p>
-                <p style="color: #666;">Condition: {{ product.condition | replace('_', ' ') | title }}</p>
+                <p><span class="condition-badge" style="background-color: #00381f; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block;">{{ product.condition | replace('_', ' ') | title }}</span></p>
             </div>
 
             <!-- VERTICAL SEPARATOR LINE -->
@@ -180,29 +175,14 @@
         });
     });
     function changeMainMedia(src, index) {
-        const ext = src.split('.').pop().toLowerCase();
         const mainContainer = document.querySelector('.main-image');
-        const currentCounter = document.getElementById('image-counter');
-        const total = {{ images|length }};
-
-        if (ext === 'mp4' || ext === 'webm' || ext === 'mov') {
-            // Build thumbnail filename from the video source (e.g., video.mp4 -> video_thumb.jpg)
-            const thumb = src.replace(/\.(mp4|webm|mov)$/, '_thumb.jpg');
-            mainContainer.innerHTML = `
-                <video id="main-product-video" controls autoplay muted loop poster="${thumb}">
-                    <source src="${src}" type="video/${ext}">
-                    Your browser does not support the video tag.
-                </video>
-            `;
+        const isVideo = src.match(/\.(mp4|webm|mov|avi|mkv)$/i);
+        if (isVideo) {
+            mainContainer.innerHTML = `<video id="main-product-video" controls autoplay muted loop><source src="${src}" type="video/${src.split('.').pop()}"></video>`;
         } else {
             mainContainer.innerHTML = `<img id="main-product-img" src="${src}" alt="Product image">`;
         }
-        if (currentCounter) currentCounter.textContent = (index + 1) + ' / ' + total;
-        
-        document.querySelectorAll('.thumbnail').forEach(thumb => {
-            thumb.classList.remove('active');
-            if (thumb.src === src) thumb.classList.add('active');
-        });
+        document.getElementById('image-counter').textContent = (index + 1) + ' / ' + {{ images|length }};
     }
 
     function openOfferModal() {
@@ -336,6 +316,12 @@
     function openBuyModal() {
         const modal = document.getElementById('buyModal');
         if (!modal) return;
+        // Copy the main product image (or video) into the modal
+        const mainImageContainer = document.querySelector('.main-image');
+        const modalImageContainer = document.getElementById('modal-product-image');
+        if (mainImageContainer && modalImageContainer) {
+            modalImageContainer.innerHTML = mainImageContainer.innerHTML;
+        }
         modal.style.display = 'flex';
         generateLocationButtons();
         selectedLocation = null;

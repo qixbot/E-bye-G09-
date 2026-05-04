@@ -2474,7 +2474,19 @@ def product_detail(product_id):
         flash('Product not found or not yet approved.', 'error')
         return redirect(url_for('home'))
 
-    images = product['images'].split(',') if product['images'] else []
+    import json
+    images_blob_str = product.get('images_blob', '[]')
+    images = []
+    if images_blob_str and images_blob_str != '[]':
+        try:
+            images = json.loads(images_blob_str)
+            # Keep only valid base64 data URLs
+            images = [img for img in images if img.startswith('data:')]
+        except:
+            pass
+    # Fallback to file-based images if no base64
+    if not images and product.get('images'):
+        images = product['images'].split(',') if product['images'] else []
 
     return render_template('product.html', product=product, images=images)
 
