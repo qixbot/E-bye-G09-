@@ -131,19 +131,39 @@
 
 <!-- Buy Now Modal -->
 <div id="buyModal" class="modal">
-    <div class="modal-content" style="max-width: 650px; width: 90%; padding: 20px;">
+    <div class="modal-content buy-modal-content">
         <span class="close" onclick="closeBuyModal()">&times;</span>
-        <h2>Confirm Purchase</h2>
-        <div id="buyProductInfo" style="margin: 12px 0 20px; padding: 12px; background: #f5f5f5; border-radius: 12px;">
-            <p><strong>{{ product.name }}</strong><br>
-            Price: RM {{ "%.2f"|format(product.price) }}<br>
-            Condition: {{ product.condition | replace('_', ' ') | title }}</p>
+        <div class="buy-modal-two-columns">
+            <!-- LEFT COLUMN: product details (fixed) -->
+            <div class="buy-modal-left">
+                <div class="product-image-preview">
+                    {% set first_image = images[0] if images else '' %}
+                    {% set ext = first_image.split('.')[-1].lower() if first_image else '' %}
+                    {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
+                        <video src="{{ url_for('static', filename='uploads/' ~ first_image) }}" controls style="width:100%; border-radius:12px;"></video>
+                    {% elif first_image %}
+                        <img src="{{ url_for('static', filename='uploads/' ~ first_image) }}" alt="{{ product.name }}" style="width:100%; border-radius:12px;">
+                    {% else %}
+                        <div class="no-image-placeholder">📦</div>
+                    {% endif %}
+                </div>
+                <h3 style="margin: 15px 0 5px;">{{ product.name }}</h3>
+                <p style="font-size: 1.4rem; color: #00381f; font-weight: bold; margin: 5px 0;">RM {{ "%.2f"|format(product.price) }}</p>
+                <p style="color: #666;">Condition: {{ product.condition | replace('_', ' ') | title }}</p>
+            </div>
+
+            <!-- VERTICAL SEPARATOR LINE -->
+            <div class="buy-modal-divider"></div>
+
+            <!-- RIGHT COLUMN: location buttons (scrollable) -->
+            <div class="buy-modal-right">
+                <p style="margin-bottom: 16px; font-weight: 600;">Choose a meetup location:</p>
+                <div class="location-grid" id="locationGrid">
+                    <!-- 8+ buttons injected via JS -->
+                </div>
+            </div>
         </div>
-        <p class="modal-caption">Choose a meetup location:</p>
-        <div class="location-grid" id="locationGrid">
-            <!-- 8 buttons injected via JS -->
-        </div>
-        <div class="modal-buttons" style="margin-top: 25px;">
+        <div class="modal-buttons" style="margin-top: 20px; justify-content: flex-end;">
             <button class="modal-cancel" onclick="closeBuyModal()">Cancel</button>
             <button class="modal-send" id="confirmBuyBtn">Confirm Purchase</button>
         </div>
