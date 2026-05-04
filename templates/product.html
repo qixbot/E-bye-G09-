@@ -61,7 +61,9 @@
                 <a href="{% if product.seller_id == session.user_id %}{{ url_for('edit_profile') }}{% else %}{{ url_for('user_profile', user_id=product.seller_id) }}{% endif %}" class="seller-profile-btn">
                     <div class="seller-details">
                         <div class="seller-avatar">
-                            <img src="{{ url_for('user_avatar', user_id=product.seller_id) }}" alt="Seller avatar">
+                            <img src="{{ url_for('user_avatar', user_id=product.seller_id) }}" alt="Seller avatar"
+                                onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="avatar-placeholder" style="display: none;">{{ product.seller_name[0].upper() if product.seller_name else 'U' }}</div>
                         </div>
                         <div class="seller-text">
                             <div class="seller-fullname">{{ product.seller_full_name or product.seller_name }}</div>
