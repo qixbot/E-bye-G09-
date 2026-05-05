@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+#detailModal > div { max-height: 85vh; overflow-y: auto; }
+</style>
+
 <!-- 顶部导航 -->
 <div style="background:#fff;padding:12px 30px;margin-bottom:30px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
     <div style="display:flex; gap:12px;">
@@ -14,14 +18,23 @@
     <h2>Manage All Products</h2>
     <p style="color:#555;margin-bottom:20px;">Review, approve, and manage product listings</p>
 
-    <!-- 搜索 -->
-    <div class="mb-4" style="position:relative;max-width:700px;">
-        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:#888;">🔍</span>
-        <input type="text" id="searchInput" class="form-control" placeholder="Search product name / seller" style="border-radius:12px;padding:12px 16px 12px 40px;width:100%;">
+    <!-- 搜索 + 筛选 -->
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="position:relative;flex:1;min-width:300px;">
+            <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:#888;">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search product name / seller" style="border-radius:12px;padding:12px 16px 12px 40px;width:100%;border:1px solid #ddd;">
+        </div>
+        <select id="statusFilter" onchange="filterStatus()" style="padding:10px 16px;border-radius:12px;border:1px solid #ddd;font-size:14px;">
+            <option value="all">📋 All Status</option>
+            <option value="pending">⏳ Pending</option>
+            <option value="approved">✅ Approved</option>
+            <option value="rejected">❌ Rejected</option>
+        </select>
     </div>
     <hr>
 
     <!-- ⏳ 待审核商品 -->
+    <div class="product-section" data-status="pending">
     <h4 class="mb-3 text-primary">⏳ Pending Approval</h4>
     <div style="background:white;border-radius:16px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
         <table class="table table-hover w-100">
@@ -43,7 +56,7 @@
                         <td>{{ item.name }}</td>
                         <td>{{ item.seller_name }}</td>
                         <td>{{ "%.2f"|format(item.price) }}</td>
-                        <td>{{ item.created_at }}</td>
+                        <td>{{ item.created_at.strftime('%Y-%m-%d') if item.created_at else '' }}</td>
                         <td>
                             <button onclick="loadProduct({{ item.id }})" 
                                style="background:#4a6fa5;color:white;padding:6px 12px;border-radius:8px;border:none;margin-right:6px;cursor:pointer;">
@@ -61,17 +74,17 @@
                     </tr>
                     {% endfor %}
                 {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">No pending products</td>
-                    </tr>
+                    <tr><td colspan="6" class="text-center py-4 text-muted">No pending products</td></tr>
                 {% endif %}
             </tbody>
         </table>
+    </div>
     </div>
 
     <br><br><br>
 
     <!-- ✅ 已通过商品 -->
+    <div class="product-section" data-status="approved">
     <h4 class="mb-3">✅ Approved Products</h4>
     <div style="background:white;border-radius:16px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
         <table class="table table-hover w-100">
@@ -103,17 +116,17 @@
                     </tr>
                     {% endfor %}
                 {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">No approved products yet</td>
-                    </tr>
+                    <tr><td colspan="6" class="text-center py-4 text-muted">No approved products yet</td></tr>
                 {% endif %}
             </tbody>
         </table>
+    </div>
     </div>
 
     <br><br><br>
 
     <!-- ❌ 已拒绝商品 -->
+    <div class="product-section" data-status="rejected">
     <h4 class="mb-3 text-danger">❌ Rejected Products</h4>
     <div style="background:white;border-radius:16px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
         <table class="table table-hover w-100">
@@ -145,235 +158,132 @@
                     </tr>
                     {% endfor %}
                 {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">No rejected products</td>
-                    </tr>
+                    <tr><td colspan="6" class="text-center py-4 text-muted">No rejected products</td></tr>
                 {% endif %}
             </tbody>
         </table>
     </div>
+    </div>
 
 </div>
 
-<!-- 驳回填写理由弹窗 -->
+<!-- 驳回弹窗 -->
 <div id="rejectModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:9999;opacity:0;transition:opacity 0.3s ease;">
     <div style="background:#fff;width:450px;margin:120px auto;padding:25px;border-radius:20px;">
-        <h5 style="margin-bottom:15px;">Reject Product</h5>
+        <h5>Reject Product</h5>
         <form id="rejectForm" method="POST">
             <textarea name="reject_reason" required placeholder="Please enter reject reason..." 
                       style="width:100%;height:120px;padding:12px;border-radius:12px;border:1px solid #ccc;resize:none;"></textarea>
             <div style="margin-top:15px;display:flex;gap:10px;justify-content:flex-end;">
-                <button type="button" onclick="closeRejectModal()" 
-                        style="padding:8px 20px;border-radius:12px;border:1px solid #999;background:#fff;cursor:pointer;">Cancel</button>
+                <button type="button" onclick="closeRejectModal()" style="padding:8px 20px;border-radius:12px;border:1px solid #999;background:#fff;cursor:pointer;">Cancel</button>
                 <button type="submit" style="padding:8px 20px;border-radius:12px;border:none;background:#c0392b;color:white;cursor:pointer;">Confirm Reject</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- 商品详情弹窗（已优化图片查看） -->
+<!-- 详情弹窗（可滚动） -->
 <div id="detailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;">
-  <div style="background:white;border-radius:20px;width:600px;margin:80px auto;padding:25px;">
-
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+  <div style="background:white;border-radius:20px;width:600px;margin:60px auto;padding:25px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;padding-bottom:10px;">
       <h3>Product Full Details</h3>
       <button onclick="closeDetailModal()" style="border:none;background:none;font-size:22px;cursor:pointer;">✕</button>
     </div>
-
-    <!-- 图片查看区：支持左右箭头翻看 -->
-    <div id="detailImageArea" 
-style="width:100%; height:260px; background:#f8f8f8; border-radius:16px; margin-bottom:20px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-
-    <!-- 左箭头 -->
-    <button onclick="prevImg()" 
-    style="position:absolute; left:10px; top:50%; transform:translateY(-50%); z-index:10;
-    background:#205c30; color:white; border:none; width:42px; height:42px;
-    border-radius:50%; cursor:pointer; font-size:28px; display:flex; align-items:center; justify-content:center;">‹</button>
-
-    <!-- 单张图片展示 -->
-    <img id="onlyImg" style="max-width:90%; max-height:230px; border-radius:12px; object-fit:contain;" alt="Product image">
-
-    <!-- 右箭头 -->
-    <button onclick="nextImg()" 
-    style="position:absolute; right:10px; top:50%; transform:translateY(-50%); z-index:10;
-    background:#205c30; color:white; border:none; width:42px; height:42px;
-    border-radius:50%; cursor:pointer; font-size:28px; display:flex; align-items:center; justify-content:center;">›</button>
-
-    <!-- 图片页码指示器 -->
-    <div id="pageText" style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); color:#444; background:rgba(255,255,255,0.8); padding:2px 12px; border-radius:20px; font-size:13px;"></div>
-
-</div>
-    <!-- 文字信息区域 -->
+    <div id="detailImageArea" style="width:100%;height:260px;background:#f8f8f8;border-radius:16px;margin-bottom:20px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        <button onclick="prevImg()" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:10;background:#205c30;color:white;border:none;width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:28px;">‹</button>
+        <img id="onlyImg" style="max-width:90%;max-height:230px;border-radius:12px;object-fit:contain;" alt="Product image">
+        <button onclick="nextImg()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);z-index:10;background:#205c30;color:white;border:none;width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:28px;">›</button>
+        <div id="pageText" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);color:#444;background:rgba(255,255,255,0.8);padding:2px 12px;border-radius:20px;font-size:13px;"></div>
+    </div>
     <div id="detailInfoArea" style="line-height:1.8;"></div>
-
-    <div style="text-align:right;margin-top:15px;">
+    <div style="text-align:right;margin-top:15px;position:sticky;bottom:0;background:white;padding-top:10px;">
       <button onclick="closeDetailModal()" style="padding:7px 22px;border-radius:10px;border:none;background:#205c30;color:white;cursor:pointer;">Close</button>
     </div>
-
   </div>
 </div>
 
 <script>
-let currentPid = 0;
+let currentPid = 0, nowIndex = 0, pics = [];
 
-// 驳回弹窗逻辑
+function filterStatus() {
+    var val = document.getElementById('statusFilter').value;
+    document.querySelectorAll('.product-section').forEach(function(s) {
+        s.style.display = (val === 'all' || s.dataset.status === val) ? '' : 'none';
+    });
+}
+
 function openRejectModal(pid){
     currentPid = pid;
     document.getElementById('rejectForm').action = "/admin/product/reject/" + pid;
-    const modal = document.getElementById('rejectModal');
-    modal.style.display = "block";
-    setTimeout(function(){ modal.style.opacity = 1; }, 10);
+    var m = document.getElementById('rejectModal');
+    m.style.display = "block";
+    setTimeout(function(){ m.style.opacity = 1; }, 10);
 }
-
 function closeRejectModal(){
-    const modal = document.getElementById('rejectModal');
-    modal.style.opacity = 0;
-    setTimeout(function(){ modal.style.display = "none"; }, 300);
+    var m = document.getElementById('rejectModal');
+    m.style.opacity = 0;
+    setTimeout(function(){ m.style.display = "none"; }, 300);
 }
 
-// 全局图片轮播变量
-let nowIndex = 0;
-let pics = [];
-
-// 核心：通过API获取商品数据并展示图片
 async function loadProduct(pid){
-    nowIndex = 0;
-    pics = [];
-
+    nowIndex = 0; pics = [];
     try {
-        const res = await fetch("/admin/api/product/" + pid);
-        if (!res.ok) {
-            alert("Failed to load product details");
-            return;
-        }
-        const data = await res.json();
-
-        if (data.images_list && Array.isArray(data.images_list) && data.images_list.length > 0) {
-            pics = data.images_list;
-        } else if (data.images && typeof data.images === 'string' && data.images.trim().length > 0) {
-            pics = data.images.split(',').map(function(x){ return '/static/uploads/' + x.trim(); }).filter(function(x){ return x.length > '/static/uploads/'.length; });
-        } else {
-            pics = [];
-        }
-
+        var res = await fetch("/admin/api/product/" + pid);
+        if (!res.ok) { alert("Failed to load"); return; }
+        var data = await res.json();
+        pics = data.images_list || [];
         refreshPic();
-
-        let time = "";
-        if (data.created_at) {
-            time = new Date(data.created_at + "Z").toLocaleString("en-MY", {
-                timeZone: "Asia/Kuala_Lumpur",
-                hour12: false
-            });
-        }
-
         document.getElementById('detailInfoArea').innerHTML = 
-        "<p><strong>Product Name：</strong>" + (data.name || '') + "</p>" +
-        "<p><strong>Seller：</strong>" + (data.seller_name || '') + "</p>" +
-        "<p><strong>Price：</strong>RM " + Number(data.price || 0).toFixed(2) + "</p>" +
-        "<p><strong>Category：</strong>" + (data.category || '') + "</p>" +
-        "<p><strong>Condition：</strong>" + (data.condition || '') + "</p>" +
-        "<p><strong>Description：</strong>" + (data.description || '') + "</p>" +
-        "<p><strong>Upload Time：</strong>" + time + "</p>" +
-        "<p><strong>Current Status：</strong>" + (data.status || '') + "</p>" +
-        (data.reject_reason ? "<p><strong>Reject Reason：</strong>" + data.reject_reason + "</p>" : '');
-
-        const modal = document.getElementById('detailModal');
-        modal.style.display = "block";
-        setTimeout(function(){
-            modal.style.opacity = 1;
-        }, 10);
-    } catch (error) {
-        console.error("Error loading product:", error);
-        alert("Could not load product information.");
-    }
+            "<p><strong>Name：</strong>" + (data.name||'') + "</p>" +
+            "<p><strong>Seller：</strong>" + (data.seller_name||'') + "</p>" +
+            "<p><strong>Price：</strong>RM " + Number(data.price||0).toFixed(2) + "</p>" +
+            "<p><strong>Category：</strong>" + (data.category||'') + "</p>" +
+            "<p><strong>Condition：</strong>" + (data.condition||'') + "</p>" +
+            "<p><strong>Description：</strong>" + (data.description||'') + "</p>" +
+            "<p><strong>Status：</strong>" + (data.status||'') + "</p>" +
+            (data.reject_reason ? "<p><strong>Reject Reason：</strong>" + data.reject_reason + "</p>" : '');
+        var m = document.getElementById('detailModal');
+        m.style.display = "block";
+        setTimeout(function(){ m.style.opacity = 1; }, 10);
+    } catch(e) { console.error(e); }
 }
 
 function refreshPic() {
-    const imgElement = document.getElementById('onlyImg');
-    const pageText = document.getElementById('pageText');
-    
-    if (!imgElement || !pageText) return;
-
-    if (pics.length === 0) {
-        imgElement.style.display = "none";
-        pageText.innerText = "No images";
-        return;
-    }
-
+    var img = document.getElementById('onlyImg'), pt = document.getElementById('pageText');
+    if (!img || !pt) return;
+    if (pics.length === 0) { img.style.display = "none"; pt.innerText = "No images"; return; }
     if (nowIndex < 0) nowIndex = 0;
     if (nowIndex >= pics.length) nowIndex = pics.length - 1;
-
-    imgElement.style.display = "block";
-    imgElement.src = pics[nowIndex];
-    imgElement.alt = "Product image " + (nowIndex + 1);
-    
-    pageText.innerText = (nowIndex + 1) + " / " + pics.length;
+    img.style.display = "block";
+    img.src = pics[nowIndex];
+    pt.innerText = (nowIndex + 1) + " / " + pics.length;
 }
-
-function prevImg() {
-    if (pics.length <= 1) return;
-    nowIndex = (nowIndex <= 0) ? pics.length - 1 : nowIndex - 1;
-    refreshPic();
-}
-
-function nextImg() {
-    if (pics.length <= 1) return;
-    nowIndex = (nowIndex >= pics.length - 1) ? 0 : nowIndex + 1;
-    refreshPic();
-}
-
+function prevImg() { if (pics.length <= 1) return; nowIndex = nowIndex <= 0 ? pics.length-1 : nowIndex-1; refreshPic(); }
+function nextImg() { if (pics.length <= 1) return; nowIndex = nowIndex >= pics.length-1 ? 0 : nowIndex+1; refreshPic(); }
 function closeDetailModal() {
-    const modal = document.getElementById('detailModal');
-    modal.style.opacity = 0;
-    setTimeout(function(){
-        modal.style.display = "none";
-        document.getElementById('onlyImg').src = "";
-        document.getElementById('pageText').innerText = "";
-    }, 300);
+    var m = document.getElementById('detailModal');
+    m.style.opacity = 0;
+    setTimeout(function(){ m.style.display = "none"; }, 300);
 }
 
-// 页面加载完成后绑定事件
 document.addEventListener('DOMContentLoaded', function() {
-    const detailModal = document.getElementById('detailModal');
-    if (detailModal) {
-        detailModal.addEventListener('click', function(e) {
-            if (e.target === detailModal) closeDetailModal();
-        });
-    }
-
-    const rejectModal = document.getElementById('rejectModal');
-    if (rejectModal) {
-        rejectModal.addEventListener('click', function(e) {
-            if (e.target === rejectModal) closeRejectModal();
-        });
-    }
-
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const val = this.value.toLowerCase();
-            document.querySelectorAll('tbody tr').forEach(function(row) {
-                const t = row.textContent.toLowerCase();
-                row.style.display = t.includes(val) ? '' : 'none';
-            });
-        });
-    }
+    document.getElementById('detailModal').addEventListener('click', function(e) { if (e.target === this) closeDetailModal(); });
+    document.getElementById('rejectModal').addEventListener('click', function(e) { if (e.target === this) closeRejectModal(); });
+    document.getElementById('searchInput').addEventListener('input', function() {
+        var v = this.value.toLowerCase();
+        document.querySelectorAll('tbody tr').forEach(function(r) { r.style.display = r.textContent.toLowerCase().includes(v) ? '' : 'none'; });
+    });
 });
 
-// 2秒自动消失提示
 setTimeout(function() {
-    const t = document.getElementById('toast');
+    var t = document.getElementById('toast');
     if(t) { t.style.opacity = 0; setTimeout(function(){ t.remove(); }, 600); }
 }, 2000);
 </script>
 
-<!-- Flash消息 -->
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% for cat, msg in messages %}
-<div id="toast" style="position:fixed;top:25px;left:50%;transform:translateX(-50%);background:#205c30;color:white;padding:12px 30px;border-radius:30px;z-index:9999;transition:opacity 0.6s;">
-    {{ msg }}
-</div>
+<div id="toast" style="position:fixed;top:25px;left:50%;transform:translateX(-50%);background:#205c30;color:white;padding:12px 30px;border-radius:30px;z-index:9999;">{{ msg }}</div>
 {% endfor %}
 {% endwith %}
-
 {% endblock %}

@@ -3,103 +3,132 @@
 {% block content %}
 
 <!-- 顶部按钮栏 -->
-<div style="
-    background-color: #ffffff;
-    padding:12px 30px;
-    margin-bottom:40px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-">
+<div style="background-color:#ffffff;padding:12px 30px;margin-bottom:40px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
     <div style="display:flex; gap:12px;">
-        <a href="{{ url_for('admin_users') }}" 
-           style="background-color:#205c30; color:white; border:none; border-radius:22px; padding:8px 22px; text-decoration:none;">
-            Manage Users
-        </a>
-        <a href="{{ url_for('admin_products') }}" 
-           style="background-color:#205c30; color:white; border:none; border-radius:22px; padding:8px 22px; text-decoration:none;">
-            Manage Products
-        </a>
-        <a href="{{ url_for('logout') }}" 
-           style="background-color:#205c30; color:white; border:none; border-radius:22px; padding:8px 22px; text-decoration:none;">
-            Logout
-        </a>
+        <a href="{{ url_for('admin_users') }}" style="background-color:#205c30;color:white;border:none;border-radius:22px;padding:8px 22px;text-decoration:none;">Manage Users</a>
+        <a href="{{ url_for('admin_products') }}" style="background-color:#205c30;color:white;border:none;border-radius:22px;padding:8px 22px;text-decoration:none;">Manage Products</a>
+        <a href="{{ url_for('logout') }}" style="background-color:#205c30;color:white;border:none;border-radius:22px;padding:8px 22px;text-decoration:none;">Logout</a>
     </div>
 </div>
 
-
-<!-- 主体内容 -->
-<div style="padding:0 30px; max-width:1200px; margin: 0 auto;">
-
+<div style="padding:0 30px; max-width:1200px; margin:0 auto;">
     <h2>Admin Dashboard</h2>
-    <p style="color:#555; margin-bottom:35px;">
-        Platform overview — monitor users, products, and pending approvals at a glance.
-    </p>
+    <p style="color:#555;margin-bottom:35px;">Platform overview — monitor users, products, and pending approvals at a glance.</p>
     <hr style="margin-bottom:40px;">
 
-    <!-- 4个卡片 -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 30px;">
-
-        <!-- 卡片1：Total Products（已通过审核的商品） -->
-        <div style="
-            background-color:#205c30;
-            color:white;
-            border-radius:16px;
-            padding:30px;
-            position: relative;
-            overflow: hidden;
-        ">
-            <div style="position: absolute; top: -20px; right: -15px; font-size: 80px; opacity: 0.12;">📦</div>
-            <h5 style="margin:0 0 10px 0; font-size:15px; font-weight:500; position: relative; z-index:1;">Total Products</h5>
-            <p style="font-size:44px; font-weight:700; margin:0; line-height:1.2; position: relative; z-index:1;">{{ approved_count }}</p>
-            <small style="opacity:0.85; position: relative; z-index:1;">Approved & live on marketplace</small>
+    <!-- 5个卡片 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:30px;margin-bottom:40px;">
+        <div style="background-color:#205c30;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(32,92,48,0.2);">
+            <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">📦</div>
+            <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Total Products</h5>
+            <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ approved_count }}</p>
+            <small style="opacity:0.85;position:relative;z-index:1;">Approved & live</small>
         </div>
-
-        <!-- 卡片2：Pending Approval（待审核商品） -->
-        <div style="
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            color:white;
-            border-radius:16px;
-            padding:30px;
-            position: relative;
-            overflow: hidden;
-        ">
-            <div style="position: absolute; top: -20px; right: -15px; font-size: 80px; opacity: 0.12;">⏳</div>
-            <h5 style="margin:0 0 10px 0; font-size:15px; font-weight:500; position: relative; z-index:1;">Pending Approval</h5>
-            <p style="font-size:44px; font-weight:700; margin:0; line-height:1.2; position: relative; z-index:1;">{{ pending_count }}</p>
-            <small style="opacity:0.85; position: relative; z-index:1;">Needs review</small>
+        <div style="background:linear-gradient(135deg,#f39c12,#e67e22);color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(243,156,18,0.25);">
+            <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">⏳</div>
+            <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Pending Approval</h5>
+            <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ pending_count }}</p>
+            <small style="opacity:0.85;position:relative;z-index:1;">Needs review</small>
         </div>
-
-        <!-- 卡片3：Registered Users（总注册用户） -->
-        <div style="
-            background-color:#2c3e50;
-            color:white;
-            border-radius:16px;
-            padding:30px;
-            position: relative;
-            overflow: hidden;
-        ">
-            <div style="position: absolute; top: -20px; right: -15px; font-size: 80px; opacity: 0.12;">👥</div>
-            <h5 style="margin:0 0 10px 0; font-size:15px; font-weight:500; position: relative; z-index:1;">Registered Users</h5>
-            <p style="font-size:44px; font-weight:700; margin:0; line-height:1.2; position: relative; z-index:1;">{{ total_users }}</p>
-            <small style="opacity:0.85; position: relative; z-index:1;">Platform members</small>
+        <div style="background-color:#2c3e50;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(44,62,80,0.25);">
+            <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">👥</div>
+            <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Registered Users</h5>
+            <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ total_users }}</p>
+            <small style="opacity:0.85;position:relative;z-index:1;">Platform members</small>
         </div>
-
-        <!-- 卡片4：Active Sellers（活跃卖家数） -->
-        <div style="
-            background-color:#8e44ad;
-            color:white;
-            border-radius:16px;
-            padding:30px;
-            position: relative;
-            overflow: hidden;
-        ">
-            <div style="position: absolute; top: -20px; right: -15px; font-size: 80px; opacity: 0.12;">🛒</div>
-            <h5 style="margin:0 0 10px 0; font-size:15px; font-weight:500; position: relative; z-index:1;">Active Sellers</h5>
-            <p style="font-size:44px; font-weight:700; margin:0; line-height:1.2; position: relative; z-index:1;">{{ seller_count }}</p>
-            <small style="opacity:0.85; position: relative; z-index:1;">Users with listings</small>
+        <div style="background-color:#8e44ad;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(142,68,173,0.25);">
+            <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">🛒</div>
+            <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Active Sellers</h5>
+            <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ seller_count }}</p>
+            <small style="opacity:0.85;position:relative;z-index:1;">Users with listings</small>
         </div>
-
     </div>
 
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:30px;">
+        <div onclick="openAnnModal()" style="background:linear-gradient(135deg,#1a5276,#1abc9c);color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;cursor:pointer;box-shadow:0 4px 16px rgba(26,188,156,0.2);transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">📢</div>
+            <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Announcements</h5>
+            <p style="font-size:20px;font-weight:600;margin:0;line-height:1.2;position:relative;z-index:1;">Manage & send</p>
+            <small style="opacity:0.85;position:relative;z-index:1;">Tap to open →</small>
+        </div>
+    </div>
 </div>
+
+<!-- 公告弹窗 -->
+<div id="annModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
+    <div style="background:#fff;border-radius:20px;width:90%;max-width:600px;max-height:85vh;overflow-y:auto;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+            <h3 style="margin:0;font-size:20px;">📢 Announcements</h3>
+            <button onclick="closeAnnModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;">✕</button>
+        </div>
+
+        <!-- 新建公告 -->
+        <div style="background:#f9faf9;border-radius:14px;padding:18px;margin-bottom:24px;">
+            <h4 style="margin:0 0 4px;font-size:14px;">+ New Announcement</h4>
+            <p style="color:#888;font-size:12px;margin-bottom:12px;">Will notify all users</p>
+            <input type="text" id="annTitle" placeholder="Title" style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd;font-size:14px;margin-bottom:8px;outline:none;">
+            <textarea id="annContent" placeholder="Content..." style="width:100%;height:80px;border-radius:10px;border:1px solid #ddd;padding:10px;font-size:14px;resize:none;outline:none;"></textarea>
+            <button onclick="postAnnouncement()" style="margin-top:10px;background:#205c30;color:white;border:none;padding:8px 22px;border-radius:20px;font-weight:600;font-size:13px;cursor:pointer;">📨 Send</button>
+        </div>
+
+        <!-- 历史公告 -->
+        <h4 style="margin:0 0 12px;font-size:14px;color:#888;">Previous Announcements</h4>
+        <div id="annList">
+            <p style="color:#999;text-align:center;">Loading...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function openAnnModal() {
+    document.getElementById('annModal').style.display = 'flex';
+    loadAnnouncements();
+}
+function closeAnnModal() { document.getElementById('annModal').style.display = 'none'; }
+
+function loadAnnouncements() {
+    fetch('/api/announcements')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        var html = '';
+        if (data.length === 0) html = '<p style="color:#999;text-align:center;">No announcements yet.</p>';
+        data.forEach(function(a){
+            html += '<div style="display:flex;justify-content:space-between;align-items:start;padding:14px;border:1px solid #eee;border-radius:12px;margin-bottom:8px;">' +
+                '<div style="flex:1;">' +
+                    '<div style="font-weight:600;margin-bottom:4px;">' + a.title + '</div>' +
+                    '<div style="font-size:13px;color:#555;">' + a.content + '</div>' +
+                    '<div style="font-size:10px;color:#aaa;margin-top:4px;">' + (a.created_at || '') + '</div>' +
+                '</div>' +
+                '<button onclick="deleteAnnouncement(' + a.id + ')" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:18px;flex-shrink:0;">🗑️</button>' +
+                '</div>';
+        });
+        document.getElementById('annList').innerHTML = html;
+    });
+}
+
+function postAnnouncement() {
+    var t = document.getElementById('annTitle').value.trim();
+    var c = document.getElementById('annContent').value.trim();
+    if (!t || !c) { alert('Please fill both fields'); return; }
+    fetch('/admin/announcement/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'title=' + encodeURIComponent(t) + '&content=' + encodeURIComponent(c)
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.success) {
+            document.getElementById('annTitle').value = '';
+            document.getElementById('annContent').value = '';
+            loadAnnouncements();
+        }
+    });
+}
+
+function deleteAnnouncement(id) {
+    if (!confirm('Delete this announcement? It will also be removed for all users.')) return;
+    fetch('/admin/announcement/delete/' + id, { method: 'POST' })
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if (d.success) loadAnnouncements(); });
+}
+</script>
 
 {% endblock %}

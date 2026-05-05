@@ -33,9 +33,10 @@
             <a href="#" class="nav-icon-btn" title="Notifications">
                 <img src="{{ url_for('static', filename='notif_icon.png') }}" class="nav-icon-img" alt="Notifications">
             </a>
-            <a href="/chatlist" class="nav-icon-btn" title="Messages">
-                <img src="{{ url_for('static', filename='chat-icon_Ver2.png') }}" class="nav-icon-img" alt="Chat">
-            </a>
+            <a href="/chatlist" class="nav-icon-btn" title="Messages" style="position:relative;">
+    <img src="{{ url_for('static', filename='chat-icon_Ver2.png') }}" class="nav-icon-img" alt="Chat">
+    <span id="chatBadge" style="display:none;position:absolute;top:-2px;right:-4px;background:#e74c3c;color:white;border-radius:50%;min-width:14px;height:14px;font-size:9px;font-weight:bold;text-align:center;line-height:14px;padding:0 3px;"></span>
+</a>
             <a href="{{ url_for('edit_profile') }}" style="text-decoration: none; display: flex; align-items: center;">
                 <img src="{% if session.get('user_id') %}{{ url_for('user_avatar', user_id=session.get('user_id')) }}{% endif %}" class="nav-avatar-img"
     alt="Avatar"
@@ -121,5 +122,25 @@
             }, 3000);
         }
     </script>
+    <script>
+(function() {
+    function updateBadge() {
+        fetch('/api/unread-count')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            var badge = document.getElementById('chatBadge');
+            if (!badge) return;
+            var total = (d.chat || 0) + (d.notifications || 0);
+            if (total > 0) {
+                badge.textContent = total > 99 ? '99+' : total;
+                badge.style.display = 'block';
+            } else { badge.style.display = 'none'; }
+        });
+    }
+    updateBadge();
+    setInterval(updateBadge, 30000);
+})();
+</script>
+
 </body>
 </html>

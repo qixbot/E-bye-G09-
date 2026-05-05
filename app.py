@@ -163,7 +163,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Initialize the database
-init_db()
 init_products()
 init_messages()
 init_announcements()
@@ -2563,7 +2562,7 @@ def chat_send():
     cur = db.cursor()
     cur.execute('''
         INSERT INTO messages (sender_id, receiver_id, product_id, content, created_at)
-        VALUES (%s, %s, %s, %s, NOW())
+        VALUES (%s, %s, %s, %s, NOW() + INTERVAL '8 hours')
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, content))
     db.commit()
     cur.close()
@@ -2571,8 +2570,7 @@ def chat_send():
 
     return jsonify({'success': True})
 
-
-# ========== 多发图片（你的）==========
+# ========== 多发图片 ==========
 @app.route('/chat/send-images', methods=['POST'])
 def chat_send_images():
     if 'user_id' not in session:
@@ -2596,17 +2594,16 @@ def chat_send_images():
     cur = db.cursor()
     cur.execute('''
     INSERT INTO messages (sender_id, receiver_id, content, image, created_at)
-    VALUES (%s, %s, %s, %s, NOW())
+    VALUES (%s, %s, %s, %s, NOW() + INTERVAL '8 hours')
     ''', (session['user_id'], int(receiver_id), content, ','.join(filenames)))
     db.commit()
     cur.close()
-    db.commit()
     db.close()
 
     return jsonify({'success': True})
 
 
-# ========== 单发图片（组员的）==========
+# ========== 单发图片 ==========
 @app.route('/chat/send-image', methods=['POST'])
 def chat_send_image():
     if 'user_id' not in session:
@@ -2627,11 +2624,10 @@ def chat_send_image():
     cur = db.cursor()
     cur.execute('''
     INSERT INTO messages (sender_id, receiver_id, product_id, content, image, created_at)
-    VALUES (%s, %s, %s, %s, %s, NOW())
+    VALUES (%s, %s, %s, %s, %s, NOW() + INTERVAL '8 hours')
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, '', filename))
     db.commit()
     cur.close()
-    db.commit()
     db.close()
 
     return jsonify({'success': True})
@@ -2646,10 +2642,10 @@ def chat_page(other_user_id, product_id=None):
     db = get_db()
     cur = db.cursor()
     
-    # 更新当前用户最后上线时间
-    cur.execute('UPDATE users SET last_seen = %s WHERE id = %s',
-           (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), session['user_id']))
-    db.commit()
+        # 更新当前用户最后上线时间（暂时跳过，等待 Supabase 加列）
+    # cur.execute('UPDATE users SET last_seen = %s WHERE id = %s',
+    #        (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), session['user_id']))
+    # db.commit()
     
     # 对方用户信息
     cur.execute('SELECT * FROM users WHERE id = %s', (other_user_id,))
@@ -2678,6 +2674,12 @@ def chat_page(other_user_id, product_id=None):
         ORDER BY created_at ASC
     ''', (session['user_id'], other_user_id, other_user_id, session['user_id']))
     messages = cur.fetchall()
+        # 格式化时间为马来西亚时区
+    for msg in messages:
+        if msg['created_at']:
+            from datetime import timezone, timedelta
+            malaysia_tz = timezone(timedelta(hours=8))
+            msg['created_at'] = msg['created_at'].replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
 
     # 标记对方消息为已读
     cur.execute('''
@@ -2714,7 +2716,17 @@ def chat_get_messages(other_user_id):
     cur.close()
     db.close()
 
-    return jsonify([dict(row) for row in messages])
+    from datetime import timezone, timedelta
+    malaysia_tz = timezone(timedelta(hours=8))
+    
+    result = []
+    for msg in messages:
+        msg = dict(msg)
+        if msg['created_at']:
+            msg['created_at'] = msg['created_at'].replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
+        result.append(msg)
+
+    return jsonify(result)
 
 @app.route('/report-user/<int:user_id>', methods=['POST'])
 def report_user(user_id):
@@ -2749,28 +2761,42 @@ def user_status(user_id):
     cur.close()
     db.close()
     
-    if not user:
-        return jsonify({'online': False, 'last_seen': ''})
+    if not user or not user.get('last_seen'):
+        return jsonify({'online': False, 'last_seen': 'Unknown'})
+    
+    from datetime import timezone, timedelta
+    malaysia_tz = timezone(timedelta(hours=8))
     
     last_seen = user['last_seen']
-    if last_seen:
-        try:
-            if isinstance(last_seen, str):
-                last_dt = datetime.strptime(last_seen[:19], '%Y-%m-%d %H:%M:%S')
-            else:
-                last_dt = last_seen
-            diff = (datetime.now() - last_dt).seconds
-            online = diff < 300
-        except:
-            online = False
+    if isinstance(last_seen, str):
+        last_dt = datetime.strptime(last_seen[:19], '%Y-%m-%d %H:%M:%S')
     else:
-        online = False
+        last_dt = last_seen
+    
+    # 转马来西亚时间
+    last_dt = last_dt.replace(tzinfo=timezone.utc).astimezone(malaysia_tz)
+    diff = (datetime.now(timezone.utc).astimezone(malaysia_tz) - last_dt).seconds
+    online = diff < 300
     
     return jsonify({
         'online': online,
-        'last_seen': str(last_seen)[:19] if last_seen else 'Unknown'
+        'last_seen': last_dt.strftime('%Y-%m-%d %H:%M:%S')
     })
 
+@app.route('/api/user/<int:user_id>/listings')
+def api_user_other_listings(user_id):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""
+        SELECT id, name, price, status, images, images_blob
+        FROM products
+        WHERE seller_id = %s AND status = 'approved'
+        ORDER BY created_at DESC
+    """, (user_id,))
+    rows = cur.fetchall()
+    cur.close()
+    db.close()
+    return jsonify([dict(r) for r in rows])
 
 
 @app.route('/chatlist')
@@ -2779,11 +2805,13 @@ def chat_list():
         flash("Please login first", "error")
         return redirect(url_for('login'))
 
+    from datetime import timezone, timedelta
+    malaysia_tz = timezone(timedelta(hours=8))
+
     db = get_db()
     user_id = session['user_id']
     cur = db.cursor()
 
-    # 用户聊天列表 - 关键修复：使用 avatar_blob 而不是 avatar
     cur.execute('''
         SELECT u.id, u.username, u.full_name, u.avatar_blob,
                m.content as last_message, m.image as last_image,
@@ -2811,14 +2839,19 @@ def chat_list():
             chat['last_message'] = '(Picture)'
         elif chat.get('last_message') and 'Tap to view product' in (chat.get('last_message') or ''):
             chat['last_message'] = '(Product)'
+        if chat.get('last_time'):
+            chat['last_time'] = chat['last_time'].replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
         chat_list_data.append(chat)
 
-    # 未读通知数
+    # 未读通知
     cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
     unread_notifications = cur.fetchone()['count']
-
-    # 未读评论数（暂用0）
     unread_reviews = 0
+    
+    # 未读公告：对比最新公告时间和用户已读时间
+    # 临时：直接用公告总数
+    cur.execute("SELECT COUNT(*) AS count FROM announcements")
+    unread_announcements = cur.fetchone()['count']
     
     cur.close()
     db.close()
@@ -2826,39 +2859,83 @@ def chat_list():
     return render_template('user_chatlist.html', 
                            chats=chat_list_data,
                            unread_notifications=unread_notifications,
-                           unread_reviews=unread_reviews)
+                           unread_reviews=unread_reviews,
+                           unread_announcements=unread_announcements)
 
-# 系统公告列表
-@app.route('/announcements')
-def announcements():
+@app.route('/api/mark-ann-read', methods=['POST'])
+def mark_ann_read():
     if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
+        return jsonify({'success': False}), 401
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT * FROM announcements ORDER BY created_at DESC')
+    cur.execute("UPDATE users SET last_read_ann = NOW() WHERE id = %s", (session['user_id'],))
+    db.commit()
+    cur.close()
+    db.close()
+    return jsonify({'success': True})
+
+# 搜索用户 API
+@app.route('/api/search-users')
+def search_users():
+    if 'user_id' not in session:
+        return jsonify([])
+    q = request.args.get('q', '').strip()
+    if len(q) < 2:
+        return jsonify([])
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT id, username, student_id FROM users WHERE username ILIKE %s OR student_id ILIKE %s LIMIT 10",
+                (f'%{q}%', f'%{q}%'))
+    users = cur.fetchall()
+    cur.close()
+    db.close()
+    return jsonify([dict(u) for u in users])
+
+# 系统公告列表
+@app.route('/api/announcements')
+def api_announcements():
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT title, content, created_at FROM announcements ORDER BY created_at DESC")
     anns = cur.fetchall()
     cur.close()
     db.close()
-    return render_template('announcements.html', announcements=anns)
+    return jsonify([dict(a) for a in anns])
 
 
 # 管理员发公告
 @app.route('/admin/announcement/add', methods=['POST'])
 def add_announcement():
     if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    
+        return jsonify({'success': False}), 403
     title = request.form.get('title', '').strip()
     content = request.form.get('content', '').strip()
     if title and content:
         db = get_db()
         cur = db.cursor()
-        cur.execute('INSERT INTO announcements (title, content) VALUES (%s, %s)', (title, content))
+        cur.execute("INSERT INTO announcements (title, content) VALUES (%s, %s) RETURNING id", (title, content))
+        ann_id = cur.fetchone()['id']
+        # 通知所有用户
+        cur.execute("INSERT INTO notifications (user_id, message, created_at) SELECT id, %s, NOW() FROM users", 
+                    (f"📢 New announcement: {title}",))
         db.commit()
         cur.close()
         db.close()
-    return redirect(url_for('admin_dashboard'))
+        return jsonify({'success': True, 'id': ann_id})
+    return jsonify({'success': False})
+
+@app.route('/admin/announcement/delete/<int:ann_id>', methods=['POST'])
+def delete_announcement(ann_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 403
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM announcements WHERE id = %s", (ann_id,))
+    db.commit()
+    cur.close()
+    db.close()
+    return jsonify({'success': True})
+
 
 
 # 导航栏未读数量 API

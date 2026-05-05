@@ -4,15 +4,30 @@
 <style>
     .chatlist-container { max-width: 700px; margin: 0 auto; padding: 0 16px; }
     
-    .top-btns { display: flex; gap: 8px; padding: 14px 0; position: sticky; top: 0; background: #fff; z-index: 10; border-bottom: 1px solid #eee; }
-    .top-btn { flex: 1; text-align: center; padding: 12px 8px; border-radius: 14px; background: #f5f5f5; text-decoration: none; color: #333; font-size: 13px; font-weight: 500; position: relative; transition: 0.2s; }
-    .top-btn:hover { background: #e8f0ea; }
-    .top-btn .badge { position: absolute; top: 6px; right: 10px; background: #e74c3c; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; display: flex; align-items: center; justify-content: center; }
-    .top-btn.announcement { background: #fff3cd; border: 1px solid #ffc107; }
+    .top-btns { display: flex; gap: 10px; padding: 14px 0; position: sticky; top: 0; background: #fff; z-index: 10; border-bottom: 1px solid #eee; }
+    .top-btn { 
+        flex: 1; text-align: center; padding: 12px 8px; border-radius: 14px; 
+        background: #f9f9f9; text-decoration: none; color: #444; 
+        font-size: 13px; font-weight: 500; position: relative; 
+        transition: all 0.2s ease; border: 1px solid #eee;
+    }
+    .top-btn:hover { 
+        background: #eaf4ed; color: #205c30; 
+        border-color: #205c30; transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(32,92,48,0.1);
+    }
+    .top-btn .badge { 
+        position: absolute; top: -6px; right: -6px; 
+        background: #e74c3c; color: white; border-radius: 50%; 
+        width: 20px; height: 20px; font-size: 11px; 
+        display: flex; align-items: center; justify-content: center; 
+        box-shadow: 0 2px 6px rgba(231,76,60,0.3);
+    }
     
     .section-title { font-size: 14px; color: #888; padding: 16px 0 8px; font-weight: 600; }
     
-    .chat-item { display: flex; align-items: center; padding: 14px; background: #fff; border-radius: 14px; margin-bottom: 8px; text-decoration: none; color: #333; box-shadow: 0 1px 3px rgba(0,0,0,0.04); gap: 12px; }
+    .chat-item { display: flex; align-items: center; padding: 14px; background: #fff; border-radius: 14px; margin-bottom: 8px; text-decoration: none; color: #333; box-shadow: 0 1px 3px rgba(0,0,0,0.04); gap: 12px; transition: all 0.2s; }
+    .chat-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
     .chat-avatar { width: 46px; height: 46px; border-radius: 50%; background: #205c30; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; flex-shrink: 0; position: relative; overflow: hidden; }
     .chat-avatar-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
     .chat-info { flex: 1; min-width: 0; }
@@ -25,18 +40,27 @@
 
 <div class="chatlist-container">
 
+    <!-- 搜索用户 -->
+    <div style="padding:10px 0;">
+        <input type="text" id="userSearch" placeholder="🔍 Search user by name or ID..." 
+               style="width:100%;padding:10px 16px;border-radius:22px;border:1px solid #ddd;font-size:14px;outline:none;"
+               oninput="searchUsers()">
+        <div id="searchResults" style="margin-top:8px;"></div>
+    </div>
+
     <!-- 顶部功能按钮 -->
     <div class="top-btns">
-        <a href="{{ url_for('chat_list') }}?tab=notifications" class="top-btn">
+        <a href="#" onclick="return false;" class="top-btn" id="btnNotifications">
             🔔 Notifications
-            {% if unread_notifications > 0 %}<span class="badge">{{ unread_notifications }}</span>{% endif %}
+            <span class="badge" id="badgeNotif" style="display:{% if unread_notifications > 0 %}flex{% else %}none{% endif %};">{{ unread_notifications }}</span>
         </a>
-        <a href="{{ url_for('announcements') }}" class="top-btn announcement">
+        <a href="#" onclick="openAnnouncements();return false;" class="top-btn" id="btnAnnouncements">
             📢 Announcements
+            <span class="badge" id="badgeAnn" style="display:{% if unread_announcements > 0 %}flex{% else %}none{% endif %};">{{ unread_announcements }}</span>
         </a>
-        <a href="{{ url_for('chat_list') }}?tab=reviews" class="top-btn">
+        <a href="#" onclick="return false;" class="top-btn" id="btnReviews">
             💬 Reviews
-            {% if unread_reviews > 0 %}<span class="badge">{{ unread_reviews }}</span>{% endif %}
+            <span class="badge" id="badgeReview" style="display:{% if unread_reviews > 0 %}flex{% else %}none{% endif %};">{{ unread_reviews }}</span>
         </a>
     </div>
 
@@ -46,10 +70,9 @@
     {% if chats and chats|length > 0 %}
         {% for chat in chats %}
         <a href="{{ url_for('chat_page', other_user_id=chat.id) }}" class="chat-item">
-            <!-- 头像：优先显示图片，失败时显示文字首字母 -->
             <div class="chat-avatar">
                 <img class="chat-avatar-img" src="{{ url_for('user_avatar', user_id=chat.id) }}" 
-                     onerror="this.style.display='none'; this.parentElement.style.background='#205c30'; this.parentElement.innerHTML='{{ chat.username[0].upper() }}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center';">
+                     onerror="this.style.display='none'; this.parentElement.innerHTML='{{ chat.username[0].upper() }}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center';">
             </div>
             <div class="chat-info">
                 <div class="chat-name">{{ chat.full_name or chat.username }}</div>
@@ -59,7 +82,7 @@
                 </div>
             </div>
             <div class="chat-meta">
-                <div class="chat-time">{{ chat.last_time.strftime('%Y-%m-%d %H:%M:%S') if chat.last_time else '' }}</div>
+                <div class="chat-time">{{ chat.last_time if chat.last_time else '' }}</div>
                 {% if chat.unread_count > 0 and chat.sender_id != session['user_id'] %}
                 <span class="unread-dot">{{ chat.unread_count }}</span>
                 {% endif %}
@@ -71,4 +94,57 @@
     {% endif %}
 
 </div>
+
+<!-- 公告弹窗 -->
+<div id="announcementModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;justify-content:center;align-items:center;">
+    <div style="background:#fff;border-radius:16px;width:90%;max-width:500px;max-height:70vh;overflow-y:auto;padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3>📢 Announcements</h3>
+            <button onclick="closeAnnouncements()" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+        </div>
+        <div id="announcementList"><p style="color:#999;">Loading...</p></div>
+    </div>
+</div>
+
+<script>
+function searchUsers() {
+    var q = document.getElementById('userSearch').value.trim();
+    if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
+    fetch('/api/search-users?q=' + encodeURIComponent(q))
+    .then(function(r){ return r.json(); })
+    .then(function(users){
+        var html = '';
+        users.forEach(function(u){
+            html += '<div style="display:flex;align-items:center;padding:10px;background:#fff;border-radius:12px;margin-bottom:6px;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">' +
+                '<div style="width:40px;height:40px;border-radius:50%;background:#205c30;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;">' + u.username[0].toUpperCase() + '</div>' +
+                '<div style="flex:1;"><b>' + u.username + '</b><br><small>ID: ' + u.student_id + '</small></div>' +
+                '<a href="/chat/' + u.id + '" style="background:#205c30;color:#fff;padding:6px 14px;border-radius:16px;text-decoration:none;font-size:12px;">Chat</a>' +
+                '</div>';
+        });
+        document.getElementById('searchResults').innerHTML = html || '<p style="color:#999;text-align:center;">No users found</p>';
+    });
+}
+
+function openAnnouncements() {
+    document.getElementById('announcementModal').style.display = 'flex';
+    var badge = document.getElementById('badgeAnn');
+    if (badge) badge.style.display = 'none';
+    fetch('/api/announcements')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        var html = '';
+        if (data.length === 0) html = '<p style="color:#999;text-align:center;">No announcements yet.</p>';
+        data.forEach(function(a){
+            html += '<div style="padding:14px;border-bottom:1px solid #eee;">' +
+                '<div style="font-weight:600;margin-bottom:6px;font-size:15px;">' + a.title + '</div>' +
+                '<div style="font-size:13px;color:#555;line-height:1.5;">' + a.content + '</div>' +
+                '<div style="font-size:10px;color:#aaa;margin-top:6px;">' + (a.created_at || '') + '</div>' +
+                '</div>';
+        });
+        document.getElementById('announcementList').innerHTML = html;
+    });
+}
+function closeAnnouncements() { document.getElementById('announcementModal').style.display = 'none'; }
+</script>
+
 {% endblock %}

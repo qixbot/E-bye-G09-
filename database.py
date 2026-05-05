@@ -168,6 +168,18 @@ def init_db():
         )
     ''')
 
+    # Add missing columns safely
+    missing_cols = [
+        ('last_seen', 'TIMESTAMP'),
+        ('freeze_count', 'INTEGER DEFAULT 0'),
+        ('last_read_ann', 'TIMESTAMP'),
+    ]
+    for col_name, col_def in missing_cols:
+        try:
+            cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
+        except:
+            pass
+
     # Create default admin user
     admin_email = 'admin@student.mmu.edu.my'
     admin_password = generate_password_hash('Admin123!')
@@ -202,7 +214,3 @@ def init_orders():
 
 def init_reports():
     pass
-
-
-# Initialize on import
-init_db()
