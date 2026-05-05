@@ -11,34 +11,41 @@
             <button class="action-icon" id="reportBtn" title="Report item">⚠️</button>
         </div>
     </div>
-    <div id="copyToast" class="copy-toast">Link copied to clipboard!</div>
 
     <div class="product-grid">
         <!-- Left: Images -->
         <div>
             <div class="main-image">
-                {% set first_media = images[0] if images else None %}
+                {% set first_media = images[0] if images else '' %}
                 {% if first_media %}
-                    <img id="main-product-img" src="{{ first_media }}" alt="{{ product.name }}"
-                         onerror="this.style.display='none'; document.getElementById('main-product-fallback').style.display='flex';">
-                    <div id="main-product-fallback" class="no-image-placeholder" style="display:none;">📷 No image available</div>
+                    {% if first_media.startswith('data:') %}
+                        <img id="main-product-img" src="{{ first_media }}" alt="{{ product.name }}">
+                    {% else %}
+                        {% set ext = first_media.split('.')[-1].lower() %}
+                        {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
+                            <video id="main-product-video" controls autoplay muted loop>
+                                <source src="{{ url_for('static', filename='uploads/' ~ first_media) }}" type="video/{{ ext }}">
+                                Your browser does not support the video tag.
+                            </video>
+                        {% else %}
+                            <img id="main-product-img" src="{{ url_for('static', filename='uploads/' ~ first_media) }}" alt="{{ product.name }}">
+                        {% endif %}
+                    {% endif %}
                 {% else %}
-                    <div class="no-image-placeholder">📷 No image available</div>
+                    <div class="no-image-placeholder">📦 No image available</div>
                 {% endif %}
             </div>
             <div class="image-counter" id="image-counter">1 / {{ images|length }}</div>
             {% if images|length > 1 %}
             <div class="thumbnail-list">
                 {% for img in images %}
-                    <div class="thumbnail-wrapper">
-                        <img src="{{ img }}"
-                            class="thumbnail {% if loop.first %}active{% endif %}"
-                            data-index="{{ loop.index0 }}"
-                            data-src="{{ img }}"
-                            onclick="changeMainMedia('{{ img }}', {{ loop.index0 }})"
-                            alt="Thumbnail {{ loop.index }}"
-                            onerror="this.style.opacity='0.3';">
-                    </div>
+                    <img src="{% if img.startswith('data:') %}{{ img }}{% else %}{{ url_for('static', filename='uploads/' ~ img) }}{% endif %}"
+                        class="thumbnail"
+                        data-index="{{ loop.index0 }}"
+                        data-original="{% if img.startswith('data:') %}{{ img }}{% else %}{{ url_for('static', filename='uploads/' ~ img) }}{% endif %}"
+                        onclick="changeMainMedia(this.getAttribute('data-original'), {{ loop.index0 }})"
+                        alt="Thumbnail"
+                        onerror="this.onerror=null; this.src='{{ url_for('static', filename='uploads/placeholder.jpg') }}';">
                 {% endfor %}
             </div>
             {% endif %}
@@ -52,20 +59,20 @@
             <div class="price">RM {{ "%.2f"|format(product.price) }}</div>
 
             <div class="seller-info">
-            <div class="seller-details">
-                 <a href="{{ url_for('user_profile', user_id=product.seller_id) }}" class="seller-link">
-                 <div class="seller-avatar">
-                 <img src="{{ url_for('user_avatar', user_id=product.seller_id) }}" alt="Seller avatar">
-             </div>
-             </a>
-             <a href="{% if product.seller_id == session.user_id %}{{ url_for('edit_profile') }}{% else %}{{ url_for('user_profile', user_id=product.seller_id) }}{% endif %}" class="seller-text-link">
-             <div class="seller-text">
-                <div class="seller-fullname">{{ product.seller_full_name or product.seller_name }}</div>
-                <div class="seller-username">@{{ product.seller_name }}</div>
-            </div>
-        </a>
-    </div>
-            <div class="upload-date">Posted on {{ product.created_at.strftime('%Y-%m-%d') if product.created_at else 'Unknown' }}</div>
+                <a href="{% if product.seller_id == session.user_id %}{{ url_for('edit_profile') }}{% else %}{{ url_for('user_profile', user_id=product.seller_id) }}{% endif %}" class="seller-profile-btn">
+                    <div class="seller-details">
+                        <div class="seller-avatar">
+                            <img src="{{ url_for('user_avatar', user_id=product.seller_id) }}" alt="Seller avatar"
+                                onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="avatar-placeholder" style="display: none;">{{ product.seller_name[0].upper() if product.seller_name else 'U' }}</div>
+                        </div>
+                        <div class="seller-text">
+                            <div class="seller-fullname">{{ product.seller_full_name or product.seller_name }}</div>
+                            <div class="seller-username">@{{ product.seller_name }}</div>
+                        </div>
+                    </div>
+                </a>
+                <div class="upload-date">Posted on {{ product.created_at.strftime('%Y-%m-%d') if product.created_at else '' }}</div>
             </div>
 
             <div class="description">
@@ -78,7 +85,7 @@
                     <button class="offer-btn" onclick="openOfferModal()">Make an Offer</button>
                     <a href="{{ url_for('chat_page', other_user_id=product.seller_id, product_id=product.id) }}" class="chat-btn">💬 Chat with seller</a>
                 </div>
-                <button class="buy-btn" onclick="confirmPurchase()">Buy Now</button>
+                <button class="buy-btn" id="buyNowBtn">Buy Now</button>
             </div>
         </div>
     </div>
@@ -110,8 +117,8 @@
         <p class="modal-caption">Why are you reporting this product?</p>
         <div class="report-reasons">
             <button class="reason-btn" data-reason="Spam">Spam</button>
-            <button class="reason-btn" data-reason="Harassment">Harassment</button>
-            <button class="reason-btn" data-reason="Wrong product">Wrong product</button>
+            <button class="reason-btn" data-reason="Inappropriate content">Inappropriate content</button>
+            <button class="reason-btn" data-reason="Multiple listings">Multiple listings</button>
             <button class="reason-btn" id="otherReasonBtn">Others</button>
         </div>
         <div id="otherReasonBox" style="display: none; margin-top: 15px;">
@@ -124,17 +131,49 @@
     </div>
 </div>
 
-<script>
-    function showCopyToast() {
-        const toast = document.getElementById('copyToast');
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2500);
-    }
+<!-- Buy Now Modal -->
+<div id="buyModal" class="modal">
+    <div class="modal-content buy-modal-content">
+        <span class="close" onclick="closeBuyModal()">&times;</span>
 
+        <div class="buy-modal-two-columns">
+            <!-- LEFT COLUMN – product details (static) -->
+            <div class="buy-modal-left">
+                <div class="product-image-preview" id="modalProductImage">
+                    <!-- Image will be copied from main product view -->
+                </div>
+                <h3 class="modal-product-name">{{ product.name }}</h3>
+                <p class="modal-product-price">RM {{ "%.2f"|format(product.price) }}</p>
+                <p><span class="condition-badge" style="background-color:#00381f; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; display:inline-block;">{{ product.condition | replace('_', ' ') | title }}</span></p>
+            </div>
+
+            <!-- VERTICAL DIVIDER -->
+            <div class="buy-modal-divider"></div>
+
+            <!-- RIGHT COLUMN – location selection (scrollable) -->
+            <div class="buy-modal-right">
+                <div class="location-header">
+                    <p class="location-instruction">Prefered meetup location(s) – seller will contact you for further confirmation</p>
+                    <div id="selectedLocationsInfo" class="selected-locations-info"></div>
+                </div>
+                <div class="location-grid" id="locationGrid">
+                    <!-- location buttons injected by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-buttons" style="margin-top: 20px; justify-content: flex-end;">
+            <button class="modal-cancel" onclick="closeBuyModal()">Cancel</button>
+            <button class="modal-send" id="confirmBuyBtn">Confirm Purchase</button>
+        </div>
+    </div>
+</div>
+
+<script>
     document.getElementById('copyLinkBtn').addEventListener('click', function() {
         const url = window.location.href;
         navigator.clipboard.writeText(url).then(() => {
-            showCopyToast();
+            showGlobalToast('Link copied to clipboard!', 'success');
         }).catch(() => {
             showGlobalToast('Failed to copy link.', 'error');
         });
@@ -142,30 +181,13 @@
 
     function changeMainMedia(src, index) {
         const mainContainer = document.querySelector('.main-image');
-        const currentCounter = document.getElementById('image-counter');
-        const total = {{ images|length }};
-
-        // Render as image (the /api/product-image endpoint serves correct MIME type)
-        // Videos stored as blob will be served with video/* content-type
-        // We detect by checking if content-type is video via a HEAD request is too slow;
-        // instead we try img first and fall back on error
-        mainContainer.innerHTML = `<img id="main-product-img" src="${src}" alt="Product image"
-            onerror="this.style.display='none'; this.insertAdjacentHTML('afterend',
-                '<video id=\\'main-product-video\\' controls autoplay muted loop style=\\'width:100%;height:100%;object-fit:contain;\\'><source src=\\'${src}\\'></video>');">`;
-
-        if (currentCounter) currentCounter.textContent = (index + 1) + ' / ' + total;
-
-        document.querySelectorAll('.thumbnail').forEach(thumb => {
-            thumb.classList.remove('active');
-        });
-        const activeThumb = document.querySelectorAll('.thumbnail')[index];
-        if (activeThumb) activeThumb.classList.add('active');
-    }
-
-    function confirmPurchase() {
-        if (confirm("Are you sure you want to buy this item?")) {
-            alert("Purchase flow not implemented yet.");
+        const isVideo = src.match(/\.(mp4|webm|mov|avi|mkv)$/i);
+        if (isVideo) {
+            mainContainer.innerHTML = `<video id="main-product-video" controls autoplay muted loop><source src="${src}" type="video/${src.split('.').pop()}"></video>`;
+        } else {
+            mainContainer.innerHTML = `<img id="main-product-img" src="${src}" alt="Product image">`;
         }
+        document.getElementById('image-counter').textContent = (index + 1) + ' / ' + {{ images|length }};
     }
 
     function openOfferModal() {
@@ -284,5 +306,141 @@
             }
         }
     }
+
+    // List of meetup locations
+    const meetupLocations = [
+        { name: "Library", image: "/static/uploads/library.jpg" },
+        { name: "DTC", image: "/static/uploads/dtc.jpg" },
+        { name: "Starbees", image: "/static/uploads/starbees.jpg" },
+        { name: "CLC", image: "/static/uploads/clc.jpg" },
+        { name: "FCI", image: "/static/uploads/fci.jpg" },
+        { name: "FOM", image: "/static/uploads/fom.jpg" },
+        { name: "FAIE", image: "/static/uploads/faie.jpg" },
+        { name: "FCM", image: "/static/uploads/fcm.jpg" },
+        { name: "STC", image: "/static/uploads/stc.jpg" },
+        { name: "HB1", image: "/static/uploads/hb1.jpg" },
+        { name: "HB2", image: "/static/uploads/hb2.jpg" },
+        { name: "HB3", image: "/static/uploads/hb3.jpg" },
+        { name: "HB4", image: "/static/uploads/hb4.jpg" },
+        { name: "Masjid", image: "/static/uploads/masjid.jpg" },
+        { name: "Tekun Mart", image: "/static/uploads/tekun_mart.jpg" },
+        { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
+    ];
+
+    let selectedLocations = [];   // stores names of chosen locations
+
+    // Generate location buttons dynamically
+    function generateLocationButtons() {
+        const grid = document.getElementById('locationGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        meetupLocations.forEach(loc => {
+            const btn = document.createElement('button');
+            btn.className = 'location-btn';
+            btn.setAttribute('data-location', loc.name);
+            btn.innerHTML = `
+                <img src="${loc.image}" class="location-btn-img" alt="${loc.name}">
+                <div class="location-btn-label">${loc.name}</div>
+            `;
+            btn.onclick = (function(locationName) {
+                return function() { toggleLocation(locationName); };
+            })(loc.name);
+            grid.appendChild(btn);
+        });
+    }
+
+    // Toggle selection (max 3)
+    function toggleLocation(locationName) {
+        const index = selectedLocations.indexOf(locationName);
+        if (index !== -1) {
+            // deselect
+            selectedLocations.splice(index, 1);
+        } else {
+            // select if under limit
+            if (selectedLocations.length >= 3) {
+                showGlobalToast('You can select up to 3 locations.', 'error');
+                return;
+            }
+            selectedLocations.push(locationName);
+        }
+        updateLocationUI();
+    }
+
+    // Update button styles and info text
+    function updateLocationUI() {
+        document.querySelectorAll('.location-btn').forEach(btn => {
+            const locName = btn.querySelector('.location-btn-label').innerText;
+            if (selectedLocations.includes(locName)) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
+            }
+        });
+        const infoDiv = document.getElementById('selectedLocationsInfo');
+        if (infoDiv) {
+            if (selectedLocations.length === 0) {
+                infoDiv.innerHTML = '⚠️ No locations selected. Please choose 1‑3 locations.';
+                infoDiv.style.color = '#e74c3c';
+            } else {
+                infoDiv.innerHTML = `✓ Selected: ${selectedLocations.join(', ')} (${selectedLocations.length}/3)`;
+                infoDiv.style.color = '#2ecc71';
+            }
+        }
+    }
+
+    // Open modal – copy main product image and reset selection
+    function openBuyModal() {
+        const modal = document.getElementById('buyModal');
+        if (!modal) return;
+        // Copy main image (or video) into the modal's left column
+        const mainImageContainer = document.querySelector('.main-image');
+        const modalImageContainer = document.getElementById('modalProductImage');
+        if (mainImageContainer && modalImageContainer) {
+            modalImageContainer.innerHTML = mainImageContainer.innerHTML;
+        }
+        // Reset selection
+        selectedLocations = [];
+        if (document.querySelectorAll('.location-btn').length > 0) {
+            updateLocationUI();
+        } else {
+            generateLocationButtons();
+            updateLocationUI();
+        }
+        modal.style.display = 'flex';
+    }
+
+    // Close modal
+    function closeBuyModal() {
+        const modal = document.getElementById('buyModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    // Confirm purchase – require at least 1 location
+    document.getElementById('confirmBuyBtn')?.addEventListener('click', function() {
+        if (selectedLocations.length === 0) {
+            showGlobalToast('Please select at least one meetup location.', 'error');
+            return;
+        }
+        // Here you would send the selected locations to the backend.
+        // For now, just show a success toast.
+        showGlobalToast(`Purchase confirmed! Meet at: ${selectedLocations.join(', ')}`, 'success');
+        closeBuyModal();
+    });
+
+    // Attach Buy Now button (remove any existing inline onclick)
+    const buyNowBtn = document.querySelector('.buy-btn');
+    if (buyNowBtn) {
+        buyNowBtn.removeAttribute('onclick');
+        buyNowBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openBuyModal();
+        });
+    }
+
+    // Close modal when clicking outside the content
+    window.onclick = function(event) {
+        const modal = document.getElementById('buyModal');
+        if (event.target === modal) closeBuyModal();
+    };
 </script>
 {% endblock %}

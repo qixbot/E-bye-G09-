@@ -441,50 +441,57 @@ def home():
     db.close()
 
     products = []
+    import json
     for row in products_data:
         product = dict(row)
+        images_str = product.get('images', '')
+        images_blob_str = product.get('images_blob', '[]')
         
-        images_blob = product.get('images_blob', '')
-        
-        blob_count = 0
-        blob_list = []
-        
-        if images_blob:
+        # Parse base64 list from images_blob
+        base64_list = []
+        if images_blob_str and images_blob_str != '[]':
             try:
-                import json as _json
-                blob_list = _json.loads(images_blob) if isinstance(images_blob, str) else images_blob
-                if isinstance(blob_list, list):
-                    blob_count = len(blob_list)
-                    product['images_list'] = [f"/api/product-image/{product['id']}/{i}" 
-                                              for i in range(min(blob_count, 3))]
-                else:
-                    blob_count = 0
-                    product['images_list'] = []
-            except Exception as e:
-                print(f"Error parsing blob: {e}")
-                blob_count = 0
-                product['images_list'] = []
-
-        if blob_count == 0:
-            images_str = product.get('images', '')
-            if images_str:
-                img_list = [f.strip() for f in images_str.split(',') if f.strip()]
-                blob_count = len(img_list)
-                product['images_list'] = [f"/static/uploads/{f}" for f in img_list[:3]]
-            else:
-                product['images_list'] = []
+                base64_list = json.loads(images_blob_str)
+                # Keep only valid data URLs (they start with data:)
+                base64_list = [img for img in base64_list if img.startswith('data:')]
+            except:
+                base64_list = []
         
-        product['actual_total'] = blob_count
-        product['image_1'] = product['images_list'][0] if product['images_list'] else None
-        product['image_2'] = product['images_list'][1] if len(product['images_list']) > 1 else None
+        # For file-based images (fallback)
+        if images_str:
+            img_list = images_str.split(',')
+            # Filter only image files for carousel (max 3)
+            image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
+            image_only = []
+            for f in img_list:
+                f = f.strip()
+                ext = f.split('.')[-1].lower()
+                if ext in image_extensions:
+                    image_only.append(f)
+            product['images_list'] = image_only[:3]
+            product['actual_total'] = len(img_list)
+            product['image_1'] = image_only[0] if len(image_only) > 0 else None
+            product['image_2'] = image_only[1] if len(image_only) > 1 else None
+        else:
+            product['images_list'] = []
+            product['actual_total'] = 0
+            product['image_1'] = None
+            product['image_2'] = None
         
+        # Store base64 list for carousel
+        product['images_base64_list'] = base64_list
+        # Override actual_total if base64 list is the real source
+        if base64_list:
+            product['actual_total'] = len(base64_list)
         products.append(product)
 
     return render_template('home.html',
         username=session.get('username'), latest_products=products)
 
 # ============================================================
+# ============================================================
 # Xingru's Route - Search with filters
+# ============================================================
 # ============================================================
 @app.route('/search')
 def search():
@@ -572,15 +579,17 @@ def search():
     elif sort_by == 'price_desc':
         order_clause = "ORDER BY p.price DESC, p.created_at DESC"
     elif sort_by == 'condition_asc':
-        order_clause = "ORDER BY CASE p.condition " \
-                       "WHEN 'like_new' THEN 1 " \
-                       "WHEN 'good' THEN 2 " \
-                       "WHEN 'fair' THEN 3 END ASC, p.created_at DESC"
+        order_clause = "ORDER BY CASE TRIM(LOWER(p.condition)) " \
+                    "WHEN 'like_new' THEN 1 " \
+                    "WHEN 'good' THEN 2 " \
+                    "WHEN 'fair' THEN 3 " \
+                    "ELSE 4 END ASC, p.created_at DESC"
     elif sort_by == 'condition_desc':
-        order_clause = "ORDER BY CASE p.condition " \
-                       "WHEN 'like_new' THEN 1 " \
-                       "WHEN 'good' THEN 2 " \
-                       "WHEN 'fair' THEN 3 END DESC, p.created_at DESC"
+        order_clause = "ORDER BY CASE TRIM(LOWER(p.condition)) " \
+                    "WHEN 'like_new' THEN 1 " \
+                    "WHEN 'good' THEN 2 " \
+                    "WHEN 'fair' THEN 3 " \
+                    "ELSE 4 END DESC, p.created_at DESC"
     else:
         order_clause = "ORDER BY p.created_at DESC"
     query += " " + order_clause
@@ -592,28 +601,26 @@ def search():
     cur.close()
     db.close()
 
-    # Process each product (same as home route)
+    # Process each product (same as home route, with base64 support)
+    import json
     products = []
     for row in products_data:
         product = dict(row)
         images_str = product.get('images', '')
-        images_blob = product.get('images_blob', '')
-
-        blob_list = []
-        if images_blob:
+        images_blob_str = product.get('images_blob', '[]')
+        
+        # Parse base64 list from images_blob
+        base64_list = []
+        if images_blob_str and images_blob_str != '[]':
             try:
-                import json as _json
-                blob_list = _json.loads(images_blob)
-            except Exception:
-                blob_list = []
-
-        if blob_list:
-            product['images_list'] = [f"/api/product-image/{product['id']}/{i}"
-                                      for i in range(min(3, len(blob_list)))]
-            product['actual_total'] = len(blob_list)
-            product['image_1'] = f"/api/product-image/{product['id']}/0"
-            product['image_2'] = f"/api/product-image/{product['id']}/1" if len(blob_list) > 1 else None
-        elif images_str:
+                base64_list = json.loads(images_blob_str)
+                # Keep only valid data URLs (they start with data:)
+                base64_list = [img for img in base64_list if img.startswith('data:')]
+            except:
+                base64_list = []
+        
+        # For file-based images (fallback)
+        if images_str:
             img_list = images_str.split(',')
             image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
             image_only = ['/static/uploads/' + f.strip() for f in img_list
@@ -627,6 +634,12 @@ def search():
             product['actual_total'] = 0
             product['image_1'] = None
             product['image_2'] = None
+        
+        # Store base64 list for carousel
+        product['images_base64_list'] = base64_list
+        # Override actual_total if base64 list is the real source
+        if base64_list:
+            product['actual_total'] = len(base64_list)
         products.append(product)
 
     return render_template('search.html', products=products)
@@ -3009,25 +3022,22 @@ def product_detail(product_id):
         flash('Product not found or not yet approved.', 'error')
         return redirect(url_for('home'))
 
-    import json as _json
-
+    import json
+    images_blob_str = product.get('images_blob', '[]')
     images = []
-    images_blob = product['images_blob'] if product['images_blob'] else ''
-    if images_blob:
+    if images_blob_str and images_blob_str != '[]':
         try:
-            blob_list = _json.loads(images_blob) if isinstance(images_blob, str) else images_blob
-            if isinstance(blob_list, list) and blob_list:
-                # Use API endpoints instead of embedding base64 directly in HTML
-                images = [f"/api/product-image/{product_id}/{i}" for i in range(len(blob_list))]
-        except Exception:
+            images = json.loads(images_blob_str)
+            # Keep only valid base64 data URLs
+            images = [img for img in images if img.startswith('data:')]
+        except:
             pass
-
-    # Fallback to disk files if no blob data
-    if not images and product['images']:
-        images = ['/static/uploads/' + f.strip()
-                  for f in product['images'].split(',') if f.strip()]
+    # Fallback to file-based images if no base64
+    if not images and product.get('images'):
+        images = product['images'].split(',') if product['images'] else []
 
     return render_template('product.html', product=product, images=images)
+
 
 # ============================================================
 # Xingru's Route - Temporary route for testing product page only

@@ -47,8 +47,8 @@
         <div class="sort-container">
             <label for="sortSelect">Sort by:</label>
             <select id="sortSelect" name="sort">
-                <option value="newest" {% if request.args.get('sort') == 'newest' or not request.args.get('sort') %}selected{% endif %}>New to Old</option>
-                <option value="oldest" {% if request.args.get('sort') == 'oldest' %}selected{% endif %}>Old to New</option>
+                <option value="newest" {% if request.args.get('sort') == 'newest' or not request.args.get('sort') %}selected{% endif %}>Time posted: New to Old</option>
+                <option value="oldest" {% if request.args.get('sort') == 'oldest' %}selected{% endif %}>Time posted: Old to New</option>
                 <option value="price_asc" {% if request.args.get('sort') == 'price_asc' %}selected{% endif %}>Price: low to high</option>
                 <option value="price_desc" {% if request.args.get('sort') == 'price_desc' %}selected{% endif %}>Price: high to low</option>
                 <option value="condition_asc" {% if request.args.get('sort') == 'condition_asc' %}selected{% endif %}>Condition: Like New to Fair</option>
