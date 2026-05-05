@@ -240,3 +240,30 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+/* Video thumbnail inside product card carousel */
+.carousel-video-thumb {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: relative;
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.card-thumb-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+}
+.card-thumb-play {
+    position: relative;
+    z-index: 2;
+    color: #fff;
+    font-size: 1.8rem;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    pointer-events: none;
+}

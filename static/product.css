@@ -68,7 +68,7 @@
 }
 .product-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 600px 1fr;
     gap: 40px;
 }
 /* Image gallery */
@@ -100,23 +100,104 @@
     padding: 4px 12px;
     border-radius: 20px;
 }
+/* Main image wrapper – positions nav buttons outside overflow:hidden */
+.main-image-wrapper {
+    position: relative;
+}
+.main-image-wrapper .media-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.28);
+    backdrop-filter: blur(3px);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #fff;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    user-select: none;
+    padding: 0;
+}
+.main-image-wrapper .media-nav-btn:hover {
+    background: rgba(0,0,0,0.5);
+}
+.media-nav-prev { left: 10px; }
+.media-nav-next { right: 10px; }
+
+/* Scrollable thumbnail strip – same width as main-image, single row */
 .thumbnail-list {
     display: flex;
-    gap: 12px;
-    margin-top: 16px;
-    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+    padding-bottom: 4px;
 }
+.thumbnail-list::-webkit-scrollbar { height: 4px; }
+.thumbnail-list::-webkit-scrollbar-track { background: transparent; }
+.thumbnail-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
 .thumbnail {
     width: 80px;
     height: 80px;
+    min-width: 80px;
     object-fit: cover;
     border-radius: 8px;
     cursor: pointer;
     border: 2px solid transparent;
     transition: 0.2s;
+    scroll-snap-align: start;
+    flex-shrink: 0;
 }
 .thumbnail.active {
     border-color: #00381f;
+}
+
+/* Video thumbnail wrapper inside the strip */
+.thumbnail-video-wrap {
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    background: #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.thumbnail-video-wrap.active { border-color: #00381f; }
+.thumb-canvas, .thumb-video {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+}
+.thumb-play-icon {
+    position: relative;
+    z-index: 2;
+    color: #fff;
+    font-size: 1.1rem;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    pointer-events: none;
 }
 /* Product info */
 .condition-badge {
