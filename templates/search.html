@@ -13,6 +13,15 @@
 
 <div class="search-page-wrapper">
 <div id="product-search-panel">
+    <div class="search-header-title" style="margin-bottom: 16px;">
+        <h3 style="margin: 0; font-size: 1.1rem; color: #333;">
+            {% if request.args.get('q') %}
+                📦 Products matching "{{ request.args.get('q') }}"
+            {% else %}
+                📦 All Products
+            {% endif %}
+        </h3>
+    </div>
     <div class="filter-summary">
         {% set filters = [] %}
         {% if request.args.get('q') %}{% set _ = filters.append('Keyword: ' + request.args.get('q')) %}{% endif %}
@@ -172,29 +181,38 @@
 <div id="user-search-panel">
     <div class="search-header" style="margin-bottom:16px;">
         <h3 style="margin:0;font-size:1.1rem;color:#333;">
-            {% if request.args.get('q') %}Users matching "{{ request.args.get('q') }}"
-            {% else %}All Users{% endif %}
+            {% if request.args.get('q') %}
+                👤 Users matching "{{ request.args.get('q') }}"
+            {% else %}
+                👤 Search Users
+            {% endif %}
         </h3>
     </div>
-    {% if user_results %}
-        <div class="user-search-grid">
-            {% for u in user_results %}
-            <a href="{{ url_for('user_profile', user_id=u.id) }}" class="user-result-card">
-                <div class="user-result-avatar">
-                    <img src="{{ url_for('user_avatar', user_id=u.id) }}"
-                         onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <div class="user-result-placeholder">{{ (u.full_name or u.username)[0].upper() }}</div>
-                </div>
-                <div class="user-result-text">
-                    <div class="user-result-fullname">{{ u.full_name or u.username }}</div>
-                    <div class="user-result-username">@{{ u.username }}</div>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
+    {% if request.args.get('q') %}
+        {% if user_results %}
+            <div class="user-search-grid">
+                {% for u in user_results %}
+                <a href="{{ url_for('user_profile', user_id=u.id) }}" class="user-result-card">
+                    <div class="user-result-avatar">
+                        <img src="{{ url_for('user_avatar', user_id=u.id) }}"
+                             onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="user-result-placeholder">{{ (u.full_name or u.username)[0].upper() }}</div>
+                    </div>
+                    <div class="user-result-text">
+                        <div class="user-result-fullname">{{ u.full_name or u.username }}</div>
+                        <div class="user-result-username">@{{ u.username }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="user-search-empty">
+                <p>No users found for "{{ request.args.get('q') }}".</p>
+            </div>
+        {% endif %}
     {% else %}
         <div class="user-search-empty">
-            <p>No users found{% if request.args.get('q') %} for "{{ request.args.get('q') }}"{% endif %}.</p>
+            <p>🔍 Enter a keyword above to search for users.</p>
         </div>
     {% endif %}
 </div><!-- end #user-search-panel -->

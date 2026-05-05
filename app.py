@@ -440,9 +440,7 @@ def home():
         username=session.get('username'), latest_products=products)
 
 # ============================================================
-# ============================================================
 # Xingru's Route - Search with filters
-# ============================================================
 # ============================================================
 @app.route('/search')
 def search():
@@ -471,7 +469,7 @@ def search():
     min_price = request.args.get('min_price', type=float)
     max_price = request.args.get('max_price', type=float)
 
-    # Base query
+    # Base query for products - includes seller details for searching
     query = """
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
@@ -480,11 +478,14 @@ def search():
     """
     params = []
 
-    # Keyword search
+    # Keyword search - product name, description, AND seller name
     if keyword:
-        query += " AND (p.name LIKE %s OR p.description LIKE %s)"
+        query += """ AND (p.name ILIKE %s 
+                         OR p.description ILIKE %s
+                         OR u.username ILIKE %s
+                         OR u.full_name ILIKE %s)"""
         like = f"%{keyword}%"
-        params.extend([like, like])
+        params.extend([like, like, like, like])
 
     # Category filter
     if categories:
@@ -593,12 +594,13 @@ def search():
             product['actual_total'] = len(base64_list)
         products.append(product)
 
-    # User search — always run so user panel works even without keyword
+    # ========== USER SEARCH - ONLY SHOW WHEN KEYWORD IS PROVIDED ==========
     user_results = []
-    db_u = get_db()
-    cur_u = db_u.cursor()
     if keyword:
+        db_u = get_db()
+        cur_u = db_u.cursor()
         like = f"%{keyword}%"
+        # Also exclude blocked and admin users
         cur_u.execute(
             """SELECT id, username, full_name FROM users
                WHERE is_blocked = 0 AND is_admin = 0
@@ -606,15 +608,10 @@ def search():
                ORDER BY username ASC LIMIT 50""",
             (like, like)
         )
-    else:
-        cur_u.execute(
-            """SELECT id, username, full_name FROM users
-               WHERE is_blocked = 0 AND is_admin = 0
-               ORDER BY username ASC LIMIT 50"""
-        )
-    user_results = cur_u.fetchall()
-    cur_u.close()
-    db_u.close()
+        user_results = cur_u.fetchall()
+        cur_u.close()
+        db_u.close()
+    # else: leave user_results as empty list - no keyword, no user results
 
     return render_template('search.html', products=products, user_results=user_results)
 
