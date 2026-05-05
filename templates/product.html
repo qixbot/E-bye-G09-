@@ -15,37 +15,62 @@
     <div class="product-grid">
         <!-- Left: Images -->
         <div>
-            <div class="main-image">
-                {% set first_media = images[0] if images else '' %}
-                {% if first_media %}
-                    {% if first_media.startswith('data:') %}
-                        <img id="main-product-img" src="{{ first_media }}" alt="{{ product.name }}">
-                    {% else %}
-                        {% set ext = first_media.split('.')[-1].lower() %}
-                        {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
+            <div class="main-image-wrapper">
+                <div class="main-image">
+                    {% set first_media = images[0] if images else '' %}
+                    {% if first_media %}
+                        {% if first_media.startswith('data:video/') %}
                             <video id="main-product-video" controls autoplay muted loop>
-                                <source src="{{ url_for('static', filename='uploads/' ~ first_media) }}" type="video/{{ ext }}">
-                                Your browser does not support the video tag.
+                                <source src="{{ first_media }}" type="{{ first_media.split(';')[0].split(':')[1] }}">
                             </video>
+                        {% elif first_media.startswith('data:') %}
+                            <img id="main-product-img" src="{{ first_media }}" alt="{{ product.name }}">
                         {% else %}
-                            <img id="main-product-img" src="{{ url_for('static', filename='uploads/' ~ first_media) }}" alt="{{ product.name }}">
+                            {% set ext = first_media.split('.')[-1].lower() %}
+                            {% if ext in ['mp4', 'webm', 'mov', 'avi', 'mkv'] %}
+                                <video id="main-product-video" controls autoplay muted loop>
+                                    <source src="{{ url_for('static', filename='uploads/' ~ first_media) }}" type="video/{{ ext }}">
+                                </video>
+                            {% else %}
+                                <img id="main-product-img" src="{{ url_for('static', filename='uploads/' ~ first_media) }}" alt="{{ product.name }}">
+                            {% endif %}
                         {% endif %}
+                    {% else %}
+                        <div class="no-image-placeholder">📦 No image available</div>
                     {% endif %}
-                {% else %}
-                    <div class="no-image-placeholder">📦 No image available</div>
+                </div>
+                {% if images|length > 1 %}
+                <button class="media-nav-btn media-nav-prev" onclick="navigateMedia(-1)">&#8249;</button>
+                <button class="media-nav-btn media-nav-next" onclick="navigateMedia(1)">&#8250;</button>
                 {% endif %}
             </div>
             <div class="image-counter" id="image-counter">1 / {{ images|length }}</div>
             {% if images|length > 1 %}
             <div class="thumbnail-list">
                 {% for img in images %}
-                    <img src="{% if img.startswith('data:') %}{{ img }}{% else %}{{ url_for('static', filename='uploads/' ~ img) }}{% endif %}"
-                        class="thumbnail"
-                        data-index="{{ loop.index0 }}"
-                        data-original="{% if img.startswith('data:') %}{{ img }}{% else %}{{ url_for('static', filename='uploads/' ~ img) }}{% endif %}"
-                        onclick="changeMainMedia(this.getAttribute('data-original'), {{ loop.index0 }})"
-                        alt="Thumbnail"
-                        onerror="this.onerror=null; this.src='{{ url_for('static', filename='uploads/placeholder.jpg') }}';">
+                    {% set src = img if img.startswith('data:') else url_for('static', filename='uploads/' ~ img) %}
+                    {% set is_vid = img.startswith('data:video/') or (not img.startswith('data:') and img.split('.')[-1].lower() in ['mp4','webm','mov','avi','mkv']) %}
+                    {% if is_vid %}
+                        <div class="thumbnail thumbnail-video-wrap"
+                             data-index="{{ loop.index0 }}"
+                             onclick="changeMainMedia('{{ src }}', {{ loop.index0 }})">
+                            {% if img.startswith('data:video/') %}
+                                <canvas class="thumb-canvas" data-videosrc="{{ src }}"></canvas>
+                            {% else %}
+                                <video class="thumb-video" muted preload="metadata">
+                                    <source src="{{ src }}#t=0.5">
+                                </video>
+                            {% endif %}
+                            <span class="thumb-play-icon">▶</span>
+                        </div>
+                    {% else %}
+                        <img src="{{ src }}"
+                             class="thumbnail{% if loop.first %} active{% endif %}"
+                             data-index="{{ loop.index0 }}"
+                             onclick="changeMainMedia('{{ src }}', {{ loop.index0 }})"
+                             alt="Thumbnail {{ loop.index }}"
+                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='uploads/placeholder.jpg') }}';">
+                    {% endif %}
                 {% endfor %}
             </div>
             {% endif %}
@@ -179,16 +204,83 @@
         });
     });
 
+    const mediaItems = [
+        {% for img in images %}
+        {
+            src: "{% if img.startswith('data:') %}{{ img }}{% else %}{{ url_for('static', filename='uploads/' ~ img) }}{% endif %}",
+            isVideo: {{ 'true' if (img.startswith('data:video/') or (not img.startswith('data:') and img.split('.')[-1].lower() in ['mp4','webm','mov','avi','mkv'])) else 'false' }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    let currentMediaIndex = 0;
+
+    function setActiveThumb(index) {
+        document.querySelectorAll('.thumbnail, .thumbnail-video-wrap').forEach((el, i) => {
+            el.classList.toggle('active', i === index);
+        });
+        const thumbList = document.querySelector('.thumbnail-list');
+        if (thumbList) {
+            const thumbs = thumbList.querySelectorAll('.thumbnail, .thumbnail-video-wrap');
+            if (thumbs[index]) thumbs[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    }
+
     function changeMainMedia(src, index) {
         const mainContainer = document.querySelector('.main-image');
-        const isVideo = src.match(/\.(mp4|webm|mov|avi|mkv)$/i);
+        const item = mediaItems[index];
+        const isVideo = item ? item.isVideo : src.startsWith('data:video/') || /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(src);
+
+        // Remove old media, keep nav buttons
+        mainContainer.querySelectorAll('img, video').forEach(el => el.remove());
+
         if (isVideo) {
-            mainContainer.innerHTML = `<video id="main-product-video" controls autoplay muted loop><source src="${src}" type="video/${src.split('.').pop()}"></video>`;
+            const mimeMatch = src.match(/^data:(video\/[^;]+)/);
+            const mime = mimeMatch ? mimeMatch[1] : ('video/' + (src.split('.').pop().split('?')[0] || 'mp4'));
+            const vid = document.createElement('video');
+            vid.id = 'main-product-video';
+            vid.controls = true;
+            vid.autoplay = true;
+            vid.muted = true;
+            vid.loop = true;
+            const source = document.createElement('source');
+            source.src = src;
+            source.type = mime;
+            vid.appendChild(source);
+            mainContainer.insertBefore(vid, mainContainer.firstChild);
         } else {
-            mainContainer.innerHTML = `<img id="main-product-img" src="${src}" alt="Product image">`;
+            const img = document.createElement('img');
+            img.id = 'main-product-img';
+            img.src = src;
+            img.alt = 'Product image';
+            mainContainer.insertBefore(img, mainContainer.firstChild);
         }
+
+        currentMediaIndex = index;
         document.getElementById('image-counter').textContent = (index + 1) + ' / ' + {{ images|length }};
+        setActiveThumb(index);
     }
+
+    function navigateMedia(dir) {
+        const next = (currentMediaIndex + dir + mediaItems.length) % mediaItems.length;
+        changeMainMedia(mediaItems[next].src, next);
+    }
+
+    // Generate canvas thumbnails for base64 videos
+    document.querySelectorAll('.thumb-canvas').forEach(canvas => {
+        const src = canvas.getAttribute('data-videosrc');
+        if (!src) return;
+        const video = document.createElement('video');
+        video.muted = true;
+        video.preload = 'metadata';
+        video.src = src;
+        video.addEventListener('loadeddata', () => { video.currentTime = 0.5; });
+        video.addEventListener('seeked', () => {
+            canvas.width = 80;
+            canvas.height = 80;
+            canvas.getContext('2d').drawImage(video, 0, 0, 80, 80);
+        });
+        video.load();
+    });
 
     function openOfferModal() {
         document.getElementById('offerModal').style.display = 'flex';
@@ -392,13 +484,41 @@
     function openBuyModal() {
         const modal = document.getElementById('buyModal');
         if (!modal) return;
-        // Copy main image (or video) into the modal's left column
-        const mainImageContainer = document.querySelector('.main-image');
+
         const modalImageContainer = document.getElementById('modalProductImage');
-        if (mainImageContainer && modalImageContainer) {
-            modalImageContainer.innerHTML = mainImageContainer.innerHTML;
+        if (!modalImageContainer) return;
+
+        // Get the first media (index 0) from the global mediaItems array
+        const firstMedia = mediaItems[0];
+        if (!firstMedia) {
+            modalImageContainer.innerHTML = '<div class="no-image-placeholder">📦 No image available</div>';
+        } else {
+            if (firstMedia.isVideo) {
+                // Create video element
+                const video = document.createElement('video');
+                video.controls = true;
+                video.autoplay = true;
+                video.muted = true;
+                video.loop = true;
+                const source = document.createElement('source');
+                source.src = firstMedia.src;
+                source.type = firstMedia.src.startsWith('data:') 
+                    ? firstMedia.src.split(';')[0].split(':')[1]
+                    : 'video/mp4'; // fallback
+                video.appendChild(source);
+                modalImageContainer.innerHTML = '';
+                modalImageContainer.appendChild(video);
+            } else {
+                // Create img element
+                const img = document.createElement('img');
+                img.src = firstMedia.src;
+                img.alt = 'Product preview';
+                modalImageContainer.innerHTML = '';
+                modalImageContainer.appendChild(img);
+            }
         }
-        // Reset selection
+
+        // Reset location selection
         selectedLocations = [];
         if (document.querySelectorAll('.location-btn').length > 0) {
             updateLocationUI();
@@ -406,6 +526,7 @@
             generateLocationButtons();
             updateLocationUI();
         }
+
         modal.style.display = 'flex';
     }
 

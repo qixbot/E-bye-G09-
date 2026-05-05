@@ -8,11 +8,25 @@
             <div class="carousel-track">
                 {% if product.images_base64_list %}
                     {% for img_b64 in product.images_base64_list[:3] %}
-                        <img src="{{ img_b64 }}" class="carousel-img" alt="{{ product.name }}">
+                        {% if img_b64.startswith('data:video/') %}
+                            <div class="carousel-img carousel-video-thumb" data-videosrc="{{ img_b64 }}">
+                                <canvas class="card-thumb-canvas"></canvas>
+                                <span class="card-thumb-play">▶</span>
+                            </div>
+                        {% else %}
+                            <img src="{{ img_b64 }}" class="carousel-img" alt="{{ product.name }}">
+                        {% endif %}
                     {% endfor %}
                 {% elif product.images_list[:3] %}
                     {% for img in product.images_list[:3] %}
-                        {% if img.startswith('data:') or img.startswith('/') or img.startswith('http') %}
+                        {% set ext = img.split('.')[-1].lower() %}
+                        {% if ext in ['mp4','webm','mov','avi','mkv'] %}
+                            {% set vsrc = url_for('static', filename='uploads/' ~ img) %}
+                            <div class="carousel-img carousel-video-thumb" data-videosrc="{{ vsrc }}">
+                                <canvas class="card-thumb-canvas"></canvas>
+                                <span class="card-thumb-play">▶</span>
+                            </div>
+                        {% elif img.startswith('data:') or img.startswith('/') or img.startswith('http') %}
                             <img src="{{ img }}" class="carousel-img" alt="{{ product.name }}" loading="lazy">
                         {% else %}
                             <img src="{{ url_for('static', filename='uploads/' ~ img) }}" class="carousel-img" alt="{{ product.name }}" loading="lazy">

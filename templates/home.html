@@ -238,4 +238,24 @@
         });
     });
 </script>
+
+<script>
+// Generate canvas thumbnails for video items in product card carousels
+document.querySelectorAll('.carousel-video-thumb').forEach(function(wrap) {
+    var src = wrap.getAttribute('data-videosrc');
+    var canvas = wrap.querySelector('.card-thumb-canvas');
+    if (!src || !canvas) return;
+    var video = document.createElement('video');
+    video.muted = true;
+    video.preload = 'metadata';
+    video.src = src;
+    video.addEventListener('loadeddata', function() { video.currentTime = 0.5; });
+    video.addEventListener('seeked', function() {
+        canvas.width = canvas.offsetWidth || 200;
+        canvas.height = canvas.offsetHeight || 200;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    });
+    video.load();
+});
+</script>
 {% endblock %}

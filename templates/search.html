@@ -5,7 +5,23 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='_product_card.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='search.css') }}">
 
+<!-- Search Mode Tab Buttons -->
+<div class="search-mode-tabs">
+    <button class="search-tab-btn active" id="tab-products" onclick="switchTab('products')">📦 Products</button>
+    <button class="search-tab-btn" id="tab-users" onclick="switchTab('users')">👤 Users</button>
+</div>
+
 <div class="search-page-wrapper">
+<div id="product-search-panel">
+    <div class="search-header-title" style="margin-bottom: 16px;">
+        <h3 style="margin: 0; font-size: 1.1rem; color: #333;">
+            {% if request.args.get('q') %}
+                📦 Products matching "{{ request.args.get('q') }}"
+            {% else %}
+                📦 All Products
+            {% endif %}
+        </h3>
+    </div>
     <div class="filter-summary">
         {% set filters = [] %}
         {% if request.args.get('q') %}{% set _ = filters.append('Keyword: ' + request.args.get('q')) %}{% endif %}
@@ -159,7 +175,49 @@
             </div>
         </div>
     {% endif %}
-</div>
+</div><!-- end #product-search-panel -->
+
+<!-- User search panel -->
+<div id="user-search-panel">
+    <div class="search-header" style="margin-bottom:16px;">
+        <h3 style="margin:0;font-size:1.1rem;color:#333;">
+            {% if request.args.get('q') %}
+                👤 Users matching "{{ request.args.get('q') }}"
+            {% else %}
+                👤 Search Users
+            {% endif %}
+        </h3>
+    </div>
+    {% if request.args.get('q') %}
+        {% if user_results %}
+            <div class="user-search-grid">
+                {% for u in user_results %}
+                <a href="{{ url_for('user_profile', user_id=u.id) }}" class="user-result-card">
+                    <div class="user-result-avatar">
+                        <img src="{{ url_for('user_avatar', user_id=u.id) }}"
+                             onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="user-result-placeholder">{{ (u.full_name or u.username)[0].upper() }}</div>
+                    </div>
+                    <div class="user-result-text">
+                        <div class="user-result-fullname">{{ u.full_name or u.username }}</div>
+                        <div class="user-result-username">@{{ u.username }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="user-search-empty">
+                <p>No users found for "{{ request.args.get('q') }}".</p>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="user-search-empty">
+            <p>🔍 Enter a keyword above to search for users.</p>
+        </div>
+    {% endif %}
+</div><!-- end #user-search-panel -->
+
+</div><!-- end .search-page-wrapper -->
 
 <script>
     document.getElementById('sortSelect').addEventListener('change', function() {
@@ -483,5 +541,80 @@
             }
         }
     }
+</script>
+
+<script>
+document.querySelectorAll('.carousel-video-thumb').forEach(function(wrap) {
+    var src = wrap.getAttribute('data-videosrc');
+    var canvas = wrap.querySelector('.card-thumb-canvas');
+    if (!src || !canvas) return;
+    var video = document.createElement('video');
+    video.muted = true;
+    video.preload = 'metadata';
+    video.src = src;
+    video.addEventListener('loadeddata', function() { video.currentTime = 0.5; });
+    video.addEventListener('seeked', function() {
+        canvas.width = canvas.offsetWidth || 200;
+        canvas.height = canvas.offsetHeight || 200;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    });
+    video.load();
+});
+</script>
+<script>
+// ========== Search Tab Switching ==========
+function switchTab(tab) {
+    const productPanel = document.getElementById('product-search-panel');
+    const userPanel = document.getElementById('user-search-panel');
+    const tabProducts = document.getElementById('tab-products');
+    const tabUsers = document.getElementById('tab-users');
+    if (tab === 'users') {
+        productPanel.style.opacity = '0';
+        productPanel.style.pointerEvents = 'none';
+        tabProducts.classList.remove('active');
+        tabUsers.classList.add('active');
+        setTimeout(() => {
+            productPanel.style.display = 'none';
+            productPanel.style.opacity = '';
+            productPanel.style.pointerEvents = '';
+            userPanel.style.display = 'block';
+            requestAnimationFrame(() => { userPanel.style.opacity = '1'; });
+        }, 250);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', 'users');
+        history.replaceState(null, '', url.toString());
+    } else {
+        userPanel.style.opacity = '0';
+        tabUsers.classList.remove('active');
+        tabProducts.classList.add('active');
+        setTimeout(() => {
+            userPanel.style.display = 'none';
+            userPanel.style.opacity = '';
+            productPanel.style.display = 'block';
+            requestAnimationFrame(() => { productPanel.style.opacity = '1'; });
+        }, 250);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('tab');
+        history.replaceState(null, '', url.toString());
+    }
+}
+// Restore tab on page load
+(function() {
+    const p = new URLSearchParams(window.location.search);
+    const userPanel = document.getElementById('user-search-panel');
+    const productPanel = document.getElementById('product-search-panel');
+    userPanel.style.transition = 'opacity 0.25s ease';
+    productPanel.style.transition = 'opacity 0.25s ease';
+    if (p.get('tab') === 'users') {
+        productPanel.style.display = 'none';
+        userPanel.style.display = 'block';
+        userPanel.style.opacity = '1';
+        document.getElementById('tab-products').classList.remove('active');
+        document.getElementById('tab-users').classList.add('active');
+    } else {
+        userPanel.style.display = 'none';
+        productPanel.style.display = 'block';
+    }
+})();
 </script>
 {% endblock %}

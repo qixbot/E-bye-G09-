@@ -434,7 +434,7 @@ def home():
         u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.status = 'approved'
+        WHERE p.status = 'approved' AND u.is_blocked = 0
         ORDER BY p.created_at DESC
     ''')
     products_data = cur.fetchall()
@@ -490,9 +490,7 @@ def home():
         username=session.get('username'), latest_products=products)
 
 # ============================================================
-# ============================================================
 # Xingru's Route - Search with filters
-# ============================================================
 # ============================================================
 @app.route('/search')
 def search():
@@ -521,20 +519,23 @@ def search():
     min_price = request.args.get('min_price', type=float)
     max_price = request.args.get('max_price', type=float)
 
-    # Base query
+    # Base query for products - includes seller details for searching
     query = """
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.status = 'approved'
+        WHERE p.status = 'approved' AND u.is_blocked = 0
     """
     params = []
 
-    # Keyword search
+    # Keyword search - product name, description, AND seller name
     if keyword:
-        query += " AND (p.name LIKE %s OR p.description LIKE %s)"
+        query += """ AND (p.name ILIKE %s 
+                         OR p.description ILIKE %s
+                         OR u.username ILIKE %s
+                         OR u.full_name ILIKE %s)"""
         like = f"%{keyword}%"
-        params.extend([like, like])
+        params.extend([like, like, like, like])
 
     # Category filter
     if categories:
@@ -643,7 +644,25 @@ def search():
             product['actual_total'] = len(base64_list)
         products.append(product)
 
-    return render_template('search.html', products=products)
+    # ========== USER SEARCH - ONLY SHOW WHEN KEYWORD IS PROVIDED ==========
+    user_results = []
+    if keyword:
+        db_u = get_db()
+        cur_u = db_u.cursor()
+        like = f"%{keyword}%"
+        cur_u.execute("""
+            SELECT id, username, full_name FROM users
+            WHERE is_blocked = 0
+              AND (username ILIKE %s OR full_name ILIKE %s)
+            ORDER BY username ASC
+            LIMIT 50
+        """, (like, like))
+        user_results = cur_u.fetchall()
+        cur_u.close()
+        db_u.close()
+    # else: leave user_results as empty list - no keyword, no user results
+
+    return render_template('search.html', products=products, user_results=user_results)
 
 # ============================================================
 # AVATAR ROUTES - Store as BLOB in database
@@ -3103,7 +3122,8 @@ def product_detail(product_id):
     cur = db.cursor()
     cur.execute('''
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name,
-            u.avatar_blob as seller_avatar, u.id as seller_id, u.created_at as user_joined
+            u.avatar_blob as seller_avatar, u.id as seller_id, u.created_at as user_joined,
+            u.is_blocked as seller_blocked
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.id = %s AND p.status = 'approved'
@@ -3114,6 +3134,11 @@ def product_detail(product_id):
 
     if not product:
         flash('Product not found or not yet approved.', 'error')
+        return redirect(url_for('home'))
+    
+    # Blocked seller check
+    if product['seller_blocked'] == 1:
+        flash('This product is no longer available (seller has been blocked).', 'error')
         return redirect(url_for('home'))
 
     import json
