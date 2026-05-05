@@ -5,7 +5,14 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='_product_card.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='search.css') }}">
 
+<!-- Search Mode Tab Buttons -->
+<div class="search-mode-tabs">
+    <button class="search-tab-btn active" id="tab-products" onclick="switchTab('products')">📦 Products</button>
+    <button class="search-tab-btn" id="tab-users" onclick="switchTab('users')">👤 Users</button>
+</div>
+
 <div class="search-page-wrapper">
+<div id="product-search-panel">
     <div class="filter-summary">
         {% set filters = [] %}
         {% if request.args.get('q') %}{% set _ = filters.append('Keyword: ' + request.args.get('q')) %}{% endif %}
@@ -159,7 +166,40 @@
             </div>
         </div>
     {% endif %}
-</div>
+</div><!-- end #product-search-panel -->
+
+<!-- User search panel -->
+<div id="user-search-panel">
+    <div class="search-header" style="margin-bottom:16px;">
+        <h3 style="margin:0;font-size:1.1rem;color:#333;">
+            {% if request.args.get('q') %}Users matching "{{ request.args.get('q') }}"
+            {% else %}All Users{% endif %}
+        </h3>
+    </div>
+    {% if user_results %}
+        <div class="user-search-grid">
+            {% for u in user_results %}
+            <a href="{{ url_for('user_profile', user_id=u.id) }}" class="user-result-card">
+                <div class="user-result-avatar">
+                    <img src="{{ url_for('user_avatar', user_id=u.id) }}"
+                         onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="user-result-placeholder">{{ (u.full_name or u.username)[0].upper() }}</div>
+                </div>
+                <div class="user-result-text">
+                    <div class="user-result-fullname">{{ u.full_name or u.username }}</div>
+                    <div class="user-result-username">@{{ u.username }}</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="user-search-empty">
+            <p>No users found{% if request.args.get('q') %} for "{{ request.args.get('q') }}"{% endif %}.</p>
+        </div>
+    {% endif %}
+</div><!-- end #user-search-panel -->
+
+</div><!-- end .search-page-wrapper -->
 
 <script>
     document.getElementById('sortSelect').addEventListener('change', function() {
@@ -502,5 +542,61 @@ document.querySelectorAll('.carousel-video-thumb').forEach(function(wrap) {
     });
     video.load();
 });
+</script>
+<script>
+// ========== Search Tab Switching ==========
+function switchTab(tab) {
+    const productPanel = document.getElementById('product-search-panel');
+    const userPanel = document.getElementById('user-search-panel');
+    const tabProducts = document.getElementById('tab-products');
+    const tabUsers = document.getElementById('tab-users');
+    if (tab === 'users') {
+        productPanel.style.opacity = '0';
+        productPanel.style.pointerEvents = 'none';
+        tabProducts.classList.remove('active');
+        tabUsers.classList.add('active');
+        setTimeout(() => {
+            productPanel.style.display = 'none';
+            productPanel.style.opacity = '';
+            productPanel.style.pointerEvents = '';
+            userPanel.style.display = 'block';
+            requestAnimationFrame(() => { userPanel.style.opacity = '1'; });
+        }, 250);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', 'users');
+        history.replaceState(null, '', url.toString());
+    } else {
+        userPanel.style.opacity = '0';
+        tabUsers.classList.remove('active');
+        tabProducts.classList.add('active');
+        setTimeout(() => {
+            userPanel.style.display = 'none';
+            userPanel.style.opacity = '';
+            productPanel.style.display = 'block';
+            requestAnimationFrame(() => { productPanel.style.opacity = '1'; });
+        }, 250);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('tab');
+        history.replaceState(null, '', url.toString());
+    }
+}
+// Restore tab on page load
+(function() {
+    const p = new URLSearchParams(window.location.search);
+    const userPanel = document.getElementById('user-search-panel');
+    const productPanel = document.getElementById('product-search-panel');
+    userPanel.style.transition = 'opacity 0.25s ease';
+    productPanel.style.transition = 'opacity 0.25s ease';
+    if (p.get('tab') === 'users') {
+        productPanel.style.display = 'none';
+        userPanel.style.display = 'block';
+        userPanel.style.opacity = '1';
+        document.getElementById('tab-products').classList.remove('active');
+        document.getElementById('tab-users').classList.add('active');
+    } else {
+        userPanel.style.display = 'none';
+        productPanel.style.display = 'block';
+    }
+})();
 </script>
 {% endblock %}

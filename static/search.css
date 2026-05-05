@@ -1,6 +1,6 @@
 /* Search page wrapper */
 .search-page-wrapper {
-    padding: 30px;
+    padding: 30px 30px 90px 30px;
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -239,4 +239,116 @@
     .filter-drawer {
         max-width: 100%;
     }
+}
+/* ===== Search Mode Tab Buttons ===== */
+.search-mode-tabs {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.search-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px 11px 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    border-radius: 0 40px 40px 0;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.15);
+    transition: padding-right 0.2s ease, background 0.2s;
+    white-space: nowrap;
+    color: #fff;
+    background: #aaa;
+    opacity: 0.85;
+}
+.search-tab-btn:hover {
+    padding-right: 24px;
+    opacity: 1;
+}
+.search-tab-btn.active {
+    background: #00381f;
+    opacity: 1;
+}
+
+/* ===== User Results Grid ===== */
+.user-search-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    margin-top: 8px;
+}
+
+/* Matches seller-profile-btn from product page but bigger */
+.user-result-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 18px;
+    padding: 18px 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.user-result-card:hover {
+    background-color: rgba(0,56,31,0.04);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+}
+
+.user-result-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: #e6ded3;
+    flex-shrink: 0;
+    position: relative;
+}
+.user-result-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.user-result-placeholder {
+    width: 100%;
+    height: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.3rem;
+    color: #333;
+    background-color: #e6ded3;
+}
+.user-result-text {
+    display: flex;
+    flex-direction: column;
+}
+.user-result-fullname {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #222;
+}
+.user-result-username {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 2px;
+}
+
+.user-search-empty {
+    text-align: center;
+    color: #999;
+    margin-top: 60px;
+    font-size: 1rem;
 }

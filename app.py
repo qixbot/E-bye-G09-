@@ -593,7 +593,30 @@ def search():
             product['actual_total'] = len(base64_list)
         products.append(product)
 
-    return render_template('search.html', products=products)
+    # User search — always run so user panel works even without keyword
+    user_results = []
+    db_u = get_db()
+    cur_u = db_u.cursor()
+    if keyword:
+        like = f"%{keyword}%"
+        cur_u.execute(
+            """SELECT id, username, full_name FROM users
+               WHERE is_blocked = 0 AND is_admin = 0
+               AND (username ILIKE %s OR full_name ILIKE %s)
+               ORDER BY username ASC LIMIT 50""",
+            (like, like)
+        )
+    else:
+        cur_u.execute(
+            """SELECT id, username, full_name FROM users
+               WHERE is_blocked = 0 AND is_admin = 0
+               ORDER BY username ASC LIMIT 50"""
+        )
+    user_results = cur_u.fetchall()
+    cur_u.close()
+    db_u.close()
+
+    return render_template('search.html', products=products, user_results=user_results)
 
 # ============================================================
 # AVATAR ROUTES - Store as BLOB in database

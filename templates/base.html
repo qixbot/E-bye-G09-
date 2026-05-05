@@ -19,7 +19,7 @@
         </a>
         
         <form action="{{ url_for('search') }}" method="GET" class="nav-search">
-            <span class="search-icon">🔍</span>
+            <a href="{{ url_for('search') }}" class="search-icon" style="text-decoration:none;">🔍</a>
             <input type="text" name="q" placeholder="Search textbooks, dorm items, gadgets..." class="search-input">
             <input type="hidden" name="category" id="search-category-input">
             <input type="hidden" name="condition" id="search-condition-input">
