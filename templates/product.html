@@ -484,13 +484,41 @@
     function openBuyModal() {
         const modal = document.getElementById('buyModal');
         if (!modal) return;
-        // Copy main image (or video) into the modal's left column
-        const mainImageContainer = document.querySelector('.main-image');
+
         const modalImageContainer = document.getElementById('modalProductImage');
-        if (mainImageContainer && modalImageContainer) {
-            modalImageContainer.innerHTML = mainImageContainer.innerHTML;
+        if (!modalImageContainer) return;
+
+        // Get the first media (index 0) from the global mediaItems array
+        const firstMedia = mediaItems[0];
+        if (!firstMedia) {
+            modalImageContainer.innerHTML = '<div class="no-image-placeholder">📦 No image available</div>';
+        } else {
+            if (firstMedia.isVideo) {
+                // Create video element
+                const video = document.createElement('video');
+                video.controls = true;
+                video.autoplay = true;
+                video.muted = true;
+                video.loop = true;
+                const source = document.createElement('source');
+                source.src = firstMedia.src;
+                source.type = firstMedia.src.startsWith('data:') 
+                    ? firstMedia.src.split(';')[0].split(':')[1]
+                    : 'video/mp4'; // fallback
+                video.appendChild(source);
+                modalImageContainer.innerHTML = '';
+                modalImageContainer.appendChild(video);
+            } else {
+                // Create img element
+                const img = document.createElement('img');
+                img.src = firstMedia.src;
+                img.alt = 'Product preview';
+                modalImageContainer.innerHTML = '';
+                modalImageContainer.appendChild(img);
+            }
         }
-        // Reset selection
+
+        // Reset location selection
         selectedLocations = [];
         if (document.querySelectorAll('.location-btn').length > 0) {
             updateLocationUI();
@@ -498,6 +526,7 @@
             generateLocationButtons();
             updateLocationUI();
         }
+
         modal.style.display = 'flex';
     }
 
