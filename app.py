@@ -214,8 +214,10 @@ def login():
                     return redirect(url_for('login'))
                 else:
                     db_auto = get_db()
-                    db_auto.execute("UPDATE users SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL WHERE id = ?", (user['id'],))
+                    cur_auto = db_auto.cursor()
+                    cur_auto.execute("UPDATE users SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL WHERE id = %s", (user['id'],))
                     db_auto.commit()
+                    cur_auto.close()
                     db_auto.close()
 
             # ========== 登录成功 ==========
@@ -2180,17 +2182,20 @@ def admin_users():
         return redirect(url_for('admin_login'))
 
     db = get_db()
-    users = db.execute("SELECT * FROM users").fetchall()
-    
-    reports = db.execute('''
-        SELECT r.*, u.username as reported_username,
-               rp.username as reporter_username
-        FROM reports r
-        JOIN users u ON r.reported_user_id = u.id
-        JOIN users rp ON r.reporter_id = rp.id
-        WHERE r.status = 'pending'
-        ORDER BY r.created_at DESC
-    ''').fetchall()
+    cur = db.cursor()
+    cur.execute("SELECT * FROM users")
+    users = cur.fetchall()
+    cur.execute('''
+    SELECT r.*, u.username as reported_username,
+           rp.username as reporter_username
+    FROM reports r
+    JOIN users u ON r.reported_user_id = u.id
+    JOIN users rp ON r.reporter_id = rp.id
+    WHERE r.status = 'pending'
+    ORDER BY r.created_at DESC
+                ''')
+    reports = cur.fetchall()
+    cur.close()
     
     db.close()
     return render_template("admin_users.html", users=users, reports=reports)
@@ -2588,10 +2593,13 @@ def chat_send_images():
         filenames.append(filename)
 
     db = get_db()
-    db.execute('''
-        INSERT INTO messages (sender_id, receiver_id, content, image, created_at)
-        VALUES (?, ?, ?, ?, datetime('now', 'localtime'))
+    cur = db.cursor()
+    cur.execute('''
+    INSERT INTO messages (sender_id, receiver_id, content, image, created_at)
+    VALUES (%s, %s, %s, %s, NOW())
     ''', (session['user_id'], int(receiver_id), content, ','.join(filenames)))
+    db.commit()
+    cur.close()
     db.commit()
     db.close()
 
@@ -2616,10 +2624,13 @@ def chat_send_image():
     file.save(filepath)
 
     db = get_db()
-    db.execute('''
-        INSERT INTO messages (sender_id, receiver_id, product_id, content, image, created_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))
+    cur = db.cursor()
+    cur.execute('''
+    INSERT INTO messages (sender_id, receiver_id, product_id, content, image, created_at)
+    VALUES (%s, %s, %s, %s, %s, NOW())
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, '', filename))
+    db.commit()
+    cur.close()
     db.commit()
     db.close()
 
@@ -2633,15 +2644,18 @@ def chat_page(other_user_id, product_id=None):
         return redirect(url_for('login'))
 
     db = get_db()
+    cur = db.cursor()
     
     # 更新当前用户最后上线时间
-    db.execute('UPDATE users SET last_seen = ? WHERE id = ?',
+    cur.execute('UPDATE users SET last_seen = %s WHERE id = %s',
            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), session['user_id']))
     db.commit()
     
     # 对方用户信息
-    other_user = db.execute('SELECT * FROM users WHERE id = ?', (other_user_id,)).fetchone()
+    cur.execute('SELECT * FROM users WHERE id = %s', (other_user_id,))
+    other_user = cur.fetchone()
     if not other_user:
+        cur.close()
         db.close()
         flash("User not found", "error")
         return redirect(url_for('home'))
@@ -2649,26 +2663,29 @@ def chat_page(other_user_id, product_id=None):
     # 关联商品信息
     product_info = None
     if product_id:
-        product_info = db.execute('''
+        cur.execute('''
             SELECT p.*, u.username as seller_name
             FROM products p JOIN users u ON p.seller_id = u.id
-            WHERE p.id = ?
-        ''', (product_id,)).fetchone()
+            WHERE p.id = %s
+        ''', (product_id,))
+        product_info = cur.fetchone()
 
     # 历史消息
-    messages = db.execute('''
+    cur.execute('''
         SELECT * FROM messages
-        WHERE (sender_id = ? AND receiver_id = ?)
-           OR (sender_id = ? AND receiver_id = ?)
+        WHERE (sender_id = %s AND receiver_id = %s)
+           OR (sender_id = %s AND receiver_id = %s)
         ORDER BY created_at ASC
-    ''', (session['user_id'], other_user_id, other_user_id, session['user_id'])).fetchall()
+    ''', (session['user_id'], other_user_id, other_user_id, session['user_id']))
+    messages = cur.fetchall()
 
     # 标记对方消息为已读
-    db.execute('''
+    cur.execute('''
         UPDATE messages SET is_read = 1
-        WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
+        WHERE sender_id = %s AND receiver_id = %s AND is_read = 0
     ''', (other_user_id, session['user_id']))
     db.commit()
+    cur.close()
     db.close()
 
     return render_template('chat_page.html',

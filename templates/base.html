@@ -37,7 +37,6 @@
                 <img src="{{ url_for('static', filename='chat-icon_Ver2.png') }}" class="nav-icon-img" alt="Chat">
             </a>
             <a href="{{ url_for('edit_profile') }}" style="text-decoration: none; display: flex; align-items: center;">
-<<<<<<< HEAD
                 <img src="{% if session.get('user_id') %}{{ url_for('user_avatar', user_id=session.get('user_id')) }}{% endif %}" class="nav-avatar-img"
     alt="Avatar"
     onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
@@ -49,20 +48,6 @@
                     {% endif %}
                 </div>
             </a>
-=======
-            <img src="{{ url_for('user_avatar', user_id=session.get('user_id')) }}" class="nav-avatar-img"
-            alt="Avatar"
-            onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="nav-avatar" style="display: none;">
-            {% if session.get('username') %}
-            {{ session['username'][0].upper() }}
-            {% else %}
-            U
-        {% endif %}
-    </div>
-</a>
-
->>>>>>> origin
         </div>
     </nav>
     {% endblock %}
