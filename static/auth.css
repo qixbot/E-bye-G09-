@@ -1003,3 +1003,40 @@ body::after {
     .form-group select {padding: 11px 14px; font-size: 13px; }
     .btn-login { padding: 13px; font-size: 14px; }
 }
+
+.flash-messages {
+    margin-bottom: 20px;
+}
+
+.flash-message {
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    animation: fadeInUp 0.3s ease;
+}
+
+.flash-message.success {
+    background: linear-gradient(135deg, #00381f, #1a5c3a);
+    color: white;
+    border-left: 4px solid #00c986;
+}
+
+.flash-message.error {
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+    color: white;
+    border-left: 4px solid #ff9f8f;
+}
+
+.flash-message.warning {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+    border-left: 4px solid #fff3e0;
+}
+
+.flash-message.info {
+    background: linear-gradient(135deg, #2c3e50, #3498db);
+    color: white;
+    border-left: 4px solid #5dade2;
+}
