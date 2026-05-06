@@ -1,26 +1,70 @@
 import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import sqlite3
 from werkzeug.security import generate_password_hash
+import logging
+import time
 
+# 设置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+<<<<<<< HEAD
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
-    DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
+    DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
 
 def get_db():
-    conn = psycopg2.connect(DATABASE_URL)
-    conn.cursor_factory = RealDictCursor 
-    return conn
+    """获取数据库连接，添加SSL和keepalive参数解决连接问题"""
+    try:
+        conn = psycopg2.connect(
+            DATABASE_URL,
+            connect_timeout=10,
+            keepalives=1,
+            keepalives_idle=5,
+            keepalives_interval=2,
+            keepalives_count=2,
+            sslmode='require'
+        )
+        conn.cursor_factory = RealDictCursor
+        return conn
+    except Exception as e:
+        logger.error(f"Database connection error: {e}")
+        raise
+
+def get_db_with_retry(retries=3, delay=1):
+    """带重试机制的数据库连接"""
+    for i in range(retries):
+        try:
+            return get_db()
+        except Exception as e:
+            if i == retries - 1:
+                raise
+            logger.warning(f"Connection attempt {i+1} failed, retrying in {delay}s... Error: {e}")
+            time.sleep(delay)
+    return get_db()
 
 def init_db():
     """Initialize all tables in PostgreSQL"""
+    conn = get_db_with_retry()
+=======
+DATABASE_PATH = os.environ.get('DATABASE_PATH', 'ebyte.db')
+
+def get_db():
+    conn = sqlite3.connect(DATABASE_PATH, timeout=10)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    """Initialize all tables in SQLite"""
     conn = get_db()
+>>>>>>> 8040c6fa61dfb7cd4f08fd126356e9d1a43b9f04
     cur = conn.cursor()
 
     # Users table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             student_id TEXT UNIQUE NOT NULL,
             email TEXT UNIQUE NOT NULL,
             username TEXT NOT NULL,
@@ -29,8 +73,8 @@ def init_db():
             gender TEXT,
             contact TEXT,
             bio TEXT,
-            avatar_blob BYTEA,
-            cover_blob BYTEA,
+            avatar_blob BLOB,
+            cover_blob BLOB,
             background_type TEXT DEFAULT 'default',
             background_value TEXT,
             active_hours TEXT,
@@ -49,6 +93,7 @@ def init_db():
             rating TEXT DEFAULT '--',
             remember_token TEXT,
             last_seen TIMESTAMP,
+            last_read_ann TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -56,7 +101,7 @@ def init_db():
     # Notifications table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS notifications (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL REFERENCES users(id),
             message TEXT NOT NULL,
             is_read INTEGER DEFAULT 0,
@@ -67,7 +112,7 @@ def init_db():
     # Products table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS products (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             seller_id INTEGER NOT NULL REFERENCES users(id),
             name TEXT NOT NULL,
             price REAL NOT NULL,
@@ -85,7 +130,7 @@ def init_db():
     # Messages table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS messages (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             sender_id INTEGER NOT NULL REFERENCES users(id),
             receiver_id INTEGER NOT NULL REFERENCES users(id),
             product_id INTEGER REFERENCES products(id),
@@ -100,7 +145,7 @@ def init_db():
     # Offers table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS offers (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER NOT NULL REFERENCES products(id),
             buyer_id INTEGER NOT NULL REFERENCES users(id),
             offer_price REAL NOT NULL,
@@ -115,7 +160,7 @@ def init_db():
     # Announcements table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS announcements (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             content TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -125,7 +170,7 @@ def init_db():
     # Reviews table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS reviews (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER NOT NULL REFERENCES products(id),
             reviewer_id INTEGER NOT NULL REFERENCES users(id),
             reviewee_id INTEGER NOT NULL REFERENCES users(id),
@@ -139,7 +184,7 @@ def init_db():
     # Reports table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS reports (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             reporter_id INTEGER NOT NULL REFERENCES users(id),
             reported_user_id INTEGER NOT NULL REFERENCES users(id),
             reason TEXT NOT NULL,
@@ -152,7 +197,7 @@ def init_db():
     # Orders table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS orders (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             order_number TEXT UNIQUE NOT NULL,
             product_id INTEGER NOT NULL REFERENCES products(id),
             buyer_id INTEGER NOT NULL REFERENCES users(id),
@@ -168,6 +213,7 @@ def init_db():
         )
     ''')
 
+<<<<<<< HEAD
     # Add missing columns safely
     missing_cols = [
         ('last_seen', 'TIMESTAMP'),
@@ -177,23 +223,25 @@ def init_db():
     for col_name, col_def in missing_cols:
         try:
             cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Could not add column {col_name}: {e}")
 
+=======
+>>>>>>> 8040c6fa61dfb7cd4f08fd126356e9d1a43b9f04
     # Create default admin user
     admin_email = 'admin@student.mmu.edu.my'
     admin_password = generate_password_hash('Admin123!')
-    cur.execute("SELECT id FROM users WHERE email = %s", (admin_email,))
+    cur.execute("SELECT id FROM users WHERE email = ?", (admin_email,))
     if not cur.fetchone():
         cur.execute('''
             INSERT INTO users (student_id, email, username, password, is_admin)
-            VALUES (%s, %s, %s, %s, %s)
+            VALUES (?, ?, ?, ?, ?)
         ''', ('ADMIN001', admin_email, 'Administrator', admin_password, 1))
 
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ All tables ready in PostgreSQL")
+    print("✅ All tables ready in SQLite")
 
 
 # Keep empty functions for compatibility
