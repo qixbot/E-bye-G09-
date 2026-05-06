@@ -114,7 +114,7 @@ def calculate_trust_score(user, listing_count):
     trust_score = min(trust_score, 100)
     trust_score = max(trust_score, 30)
     
-    return trust_score\
+    return trust_score
 
 # jinja2 time filter
 @app.template_filter('time_since')
@@ -227,7 +227,8 @@ def login():
             session['username'] = user['username']
             session['student_id'] = user['student_id']
 
-        if remember_me:
+            # 处理 Remember Me
+            if remember_me:
                 import secrets
                 token = secrets.token_urlsafe(64)
                 db = get_db()
@@ -238,9 +239,9 @@ def login():
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', token, max_age=30*24*60*60, httponly=True, secure=False)
-                flash('✅ Login successful!', 'success')
+                flash(' Login successful!', 'success')
                 return response
-        else:
+            else:
                 db = get_db()
                 cur = db.cursor()
                 cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (user['id'],))
@@ -249,14 +250,14 @@ def login():
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', '', expires=0)
-                flash('✅ Login successful!', 'success')
+                flash(' Login successful!', 'success')
                 return response
-    else:
+        else:
             flash('Invalid email or password', 'error')
+            return render_template('login.html')
 
+    # GET 请求 - 显示登录页面
     return render_template('login.html')
-
-from flask import request, redirect, url_for, session
 
 @app.before_request
 def auto_unfreeze_expired():
