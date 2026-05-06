@@ -10,9 +10,9 @@ import uuid
 
 import base64
 
-import psycopg2  
+# psycopg2 removed
 
-from psycopg2 import Binary  
+# psycopg2 Binary removed
 
 from flask import (
     Flask, render_template, request, redirect,
@@ -29,6 +29,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from database import init_db, get_db, init_products, init_messages, init_announcements, init_reviews
+
+# Initialize SQLite database (creates tables if missing)
+init_db()
 
 app = Flask(__name__)
 app.secret_key = 'e-bye-secret-key-2026-new'
@@ -185,7 +188,7 @@ def login():
 
         db = get_db()
         cur = db.cursor()
-        cur.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(%s)', (email,))
+        cur.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', (email,))
         user = cur.fetchone()
         cur.close()
         db.close()
@@ -215,7 +218,7 @@ def login():
                 else:
                     db_auto = get_db()
                     cur_auto = db_auto.cursor()
-                    cur_auto.execute("UPDATE users SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL WHERE id = %s", (user['id'],))
+                    cur_auto.execute("UPDATE users SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL WHERE id = ?", (user['id'],))
                     db_auto.commit()
                     cur_auto.close()
                     db_auto.close()
@@ -231,7 +234,7 @@ def login():
                 token = secrets.token_urlsafe(64)
                 db = get_db()
                 cur = db.cursor()
-                cur.execute('UPDATE users SET remember_token = %s WHERE id = %s', (token, user['id']))
+                cur.execute('UPDATE users SET remember_token = ? WHERE id = ?', (token, user['id']))
                 db.commit()
                 cur.close()
                 db.close()
@@ -242,7 +245,7 @@ def login():
             else:
                 db = get_db()
                 cur = db.cursor()
-                cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (user['id'],))
+                cur.execute('UPDATE users SET remember_token = NULL WHERE id = ?', (user['id'],))
                 db.commit()
                 cur.close()
                 db.close()
@@ -255,42 +258,39 @@ def login():
             flash('Invalid email or password', 'error')
 
     return render_template('login.html')
+
 @app.before_request
+
 def auto_unfreeze_expired():
-    # 临时禁用 - SSL connection error fix
-    # TODO: 修复数据库连接后重新启用
-    return
-    
-    # ========== 以下代码暂时禁用 ==========
-    # if 'user_id' in session or 'admin_logged_in' in session:
-    #     db = get_db()
-    #     cur = db.cursor()
-    #     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    #     
-    #     cur.execute("""
-    #         SELECT id, username FROM users
-    #         WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
-    #     """, (now,))
-    #     expired = cur.fetchall()
-    #     
-    #     cur.execute("""
-    #         UPDATE users
-    #         SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
-    #         WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
-    #     """, (now,))
-    #     
-    #     for user in expired:
-    #         cur.execute("""
-    #             INSERT INTO notifications (user_id, message, created_at)
-    #             VALUES (%s, %s, NOW())
-    #         """, (user['id'],
-    #               f" Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
-    #               f"Your freeze count remains. Please follow community guidelines.\n"
-    #               f"After 3 freezes, your account will be permanently blocked."))
-    #     
-    #     db.commit()
-    #     cur.close()
-    #     db.close()
+    if 'user_id' in session or 'admin_logged_in' in session:
+        db = get_db()
+        cur = db.cursor()
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        cur.execute("""
+            SELECT id, username FROM users
+            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < ?
+        """, (now,))
+        expired = cur.fetchall()
+        
+        cur.execute("""
+            UPDATE users
+            SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
+            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < ?
+        """, (now,))
+        
+        for user in expired:
+            cur.execute("""
+                INSERT INTO notifications (user_id, message, created_at)
+                VALUES (?, ?, datetime('now'))
+            """, (user['id'],
+                  f" Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
+                  f"Your freeze count remains. Please follow community guidelines.\n"
+                  f"After 3 freezes, your account will be permanently blocked."))
+        
+        db.commit()
+        cur.close()
+        db.close()
 
 @app.before_request
 def check_remember_me():
@@ -306,7 +306,7 @@ def check_remember_me():
         return
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = %s', (token,))
+    cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = ?', (token,))
     user = cur.fetchone()
     cur.close()
     db.close()
@@ -387,7 +387,7 @@ def register():
         cur = db.cursor()
 
         # Check existing student_id or email
-        cur.execute('SELECT * FROM users WHERE student_id = %s OR LOWER(email) = LOWER(%s)', (student_id, email))
+        cur.execute('SELECT * FROM users WHERE student_id = ? OR LOWER(email) = LOWER(?)', (student_id, email))
         existing = cur.fetchone()
         if existing:
             cur.close()
@@ -396,7 +396,7 @@ def register():
             return render_template('register.html')
 
         # Check existing username
-        cur.execute('SELECT * FROM users WHERE LOWER(username) = LOWER(%s)', (username,))
+        cur.execute('SELECT * FROM users WHERE LOWER(username) = LOWER(?)', (username,))
         username_exists = cur.fetchone()
         if username_exists:
             cur.close()
@@ -410,7 +410,7 @@ def register():
             INSERT INTO users (
                 student_id, email, username, password, gender,
                 security_q1, security_a1, security_q2, security_a2
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (student_id, email, username, hashed_password, gender,
               q1, a1, q2, a2))
         db.commit()
@@ -535,44 +535,44 @@ def search():
 
     # Keyword search - product name, description, AND seller name
     if keyword:
-        query += """ AND (p.name ILIKE %s 
-                         OR p.description ILIKE %s
-                         OR u.username ILIKE %s
-                         OR u.full_name ILIKE %s)"""
+        query += """ AND (p.name LIKE ? 
+                         OR p.description LIKE ?
+                         OR u.username LIKE ?
+                         OR u.full_name LIKE ?)"""
         like = f"%{keyword}%"
         params.extend([like, like, like, like])
 
     # Category filter
     if categories:
-        placeholders = ','.join('%s' for _ in categories)
+        placeholders = ','.join('?' for _ in categories)
         query += f" AND p.category IN ({placeholders})"
         params.extend(categories)
 
     # Condition filter (multi)
     if conditions:
-        placeholders = ','.join('%s' for _ in conditions)
+        placeholders = ','.join('?' for _ in conditions)
         query += f" AND p.condition IN ({placeholders})"
         params.extend(conditions)
 
     # Date range – prioritise date_range if provided, else use custom dates
     if date_range and date_range.isdigit():
         days = int(date_range)
-        query += " AND p.created_at >= NOW() - INTERVAL '%s days'"
+        query += " AND p.created_at >= datetime('now', '-' || ? || ' days')"
         params.append(days)
     else:
         if date_from:
-            query += " AND p.created_at >= %s"
+            query += " AND p.created_at >= ?"
             params.append(date_from)
         if date_to:
-            query += " AND p.created_at <= %s"
+            query += " AND p.created_at <= ?"
             params.append(date_to + " 23:59:59")
 
     # Price range
     if min_price is not None:
-        query += " AND p.price >= %s"
+        query += " AND p.price >= ?"
         params.append(min_price)
     if max_price is not None:
-        query += " AND p.price <= %s"
+        query += " AND p.price <= ?"
         params.append(max_price)
 
     # Sorting
@@ -658,7 +658,7 @@ def search():
         cur_u.execute("""
             SELECT id, username, full_name FROM users
             WHERE is_blocked = 0
-              AND (username ILIKE %s OR full_name ILIKE %s)
+              AND (username LIKE ? OR full_name LIKE ?)
             ORDER BY username ASC
             LIMIT 50
         """, (like, like))
@@ -681,7 +681,7 @@ def avatar_image():
 
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT avatar_blob FROM users WHERE id = %s', (session['user_id'],))
+    cur.execute('SELECT avatar_blob FROM users WHERE id = ?', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
     db.close()
@@ -720,7 +720,7 @@ def update_profile_avatar():
 
     db = get_db()
     cur = db.cursor()
-    cur.execute('UPDATE users SET avatar_blob = %s WHERE id = %s', (image_data, session['user_id']))
+    cur.execute('UPDATE users SET avatar_blob = ? WHERE id = ?', (image_data, session['user_id']))
     db.commit()
     cur.close()
     db.close()
@@ -734,7 +734,7 @@ def update_profile_avatar():
 def user_avatar(user_id):
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT avatar_blob FROM users WHERE id = %s', (user_id,))
+    cur.execute('SELECT avatar_blob FROM users WHERE id = ?', (user_id,))
     user = cur.fetchone()
     cur.close()
     db.close()
@@ -773,7 +773,7 @@ def cover_image():
 
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT cover_blob FROM users WHERE id = %s', (session['user_id'],))
+    cur.execute('SELECT cover_blob FROM users WHERE id = ?', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
     db.close()
@@ -810,7 +810,7 @@ def update_cover():
     db = get_db()
     cur = db.cursor()
 
-    cur.execute('UPDATE users SET cover_blob = %s WHERE id = %s', 
+    cur.execute('UPDATE users SET cover_blob = ? WHERE id = ?', 
                 (image_data, session['user_id']))
     db.commit()
     cur.close()
@@ -836,7 +836,7 @@ def save_background_preset():
     db = get_db()
     cur = db.cursor()
     cur.execute('''
-        UPDATE users SET background_type = %s, background_value = %s WHERE id = %s
+        UPDATE users SET background_type = ?, background_value = ? WHERE id = ?
     ''', (bg_type, bg_value, session['user_id']))
     db.commit()
     cur.close()
@@ -873,7 +873,7 @@ def upload_background():
     db = get_db()
     cur = db.cursor()
     cur.execute('''
-        UPDATE users SET background_type = %s, background_value = %s WHERE id = %s
+        UPDATE users SET background_type = ?, background_value = ? WHERE id = ?
     ''', ('image', bg_value, session['user_id']))
     db.commit()
     cur.close()
@@ -895,7 +895,7 @@ def api_user_background():
     cur = db.cursor()
     cur.execute('''
         SELECT background_type, background_value
-        FROM users WHERE id = %s
+        FROM users WHERE id = ?
     ''', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
@@ -929,7 +929,7 @@ def api_user_purchases():
         FROM orders o
         JOIN products p ON o.product_id = p.id
         JOIN users u ON p.seller_id = u.id
-        WHERE o.buyer_id = %s
+        WHERE o.buyer_id = ?
         ORDER BY o.created_at DESC
     ''', (session['user_id'],))
     rows = cur.fetchall()
@@ -972,7 +972,7 @@ def api_user_listings():
                    ELSE '📦'
                END as emoji
         FROM products p
-        WHERE p.seller_id = %s
+        WHERE p.seller_id = ?
         ORDER BY p.created_at DESC
     """, (session['user_id'],))
     rows = cur.fetchall()
@@ -1030,7 +1030,7 @@ def get_product_offers(product_id):
     db = get_db()
     cur = db.cursor()
     # Verify product belongs to user
-    cur.execute('SELECT seller_id FROM products WHERE id = %s', (product_id,))
+    cur.execute('SELECT seller_id FROM products WHERE id = ?', (product_id,))
     product = cur.fetchone()
     if not product or product['seller_id'] != session['user_id']:
         cur.close()
@@ -1041,7 +1041,7 @@ def get_product_offers(product_id):
         SELECT o.*, u.username as buyer_name
         FROM offers o
         JOIN users u ON o.buyer_id = u.id
-        WHERE o.product_id = %s
+        WHERE o.product_id = ?
         ORDER BY o.created_at DESC
     ''', (product_id,))
     offers = cur.fetchall()
@@ -1067,7 +1067,7 @@ def get_product_offer_count(product_id):
     
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT COUNT(*) AS count FROM offers WHERE product_id = %s', (product_id,))
+    cur.execute('SELECT COUNT(*) AS count FROM offers WHERE product_id = ?', (product_id,))
     row = cur.fetchone()
     count = row['count'] if row else 0
     cur.close()
@@ -1093,7 +1093,7 @@ def send_offer(product_id):
     cur = db.cursor()
     
     # Get product info
-    cur.execute('SELECT id, name, price, seller_id FROM products WHERE id = %s AND status = "approved"', (product_id,))
+    cur.execute('SELECT id, name, price, seller_id FROM products WHERE id = ? AND status = "approved"', (product_id,))
     product = cur.fetchone()
     
     if not product:
@@ -1108,7 +1108,7 @@ def send_offer(product_id):
         return jsonify({'success': False, 'error': 'You cannot make an offer on your own product'}), 400
     
     # Check if offer already exists
-    cur.execute('SELECT id FROM offers WHERE product_id = %s AND buyer_id = %s AND status = "pending"', (product_id, session['user_id']))
+    cur.execute('SELECT id FROM offers WHERE product_id = ? AND buyer_id = ? AND status = "pending"', (product_id, session['user_id']))
     existing = cur.fetchone()
     
     if existing:
@@ -1119,13 +1119,13 @@ def send_offer(product_id):
     # Create offer
     cur.execute('''
         INSERT INTO offers (product_id, buyer_id, offer_price, original_price, message, status)
-        VALUES (%s, %s, %s, %s, %s, 'pending')
+        VALUES (?, ?, ?, ?, ?, 'pending')
     ''', (product_id, session['user_id'], float(offer_price), product['price'], message))
     
     # Create notification for seller
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now'))
     ''', (product['seller_id'],
           f"New offer of RM {float(offer_price):.2f} on your item: {product['name']}"))
     
@@ -1150,7 +1150,7 @@ def accept_offer(offer_id):
         SELECT o.*, p.name as product_name, p.seller_id, p.id as product_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s
+        WHERE o.id = ?
     ''', (offer_id,))
     offer = cur.fetchone()
     
@@ -1166,15 +1166,15 @@ def accept_offer(offer_id):
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Update offer status
-    cur.execute('UPDATE offers SET status = "accepted" WHERE id = %s', (offer_id,))
+    cur.execute('UPDATE offers SET status = "accepted" WHERE id = ?', (offer_id,))
     
     # Mark product as sold
-    cur.execute('UPDATE products SET status = "sold" WHERE id = %s', (offer['product_id'],))
+    cur.execute('UPDATE products SET status = "sold" WHERE id = ?', (offer['product_id'],))
     
     # Create notification for buyer
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now'))
     ''', (offer['buyer_id'],
           f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} has been accepted!"))
     
@@ -1199,7 +1199,7 @@ def reject_offer(offer_id):
         SELECT o.*, p.name as product_name, p.seller_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s
+        WHERE o.id = ?
     ''', (offer_id,))
     offer = cur.fetchone()
     
@@ -1215,12 +1215,12 @@ def reject_offer(offer_id):
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Update offer status
-    cur.execute('UPDATE offers SET status = "rejected" WHERE id = %s', (offer_id,))
+    cur.execute('UPDATE offers SET status = "rejected" WHERE id = ?', (offer_id,))
     
     # Create notification for buyer
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now'))
     ''', (offer['buyer_id'],
           f"Your offer of RM {offer['offer_price']:.2f} for {offer['product_name']} was rejected."))
     
@@ -1251,7 +1251,7 @@ def counter_offer(offer_id):
         SELECT o.*, p.name as product_name, p.seller_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s
+        WHERE o.id = ?
     ''', (offer_id,))
     offer = cur.fetchone()
     
@@ -1269,14 +1269,14 @@ def counter_offer(offer_id):
     # Create counter offer (insert new offer or update)
     cur.execute('''
         UPDATE offers 
-        SET counter_price = %s, status = 'countered'
-        WHERE id = %s
+        SET counter_price = ?, status = 'countered'
+        WHERE id = ?
     ''', (float(counter_price), offer_id))
     
     # Create notification for buyer
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now'))
     ''', (offer['buyer_id'],
           f"Seller countered your offer for {offer['product_name']}: RM {float(counter_price):.2f}"))
     
@@ -1301,7 +1301,7 @@ def accept_counter_offer(offer_id):
         SELECT o.*, p.name as product_name, p.seller_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s
+        WHERE o.id = ?
     ''', (offer_id,))
     offer = cur.fetchone()
     
@@ -1320,11 +1320,11 @@ def accept_counter_offer(offer_id):
     cur.execute('''
         UPDATE offers 
         SET offer_price = counter_price, status = 'accepted', counter_price = NULL
-        WHERE id = %s
+        WHERE id = ?
     ''', (offer_id,))
     
     # Mark product as sold
-    cur.execute('UPDATE products SET status = "sold" WHERE id = %s', (offer['product_id'],))
+    cur.execute('UPDATE products SET status = "sold" WHERE id = ?', (offer['product_id'],))
     
     db.commit()
     cur.close()
@@ -1348,7 +1348,7 @@ def api_get_product(product_id):
     cur.execute('''
         SELECT id, name, price, description, condition, category, images, images_blob, status
         FROM products
-        WHERE id = %s AND seller_id = %s
+        WHERE id = ? AND seller_id = ?
     ''', (product_id, session['user_id']))
     product = cur.fetchone()
     cur.close()
@@ -1392,7 +1392,7 @@ def api_product_image(product_id, index):
     db = get_db()
     cur = db.cursor()
 
-    cur.execute('SELECT images_blob, images FROM products WHERE id = %s', (product_id,))
+    cur.execute('SELECT images_blob, images FROM products WHERE id = ?', (product_id,))
     row = cur.fetchone()
     cur.close()
     db.close()
@@ -1460,7 +1460,7 @@ def api_update_product(product_id):
     cur = db.cursor()
 
     # Verify product belongs to user
-    cur.execute('SELECT id FROM products WHERE id = %s AND seller_id = %s', (product_id, session['user_id']))
+    cur.execute('SELECT id FROM products WHERE id = ? AND seller_id = ?', (product_id, session['user_id']))
     product = cur.fetchone()
     if not product:
         cur.close()
@@ -1470,8 +1470,8 @@ def api_update_product(product_id):
     # Update product (status becomes pending again for admin review)
     cur.execute('''
         UPDATE products
-        SET name = %s, price = %s, description = %s, condition = %s, category = %s, status = 'pending'
-        WHERE id = %s
+        SET name = ?, price = ?, description = ?, condition = ?, category = ?, status = 'pending'
+        WHERE id = ?
     ''', (name, price, description, condition, category, product_id))
     db.commit()
     cur.close()
@@ -1491,7 +1491,7 @@ def api_update_product_full(product_id):
     cur = db.cursor()
     
     # Verify product belongs to user
-    cur.execute('SELECT id, images FROM products WHERE id = %s AND seller_id = %s', 
+    cur.execute('SELECT id, images FROM products WHERE id = ? AND seller_id = ?', 
                 (product_id, session['user_id']))
     product = cur.fetchone()
     
@@ -1559,9 +1559,9 @@ def api_update_product_full(product_id):
 
     cur.execute('''
         UPDATE products
-        SET name = %s, price = %s, description = %s, condition = %s, category = %s,
-            images = %s, images_blob = %s, status = 'pending'
-        WHERE id = %s
+        SET name = ?, price = ?, description = ?, condition = ?, category = ?,
+            images = ?, images_blob = ?, status = 'pending'
+        WHERE id = ?
     ''', (name, price, description, condition, category,
           images_str, images_blob_json, product_id))
     
@@ -1581,7 +1581,7 @@ def upload_product_images(product_id):
     # Verify product belongs to user
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT id FROM products WHERE id = %s AND seller_id = %s', 
+    cur.execute('SELECT id FROM products WHERE id = ? AND seller_id = ?', 
                 (product_id, session['user_id']))
     product = cur.fetchone()
     
@@ -1623,7 +1623,7 @@ def my_profile():
     user_id = session['user_id']
     cur = db.cursor()
 
-    cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+    cur.execute('SELECT * FROM users WHERE id = ?', (user_id,))
     user = cur.fetchone()
 
     if not user:
@@ -1631,13 +1631,13 @@ def my_profile():
         flash('User not found', 'error')
         return redirect(url_for('login'))
 
-    cur.execute('SELECT COUNT(*) FROM products WHERE seller_id = %s', (user_id,))
-    listing_count = cur.fetchone()['count'] 
+    cur.execute('SELECT COUNT(*) FROM products WHERE seller_id = ?', (user_id,))
+    listing_count = cur.fetchone()[0] 
 
     sold_count = 0
     try:
-        cur.execute('SELECT COUNT(*) FROM orders WHERE seller_id = %s AND status = "completed"', (user_id,))
-        sold_count = cur.fetchone()['count']  
+        cur.execute('SELECT COUNT(*) FROM orders WHERE seller_id = ? AND status = "completed"', (user_id,))
+        sold_count = cur.fetchone()[0]  
     except:
         pass
 
@@ -1681,11 +1681,11 @@ def edit_profile():
 
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    cur.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],))
     user = cur.fetchone()
 
-    cur.execute('SELECT COUNT(*) FROM products WHERE seller_id = %s', (session['user_id'],))
-    listing_count = cur.fetchone()['count']  
+    cur.execute('SELECT COUNT(*) FROM products WHERE seller_id = ?', (session['user_id'],))
+    listing_count = cur.fetchone()[0]  
 
     trust_score = calculate_trust_score(user, listing_count)
 
@@ -1726,7 +1726,7 @@ def api_user_is_admin():
     
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT is_admin FROM users WHERE id = %s', (session['user_id'],))
+    cur.execute('SELECT is_admin FROM users WHERE id = ?', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
     db.close()
@@ -1748,7 +1748,7 @@ def switch_to_admin():
     
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT is_admin, email, username FROM users WHERE id = %s', (session['user_id'],))
+    cur.execute('SELECT is_admin, email, username FROM users WHERE id = ?', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
     db.close()
@@ -1783,7 +1783,7 @@ def update_profile():
     cur = db.cursor()
 
     # Check if username already taken
-    cur.execute('SELECT id FROM users WHERE username = %s AND id != %s', (username, session['user_id']))
+    cur.execute('SELECT id FROM users WHERE username = ? AND id != ?', (username, session['user_id']))
     existing = cur.fetchone()
     if existing:
         cur.close()
@@ -1794,9 +1794,9 @@ def update_profile():
     # Update all fields
     cur.execute("""
         UPDATE users
-        SET username = %s, full_name = %s, bio = %s,
-            contact = %s, gender = %s, active_hours = %s
-        WHERE id = %s
+        SET username = ?, full_name = ?, bio = ?,
+            contact = ?, gender = ?, active_hours = ?
+        WHERE id = ?
     """, (username, full_name, bio, contact, gender, active_hours, session['user_id']))
 
     db.commit()
@@ -1822,7 +1822,7 @@ def change_password():
 
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    cur.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],))
     user = cur.fetchone()
 
     if not user:
@@ -1844,7 +1844,7 @@ def change_password():
         return redirect(url_for('edit_profile'))
 
     hashed = generate_password_hash(new_password)
-    cur.execute('UPDATE users SET password = %s WHERE id = %s', (hashed, session['user_id']))
+    cur.execute('UPDATE users SET password = ? WHERE id = ?', (hashed, session['user_id']))
     db.commit()
     cur.close()
     db.close()
@@ -1870,7 +1870,7 @@ def delete_account():
 
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    cur.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],))
     user = cur.fetchone()
 
     if not check_password_hash(user['password'], password):
@@ -1879,10 +1879,10 @@ def delete_account():
         flash('Password is incorrect', 'error')
         return redirect(url_for('edit_profile'))
 
-    cur.execute('DELETE FROM products WHERE seller_id = %s', (session['user_id'],))
-    cur.execute('DELETE FROM orders WHERE buyer_id = %s OR seller_id = %s', (session['user_id'], session['user_id']))
-    cur.execute('DELETE FROM notifications WHERE user_id = %s', (session['user_id'],))
-    cur.execute('DELETE FROM users WHERE id = %s', (session['user_id'],))
+    cur.execute('DELETE FROM products WHERE seller_id = ?', (session['user_id'],))
+    cur.execute('DELETE FROM orders WHERE buyer_id = ? OR seller_id = ?', (session['user_id'], session['user_id']))
+    cur.execute('DELETE FROM notifications WHERE user_id = ?', (session['user_id'],))
+    cur.execute('DELETE FROM users WHERE id = ?', (session['user_id'],))
     db.commit()
     cur.close()
     db.close()
@@ -1911,7 +1911,7 @@ def verify_password():
 
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT password FROM users WHERE id = %s', (session['user_id'],))
+    cur.execute('SELECT password FROM users WHERE id = ?', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
     db.close()
@@ -1942,7 +1942,7 @@ def forgot_password():
 
             db = get_db()
             cur = db.cursor()
-            cur.execute('SELECT id, security_q1, security_q2 FROM users WHERE email = %s', (email,))
+            cur.execute('SELECT id, security_q1, security_q2 FROM users WHERE email = ?', (email,))
             user = cur.fetchone()
             cur.close()
             db.close()
@@ -1973,7 +1973,7 @@ def forgot_password():
 
             db = get_db()
             cur = db.cursor()
-            cur.execute('SELECT id, security_a1, security_a2 FROM users WHERE email = %s', (email,))
+            cur.execute('SELECT id, security_a1, security_a2 FROM users WHERE email = ?', (email,))
             user = cur.fetchone()
             cur.close()
             db.close()
@@ -2030,7 +2030,7 @@ def forgot_password():
             hashed = generate_password_hash(new_password)
             db = get_db()
             cur = db.cursor()
-            cur.execute('UPDATE users SET password = %s WHERE email = %s', (hashed, email))
+            cur.execute('UPDATE users SET password = ? WHERE email = ?', (hashed, email))
             db.commit()
             cur.close()
             db.close()
@@ -2058,7 +2058,7 @@ def admin_login():
 
         db = get_db()
         cur = db.cursor()
-        cur.execute('SELECT * FROM users WHERE email = %s AND is_admin = 1', (email,))
+        cur.execute('SELECT * FROM users WHERE email = ? AND is_admin = 1', (email,))
         user = cur.fetchone()
         cur.close()
         db.close()
@@ -2074,7 +2074,7 @@ def admin_login():
                 token = secrets.token_urlsafe(64)
                 db = get_db()
                 cur = db.cursor()
-                cur.execute('UPDATE users SET remember_token = %s WHERE id = %s', (token, user['id']))
+                cur.execute('UPDATE users SET remember_token = ? WHERE id = ?', (token, user['id']))
                 db.commit()
                 cur.close()
                 db.close()
@@ -2086,7 +2086,7 @@ def admin_login():
             else:
                 db = get_db()
                 cur = db.cursor()
-                cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (user['id'],))
+                cur.execute('UPDATE users SET remember_token = NULL WHERE id = ?', (user['id'],))
                 db.commit()
                 cur.close()
                 db.close()
@@ -2115,7 +2115,7 @@ def check_admin_remember_me():
     
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = %s AND is_admin = 1', (token,))
+    cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = ? AND is_admin = 1', (token,))
     user = cur.fetchone()
     cur.close()
     db.close()
@@ -2132,7 +2132,7 @@ def logout():
     if session.get('admin_logged_in'):
         db = get_db()
         cur = db.cursor()
-        cur.execute('UPDATE users SET remember_token = NULL WHERE email = %s', (session.get('admin_email'),))
+        cur.execute('UPDATE users SET remember_token = NULL WHERE email = ?', (session.get('admin_email'),))
         db.commit()
         cur.close()
         db.close()
@@ -2146,7 +2146,7 @@ def logout():
     if session.get('user_id'):
         db = get_db()
         cur = db.cursor()
-        cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (session['user_id'],))
+        cur.execute('UPDATE users SET remember_token = NULL WHERE id = ?', (session['user_id'],))
         db.commit()
         cur.close()
         db.close()
@@ -2170,23 +2170,23 @@ def admin_dashboard():
     cur = db.cursor()
 
     cur.execute("SELECT COUNT(*) FROM products")
-    total_products = cur.fetchone()['count']  
+    total_products = cur.fetchone()[0]  
 
     # Total registered users
     cur.execute("SELECT COUNT(*) FROM users")
-    total_users = cur.fetchone()['count']
+    total_users = cur.fetchone()[0]
 
     # Approved products count
     cur.execute("SELECT COUNT(*) FROM products WHERE status = 'approved'")
-    approved_count = cur.fetchone()['count']
+    approved_count = cur.fetchone()[0]
 
     # Pending products count
     cur.execute("SELECT COUNT(*) FROM products WHERE status = 'pending'")
-    pending_count = cur.fetchone()['count']
+    pending_count = cur.fetchone()[0]
 
     # Active sellers count (users with at least one product)
     cur.execute("SELECT COUNT(DISTINCT seller_id) FROM products")
-    seller_count = cur.fetchone()['count']
+    seller_count = cur.fetchone()[0]
 
     cur.close()
     db.close()
@@ -2279,7 +2279,7 @@ def approve_product(pid):
     cur.execute('''
         UPDATE products
         SET status = 'approved', reject_reason = ''
-        WHERE id = %s
+        WHERE id = ?
     ''', (pid,))
 
     db.commit()
@@ -2306,8 +2306,8 @@ def reject_product(pid):
     cur = db.cursor()
     cur.execute('''
         UPDATE products
-        SET status = 'rejected', reject_reason = %s
-        WHERE id = %s
+        SET status = 'rejected', reject_reason = ?
+        WHERE id = ?
     ''', (reject_reason, pid))
 
     db.commit()
@@ -2330,7 +2330,7 @@ def admin_get_product_info(pid):
         SELECT p.*, u.username as seller_name
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.id = %s
+        WHERE p.id = ?
     ''', (pid,))
     product = cur.fetchone()
     cur.close()
@@ -2375,7 +2375,7 @@ def freeze_7day(user_id):
     db = get_db()
     cur = db.cursor()
     
-    cur.execute("SELECT freeze_count, is_blocked FROM users WHERE id = %s", (user_id,))
+    cur.execute("SELECT freeze_count, is_blocked FROM users WHERE id = ?", (user_id,))
     user = cur.fetchone()
     
     if not user:
@@ -2393,10 +2393,10 @@ def freeze_7day(user_id):
     freeze_count = user['freeze_count'] if user['freeze_count'] else 0
     
     if freeze_count >= 3:
-        cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = %s", (user_id,))
+        cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = ?", (user_id,))
         cur.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (%s, %s, NOW())
+            VALUES (?, ?, datetime('now'))
         """, (user_id,
               f"🚫 Your account has been PERMANENTLY BLOCKED after 3 freezes.\n"
               f"Reason: Your account reached the maximum freeze limit (3/3).\n"
@@ -2412,13 +2412,13 @@ def freeze_7day(user_id):
     
     cur.execute("""
         UPDATE users
-        SET is_frozen = 1, frozen_until = %s, freeze_reason = %s, freeze_count = freeze_count + 1
-        WHERE id = %s
+        SET is_frozen = 1, frozen_until = ?, freeze_reason = ?, freeze_count = freeze_count + 1
+        WHERE id = ?
     """, (time_str, reason, user_id))
 
     cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now'))
     """, (user_id,
           f"⚠️ Your account has been frozen for 7 days (Freeze {freeze_count + 1}/3).\n"
           f"Reason: {reason}\n"
@@ -2443,10 +2443,10 @@ def block_user(user_id):
     db = get_db()
     cur = db.cursor()
 
-    cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = %s", (user_id,))
+    cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = ?", (user_id,))
     cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now'))
     """, (user_id,
           f"🚫 Your account has been PERMANENTLY BLOCKED by admin.\n"
           f"Reason: {reason}\n"
@@ -2475,12 +2475,12 @@ def unfreeze_user(user_id):
         UPDATE users
         SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL,
             freeze_count = CASE WHEN freeze_count > 0 THEN freeze_count - 1 ELSE 0 END
-        WHERE id = %s
+        WHERE id = ?
     """, (user_id,))
     
     cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now'))
     """, (user_id,
           f"🔓 Your account has been manually unfrozen by admin.\n"
           f"Reason: {reason}\n"
@@ -2503,10 +2503,10 @@ def unblock_user(user_id):
 
     db = get_db()
     cur = db.cursor()
-    cur.execute("UPDATE users SET is_blocked = 0, freeze_count = 0 WHERE id = %s", (user_id,))
+    cur.execute("UPDATE users SET is_blocked = 0, freeze_count = 0 WHERE id = ?", (user_id,))
     cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
-        VALUES (%s, %s, NOW())
+        VALUES (?, ?, datetime('now'))
     """, (user_id,
           f" Your account has been UNBLOCKED by admin.\n"
           f"Your freeze count has been reset to 0.\n"
@@ -2526,7 +2526,7 @@ def handle_report(report_id, action):
 
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM reports WHERE id = %s", (report_id,))
+    cur.execute("SELECT * FROM reports WHERE id = ?", (report_id,))
     report = cur.fetchone()
     
     if not report:
@@ -2535,26 +2535,26 @@ def handle_report(report_id, action):
         return jsonify({'success': False}), 404
 
     if action == 'dismiss':
-        cur.execute("UPDATE reports SET status = 'dismissed' WHERE id = %s", (report_id,))
+        cur.execute("UPDATE reports SET status = 'dismissed' WHERE id = ?", (report_id,))
         cur.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (%s, %s, NOW())
+            VALUES (?, ?, datetime('now'))
         """, (report['reporter_id'],
               f"📋 Your report has been reviewed and DISMISSED by admin.\nNo action was taken."))
               
     elif action == 'block':
-        cur.execute("UPDATE users SET is_blocked = 1 WHERE id = %s", (report['reported_user_id'],))
-        cur.execute("UPDATE reports SET status = 'resolved' WHERE id = %s", (report_id,))
+        cur.execute("UPDATE users SET is_blocked = 1 WHERE id = ?", (report['reported_user_id'],))
+        cur.execute("UPDATE reports SET status = 'resolved' WHERE id = ?", (report_id,))
         
         cur.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (%s, %s, NOW())
+            VALUES (?, ?, datetime('now'))
         """, (report['reported_user_id'],
               f"🚫 Your account has been BLOCKED due to user reports.\nIf you believe this is a mistake, please contact admin."))
         
         cur.execute("""
             INSERT INTO notifications (user_id, message, created_at)
-            VALUES (%s, %s, NOW())
+            VALUES (?, ?, datetime('now'))
         """, (report['reporter_id'],
               f" Your report has been reviewed. The reported user has been BLOCKED.\nThank you!"))
 
@@ -2586,7 +2586,7 @@ def chat_send():
     cur = db.cursor()
     cur.execute('''
         INSERT INTO messages (sender_id, receiver_id, product_id, content, created_at)
-        VALUES (%s, %s, %s, %s, NOW() + INTERVAL '8 hours')
+        VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, content))
     db.commit()
     cur.close()
@@ -2618,7 +2618,7 @@ def chat_send_images():
     cur = db.cursor()
     cur.execute('''
     INSERT INTO messages (sender_id, receiver_id, content, image, created_at)
-    VALUES (%s, %s, %s, %s, NOW() + INTERVAL '8 hours')
+    VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))
     ''', (session['user_id'], int(receiver_id), content, ','.join(filenames)))
     db.commit()
     cur.close()
@@ -2648,7 +2648,7 @@ def chat_send_image():
     cur = db.cursor()
     cur.execute('''
     INSERT INTO messages (sender_id, receiver_id, product_id, content, image, created_at)
-    VALUES (%s, %s, %s, %s, %s, NOW() + INTERVAL '8 hours')
+    VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, '', filename))
     db.commit()
     cur.close()
@@ -2667,12 +2667,12 @@ def chat_page(other_user_id, product_id=None):
     cur = db.cursor()
     
         # 更新当前用户最后上线时间（暂时跳过，等待 Supabase 加列）
-    # cur.execute('UPDATE users SET last_seen = %s WHERE id = %s',
+    # cur.execute('UPDATE users SET last_seen = ? WHERE id = ?',
     #        (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), session['user_id']))
     # db.commit()
     
     # 对方用户信息
-    cur.execute('SELECT * FROM users WHERE id = %s', (other_user_id,))
+    cur.execute('SELECT * FROM users WHERE id = ?', (other_user_id,))
     other_user = cur.fetchone()
     if not other_user:
         cur.close()
@@ -2686,15 +2686,15 @@ def chat_page(other_user_id, product_id=None):
         cur.execute('''
             SELECT p.*, u.username as seller_name
             FROM products p JOIN users u ON p.seller_id = u.id
-            WHERE p.id = %s
+            WHERE p.id = ?
         ''', (product_id,))
         product_info = cur.fetchone()
 
     # 历史消息
     cur.execute('''
         SELECT * FROM messages
-        WHERE (sender_id = %s AND receiver_id = %s)
-           OR (sender_id = %s AND receiver_id = %s)
+        WHERE (sender_id = ? AND receiver_id = ?)
+           OR (sender_id = ? AND receiver_id = ?)
         ORDER BY created_at ASC
     ''', (session['user_id'], other_user_id, other_user_id, session['user_id']))
     messages = cur.fetchall()
@@ -2703,12 +2703,15 @@ def chat_page(other_user_id, product_id=None):
         if msg['created_at']:
             from datetime import timezone, timedelta
             malaysia_tz = timezone(timedelta(hours=8))
-            msg['created_at'] = msg['created_at'].replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
+            ca = msg['created_at']
+            if isinstance(ca, str):
+                ca = datetime.strptime(ca[:19], '%Y-%m-%d %H:%M:%S')
+            msg['created_at'] = ca.replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
 
     # 标记对方消息为已读
     cur.execute('''
         UPDATE messages SET is_read = 1
-        WHERE sender_id = %s AND receiver_id = %s AND is_read = 0
+        WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
     ''', (other_user_id, session['user_id']))
     db.commit()
     cur.close()
@@ -2731,9 +2734,9 @@ def chat_get_messages(other_user_id):
     cur = db.cursor()
     cur.execute('''
         SELECT * FROM messages
-        WHERE ((sender_id = %s AND receiver_id = %s)
-            OR (sender_id = %s AND receiver_id = %s))
-          AND id > %s
+        WHERE ((sender_id = ? AND receiver_id = ?)
+            OR (sender_id = ? AND receiver_id = ?))
+          AND id > ?
         ORDER BY created_at ASC
     ''', (session['user_id'], other_user_id, other_user_id, session['user_id'], since))
     messages = cur.fetchall()
@@ -2747,7 +2750,10 @@ def chat_get_messages(other_user_id):
     for msg in messages:
         msg = dict(msg)
         if msg['created_at']:
-            msg['created_at'] = msg['created_at'].replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
+            ca = msg['created_at']
+            if isinstance(ca, str):
+                ca = datetime.strptime(ca[:19], '%Y-%m-%d %H:%M:%S')
+            msg['created_at'] = ca.replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
         result.append(msg)
 
     return jsonify(result)
@@ -2768,7 +2774,7 @@ def report_user(user_id):
     cur = db.cursor()
     cur.execute('''
         INSERT INTO reports (reporter_id, reported_user_id, reason, details)
-        VALUES (%s, %s, %s, %s)
+        VALUES (?, ?, ?, ?)
     ''', (session['user_id'], user_id, reason, details))
     db.commit()
     cur.close()
@@ -2780,7 +2786,7 @@ def report_user(user_id):
 def user_status(user_id):
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT last_seen FROM users WHERE id = %s', (user_id,))
+    cur.execute('SELECT last_seen FROM users WHERE id = ?', (user_id,))
     user = cur.fetchone()
     cur.close()
     db.close()
@@ -2814,7 +2820,7 @@ def api_user_other_listings(user_id):
     cur.execute("""
         SELECT id, name, price, status, images, images_blob
         FROM products
-        WHERE seller_id = %s AND status = 'approved'
+        WHERE seller_id = ? AND status = 'approved'
         ORDER BY created_at DESC
     """, (user_id,))
     rows = cur.fetchall()
@@ -2842,13 +2848,13 @@ def chat_list():
                m.created_at as last_time,
                m.is_read, m.sender_id,
                (SELECT COUNT(*) FROM messages
-                WHERE sender_id = u.id AND receiver_id = %s AND is_read = 0) as unread_count
+                WHERE sender_id = u.id AND receiver_id = ? AND is_read = 0) as unread_count
         FROM users u
         JOIN (
-            SELECT CASE WHEN sender_id = %s THEN receiver_id ELSE sender_id END as other_id,
+            SELECT CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_id,
                    MAX(id) as max_id
             FROM messages
-            WHERE sender_id = %s OR receiver_id = %s
+            WHERE sender_id = ? OR receiver_id = ?
             GROUP BY other_id
         ) latest ON u.id = latest.other_id
         JOIN messages m ON m.id = latest.max_id
@@ -2864,18 +2870,21 @@ def chat_list():
         elif chat.get('last_message') and 'Tap to view product' in (chat.get('last_message') or ''):
             chat['last_message'] = '(Product)'
         if chat.get('last_time'):
-            chat['last_time'] = chat['last_time'].replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
+            lt = chat['last_time']
+            if isinstance(lt, str):
+                lt = datetime.strptime(lt[:19], '%Y-%m-%d %H:%M:%S')
+            chat['last_time'] = lt.replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
         chat_list_data.append(chat)
 
     # 未读通知
-    cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
-    unread_notifications = cur.fetchone()['count']
+    cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = ? AND is_read = 0", (user_id,))
+    unread_notifications = cur.fetchone()[0]
     unread_reviews = 0
     
     # 未读公告：对比最新公告时间和用户已读时间
     # 临时：直接用公告总数
     cur.execute("SELECT COUNT(*) AS count FROM announcements")
-    unread_announcements = cur.fetchone()['count']
+    unread_announcements = cur.fetchone()[0]
     
     cur.close()
     db.close()
@@ -2892,7 +2901,7 @@ def mark_ann_read():
         return jsonify({'success': False}), 401
     db = get_db()
     cur = db.cursor()
-    cur.execute("UPDATE users SET last_read_ann = NOW() WHERE id = %s", (session['user_id'],))
+    cur.execute("UPDATE users SET last_read_ann = datetime('now') WHERE id = ?", (session['user_id'],))
     db.commit()
     cur.close()
     db.close()
@@ -2908,7 +2917,7 @@ def search_users():
         return jsonify([])
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT id, username, student_id FROM users WHERE username ILIKE %s OR student_id ILIKE %s LIMIT 10",
+    cur.execute("SELECT id, username, student_id FROM users WHERE username LIKE ? OR student_id LIKE ? LIMIT 10",
                 (f'%{q}%', f'%{q}%'))
     users = cur.fetchall()
     cur.close()
@@ -2937,10 +2946,10 @@ def add_announcement():
     if title and content:
         db = get_db()
         cur = db.cursor()
-        cur.execute("INSERT INTO announcements (title, content) VALUES (%s, %s) RETURNING id", (title, content))
-        ann_id = cur.fetchone()['id']
+        cur.execute("INSERT INTO announcements (title, content) VALUES (?, ?)", (title, content))
+        ann_id = cur.lastrowid
         # 通知所有用户
-        cur.execute("INSERT INTO notifications (user_id, message, created_at) SELECT id, %s, NOW() FROM users", 
+        cur.execute("INSERT INTO notifications (user_id, message, created_at) SELECT id, ?, datetime('now') FROM users", 
                     (f"📢 New announcement: {title}",))
         db.commit()
         cur.close()
@@ -2954,7 +2963,7 @@ def delete_announcement(ann_id):
         return jsonify({'success': False}), 403
     db = get_db()
     cur = db.cursor()
-    cur.execute("DELETE FROM announcements WHERE id = %s", (ann_id,))
+    cur.execute("DELETE FROM announcements WHERE id = ?", (ann_id,))
     db.commit()
     cur.close()
     db.close()
@@ -2972,11 +2981,11 @@ def unread_count():
     db = get_db()
     cur = db.cursor()
 
-    cur.execute("SELECT COUNT(*) AS count FROM messages WHERE receiver_id = %s AND is_read = 0", (user_id,))
-    chat_unread = cur.fetchone()['count']
+    cur.execute("SELECT COUNT(*) AS count FROM messages WHERE receiver_id = ? AND is_read = 0", (user_id,))
+    chat_unread = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
-    notif_unread = cur.fetchone()['count']
+    cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = ? AND is_read = 0", (user_id,))
+    notif_unread = cur.fetchone()[0]
 
     cur.close()
     db.close()
@@ -3084,7 +3093,7 @@ def upload_product():
         cur = db.cursor()
         cur.execute('''
             INSERT INTO products (seller_id, name, price, description, condition, category, images, images_blob, created_at, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
         ''', (seller_id, name, price_val, description, condition, category, images_string, images_json, 'pending'))
         db.commit()
         cur.close()
@@ -3104,10 +3113,6 @@ def clear_products():
     cur = db.cursor()
     cur.execute("DELETE FROM products")
     # Reset sequence in PostgreSQL: ALTER SEQUENCE products_id_seq RESTART WITH 1
-    try:
-        cur.execute("ALTER SEQUENCE products_id_seq RESTART WITH 1")
-    except:
-        pass
     db.commit()
     cur.close()
     db.close()
@@ -3131,7 +3136,7 @@ def product_detail(product_id):
             u.is_blocked as seller_blocked
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.id = %s AND p.status = 'approved'
+        WHERE p.id = ? AND p.status = 'approved'
     ''', (product_id,))
     product = cur.fetchone()
     cur.close()
