@@ -2,7 +2,6 @@
 import sys
 import os
 
-# 添加当前目录到路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from database import get_db
@@ -15,13 +14,12 @@ def set_admin():
     
     email = 'EILEEN.KERK.HUI@student.mmu.edu.my'
     
-    # 检查用户是否存在
-    cur.execute("SELECT id, email, is_admin FROM users WHERE email = %s", (email,))
+    cur.execute("SELECT id, email, is_admin FROM users WHERE email = ?", (email,))
     user = cur.fetchone()
     
     if user:
         print(f"Found user: {user['email']}, current is_admin={user['is_admin']}")
-        cur.execute("UPDATE users SET is_admin = 1 WHERE id = %s", (user['id'],))
+        cur.execute("UPDATE users SET is_admin = 1 WHERE id = ?", (user['id'],))
         db.commit()
         print(f"✅ {email} is now ADMIN!")
     else:
@@ -29,15 +27,14 @@ def set_admin():
         hashed_password = generate_password_hash('Uyhzv3q@')
         cur.execute('''
             INSERT INTO users (student_id, email, username, password, is_admin)
-            VALUES (%s, %s, %s, %s, %s)
+            VALUES (?, ?, ?, ?, ?)
         ''', ('ADMIN001', email, 'Eileen', hashed_password, 1))
         db.commit()
         print(f"✅ Admin user {email} created!")
     
-    # 验证
-    cur.execute("SELECT id, email, is_admin FROM users WHERE email = %s", (email,))
+    cur.execute("SELECT id, email, is_admin FROM users WHERE email = ?", (email,))
     result = cur.fetchone()
-    print(f"Verification: {result}")
+    print(f"Verification: {dict(result)}")
     
     cur.close()
     db.close()
