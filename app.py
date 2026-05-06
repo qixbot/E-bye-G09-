@@ -64,29 +64,32 @@ def get_emoji_by_category(name):
     if 'music' in name_lower:
         return '🎸'
     return '📦'
-
 def calculate_trust_score(user, listing_count):
     """Calculate trust score based on user profile and activity"""
+    # ========== 添加这个检查 ==========
+    if user is None:
+        return 50
+    # ================================
+    
     trust_score = 60
     
-
-    if user['avatar_blob']:
+    if user.get('avatar_blob'):  # 使用 .get() 避免 KeyError
         trust_score += 8
-    if user['bio']:
+    if user.get('bio'):
         trust_score += 8
-    if user['contact']:
+    if user.get('contact'):
         trust_score += 7
-    if user['full_name']:
+    if user.get('full_name'):
         trust_score += 7
 
     # Account age bonus
-    if user['created_at']:
+    if user.get('created_at'):
         try:
             ca = user['created_at']
             if isinstance(ca, str):
                 created_date = datetime.strptime(ca[:19], '%Y-%m-%d %H:%M:%S')
             else:
-                created_date = ca  # already a datetime from psycopg2
+                created_date = ca
             days_since_join = (datetime.now() - created_date.replace(tzinfo=None)).days
             if days_since_join >= 365:
                 trust_score += 20
@@ -103,15 +106,15 @@ def calculate_trust_score(user, listing_count):
     trust_score += min(25, (listing_count // 2) * 2)
 
     # Activity bonus
-    if user['active_hours'] and user['active_hours'] != 'Not set':
+    if user.get('active_hours') and user['active_hours'] != 'Not set':
         trust_score += 10
-    if user['gender']:
+    if user.get('gender'):
         trust_score += 5
 
     trust_score = min(trust_score, 100)
     trust_score = max(trust_score, 30)
     
-    return trust_score
+    return trust_score\
 
 # jinja2 time filter
 @app.template_filter('time_since')
@@ -257,6 +260,9 @@ from flask import request, redirect, url_for, session
 
 @app.before_request
 def auto_unfreeze_expired():
+    # 禁用这个函数，避免每次请求都连接数据库导致 SSL 错误
+    return
+
     if 'user_id' in session or 'admin_logged_in' in session:
         db = get_db()
         cur = db.cursor()
@@ -292,26 +298,33 @@ def check_remember_me():
     if 'user_id' in session:
         return
     
-    public_routes = ['login', 'register', 'forgot_password', 'static', 'welcome']
+    public_routes = ['login', 'register', 'forgot_password', 'static', 'welcome', 'admin_login']
     if request.endpoint in public_routes:
         return
     
     token = request.cookies.get('remember_token')
     if not token:
         return
-    db = get_db()
-    cur = db.cursor()
-    cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = %s', (token,))
-    user = cur.fetchone()
-    cur.close()
-    db.close()
+    
+    try:
+        db = get_db()
+        cur = db.cursor()
+        cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = %s', (token,))
+        user = cur.fetchone()
+        cur.close()
+        db.close()
 
-    if user:
-        session['user_id'] = user['id']
-        session['username'] = user['username']
-        session['student_id'] = user['student_id']
-        print(f"Auto-logged in user: {user['username']}")
-
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['student_id'] = user['student_id']
+            print(f"Auto-logged in user: {user['username']}")
+    except Exception as e:
+        print(f"Error in check_remember_me: {e}")
+        # 清除无效的token cookie
+        response = make_response()
+        response.set_cookie('remember_token', '', expires=0)
+        return response
 
 # ============================================================
 # Eileen's Route - Register
@@ -1609,7 +1622,6 @@ def upload_product_images(product_id):
 # ============================================================
 @app.route('/my-profile')
 def my_profile():
-
     if 'user_id' not in session:
         flash('Please login first', 'error')
         return redirect(url_for('login'))
@@ -1621,18 +1633,24 @@ def my_profile():
     cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
     user = cur.fetchone()
 
+    # ========== 添加这个检查 ==========
     if not user:
+        cur.close()
+        db.close()
         session.clear()
-        flash('User not found', 'error')
+        flash('User account not found. Please login again.', 'error')
         return redirect(url_for('login'))
+    # ================================
 
     cur.execute('SELECT COUNT(*) FROM products WHERE seller_id = %s', (user_id,))
-    listing_count = cur.fetchone()['count'] 
+    row = cur.fetchone()
+    listing_count = row['count'] if row else 0
 
     sold_count = 0
     try:
         cur.execute('SELECT COUNT(*) FROM orders WHERE seller_id = %s AND status = "completed"', (user_id,))
-        sold_count = cur.fetchone()['count']  
+        row2 = cur.fetchone()
+        sold_count = row2['count'] if row2 else 0
     except:
         pass
 
@@ -1643,11 +1661,11 @@ def my_profile():
     if listing_count > 0:
         response_rate += 15
     
-    if user['bio'] and user['contact']:
+    if user.get('bio') and user.get('contact'):
         response_rate += 10
-    if user['active_hours'] and user['active_hours'] != 'Not set':
+    if user.get('active_hours') and user['active_hours'] != 'Not set':
         response_rate += 10
-    if user['avatar_blob']:
+    if user.get('avatar_blob'):
         response_rate += 5
     
     response_rate = min(response_rate, 98)
@@ -1663,7 +1681,7 @@ def my_profile():
         listing_count=listing_count,
         sold_count=sold_count,
         trust_score=trust_score,
-        response_rate=response_rate  
+        response_rate=response_rate
     )
 
 # ============================================================
@@ -1679,8 +1697,18 @@ def edit_profile():
     cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
     user = cur.fetchone()
 
+    # ========== 添加这个检查 ==========
+    if not user:
+        cur.close()
+        db.close()
+        session.clear()
+        flash('User account not found. Please login again.', 'error')
+        return redirect(url_for('login'))
+    # ================================
+
     cur.execute('SELECT COUNT(*) FROM products WHERE seller_id = %s', (session['user_id'],))
-    listing_count = cur.fetchone()['count']  
+    row = cur.fetchone()
+    listing_count = row['count'] if row else 0
 
     trust_score = calculate_trust_score(user, listing_count)
 
@@ -1688,11 +1716,11 @@ def edit_profile():
     if listing_count > 0:
         response_rate += 15
     
-    if user['bio'] and user['contact']:
+    if user.get('bio') and user.get('contact'):
         response_rate += 10
-    if user['active_hours'] and user['active_hours'] != 'Not set':
+    if user.get('active_hours') and user['active_hours'] != 'Not set':
         response_rate += 10
-    if user['avatar_blob']:
+    if user.get('avatar_blob'):
         response_rate += 5
     
     response_rate = min(response_rate, 98)
