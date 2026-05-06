@@ -2,19 +2,50 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from werkzeug.security import generate_password_hash
+import logging
+import time
+
+# 设置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
-    DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
+    DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
 
 def get_db():
-    conn = psycopg2.connect(DATABASE_URL)
-    conn.cursor_factory = RealDictCursor 
-    return conn
+    """获取数据库连接，添加SSL和keepalive参数解决连接问题"""
+    try:
+        conn = psycopg2.connect(
+            DATABASE_URL,
+            connect_timeout=10,
+            keepalives=1,
+            keepalives_idle=5,
+            keepalives_interval=2,
+            keepalives_count=2,
+            sslmode='require'
+        )
+        conn.cursor_factory = RealDictCursor
+        return conn
+    except Exception as e:
+        logger.error(f"Database connection error: {e}")
+        raise
+
+def get_db_with_retry(retries=3, delay=1):
+    """带重试机制的数据库连接"""
+    for i in range(retries):
+        try:
+            return get_db()
+        except Exception as e:
+            if i == retries - 1:
+                raise
+            logger.warning(f"Connection attempt {i+1} failed, retrying in {delay}s... Error: {e}")
+            time.sleep(delay)
+    return get_db()
 
 def init_db():
     """Initialize all tables in PostgreSQL"""
-    conn = get_db()
+    conn = get_db_with_retry()
     cur = conn.cursor()
 
     # Users table
@@ -177,8 +208,8 @@ def init_db():
     for col_name, col_def in missing_cols:
         try:
             cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Could not add column {col_name}: {e}")
 
     # Create default admin user
     admin_email = 'admin@student.mmu.edu.my'

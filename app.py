@@ -237,7 +237,7 @@ def login():
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', token, max_age=30*24*60*60, httponly=True, secure=False)
-                flash('✅ Login successful!', 'success')
+                flash(' Login successful!', 'success')
                 return response
             else:
                 db = get_db()
@@ -248,7 +248,7 @@ def login():
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', '', expires=0)
-                flash('✅ Login successful!', 'success')
+                flash(' Login successful!', 'success')
                 return response
 
         else:
@@ -293,30 +293,38 @@ def auto_unfreeze_expired():
     #     db.close()
 
 @app.before_request
+
 def check_remember_me():
     if 'user_id' in session:
         return
     
-    public_routes = ['login', 'register', 'forgot_password', 'static', 'welcome']
+    public_routes = ['login', 'register', 'forgot_password', 'static', 'welcome', 'admin_login']
     if request.endpoint in public_routes:
         return
     
     token = request.cookies.get('remember_token')
     if not token:
         return
-    db = get_db()
-    cur = db.cursor()
-    cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = %s', (token,))
-    user = cur.fetchone()
-    cur.close()
-    db.close()
-
-    if user:
-        session['user_id'] = user['id']
-        session['username'] = user['username']
-        session['student_id'] = user['student_id']
-        print(f"Auto-logged in user: {user['username']}")
-
+    
+    try:
+        db = get_db()
+        cur = db.cursor()
+        cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = %s', (token,))
+        user = cur.fetchone()
+        cur.close()
+        db.close()
+        
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['student_id'] = user['student_id']
+            print(f"Auto-logged in user: {user['username']}")
+    except Exception as e:
+        print(f"Error in check_remember_me: {e}")
+        # 清除无效的token cookie
+        response = make_response()
+        response.set_cookie('remember_token', '', expires=0)
+        return response
 
 # ============================================================
 # Eileen's Route - Register
@@ -2113,18 +2121,24 @@ def check_admin_remember_me():
     if not token:
         return
     
-    db = get_db()
-    cur = db.cursor()
-    cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = %s AND is_admin = 1', (token,))
-    user = cur.fetchone()
-    cur.close()
-    db.close()
-    
-    if user:
-        session['admin_logged_in'] = True
-        session['admin_email'] = user['email']      # 修复：用字典键名
-        session['admin_username'] = user['username'] # 修复：用字典键名
-        print(f"Auto-logged in admin: {user['username']}")
+    try:
+        db = get_db()
+        cur = db.cursor()
+        cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = %s AND is_admin = 1', (token,))
+        user = cur.fetchone()
+        cur.close()
+        db.close()
+        
+        if user:
+            session['admin_logged_in'] = True
+            session['admin_email'] = user['email']
+            session['admin_username'] = user['username']
+            print(f"Auto-logged in admin: {user['username']}")
+    except Exception as e:
+        print(f"Error in check_admin_remember_me: {e}")
+        response = make_response()
+        response.set_cookie('admin_remember_token', '', expires=0)
+        return response
         
 @app.route('/logout')
 def logout():
