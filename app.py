@@ -255,39 +255,42 @@ def login():
             flash('Invalid email or password', 'error')
 
     return render_template('login.html')
-
 @app.before_request
-
 def auto_unfreeze_expired():
-    if 'user_id' in session or 'admin_logged_in' in session:
-        db = get_db()
-        cur = db.cursor()
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        cur.execute("""
-            SELECT id, username FROM users
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
-        """, (now,))
-        expired = cur.fetchall()
-        
-        cur.execute("""
-            UPDATE users
-            SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
-        """, (now,))
-        
-        for user in expired:
-            cur.execute("""
-                INSERT INTO notifications (user_id, message, created_at)
-                VALUES (%s, %s, NOW())
-            """, (user['id'],
-                  f" Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
-                  f"Your freeze count remains. Please follow community guidelines.\n"
-                  f"After 3 freezes, your account will be permanently blocked."))
-        
-        db.commit()
-        cur.close()
-        db.close()
+    # 临时禁用 - SSL connection error fix
+    # TODO: 修复数据库连接后重新启用
+    return
+    
+    # ========== 以下代码暂时禁用 ==========
+    # if 'user_id' in session or 'admin_logged_in' in session:
+    #     db = get_db()
+    #     cur = db.cursor()
+    #     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    #     
+    #     cur.execute("""
+    #         SELECT id, username FROM users
+    #         WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+    #     """, (now,))
+    #     expired = cur.fetchall()
+    #     
+    #     cur.execute("""
+    #         UPDATE users
+    #         SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
+    #         WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+    #     """, (now,))
+    #     
+    #     for user in expired:
+    #         cur.execute("""
+    #             INSERT INTO notifications (user_id, message, created_at)
+    #             VALUES (%s, %s, NOW())
+    #         """, (user['id'],
+    #               f" Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
+    #               f"Your freeze count remains. Please follow community guidelines.\n"
+    #               f"After 3 freezes, your account will be permanently blocked."))
+    #     
+    #     db.commit()
+    #     cur.close()
+    #     db.close()
 
 @app.before_request
 def check_remember_me():
