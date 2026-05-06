@@ -169,6 +169,7 @@ init_announcements()
 init_reviews()
 
 @app.route('/')
+
 def index():
     return render_template('welcome.html')  
 
@@ -176,6 +177,7 @@ def index():
 # Eileen's Route - Login
 # ============================================================
 @app.route('/login', methods=['GET', 'POST'])
+
 def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
@@ -224,7 +226,8 @@ def login():
             session['username'] = user['username']
             session['student_id'] = user['student_id']
 
-        if remember_me:
+            # ========== 3. Remember Me 处理 ==========
+            if remember_me:
                 import secrets
                 token = secrets.token_urlsafe(64)
                 db = get_db()
@@ -237,7 +240,7 @@ def login():
                 response.set_cookie('remember_token', token, max_age=30*24*60*60, httponly=True, secure=False)
                 flash('✅ Login successful!', 'success')
                 return response
-        else:
+            else:
                 db = get_db()
                 cur = db.cursor()
                 cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (user['id'],))
@@ -248,14 +251,14 @@ def login():
                 response.set_cookie('remember_token', '', expires=0)
                 flash('✅ Login successful!', 'success')
                 return response
-    else:
+
+        else:
             flash('Invalid email or password', 'error')
 
     return render_template('login.html')
 
-from flask import request, redirect, url_for, session
-
 @app.before_request
+
 def auto_unfreeze_expired():
     if 'user_id' in session or 'admin_logged_in' in session:
         db = get_db()
@@ -279,7 +282,7 @@ def auto_unfreeze_expired():
                 INSERT INTO notifications (user_id, message, created_at)
                 VALUES (%s, %s, NOW())
             """, (user['id'],
-                  f"✅ Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
+                  f" Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
                   f"Your freeze count remains. Please follow community guidelines.\n"
                   f"After 3 freezes, your account will be permanently blocked."))
         
@@ -2503,7 +2506,7 @@ def unblock_user(user_id):
         INSERT INTO notifications (user_id, message, created_at)
         VALUES (%s, %s, NOW())
     """, (user_id,
-          f"✅ Your account has been UNBLOCKED by admin.\n"
+          f" Your account has been UNBLOCKED by admin.\n"
           f"Your freeze count has been reset to 0.\n"
           f"Welcome back! Please follow the community guidelines."))
     db.commit()
@@ -2551,7 +2554,7 @@ def handle_report(report_id, action):
             INSERT INTO notifications (user_id, message, created_at)
             VALUES (%s, %s, NOW())
         """, (report['reporter_id'],
-              f"✅ Your report has been reviewed. The reported user has been BLOCKED.\nThank you!"))
+              f" Your report has been reviewed. The reported user has been BLOCKED.\nThank you!"))
 
     db.commit()
     cur.close()
