@@ -8,7 +8,6 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-<<<<<<< HEAD
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
@@ -46,19 +45,6 @@ def get_db_with_retry(retries=3, delay=1):
 def init_db():
     """Initialize all tables in PostgreSQL"""
     conn = get_db_with_retry()
-=======
-DATABASE_PATH = os.environ.get('DATABASE_PATH', 'ebyte.db')
-
-def get_db():
-    conn = sqlite3.connect(DATABASE_PATH, timeout=10)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_db():
-    """Initialize all tables in SQLite"""
-    conn = get_db()
->>>>>>> 8040c6fa61dfb7cd4f08fd126356e9d1a43b9f04
     cur = conn.cursor()
 
     # Users table
@@ -213,7 +199,6 @@ def init_db():
         )
     ''')
 
-<<<<<<< HEAD
     # Add missing columns safely
     missing_cols = [
         ('last_seen', 'TIMESTAMP'),
@@ -226,8 +211,6 @@ def init_db():
         except Exception as e:
             logger.warning(f"Could not add column {col_name}: {e}")
 
-=======
->>>>>>> 8040c6fa61dfb7cd4f08fd126356e9d1a43b9f04
     # Create default admin user
     admin_email = 'admin@student.mmu.edu.my'
     admin_password = generate_password_hash('Admin123!')

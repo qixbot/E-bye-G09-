@@ -293,7 +293,6 @@ def auto_unfreeze_expired():
         db.close()
 
 @app.before_request
-
 def check_remember_me():
     if 'user_id' in session:
         return
@@ -305,7 +304,6 @@ def check_remember_me():
     token = request.cookies.get('remember_token')
     if not token:
         return
-<<<<<<< HEAD
     
     try:
         db = get_db()
@@ -322,25 +320,6 @@ def check_remember_me():
             print(f"Auto-logged in user: {user['username']}")
     except Exception as e:
         print(f"Error in check_remember_me: {e}")
-        # 清除无效的token cookie
-        response = make_response()
-        response.set_cookie('remember_token', '', expires=0)
-        return response
-=======
-    db = get_db()
-    cur = db.cursor()
-    cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = ?', (token,))
-    user = cur.fetchone()
-    cur.close()
-    db.close()
-
-    if user:
-        session['user_id'] = user['id']
-        session['username'] = user['username']
-        session['student_id'] = user['student_id']
-        print(f"Auto-logged in user: {user['username']}")
-
->>>>>>> 8040c6fa61dfb7cd4f08fd126356e9d1a43b9f04
 
 # ============================================================
 # Eileen's Route - Register
@@ -2137,7 +2116,6 @@ def check_admin_remember_me():
     if not token:
         return
     
-<<<<<<< HEAD
     try:
         db = get_db()
         cur = db.cursor()
@@ -2156,20 +2134,6 @@ def check_admin_remember_me():
         response = make_response()
         response.set_cookie('admin_remember_token', '', expires=0)
         return response
-=======
-    db = get_db()
-    cur = db.cursor()
-    cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = ? AND is_admin = 1', (token,))
-    user = cur.fetchone()
-    cur.close()
-    db.close()
-    
-    if user:
-        session['admin_logged_in'] = True
-        session['admin_email'] = user['email']      # 修复：用字典键名
-        session['admin_username'] = user['username'] # 修复：用字典键名
-        print(f"Auto-logged in admin: {user['username']}")
->>>>>>> 8040c6fa61dfb7cd4f08fd126356e9d1a43b9f04
         
 @app.route('/logout')
 def logout():
