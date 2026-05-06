@@ -177,7 +177,6 @@ def index():
 # Eileen's Route - Login
 # ============================================================
 @app.route('/login', methods=['GET', 'POST'])
-
 def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
@@ -226,7 +225,7 @@ def login():
             session['username'] = user['username']
             session['student_id'] = user['student_id']
 
-            # ========== 3. Remember Me 处理 ==========
+            # ========== 3. Remember Me 处理（已移入 if user 内部）==========
             if remember_me:
                 import secrets
                 token = secrets.token_urlsafe(64)
