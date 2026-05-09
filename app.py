@@ -260,7 +260,6 @@ def login():
     return render_template('login.html')
 
 @app.before_request
-
 def auto_unfreeze_expired():
     if 'user_id' in session or 'admin_logged_in' in session:
         db = get_db()
@@ -269,28 +268,29 @@ def auto_unfreeze_expired():
         
         cur.execute("""
             SELECT id, username FROM users
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < ?
+            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
         """, (now,))
         expired = cur.fetchall()
         
         cur.execute("""
             UPDATE users
             SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < ?
+            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
         """, (now,))
         
         for user in expired:
             cur.execute("""
                 INSERT INTO notifications (user_id, message, created_at)
-                VALUES (?, ?, datetime('now'))
+                VALUES (%s, %s, NOW())
             """, (user['id'],
-                  f" Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
+                  f"✅ Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
                   f"Your freeze count remains. Please follow community guidelines.\n"
                   f"After 3 freezes, your account will be permanently blocked."))
         
         db.commit()
         cur.close()
         db.close()
+
 
 @app.before_request
 def check_remember_me():
@@ -2101,8 +2101,9 @@ def admin_login():
             flash('Invalid admin credentials', 'error')
 
     return render_template('admin_login.html')
-
+    
 @app.before_request
+
 def check_admin_remember_me():
     if session.get('admin_logged_in'):
         return
@@ -2119,7 +2120,7 @@ def check_admin_remember_me():
     try:
         db = get_db()
         cur = db.cursor()
-        cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = %s AND is_admin = 1', (token,))
+        cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = ? AND is_admin = 1', (token,))  # 改成 ?
         user = cur.fetchone()
         cur.close()
         db.close()
@@ -2134,6 +2135,20 @@ def check_admin_remember_me():
         response = make_response()
         response.set_cookie('admin_remember_token', '', expires=0)
         return response
+
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = ? AND is_admin = 1', (token,))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user:
+        session['admin_logged_in'] = True
+        session['admin_email'] = user['email']      # 修复：用字典键名
+        session['admin_username'] = user['username'] # 修复：用字典键名
+        print(f"Auto-logged in admin: {user['username']}")
+
         
 @app.route('/logout')
 def logout():
