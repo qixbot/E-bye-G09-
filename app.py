@@ -191,14 +191,14 @@ def login():
         user = cur.fetchone()
         cur.close()
         db.close()
-
+        #keting part here
         if user and check_password_hash(user['password'], password):
-            # ========== 1. 永久封禁检查 ==========
+            # ========== 1. 永久封禁检查 banned forever checking ==========
             if user['is_blocked'] == 1:
                 flash('❌ This account is permanently blocked. Contact admin for appeal.', 'danger')
                 return redirect(url_for('login'))
 
-            # ========== 2. 冻结检查 ==========
+            # ========== 2. 冻结检查 frozen check ==========
             if user['is_frozen'] == 1 and user['frozen_until']:
                 now = datetime.now()
                 expire_time = None
@@ -221,13 +221,13 @@ def login():
                     db_auto.commit()
                     cur_auto.close()
                     db_auto.close()
-
-            # ========== 登录成功 ==========
+            #Eileen's part
+            # ========== Login Succesful ==========
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['student_id'] = user['student_id']
 
-            # 处理 Remember Me
+            # settle Remember Me
             if remember_me:
                 import secrets
                 token = secrets.token_urlsafe(64)
@@ -256,9 +256,12 @@ def login():
             flash('Invalid email or password', 'error')
             return render_template('login.html')
 
-    # GET 请求 - 显示登录页面
+    # GET required - output login page
     return render_template('login.html')
 
+# ============================================================
+#keting's part
+# ============================================================
 @app.before_request
 def auto_unfreeze_expired():
     # 禁用这个函数，避免每次请求都连接数据库导致 SSL 错误
@@ -294,6 +297,9 @@ def auto_unfreeze_expired():
         cur.close()
         db.close()
 
+# ============================================================
+#Eileen's part
+# ============================================================
 @app.before_request
 def check_remember_me():
     if 'user_id' in session:
@@ -680,8 +686,8 @@ def search():
 
 # ============================================================
 # AVATAR ROUTES - Store as BLOB in database
-# ============================================================
 # Eileen's Route - Avatar image
+# ============================================================
 @app.route('/avatar-image')
 def avatar_image():
     """Serve avatar image from database BLOB - PERSISTENT storage"""
@@ -737,7 +743,8 @@ def update_profile_avatar():
     return jsonify({'success': True})
 
 # ============================================================
-# Added by Xingru - public route to serve avatar by user_id (for displaying other users' avatars)
+# Added by Xingru - public route to serve avatar by user_id 
+# (for displaying other users' avatars)
 # ============================================================
 @app.route('/user-avatar/<int:user_id>')
 def user_avatar(user_id):
@@ -772,8 +779,8 @@ def make_blob_response(blob_data, content_type='image/jpeg'):
 
 # ============================================================
 # COVER ROUTES - Store as BLOB in database
-# ============================================================
 # Eileen's Route - Upload custom cover image
+# ============================================================
 @app.route('/cover-image')
 def cover_image():
     """Serve cover image from database BLOB - PERSISTENT storage"""
@@ -893,7 +900,6 @@ def upload_background():
         'bg_value': bg_value
     })
 
-
 @app.route('/api/user/background')
 def api_user_background():
     """Get user background data for cross-device sync"""
@@ -918,11 +924,11 @@ def api_user_background():
         })
     return jsonify({'success': False, 'error': 'User not found'}), 404
 
-
 # ============================================================
 # API ENDPOINTS
 # ============================================================
 # Eileen's Route - Api for purchase
+# ============================================================
 @app.route('/api/user/purchases')
 def api_user_purchases():
     if 'user_id' not in session:
@@ -953,8 +959,9 @@ def api_user_purchases():
     
     return jsonify(purchases)
 
-
+# ============================================================
 # Eileen's Route - Api for listing
+# ============================================================
 @app.route('/api/user/listings')
 def api_user_listings():
     """Get user's product listings with first image from blob or disk"""
@@ -1027,9 +1034,9 @@ def api_user_listings():
     return jsonify(listings)
 
 # ============================================================
-# OFFER SYSTEM API ROUTES
+# Eileen's route OFFER SYSTEM API ROUTES
 # ============================================================
-
+#get product offer
 @app.route('/api/product/<int:product_id>/offers')
 def get_product_offers(product_id):
     """Get all offers for a product (seller only)"""
@@ -1067,7 +1074,7 @@ def get_product_offers(product_id):
     
     return jsonify(result)
 
-
+#get product offer count
 @app.route('/api/product/<int:product_id>/offer-count')
 def get_product_offer_count(product_id):
     """Get offer count for a product"""
@@ -1084,7 +1091,7 @@ def get_product_offer_count(product_id):
     
     return jsonify({'count': count})
 
-
+#send offer
 @app.route('/api/product/<int:product_id>/offers/send', methods=['POST'])
 def send_offer(product_id):
     """Send an offer for a product (buyer)"""
@@ -1144,7 +1151,7 @@ def send_offer(product_id):
     
     return jsonify({'success': True, 'message': 'Offer sent successfully'})
 
-
+#accept offer
 @app.route('/api/offer/<int:offer_id>/accept', methods=['POST'])
 def accept_offer(offer_id):
     """Accept an offer (seller)"""
@@ -1193,7 +1200,7 @@ def accept_offer(offer_id):
     
     return jsonify({'success': True})
 
-
+#reject offer
 @app.route('/api/offer/<int:offer_id>/reject', methods=['POST'])
 def reject_offer(offer_id):
     """Reject an offer (seller)"""
@@ -1239,7 +1246,7 @@ def reject_offer(offer_id):
     
     return jsonify({'success': True})
 
-
+#counter offer
 @app.route('/api/offer/<int:offer_id>/counter', methods=['POST'])
 def counter_offer(offer_id):
     """Counter an offer (seller)"""
@@ -1295,7 +1302,7 @@ def counter_offer(offer_id):
     
     return jsonify({'success': True})
 
-
+#accpet counter offer
 @app.route('/api/offer/<int:offer_id>/accept-counter', methods=['POST'])
 def accept_counter_offer(offer_id):
     """Accept a counter offer (buyer)"""
@@ -1345,6 +1352,7 @@ def accept_counter_offer(offer_id):
 # PRODUCT API FOR EDIT/DELETE
 # ============================================================
 # Eileen's Route - Get product
+# ============================================================
 @app.route('/api/product/<int:product_id>')
 
 def api_get_product(product_id):
@@ -1580,7 +1588,7 @@ def api_update_product_full(product_id):
 
     return jsonify({'success': True})
 
-
+#upload product images
 @app.route('/api/product/<int:product_id>/upload-images', methods=['POST'])
 def upload_product_images(product_id):
     """Upload new images for a product"""
@@ -1634,7 +1642,7 @@ def my_profile():
     cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
     user = cur.fetchone()
 
-    # ========== 添加这个检查 ==========
+    # ========== add no user check==========
     if not user:
         cur.close()
         db.close()
@@ -1698,7 +1706,7 @@ def edit_profile():
     cur.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
     user = cur.fetchone()
 
-    # ========== 添加这个检查 ==========
+    # ========== add no user check ==========
     if not user:
         cur.close()
         db.close()
@@ -1740,7 +1748,7 @@ def edit_profile():
     )
 
 # ============================================================
-# Check if user is admin - API endpoint
+# Eileen's route =Check if user is admin - API endpoint
 # ============================================================
 @app.route('/api/user/is-admin')
 def api_user_is_admin():
@@ -2087,7 +2095,6 @@ def admin_login():
         cur.close()
         db.close()
 
-        # ✅ user 现在是字典，用字符串键名访问
         if user and check_password_hash(user['password'], password):  # 用 'password' 不是 5
             session['admin_logged_in'] = True
             session['admin_email'] = user['email']
@@ -2123,6 +2130,9 @@ def admin_login():
 
     return render_template('admin_login.html')
 
+# ============================================================
+#Eileen's route check admin remember me
+# ============================================================
 @app.before_request
 def check_admin_remember_me():
     if session.get('admin_logged_in'):
@@ -2146,10 +2156,13 @@ def check_admin_remember_me():
     
     if user:
         session['admin_logged_in'] = True
-        session['admin_email'] = user['email']      # 修复：用字典键名
-        session['admin_username'] = user['username'] # 修复：用字典键名
+        session['admin_email'] = user['email']      
+        session['admin_username'] = user['username']
         print(f"Auto-logged in admin: {user['username']}")
-        
+
+# ============================================================
+# Eileen's route = LOGOUT ACCOUNT
+# ============================================================        
 @app.route('/logout')
 def logout():
     # Clear admin token if exists
@@ -2180,6 +2193,7 @@ def logout():
     session.clear()
     flash('Logged out', 'info')
     return redirect(url_for('login'))
+
 
 # ============================================================
 # Keting's Route - Admin Dashboard
@@ -2984,8 +2998,6 @@ def delete_announcement(ann_id):
     db.close()
     return jsonify({'success': True})
 
-
-
 # 导航栏未读数量 API
 @app.route('/api/unread-count')
 def unread_count():
@@ -3198,6 +3210,292 @@ def user_profile(user_id):
     flash('Profile page is under construction.', 'info')
     return redirect(url_for('home'))
 
+
+# ============================================================
+#Eileen's route = ORDER SYSTEM api routes
+# ============================================================
+@app.route('/api/create-order', methods=['POST'])
+def create_order():
+    """Create a new order from an accepted offer"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    offer_id = data.get('offer_id')
+    meetup_locations = data.get('meetup_locations', [])
+    
+    if not offer_id:
+        return jsonify({'success': False, 'error': 'Offer ID required'}), 400
+
+    db = get_db()
+    cur = db.cursor()
+    
+    # Get offer info
+    cur.execute('''
+        SELECT o.*, p.seller_id, p.name
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s AND o.buyer_id = %s AND o.status = 'accepted'
+    ''', (offer_id, session['user_id']))
+    
+    offer = cur.fetchone()  
+
+    if not offer:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Offer not found or not accepted'}), 404
+    
+    # Generate unique order number
+    import random
+    order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
+
+    # Create order
+    cur.execute('''
+        INSERT INTO orders (order_number, product_id, buyer_id, seller_id, offer_price, 
+                           meeting_point, status, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+    ''', (order_number, offer['product_id'], offer['buyer_id'], offer['seller_id'], 
+          offer['offer_price'], ','.join(meetup_locations) if meetup_locations else None, 'pending'))
+    
+    db.commit()
+    order_id = cur.lastrowid
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
+
+
+@app.route('/api/orders/my')
+def get_my_orders():
+    """Get user all of the current order (as seller or buyer)"""
+    if 'user_id' not in session:
+        return jsonify({'as_buyer': [], 'as_seller': []}), 401
+
+    db = get_db()
+    cur = db.cursor()
+    
+    # as buyer
+    cur.execute('''
+        SELECT o.*, p.name as product_name, p.images_blob,
+               u.username as seller_name
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        JOIN users u ON o.seller_id = u.id
+        WHERE o.buyer_id = %s
+        ORDER BY o.created_at DESC
+    ''', (session['user_id'],))
+    buyer_orders = cur.fetchall()
+    
+    # as seller
+    cur.execute('''
+        SELECT o.*, p.name as product_name, p.images_blob,
+               u.username as buyer_name
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        JOIN users u ON o.buyer_id = u.id
+        WHERE o.seller_id = %s
+        ORDER BY o.created_at DESC
+    ''', (session['user_id'],))
+    seller_orders = cur.fetchall()
+
+    cur.close()
+    db.close()
+    
+    return jsonify({
+        'as_buyer': [dict(o) for o in buyer_orders],
+        'as_seller': [dict(o) for o in seller_orders]
+    })
+
+
+@app.route('/api/orders/<int:order_id>/status', methods=['PUT'])
+def update_order_status(order_id):
+    """update the latest order status"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401  # 修正：缺少引号
+
+    data = request.get_json()
+    new_status = data.get('status')
+
+    valid_statuses = ['pending', 'confirmed', 'shipped', 'delivered', 'completed', 'cancelled']
+
+    if new_status not in valid_statuses:
+        return jsonify({'success': False, 'error': 'Invalid status'}), 400
+
+    db = get_db()
+    cur = db.cursor()
+    
+    cur.execute('''
+        SELECT o.*, p.name as product_name
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s
+    ''', (order_id,))
+    order = cur.fetchone()
+
+    if not order:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Order not found'}), 404
+
+    is_seller = order['seller_id'] == session['user_id']  
+    is_buyer = order['buyer_id'] == session['user_id']   
+    
+    if not (is_seller or is_buyer):
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    # Seller status transitions
+    if is_seller:
+        if new_status == 'confirmed' and order['status'] == 'pending':
+            pass
+        elif new_status == 'shipped' and order['status'] == 'confirmed':
+            pass
+        elif new_status == 'delivered' and order['status'] == 'shipped':
+            pass
+        else:
+            cur.close()
+            db.close()
+            return jsonify({'success': False, 'error': 'Invalid status transition'}), 400
+
+    # Buyer status transitions
+    if is_buyer:
+        if new_status == 'cancelled' and order['status'] in ['pending', 'confirmed']:
+            pass
+        elif new_status == 'completed' and order['status'] == 'delivered':
+            pass
+        else:
+            cur.close()
+            db.close()
+            return jsonify({'success': False, 'error': 'Invalid status transition'}), 400
+
+    # Update order status 
+    cur.execute('UPDATE orders SET status = %s, updated_at = NOW() WHERE id = %s',
+               (new_status, order_id))
+
+    # Send notification
+    notify_user_id = order['buyer_id'] if is_seller else order['seller_id']
+    status_messages = {
+        'confirmed': f"✅ Order #{order['order_number']} has been CONFIRMED by seller!",
+        'shipped': f"📦 Order #{order['order_number']} has been SHIPPED!",
+        'delivered': f"🚚 Order #{order['order_number']} has been DELIVERED! Please confirm completion.",
+        'completed': f"🎉 Order #{order['order_number']} is COMPLETED! Please leave a review.",
+        'cancelled': f"❌ Order #{order['order_number']} has been CANCELLED."
+    }
+
+    if new_status in status_messages:
+        cur.execute('''
+            INSERT INTO notifications (user_id, message, created_at, type, related_id)
+            VALUES (%s, %s, NOW(), %s, %s)
+        ''', (notify_user_id, status_messages[new_status], 'order', order_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+
+    return jsonify({'success': True})
+
+
+# ============================================================
+#Eileen's route = REVIEW SYSTEM
+# ============================================================
+
+@app.route('/api/order/<int:order_id>/review', methods=['POST'])
+def submit_review(order_id):
+    """Submit a review for a completed order"""
+    if 'user_id' not in session:
+        return jsonify({'success':False,'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    rating = data.get('rating')
+    comment = data.get('comment', '').strip()
+    
+    if not rating or rating < 1 or rating > 5:
+        return jsonify({'success': False, 'error': 'Rating must be 1-5'}), 400
+    
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute('''
+    SELECT o.*, p.name as product_name, p.seller_id
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s
+    ''', (order_id,))
+    order = cur.fetchone()
+
+    if not order:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Order not found'}), 404
+
+    if order['buyer_id'] != session['user_id']:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Only buyer can leave review'}), 403
+ 
+    if order['status'] != 'completed':
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Can only review completed orders'}), 400
+
+    cur.execute('SELECT id FROM reviews WHERE order_id =%s', (order_id,))
+    if cur.fetchone():
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Review already submitted'}), 400
+
+    cur.execute('''
+        INSERT INTO reviews (product_id, reviewer_id, reviewee_id, order_id, rating, comment, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, NOW())
+    ''', (order['product_id'], session['user_id'], order['seller_id'], order_id, rating, comment))
+
+    review_id = cur.lastrowid
+
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id)
+        VALUES (%s, %s, NOW(), %s, %s)
+    ''', (order['seller_id'], 
+          f"⭐ You received a {rating}-star review for {order['product_name']}",
+          'review', review_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/user/<int:user_id>/reviews')
+def get_user_reviews(user_id):
+    """Get all reviews for a user"""
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute('''
+        SELECT r.*, u.username as reviewer_name, p.name as product_name
+        FROM reviews r
+        JOIN users u ON r.reviewer_id = u.id
+        JOIN products p ON r.product_id = p.id
+        WHERE r.reviewee_id = %s
+        ORDER BY r.created_at DESC
+    ''', (user_id,))
+    reviews = cur.fetchall()
+    
+    cur.execute('''
+        SELECT AVG(rating) as avg_rating, COUNT(*) as total
+        FROM reviews
+        WHERE reviewee_id = %s
+    ''', (user_id,))
+    stats = cur.fetchone()
+    
+    cur.close()
+    db.close()
+
+    return jsonify({
+        'reviews': [dict(r) for r in reviews],
+        'avg_rating': round(stats['avg_rating'], 1) if stats and stats['avg_rating'] else None,
+        'total_reviews': stats['total'] if stats else 0
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)
