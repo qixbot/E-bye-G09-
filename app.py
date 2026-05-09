@@ -192,14 +192,14 @@ def login():
         user = cur.fetchone()
         cur.close()
         db.close()
-
+        #keting part here
         if user and check_password_hash(user['password'], password):
-            # ========== 1. 永久封禁检查 ==========
+            # ========== 1. 永久封禁检查 banned forever checking ==========
             if user['is_blocked'] == 1:
                 flash('❌ This account is permanently blocked. Contact admin for appeal.', 'danger')
                 return redirect(url_for('login'))
 
-            # ========== 2. 冻结检查 ==========
+            # ========== 2. 冻结检查 frozen check ==========
             if user['is_frozen'] == 1 and user['frozen_until']:
                 now = datetime.now()
                 expire_time = None
@@ -222,8 +222,8 @@ def login():
                     db_auto.commit()
                     cur_auto.close()
                     db_auto.close()
-
-            # ========== 登录成功 ==========
+            #Eileen's part
+            # ========== Login Succesful ==========
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['student_id'] = user['student_id']
@@ -253,10 +253,11 @@ def login():
                 response.set_cookie('remember_token', '', expires=0)
                 flash(' Login successful!', 'success')
                 return response
-
         else:
             flash('Invalid email or password', 'error')
+            return render_template('login.html')
 
+    # GET required - output login page
     return render_template('login.html')
 
 @app.before_request
@@ -290,7 +291,6 @@ def auto_unfreeze_expired():
         db.commit()
         cur.close()
         db.close()
-
 
 @app.before_request
 def check_remember_me():
@@ -674,8 +674,8 @@ def search():
 
 # ============================================================
 # AVATAR ROUTES - Store as BLOB in database
-# ============================================================
 # Eileen's Route - Avatar image
+# ============================================================
 @app.route('/avatar-image')
 def avatar_image():
     """Serve avatar image from database BLOB - PERSISTENT storage"""
@@ -731,7 +731,8 @@ def update_profile_avatar():
     return jsonify({'success': True})
 
 # ============================================================
-# Added by Xingru - public route to serve avatar by user_id (for displaying other users' avatars)
+# Added by Xingru - public route to serve avatar by user_id 
+# (for displaying other users' avatars)
 # ============================================================
 @app.route('/user-avatar/<int:user_id>')
 def user_avatar(user_id):
@@ -766,8 +767,8 @@ def make_blob_response(blob_data, content_type='image/jpeg'):
 
 # ============================================================
 # COVER ROUTES - Store as BLOB in database
-# ============================================================
 # Eileen's Route - Upload custom cover image
+# ============================================================
 @app.route('/cover-image')
 def cover_image():
     """Serve cover image from database BLOB - PERSISTENT storage"""
@@ -887,7 +888,6 @@ def upload_background():
         'bg_value': bg_value
     })
 
-
 @app.route('/api/user/background')
 def api_user_background():
     """Get user background data for cross-device sync"""
@@ -912,11 +912,11 @@ def api_user_background():
         })
     return jsonify({'success': False, 'error': 'User not found'}), 404
 
-
 # ============================================================
 # API ENDPOINTS
 # ============================================================
 # Eileen's Route - Api for purchase
+# ============================================================
 @app.route('/api/user/purchases')
 def api_user_purchases():
     if 'user_id' not in session:
@@ -947,8 +947,9 @@ def api_user_purchases():
     
     return jsonify(purchases)
 
-
+# ============================================================
 # Eileen's Route - Api for listing
+# ============================================================
 @app.route('/api/user/listings')
 def api_user_listings():
     """Get user's product listings with first image from blob or disk"""
@@ -1021,9 +1022,9 @@ def api_user_listings():
     return jsonify(listings)
 
 # ============================================================
-# OFFER SYSTEM API ROUTES
+# Eileen's route OFFER SYSTEM API ROUTES
 # ============================================================
-
+#get product offer
 @app.route('/api/product/<int:product_id>/offers')
 def get_product_offers(product_id):
     """Get all offers for a product (seller only)"""
@@ -1061,7 +1062,7 @@ def get_product_offers(product_id):
     
     return jsonify(result)
 
-
+#get product offer count
 @app.route('/api/product/<int:product_id>/offer-count')
 def get_product_offer_count(product_id):
     """Get offer count for a product"""
@@ -1078,7 +1079,7 @@ def get_product_offer_count(product_id):
     
     return jsonify({'count': count})
 
-
+#send offer
 @app.route('/api/product/<int:product_id>/offers/send', methods=['POST'])
 def send_offer(product_id):
     """Send an offer for a product (buyer)"""
@@ -1138,7 +1139,7 @@ def send_offer(product_id):
     
     return jsonify({'success': True, 'message': 'Offer sent successfully'})
 
-
+#accept offer
 @app.route('/api/offer/<int:offer_id>/accept', methods=['POST'])
 def accept_offer(offer_id):
     """Accept an offer (seller)"""
@@ -1187,7 +1188,7 @@ def accept_offer(offer_id):
     
     return jsonify({'success': True})
 
-
+#reject offer
 @app.route('/api/offer/<int:offer_id>/reject', methods=['POST'])
 def reject_offer(offer_id):
     """Reject an offer (seller)"""
@@ -1233,7 +1234,7 @@ def reject_offer(offer_id):
     
     return jsonify({'success': True})
 
-
+#counter offer
 @app.route('/api/offer/<int:offer_id>/counter', methods=['POST'])
 def counter_offer(offer_id):
     """Counter an offer (seller)"""
@@ -1289,7 +1290,7 @@ def counter_offer(offer_id):
     
     return jsonify({'success': True})
 
-
+#accpet counter offer
 @app.route('/api/offer/<int:offer_id>/accept-counter', methods=['POST'])
 def accept_counter_offer(offer_id):
     """Accept a counter offer (buyer)"""
@@ -1339,6 +1340,7 @@ def accept_counter_offer(offer_id):
 # PRODUCT API FOR EDIT/DELETE
 # ============================================================
 # Eileen's Route - Get product
+# ============================================================
 @app.route('/api/product/<int:product_id>')
 
 def api_get_product(product_id):
@@ -1574,7 +1576,7 @@ def api_update_product_full(product_id):
 
     return jsonify({'success': True})
 
-
+#upload product images
 @app.route('/api/product/<int:product_id>/upload-images', methods=['POST'])
 def upload_product_images(product_id):
     """Upload new images for a product"""
@@ -1719,7 +1721,7 @@ def edit_profile():
     )
 
 # ============================================================
-# Check if user is admin - API endpoint
+# Eileen's route =Check if user is admin - API endpoint
 # ============================================================
 @app.route('/api/user/is-admin')
 def api_user_is_admin():
@@ -2066,7 +2068,6 @@ def admin_login():
         cur.close()
         db.close()
 
-        # ✅ user 现在是字典，用字符串键名访问
         if user and check_password_hash(user['password'], password):  # 用 'password' 不是 5
             session['admin_logged_in'] = True
             session['admin_email'] = user['email']
@@ -2145,8 +2146,8 @@ def check_admin_remember_me():
     
     if user:
         session['admin_logged_in'] = True
-        session['admin_email'] = user['email']      # 修复：用字典键名
-        session['admin_username'] = user['username'] # 修复：用字典键名
+        session['admin_email'] = user['email']      
+        session['admin_username'] = user['username']
         print(f"Auto-logged in admin: {user['username']}")
 
         
@@ -2180,6 +2181,7 @@ def logout():
     session.clear()
     flash('Logged out', 'info')
     return redirect(url_for('login'))
+
 
 # ============================================================
 # Keting's Route - Admin Dashboard
@@ -2993,8 +2995,6 @@ def delete_announcement(ann_id):
     db.close()
     return jsonify({'success': True})
 
-
-
 # 导航栏未读数量 API
 @app.route('/api/unread-count')
 def unread_count():
@@ -3203,6 +3203,191 @@ def user_profile(user_id):
     flash('Profile page is under construction.', 'info')
     return redirect(url_for('home'))
 
+# ============================================================
+# Eileen's route = REVIEW SYSTEM 
+# ============================================================
+
+@app.route('/api/order/<int:order_id>/can-review')
+def can_review_order(order_id):
+    """Check if user can review this order"""
+    if 'user_id' not in session:
+        return jsonify({'can_review': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    cur.execute('''
+        SELECT o.*, r.id as review_id
+        FROM orders o
+        LEFT JOIN reviews r ON r.order_id = o.id AND r.reviewer_id = %s
+        WHERE o.id = %s AND o.buyer_id = %s AND o.status = 'completed'
+    ''', (session['user_id'], order_id, session['user_id']))
+    
+    order = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if not order:
+        return jsonify({'can_review': False, 'reason': 'Order not completed or not yours'})
+    
+    if order.get('review_id'):
+        return jsonify({'can_review': False, 'reason': 'Already reviewed'})
+    
+    return jsonify({'can_review': True})
+
+
+@app.route('/api/order/<int:order_id>/review', methods=['POST'])
+def submit_review(order_id):
+    """Submit a multi-dimensional review for a completed order"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    rating_service = data.get('rating_service', 0)
+    rating_shipping = data.get('rating_shipping', 0)
+    rating_quality = data.get('rating_quality', 0)
+    comment = data.get('comment', '').strip()
+    
+    # Validate ratings (1-5)
+    for rating, name in [(rating_service, 'service'), (rating_shipping, 'shipping'), (rating_quality, 'quality')]:
+        if rating < 1 or rating > 5:
+            return jsonify({'success': False, 'error': f'{name} rating must be 1-5'}), 400
+    
+    # Calculate overall average
+    rating_overall = round((rating_service + rating_shipping + rating_quality) / 3, 1)
+    
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute('''
+        SELECT o.*, p.name as product_name, p.seller_id, p.id as product_id
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s AND o.buyer_id = %s AND o.status = 'completed'
+    ''', (order_id, session['user_id']))
+    
+    order = cur.fetchone()
+
+    if not order:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Order not found or not completed'}), 404
+
+    if order['buyer_id'] != session['user_id']:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Only buyer can leave review'}), 403
+
+    # Check if already reviewed
+    cur.execute('SELECT id FROM reviews WHERE order_id = %s', (order_id,))
+    if cur.fetchone():
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Review already submitted'}), 400
+
+    # Submit multi-dimensional review
+    cur.execute('''
+        INSERT INTO reviews (product_id, reviewer_id, reviewee_id, order_id, 
+                           rating_service, rating_shipping, rating_quality, rating_overall, comment, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+    ''', (order['product_id'], session['user_id'], order['seller_id'], order_id,
+          rating_service, rating_shipping, rating_quality, rating_overall, comment))
+
+    review_id = cur.lastrowid
+
+    # Update seller's average ratings in users table
+    cur.execute('''
+        SELECT AVG(rating_service) as avg_service,
+               AVG(rating_shipping) as avg_shipping,
+               AVG(rating_quality) as avg_quality,
+               AVG(rating_overall) as avg_overall,
+               COUNT(*) as total
+        FROM reviews
+        WHERE reviewee_id = %s
+    ''', (order['seller_id'],))
+    
+    stats = cur.fetchone()
+    
+    cur.execute('''
+        UPDATE users 
+        SET avg_service_rating = %s,
+            avg_shipping_rating = %s,
+            avg_quality_rating = %s,
+            avg_overall_rating = %s,
+            total_reviews = %s
+        WHERE id = %s
+    ''', (stats['avg_service'] or 0, stats['avg_shipping'] or 0, 
+          stats['avg_quality'] or 0, stats['avg_overall'] or 0,
+          stats['total'] or 0, order['seller_id']))
+
+    # Send notification to seller
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), %s, %s, 0)
+    ''', (order['seller_id'], 
+          f"⭐ You received a {rating_overall}-star review for {order['product_name']}",
+          'review', review_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True, 'overall_rating': rating_overall})
+
+
+@app.route('/api/user/<int:user_id>/reviews')
+def get_user_reviews(user_id):
+    """Get all reviews for a user with detailed ratings"""
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute('''
+        SELECT r.*, u.username as reviewer_name, u.full_name as reviewer_full_name,
+               u.avatar_blob, p.name as product_name
+        FROM reviews r
+        JOIN users u ON r.reviewer_id = u.id
+        JOIN products p ON r.product_id = p.id
+        WHERE r.reviewee_id = %s
+        ORDER BY r.created_at DESC
+    ''', (user_id,))
+    reviews = cur.fetchall()
+    
+    cur.execute('''
+        SELECT 
+            AVG(rating_service) as avg_service,
+            AVG(rating_shipping) as avg_shipping,
+            AVG(rating_quality) as avg_quality,
+            AVG(rating_overall) as avg_overall,
+            COUNT(*) as total
+        FROM reviews
+        WHERE reviewee_id = %s
+    ''', (user_id,))
+    stats = cur.fetchone()
+    
+    cur.close()
+    db.close()
+    
+    # Convert avatar blob to base64 for each review
+    import base64
+    result_reviews = []
+    for r in reviews:
+        r_dict = dict(r)
+        if r_dict.get('avatar_blob'):
+            avatar_data = bytes(r_dict['avatar_blob']) if hasattr(r_dict['avatar_blob'], 'tobytes') else r_dict['avatar_blob']
+            r_dict['avatar_base64'] = f"data:image/jpeg;base64,{base64.b64encode(avatar_data).decode('utf-8')}"
+        else:
+            r_dict['avatar_base64'] = None
+        r_dict.pop('avatar_blob', None)
+        result_reviews.append(r_dict)
+
+    return jsonify({
+        'reviews': result_reviews,
+        'avg_service': round(stats['avg_service'], 1) if stats and stats['avg_service'] else 0,
+        'avg_shipping': round(stats['avg_shipping'], 1) if stats and stats['avg_shipping'] else 0,
+        'avg_quality': round(stats['avg_quality'], 1) if stats and stats['avg_quality'] else 0,
+        'avg_overall': round(stats['avg_overall'], 1) if stats and stats['avg_overall'] else 0,
+        'total_reviews': stats['total'] if stats else 0
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

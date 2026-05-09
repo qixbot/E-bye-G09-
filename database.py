@@ -91,9 +91,11 @@ def init_db():
             user_id INTEGER NOT NULL REFERENCES users(id),
             message TEXT NOT NULL,
             is_read INTEGER DEFAULT 0,
+            type TEXT DEFAULT 'general',
+            related_id INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+      )
+   ''')
 
     # Products table
     cur.execute('''
