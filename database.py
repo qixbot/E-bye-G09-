@@ -231,6 +231,45 @@ def init_db():
             conn.close()
         raise
 
+def add_review_columns():
+    """添加评分相关的列到已存在的表"""
+    conn = get_db_with_retry()
+    cur = conn.cursor()
+    
+        user_columns = [
+        ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
+        ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
+        ('avg_quality_rating', 'DECIMAL(3,2) DEFAULT 0'),
+        ('avg_overall_rating', 'DECIMAL(3,2) DEFAULT 0'),
+        ('total_reviews', 'INTEGER DEFAULT 0'),
+    ]
+    
+    for col_name, col_def in user_columns:
+        try:
+            cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
+            print(f"✅ Added column {col_name} to users")
+        except Exception as e:
+            print(f"Could not add {col_name}: {e}")
+    
+    # Reviews from users to products, we can add more detailed rating columns
+    review_columns = [
+        ('rating_service', 'INTEGER DEFAULT 0'),
+        ('rating_shipping', 'INTEGER DEFAULT 0'),
+        ('rating_quality', 'INTEGER DEFAULT 0'),
+        ('rating_overall', 'INTEGER DEFAULT 0'),
+    ]
+    
+    for col_name, col_def in review_columns:
+        try:
+            cur.execute(f"ALTER TABLE reviews ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
+            print(f"✅ Added column {col_name} to reviews")
+        except Exception as e:
+            print(f"Could not add {col_name}: {e}")
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("✅ Review columns added successfully")
 
 def init_products():
     pass
