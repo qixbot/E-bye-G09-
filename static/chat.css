@@ -181,3 +181,44 @@
 .chat-input-bar input:focus {
     border-color: #205c30;
 }
+
+/* Offer Card Styles */
+.offer-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #eee;
+}
+.offer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.offer-status {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.offer-status.pending { background: #fff3cd; color: #856404; }
+.offer-status.accepted { background: #d4edda; color: #155724; }
+.offer-status.rejected { background: #f8d7da; color: #721c24; }
+.offer-status.countered { background: #fff3e0; color: #e67e22; }
+.offer-status.ordered { background: #cce5ff; color: #004085; }
+.offer-amount { margin-bottom: 8px; }
+.offer-label { font-size: 12px; color: #888; }
+.offer-price { font-size: 1.1rem; font-weight: 700; color: #205c30; }
+.accept-offer-btn, .reject-offer-btn, .counter-offer-btn, .contact-buyer-btn {
+    padding: 8px 16px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+}
+.accept-offer-btn { background: #205c30; color: white; }
+.reject-offer-btn { background: #e74c3c; color: white; }
+.counter-offer-btn { background: #f39c12; color: white; }
+.contact-buyer-btn { background: #3498db; color: white; }

@@ -346,8 +346,22 @@ function loadListings() {
                 condLabel = condLabel.charAt(0).toUpperCase() + condLabel.slice(1);
 
                 var offerBtn = '';
+                var editDeleteBtns = '';
+                
+                // 只有 approved 状态的产品才显示 Offers 按钮
                 if (item.status === 'approved') {
                     offerBtn = '<button class="offer-view-btn" onclick="event.stopPropagation();viewOffers(' + item.id + ', \'' + escapeHtml(item.name).replace(/\'/g,"\\\'") + '\')">💰 Offers</button>';
+                }
+                
+                // 已售出的产品 (sold) 不能编辑和删除
+                if (item.status !== 'sold') {
+                    editDeleteBtns = `
+                        <button class="edit-product-btn" onclick="editListing(${item.id})">✏️ Edit</button>
+                        <button class="delete-product-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name).replace(/\'/g,"\\\'")}')">🗑️</button>
+                    `;
+                } else {
+                    // 已售出的产品显示已售标签，不显示编辑删除按钮
+                    editDeleteBtns = '<span class="sold-label">✅ Sold</span>';
                 }
 
                 html += '<div class="product-card">';
@@ -378,8 +392,7 @@ function loadListings() {
 
                 html += '<div class="product-actions">' +
                     offerBtn +
-                    '<button class="edit-product-btn" onclick="editListing(' + item.id + ')">✏️ Edit</button>' +
-                    '<button class="delete-product-btn" onclick="deleteListing(' + item.id + ', \'' + escapeHtml(item.name).replace(/\'/g,"\\\'") + '\')">🗑️</button>' +
+                    editDeleteBtns +
                     '</div>';
                 html += '</div>';
             }

@@ -267,3 +267,93 @@
     text-shadow: 0 2px 8px rgba(0,0,0,0.7);
     pointer-events: none;
 }
+
+/* ========== 美化版 SOLD 覆盖层 ========== */
+.sold-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.6) 100%);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.product-card:hover .sold-overlay {
+    opacity: 1;
+}
+
+.sold-badge-large {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 30px;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    text-transform: uppercase;
+    transform: scale(0.9);
+    transition: transform 0.2s ease;
+}
+
+.product-card:hover .sold-badge-large {
+    transform: scale(1);
+}
+
+/* 价格区域的 SOLD 标签（简洁版） */
+.sold-price {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.original-price-strikethrough {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 0.9rem;
+}
+
+.sold-label-card {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.sold-notice {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 1px solid #dee2e6;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+}
+
+.sold-notice span {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.sold-notice p {
+    margin: 8px 0 0 0;
+    font-weight: 600;
+    color: #495057;
+    font-size: 1.1rem;
+}
+
+.sold-notice small {
+    color: #868e96;
+    font-size: 0.85rem;
+}

@@ -433,9 +433,7 @@ def home():
     db = get_db()
     cur = db.cursor()
     cur.execute('''
-        SELECT p.*, 
-        u.username as seller_name, 
-        u.full_name as seller_full_name, u.id as seller_id
+        SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status = 'approved' AND u.is_blocked = 0
@@ -528,7 +526,7 @@ def search():
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.status = 'approved' AND u.is_blocked = 0
+        WHERE p.status IN ('approved', 'sold') AND u.is_blocked = 0
     """
     params = []
 
@@ -1136,7 +1134,7 @@ def send_offer(product_id):
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (session['user_id'],
-          f"✅ Your offer of RM {float(offer_price):.2f} for \"{product['name']}\" has been sent to the seller. You'll be notified when they respond.",
+          f"Your offer of RM {float(offer_price):.2f} for \"{product['name']}\" has been sent to the seller. You'll be notified when they respond.",
           'offer_sent', new_offer_id))
     
     db.commit()
@@ -1187,7 +1185,7 @@ def api_accept_offer(offer_id):
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (offer['seller_id'],
-          f"✅ You accepted the offer of RM {offer['offer_price']:.2f} for \"{offer['product_name']}\". Waiting for buyer to confirm checkout.",
+          f"You accepted the offer of RM {offer['offer_price']:.2f} for \"{offer['product_name']}\". Waiting for buyer to confirm checkout.",
           'offer_accept_confirm', offer_id))
     
     db.commit()
@@ -1295,7 +1293,7 @@ def counter_offer(offer_id):
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (offer['buyer_id'],
-          f"🔄 Counter offer received! Seller countered your offer for \"{offer['product_name']}\" with RM {float(counter_price):.2f}. Go to My Profile → Purchases to accept or decline.",
+          f"Counter offer received! Seller countered your offer for \"{offer['product_name']}\" with RM {float(counter_price):.2f}. Go to My Profile → Purchases to accept or decline.",
           'offer_countered', offer_id))
     
     # Confirm to seller
@@ -1303,7 +1301,7 @@ def counter_offer(offer_id):
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (offer['seller_id'],
-          f"✅ You sent a counter offer of RM {float(counter_price):.2f} for \"{offer['product_name']}\". Waiting for buyer's response.",
+          f" You sent a counter offer of RM {float(counter_price):.2f} for \"{offer['product_name']}\". Waiting for buyer's response.",
           'counter_sent', offer_id))
     
     db.commit()
@@ -1342,12 +1340,15 @@ def accept_counter_offer(offer_id):
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
-    # Update offer with counter price as new offer_price, mark accepted (buyer can now proceed to checkout)
+    # Save counter_price BEFORE the UPDATE (it will be set to NULL after)
+    agreed_price = float(offer['counter_price'])
+    
+    # Update offer: counter_price becomes new offer_price, status → accepted
     cur.execute('''
         UPDATE offers 
-        SET offer_price = counter_price, status = 'accepted', counter_price = NULL
+        SET offer_price = %s, status = 'accepted', counter_price = NULL
         WHERE id = %s
-    ''', (offer_id,))
+    ''', (agreed_price, offer_id))
     
     # DO NOT mark product as sold yet - that happens when buyer creates order via /api/offer/<id>/create-order
     
@@ -1356,15 +1357,15 @@ def accept_counter_offer(offer_id):
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (offer['seller_id'],
-          f"🎉 Buyer accepted your counter offer of RM {offer['counter_price']:.2f} for \"{offer['product_name']}\". Waiting for buyer to confirm checkout.",
-          'offer_accepted', offer_id))
+          f"🎉 Buyer accepted your counter offer of RM {agreed_price:.2f} for \"{offer['product_name']}\". Waiting for buyer to confirm checkout.",
+          'offer_accept_confirm', offer_id))
     
-    # Notify buyer to proceed to checkout
+    # Notify buyer to proceed to checkout (type=offer_accepted triggers "Proceed to Checkout" button in notification centre)
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (offer['buyer_id'],
-          f"✅ You accepted the counter offer of RM {offer['counter_price']:.2f} for \"{offer['product_name']}\". Go to your notifications and click 'Proceed to Checkout' to confirm your order.",
+          f" Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' below to confirm your order.",
           'offer_accepted', offer_id))
     
     db.commit()
@@ -1443,6 +1444,42 @@ def api_create_order_from_offer(offer_id):
     
     return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
 
+@app.route('/api/offer/<int:offer_id>/product-info', methods=['GET'])
+def api_get_offer_product_info(offer_id):
+    """Get basic product info from any offer (regardless of status) — used for navigation"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        SELECT o.id, o.status, o.offer_price, o.counter_price,
+               p.id as product_id, p.name as product_name, p.price as product_price,
+               p.condition as product_condition, p.status as product_status
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s AND (o.buyer_id = %s OR p.seller_id = %s)
+    ''', (offer_id, session['user_id'], session['user_id']))
+    offer = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if not offer:
+        return jsonify({'success': False, 'error': 'Offer not found'}), 404
+    
+    return jsonify({
+        'success': True,
+        'offer_id': offer['id'],
+        'offer_status': offer['status'],
+        'offer_price': offer['offer_price'],
+        'counter_price': offer['counter_price'],
+        'product_id': offer['product_id'],
+        'product_name': offer['product_name'],
+        'product_price': offer['product_price'],
+        'product_condition': offer['product_condition'],
+        'product_status': offer['product_status']
+    })
+
 @app.route('/api/offer/<int:offer_id>/details', methods=['GET'])
 def api_get_offer_details(offer_id):
     """Get offer details for checkout modal"""
@@ -1492,6 +1529,67 @@ def api_get_offer_details(offer_id):
         'product_image': product_image,
         'product_condition': offer['product_condition']
     })
+
+@app.route('/api/offer/<int:offer_id>/details', methods=['GET'])
+def api_get_offer_details_for_checkout(offer_id):
+    """Get offer details for checkout modal - includes product info"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    cur.execute('''
+        SELECT o.*, p.name as product_name, p.price as product_price,
+               p.condition as product_condition, p.images_blob, p.images
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s AND o.buyer_id = %s
+    ''', (offer_id, session['user_id']))
+    
+    offer = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if not offer:
+        return jsonify({'success': False, 'error': 'Offer not found'}), 404
+    
+    import json
+    product_image = None
+    if offer.get('images_blob'):
+        try:
+            images = json.loads(offer['images_blob'])
+            if images:
+                product_image = images[0]
+        except:
+            pass
+    
+    if not product_image and offer.get('images'):
+        img_list = offer['images'].split(',')
+        if img_list:
+            product_image = '/static/uploads/' + img_list[0].strip()
+
+    created_at_str = None
+    if offer.get('created_at'):
+        if hasattr(offer['created_at'], 'strftime'):
+            created_at_str = offer['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            created_at_str = str(offer['created_at'])
+    
+    return jsonify({
+        'success': True,
+        'offer_id': offer['id'],
+        'product_id': offer['product_id'],
+        'product_name': offer['product_name'],
+        'product_price': offer['product_price'],
+        'offer_price': offer['offer_price'],
+        'original_offer_price': offer.get('original_price', offer['offer_price']),
+        'product_image': product_image,
+        'product_condition': offer['product_condition'],
+        'status': offer['status'],
+        'created_at': created_at_str
+    })
+
 @app.route('/api/buy-now', methods=['POST'])
 def api_buy_now():
     """Buy Now - immediate purchase at full price"""
@@ -1570,6 +1668,31 @@ def get_unread_notifications():
         WHERE user_id = %s AND is_read = 0
         ORDER BY created_at DESC
         LIMIT 50
+    ''', (session['user_id'],))
+    
+    notifications = cur.fetchall()
+    cur.close()
+    db.close()
+    
+    return jsonify([dict(n) for n in notifications])
+
+
+@app.route('/api/notifications/all')
+def get_all_notifications():
+    """Get all recent notifications (read + unread) — so actionable ones survive mark-all-read"""
+    if 'user_id' not in session:
+        return jsonify([]), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    # Return last 7 days of notifications so pending offer_accepted actions are still visible
+    cur.execute('''
+        SELECT * FROM notifications 
+        WHERE user_id = %s
+          AND created_at >= NOW() - INTERVAL '7 days'
+        ORDER BY created_at DESC
+        LIMIT 100
     ''', (session['user_id'],))
     
     notifications = cur.fetchall()
@@ -1706,14 +1829,30 @@ def api_product_image(product_id, index):
 # Eileen's Route - Update product
 # ============================================================
 @app.route('/api/product/<int:product_id>/update', methods=['PUT'])
-
 def api_update_product(product_id):
     """Update product details"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
-    data = request.get_json()
+    db = get_db()
+    cur = db.cursor()
 
+    # Verify product belongs to user and check if already sold
+    cur.execute('SELECT id, status FROM products WHERE id = %s AND seller_id = %s', (product_id, session['user_id']))
+    product = cur.fetchone()
+    
+    if not product:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # for sold out product cannot edit
+    if product['status'] == 'sold':
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Sold products cannot be edited'}), 400
+
+    data = request.get_json()
     name = data.get('name', '').strip()
     price = data.get('price', 0)
     description = data.get('description', '').strip()
@@ -1729,18 +1868,9 @@ def api_update_product(product_id):
         errors.append('Description is required')
 
     if errors:
-        return jsonify({'success': False, 'error': ', '.join(errors)}), 400
-
-    db = get_db()
-    cur = db.cursor()
-
-    # Verify product belongs to user
-    cur.execute('SELECT id FROM products WHERE id = %s AND seller_id = %s', (product_id, session['user_id']))
-    product = cur.fetchone()
-    if not product:
         cur.close()
         db.close()
-        return jsonify({'success': False, 'error': 'Product not found'}), 404
+        return jsonify({'success': False, 'error': ', '.join(errors)}), 400
 
     # Update product (status becomes pending again for admin review)
     cur.execute('''
@@ -1765,8 +1895,8 @@ def api_update_product_full(product_id):
     db = get_db()
     cur = db.cursor()
     
-    # Verify product belongs to user
-    cur.execute('SELECT id, images FROM products WHERE id = %s AND seller_id = %s', 
+    # Verify product belongs to user and check if already sold
+    cur.execute('SELECT id, images, status FROM products WHERE id = %s AND seller_id = %s', 
                 (product_id, session['user_id']))
     product = cur.fetchone()
     
@@ -1774,6 +1904,12 @@ def api_update_product_full(product_id):
         cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # for sold product cannot edit
+    if product['status'] == 'sold':
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Sold products cannot be edited'}), 400
 
     name = request.form.get('name', '').strip()
     price = request.form.get('price', 0)
@@ -1883,6 +2019,41 @@ def upload_product_images(product_id):
     db.close()
     
     return jsonify({'success': True, 'all_images': existing})
+
+# ============================================================
+#delete product by Eileen
+# ============================================================
+@app.route('/api/product/<int:product_id>/delete', methods=['DELETE'])
+def api_delete_product(product_id):
+    """Delete a product"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    # Verify product belongs to user and check if already sold
+    cur.execute('SELECT id, status FROM products WHERE id = %s AND seller_id = %s', 
+                (product_id, session['user_id']))
+    product = cur.fetchone()
+    
+    if not product:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # cannot delete product have been sold out
+    if product['status'] == 'sold':
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Sold products cannot be deleted'}), 400
+    
+    cur.execute('DELETE FROM products WHERE id = %s', (product_id,))
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
 
 # ============================================================
 # Eileen's Route - My profile
@@ -3415,7 +3586,7 @@ def product_detail(product_id):
             u.is_blocked as seller_blocked
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.id = %s AND p.status = 'approved'
+        WHERE p.id = %s AND p.status IN ('approved', 'sold')
     ''', (product_id,))
     product = cur.fetchone()
     cur.close()
@@ -3445,7 +3616,6 @@ def product_detail(product_id):
         images = product['images'].split(',') if product['images'] else []
 
     return render_template('product.html', product=product, images=images)
-
 
 # ============================================================
 # Xingru's Route - Temporary route for testing product page only
@@ -3592,7 +3762,7 @@ def api_update_order_status(order_id):
     notify_user_id = order['buyer_id'] if is_seller else order['seller_id']
     
     messages = {
-        'confirmed': f"✅ Order #{order['order_number']} has been CONFIRMED by seller!",
+        'confirmed': f" Order #{order['order_number']} has been CONFIRMED by seller!",
         'shipped': f"📦 Order #{order['order_number']} has been SHIPPED! Track your order.",
         'delivered': f"🚚 Order #{order['order_number']} has been DELIVERED! Please confirm completion.",
         'completed': f"🎉 Order #{order['order_number']} is COMPLETED! Please leave a review.",
@@ -3610,6 +3780,26 @@ def api_update_order_status(order_id):
     db.close()
     
     return jsonify({'success': True})
+
+@app.route('/api/notifications/all', methods=['GET'])
+def api_notifications_all():
+    """Get all notifications for current user (not just unread)"""
+    if 'user_id' not in session:
+        return jsonify([]), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        SELECT * FROM notifications 
+        WHERE user_id = %s
+        ORDER BY created_at DESC
+        LIMIT 100
+    ''', (session['user_id'],))
+    notifications = cur.fetchall()
+    cur.close()
+    db.close()
+    
+    return jsonify([dict(n) for n in notifications])
 
 # ============================================================
 # Eileen's route = REVIEW SYSTEM 

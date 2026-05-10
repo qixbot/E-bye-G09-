@@ -46,6 +46,48 @@
     .notification-actions { margin-top: 10px; }
     .notification-action-btn { background: #205c30; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; }
     .notification-action-btn.secondary { background: #e0e0e0; color: #333; }
+    .notification-action-btn.counter { background: #e67e22; color: white; }
+
+    /* Offer Card Styles */
+    .offer-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border: 1px solid #eee;
+    }
+    .offer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .offer-status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .offer-status.pending { background: #fff3cd; color: #856404; }
+    .offer-status.accepted { background: #d4edda; color: #155724; }
+    .offer-status.rejected { background: #f8d7da; color: #721c24; }
+    .offer-status.countered { background: #fff3e0; color: #e67e22; }
+    .offer-status.ordered { background: #cce5ff; color: #004085; }
+    .offer-amount { margin-bottom: 8px; }
+    .offer-label { font-size: 12px; color: #888; }
+    .offer-price { font-size: 1.1rem; font-weight: 700; color: #205c30; }
+    .accept-offer-btn, .reject-offer-btn, .counter-offer-btn, .contact-buyer-btn {
+        padding: 8px 16px;
+        border-radius: 24px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+    }
+    .accept-offer-btn { background: #205c30; color: white; }
+    .reject-offer-btn { background: #e74c3c; color: white; }
+    .counter-offer-btn { background: #f39c12; color: white; }
+    .contact-buyer-btn { background: #3498db; color: white; }
 
     /* Confirm Purchase Modal */
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; }
@@ -88,7 +130,7 @@
             📢 Announcements
             <span class="badge" id="badgeAnn" style="display:{% if unread_announcements > 0 %}flex{% else %}none{% endif %};">{{ unread_announcements }}</span>
         </a>
-        <a href="#" onclick="return false;" class="top-btn" id="btnReviews">
+        <a href="#" onclick="viewMyReviews();return false;" class="top-btn" id="btnReviews">
             💬 Reviews
             <span class="badge" id="badgeReview" style="display:{% if unread_reviews > 0 %}flex{% else %}none{% endif %};">{{ unread_reviews }}</span>
         </a>
@@ -176,6 +218,19 @@
     </div>
 </div>
 
+<!-- Offer Management Modal (same as my_profile) -->
+<div id="offerManageModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>💰 Offer Details</h2>
+            <button class="modal-close" onclick="closeOfferManageModal()">&times;</button>
+        </div>
+        <div id="offerManageContent">
+            <div class="loading-state">Loading offer details...</div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Meetup locations
 const meetupLocations = [
@@ -215,12 +270,12 @@ function toggleNotifications() {
 }
 
 function loadNotifications() {
-    fetch('/api/notifications/unread', { credentials: 'same-origin' })
+    fetch('/api/notifications/all', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(notifications) {
             var container = document.getElementById('notificationsList');
             if (!notifications || notifications.length === 0) {
-                container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">No new notifications</p>';
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">No notifications yet</p>';
                 return;
             }
             
@@ -229,23 +284,46 @@ function loadNotifications() {
                 var n = notifications[i];
                 var actionHtml = '';
                 
+                // Buyer: seller accepted offer → show "Proceed to Checkout"
                 if (n.type === 'offer_accepted') {
                     actionHtml = '<button class="notification-action-btn" onclick="handleOfferAccepted(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
+                
+                // Buyer: offer declined → view product again
                 } else if (n.type === 'offer_rejected') {
-                    actionHtml = '<button class="notification-action-btn secondary" onclick="viewProduct(' + n.related_id + ')">👀 View Product</button>';
-                } else if (n.type === 'order_created') {
-                    actionHtml = '<button class="notification-action-btn secondary" onclick="viewOrder(' + n.related_id + ')">📋 View Order</button>';
+                    actionHtml = '<button class="notification-action-btn secondary" onclick="viewProductByOffer(' + n.related_id + ')">👀 View Product</button>';
+                
+                // Seller: new offer received → go to My Listings
+                } else if (n.type === 'new_offer') {
+                    actionHtml = '<button class="notification-action-btn" onclick="window.location.href=\'/my-profile?tab=listings\'">💰 View Offers</button>';
+                
+                // Buyer: counter offer received → open offer management modal
+                } else if (n.type === 'offer_countered') {
+                    actionHtml = '<button class="notification-action-btn counter" onclick="openOfferManageModal(' + n.related_id + ')">🔄 View & Manage Offer</button>';
+                
+                // Seller: accepted confirmation / buyer completed checkout → go to My Orders
+                } else if (n.type === 'offer_accept_confirm' || n.type === 'order_created') {
+                    actionHtml = '<button class="notification-action-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">📋 My Orders</button>';
+                
+                // Review notification → view reviews
                 } else if (n.type === 'review') {
-                    actionHtml = '<button class="notification-action-btn secondary" onclick="viewReviews()">⭐ View Review</button>';
+                    actionHtml = '<button class="notification-action-btn secondary" onclick="viewMyReviews()">⭐ View Review</button>';
+                
+                // Order status updates (confirmed, shipped, delivered, completed)
+                } else if (n.type === 'order') {
+                    actionHtml = '<button class="notification-action-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">📦 View Order</button>';
                 }
                 
-                html += '<div class="notification-item" data-id="' + n.id + '">' +
-                    '<div class="notification-message">' + escapeHtml(n.message) + '</div>' +
+                var unreadDot = !n.is_read ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#00381f;margin-right:6px;flex-shrink:0;"></span>' : '';
+                html += '<div class="notification-item" data-id="' + n.id + '" style="' + (!n.is_read ? 'background:#f0faf4;' : '') + '">' +
+                    '<div class="notification-message" style="display:flex;align-items:flex-start;gap:4px;">' + unreadDot + '<span>' + escapeHtml(n.message) + '</span></div>' +
                     '<div class="notification-time">' + (n.created_at ? formatDate(n.created_at) : '') + '</div>' +
                     '<div class="notification-actions">' + actionHtml + '</div>' +
                     '</div>';
             }
             container.innerHTML = html;
+        })
+        .catch(function(err) {
+            document.getElementById('notificationsList').innerHTML = '<p style="text-align:center;padding:20px;color:#e74c3c;">Failed to load notifications</p>';
         });
 }
 
@@ -257,10 +335,185 @@ function markAllNotificationsRead() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            document.getElementById('notificationsPanel').style.display = 'none';
             document.getElementById('badgeNotif').style.display = 'none';
+            loadNotifications();
         }
     });
+}
+
+// ============================================================
+// OFFER MANAGEMENT MODAL - same as My Listings
+// ============================================================
+var currentOfferId = null;
+var currentOfferData = null;
+
+function openOfferManageModal(offerId) {
+    currentOfferId = offerId;
+    document.getElementById('offerManageModal').style.display = 'flex';
+    
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                currentOfferData = data;
+                renderOfferManageContent(data);
+            } else {
+                document.getElementById('offerManageContent').innerHTML = '<div class="empty-state">Failed to load offer details</div>';
+            }
+        })
+        .catch(function(err) {
+            document.getElementById('offerManageContent').innerHTML = '<div class="empty-state">Error: ' + err.message + '</div>';
+        });
+}
+
+function renderOfferManageContent(data) {
+    var statusBadge = '';
+    var actionButtons = '';
+    var status = data.status || 'pending';
+    var offerPrice = parseFloat(data.offer_price).toFixed(2);
+    var productPrice = parseFloat(data.product_price).toFixed(2);
+    var originalOfferPrice = data.original_offer_price ? parseFloat(data.original_offer_price).toFixed(2) : offerPrice;
+    
+    if (status === 'pending') {
+        statusBadge = '<span class="offer-status pending">⏳ Pending</span>';
+        actionButtons = `
+            <button class="accept-offer-btn" onclick="respondToOfferManage('accept')">✅ Accept</button>
+            <button class="reject-offer-btn" onclick="respondToOfferManage('reject')">❌ Reject</button>
+            <button class="counter-offer-btn" onclick="makeCounterOfferManage()">💰 Counter</button>
+        `;
+    } else if (status === 'accepted') {
+        statusBadge = '<span class="offer-status accepted">✅ Accepted</span>';
+        actionButtons = '<button class="contact-buyer-btn" onclick="proceedToCheckoutFromOffer()">🛒 Proceed to Checkout</button>';
+    } else if (status === 'countered') {
+        statusBadge = '<span class="offer-status countered">🔄 Counter Offer</span>';
+        actionButtons = `
+            <button class="accept-offer-btn" onclick="respondToOfferManage('accept')">✅ Accept</button>
+            <button class="reject-offer-btn" onclick="respondToOfferManage('reject')">❌ Reject</button>
+        `;
+    } else if (status === 'rejected') {
+        statusBadge = '<span class="offer-status rejected">❌ Rejected</span>';
+    } else if (status === 'ordered') {
+        statusBadge = '<span class="offer-status ordered">📦 Ordered</span>';
+        actionButtons = '<button class="contact-buyer-btn" onclick="viewOrderFromOffer()">📋 View Order</button>';
+    }
+    
+    var html = `
+        <div class="offer-card" style="padding: 20px;">
+            <div class="offer-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div class="offer-product"><strong>📦 ${escapeHtml(data.product_name)}</strong></div>
+                ${statusBadge}
+            </div>
+            <div class="offer-amount" style="margin-bottom:12px;">
+                <div class="offer-label">Original Price:</div>
+                <div class="offer-price">RM ${productPrice}</div>
+            </div>
+            <div class="offer-amount" style="margin-bottom:12px;">
+                <div class="offer-label">Your Offer:</div>
+                <div class="offer-price">RM ${originalOfferPrice}</div>
+            </div>
+            ${status === 'countered' ? `
+            <div class="offer-amount" style="margin-bottom:16px;background:#fff3e0;padding:10px;border-radius:12px;">
+                <div class="offer-label" style="color:#e67e22;">🔄 Seller's Counter Offer:</div>
+                <div class="offer-price" style="color:#e67e22;font-size:1.2rem;">RM ${offerPrice}</div>
+            </div>
+            ` : ''}
+            <div class="offer-meta" style="color:#888;font-size:12px;margin-bottom:16px;">
+                📅 ${data.created_at ? data.created_at.split(' ')[0] : 'Recently'}
+            </div>
+            <div class="offer-actions" style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+                ${actionButtons}
+            </div>
+        </div>
+    `;
+    document.getElementById('offerManageContent').innerHTML = html;
+}
+
+function closeOfferManageModal() {
+    document.getElementById('offerManageModal').style.display = 'none';
+    currentOfferId = null;
+    currentOfferData = null;
+}
+
+function respondToOfferManage(action) {
+    if (!currentOfferId) return;
+    showToastMessage((action === 'accept' ? 'Accepting' : 'Rejecting') + ' offer...', 'info');
+    
+    fetch('/api/offer/' + currentOfferId + '/' + action, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer ' + action + 'ed successfully!', 'success');
+            if (action === 'accept') {
+                // After accepting, refresh the offer details to show "Proceed to Checkout"
+                openOfferManageModal(currentOfferId);
+            } else {
+                closeOfferManageModal();
+            }
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to respond');
+        }
+    })
+    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); });
+}
+
+function makeCounterOfferManage() {
+    var newPrice = prompt('Enter your counter offer price (RM):', currentOfferData ? currentOfferData.offer_price : '0');
+    if (!newPrice || parseFloat(newPrice) <= 0) return;
+    
+    showToastMessage('Sending counter offer...', 'info');
+    fetch('/api/offer/' + currentOfferId + '/counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ counter_price: parseFloat(newPrice) })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer sent!', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to send counter offer');
+        }
+    })
+    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); });
+}
+
+function proceedToCheckoutFromOffer() {
+    if (!currentOfferId) return;
+    closeOfferManageModal();
+    handleOfferAccepted(currentOfferId);
+}
+
+function viewOrderFromOffer() {
+    window.location.href = '/my-profile?tab=orders';
+}
+
+// Navigate to a product page from a rejected-offer notification
+function viewProductByOffer(offerId) {
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success && data.product_id) {
+                window.location.href = '/product/' + data.product_id;
+            } else {
+                window.location.href = '/home';
+            }
+        })
+        .catch(function() { 
+            window.location.href = '/home'; 
+        });
+}
+
+// View my reviews
+function viewMyReviews() {
+    window.location.href = '/my-profile?tab=received-reviews';
 }
 
 // ============================================================
@@ -402,7 +655,6 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
         if (data.success) {
             showToastMessage('✅ Order created successfully! Order #: ' + data.order_number, 'success');
             closeConfirmPurchaseModal();
-            // Redirect to My Orders page
             setTimeout(function() {
                 window.location.href = '/my-profile?tab=orders';
             }, 1500);
@@ -432,8 +684,8 @@ function searchUsers() {
         var html = '';
         users.forEach(function(u){
             html += '<div style="display:flex;align-items:center;padding:10px;background:#fff;border-radius:12px;margin-bottom:6px;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">' +
-                '<div style="width:40px;height:40px;border-radius:50%;background:#205c30;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;">' + u.username[0].toUpperCase() + '</div>' +
-                '<div style="flex:1;"><b>' + u.username + '</b><br><small>ID: ' + u.student_id + '</small></div>' +
+                '<div style="width:40px;height:40px;border-radius:50%;background:#205c30;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;">' + (u.username ? u.username[0].toUpperCase() : 'U') + '</div>' +
+                '<div style="flex:1;"><b>' + escapeHtml(u.username) + '</b><br><small>ID: ' + escapeHtml(u.student_id) + '</small></div>' +
                 '<a href="/chat/' + u.id + '" style="background:#205c30;color:#fff;padding:6px 14px;border-radius:16px;text-decoration:none;font-size:12px;">Chat</a>' +
                 '</div>';
         });
@@ -452,8 +704,8 @@ function openAnnouncements() {
         if (data.length === 0) html = '<p style="color:#999;text-align:center;">No announcements yet.</p>';
         data.forEach(function(a){
             html += '<div style="padding:14px;border-bottom:1px solid #eee;">' +
-                '<div style="font-weight:600;margin-bottom:6px;font-size:15px;">' + a.title + '</div>' +
-                '<div style="font-size:13px;color:#555;line-height:1.5;">' + a.content + '</div>' +
+                '<div style="font-weight:600;margin-bottom:6px;font-size:15px;">' + escapeHtml(a.title) + '</div>' +
+                '<div style="font-size:13px;color:#555;line-height:1.5;">' + escapeHtml(a.content) + '</div>' +
                 '<div style="font-size:10px;color:#aaa;margin-top:6px;">' + (a.created_at || '') + '</div>' +
                 '</div>';
         });
@@ -464,8 +716,6 @@ function openAnnouncements() {
 function closeAnnouncements() { document.getElementById('announcementModal').style.display = 'none'; }
 
 function viewOrder(orderId) { window.location.href = '/my-profile?tab=orders'; }
-function viewReviews() { window.location.href = '/my-profile?tab=received-reviews'; }
-function viewProduct(productId) { window.location.href = '/product/' + productId; }
 
 function formatDate(dateStr) {
     if (!dateStr) return '';

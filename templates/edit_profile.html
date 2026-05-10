@@ -578,6 +578,17 @@ function loadListings() {
                     thumbHtml = '<div class="carousel-placeholder">📦</div>';
                 }
 
+                // edit and delete button cannot use if the product have been sold, but can still view the product details page
+                var editDeleteBtns = '';
+                if (item.status !== 'sold') {
+                    editDeleteBtns = `
+                        <button class="edit-product-btn" onclick="editListing(${item.id})">✏️ Edit</button>
+                        <button class="delete-product-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name).replace(/\'/g,"\\\'")}')">🗑️</button>
+                    `;
+                } else {
+                    editDeleteBtns = '<span class="sold-label">✅ Sold</span>';
+                }
+
                 html += '<div class="product-card">' +
                     '<a href="/product/' + item.id + '" class="product-card-link">' +
                     '<div class="product-image-container"><span class="condition-badge">' + escapeHtml(condLabel) + '</span>' + thumbHtml + '</div>' +
@@ -586,10 +597,8 @@ function loadListings() {
                     '<div class="product-price">RM ' + parseFloat(item.price).toFixed(2) + '</div>' +
                     '<div class="product-status ' + statusClass + '">' + escapeHtml(statusText) + '</div>' +
                     '</div></a>' +
-                    '<div class="product-actions">' +
-                    '<button class="edit-product-btn" onclick="editListing(' + item.id + ')">✏️ Edit</button>' +
-                    '<button class="delete-product-btn" onclick="deleteListing(' + item.id + ', \'' + escapeHtml(item.name).replace(/\'/g,"\\\'") + '\')">🗑️</button>' +
-                    '</div></div>';
+                    '<div class="product-actions">' + editDeleteBtns + '</div>' +
+                    '</div>';
             }
             container.innerHTML = html;
         })

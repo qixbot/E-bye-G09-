@@ -8,7 +8,9 @@
         <button class="back-btn" onclick="goBack()">← Back</button>
         <div class="page-actions">
             <button class="action-icon" id="copyLinkBtn" title="Copy link">🔗</button>
+            {% if product.status != 'sold' %}
             <button class="action-icon" id="reportBtn" title="Report item">⚠️</button>
+            {% endif %}
         </div>
     </div>
 
@@ -106,7 +108,13 @@
             </div>
 
             <div class="action-buttons">
-                {% if product.seller_id == session.user_id %}
+                {% if product.status == 'sold' %}
+                    <div class="sold-notice" style="background:#f5f5f5;border:1px solid #ccc;border-radius:10px;padding:16px;text-align:center;">
+                        <span style="font-size:1.5rem;">✅</span>
+                        <p style="margin:8px 0 0 0;font-weight:600;color:#333;">This item has been SOLD</p>
+                        <small style="color:#777;">Thank you for your interest!</small>
+                    </div>
+                {% elif product.seller_id == session.user_id %}
                     <div class="own-product-notice" style="background:#f0faf4;border:1px solid #00381f;border-radius:10px;padding:12px 16px;color:#00381f;font-weight:600;text-align:center;">
                         🏷️ This is your listing. Manage it in <a href="{{ url_for('my_profile') }}?tab=listings" style="color:#00381f;text-decoration:underline;">My Listings</a>.
                     </div>
@@ -184,7 +192,7 @@
             <!-- RIGHT COLUMN – location selection (scrollable) -->
             <div class="buy-modal-right">
                 <div class="location-header">
-                    <p class="location-instruction">Prefered meetup location(s) – seller will contact you for further confirmation</p>
+                    <p class="location-instruction">Preferred meetup location(s) – seller will contact you for further confirmation</p>
                     <div id="selectedLocationsInfo" class="selected-locations-info"></div>
                 </div>
                 <div class="location-grid" id="locationGrid">
@@ -331,7 +339,7 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) {
-                showGlobalToast(" Offer sent to seller!", "success");
+                showGlobalToast("✓ Offer sent to seller!", "success");
                 offerInput.value = '';
                 closeOfferModal();
             } else {
@@ -363,7 +371,9 @@
     const otherReasonBox = document.getElementById('otherReasonBox');
     let selectedReason = null;
 
-    reportBtn.onclick = () => { reportModal.style.display = 'flex'; };
+    if (reportBtn) {
+        reportBtn.onclick = () => { reportModal.style.display = 'flex'; };
+    }
     function closeReportModal() { reportModal.style.display = 'none'; resetReportModal(); }
 
     function resetReportModal() {
@@ -410,11 +420,15 @@
         closeReportModal();
     });
 
-    // Close report modal when clicking outside
+    // Close modals when clicking outside their content — unified handler
     window.onclick = function(event) {
-        const modal = document.getElementById('reportModal');
-        if (event.target === modal) closeReportModal();
-    }
+        const reportModal = document.getElementById('reportModal');
+        const buyModal = document.getElementById('buyModal');
+        const offerModal = document.getElementById('offerModal');
+        if (event.target === reportModal) closeReportModal();
+        if (event.target === buyModal) closeBuyModal();
+        if (event.target === offerModal) closeOfferModal();
+    };
 
     // Limit and format offer price input
     function limitOfferPrice(input) {
@@ -545,7 +559,7 @@
                 source.src = firstMedia.src;
                 source.type = firstMedia.src.startsWith('data:') 
                     ? firstMedia.src.split(';')[0].split(':')[1]
-                    : 'video/mp4'; // fallback
+                    : 'video/mp4';
                 video.appendChild(source);
                 modalImageContainer.innerHTML = '';
                 modalImageContainer.appendChild(video);
@@ -580,50 +594,53 @@
     // ============================================================
     // BUY NOW CONFIRMATION - Send request to backend
     // ============================================================
-    document.getElementById('confirmBuyBtn')?.addEventListener('click', function() {
-        if (selectedLocations.length === 0) {
-            showGlobalToast('Please select at least one meetup location.', 'error');
-            return;
-        }
-        
-        const confirmBtn = document.getElementById('confirmBuyBtn');
-        const originalText = confirmBtn.textContent;
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Processing...';
-        
-        // Send buy now request to backend
-        fetch('/api/buy-now', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                product_id: {{ product.id }}, 
-                meetup_locations: selectedLocations 
-            }),
-            credentials: 'same-origin'
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                showGlobalToast('✅ Purchase successful! Seller will be notified.', 'success');
-                closeBuyModal();
-                // Optional: redirect to orders page after 2 seconds
-                setTimeout(function() {
-                    window.location.href = '/my-profile?tab=orders';
-                }, 2000);
-            } else {
-                throw new Error(data.error || 'Failed to process purchase');
+    const confirmBuyBtn = document.getElementById('confirmBuyBtn');
+    if (confirmBuyBtn) {
+        confirmBuyBtn.addEventListener('click', function() {
+            if (selectedLocations.length === 0) {
+                showGlobalToast('Please select at least one meetup location.', 'error');
+                return;
             }
-        })
-        .catch(function(err) {
-            showGlobalToast('❌ Error: ' + err.message, 'error');
-        })
-        .finally(function() {
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = originalText;
+            
+            const confirmBtn = document.getElementById('confirmBuyBtn');
+            const originalText = confirmBtn.textContent;
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Processing...';
+            
+            // Send buy now request to backend
+            fetch('/api/buy-now', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    product_id: {{ product.id }}, 
+                    meetup_locations: selectedLocations 
+                }),
+                credentials: 'same-origin'
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    showGlobalToast('✅ Purchase successful! Seller will be notified.', 'success');
+                    closeBuyModal();
+                    // Redirect to orders page after 2 seconds
+                    setTimeout(function() {
+                        window.location.href = '/my-profile?tab=orders';
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Failed to process purchase');
+                }
+            })
+            .catch(function(err) {
+                showGlobalToast('❌ Error: ' + err.message, 'error');
+            })
+            .finally(function() {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = originalText;
+            });
         });
-    });
+    }
 
-    // Attach Buy Now button (remove any existing inline onclick)
+    // Buy Now button click handler
     const buyNowBtn = document.querySelector('.buy-btn');
     if (buyNowBtn) {
         buyNowBtn.removeAttribute('onclick');
@@ -632,11 +649,5 @@
             openBuyModal();
         });
     }
-
-    // Close modal when clicking outside the content
-    window.onclick = function(event) {
-        const modal = document.getElementById('buyModal');
-        if (event.target === modal) closeBuyModal();
-    };
 </script>
 {% endblock %}
