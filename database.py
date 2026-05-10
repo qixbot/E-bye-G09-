@@ -61,6 +61,13 @@ def add_missing_notification_columns():
     except Exception as e:
         print(f"Note: related_id column already exists or error: {e}")
     
+    # Add is_read column if not exists (already in CREATE TABLE but just in case)
+    try:
+        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0")
+        print("✅ Added 'is_read' column to notifications")
+    except Exception as e:
+        print(f"Note: is_read column already exists or error: {e}")
+    
     conn.commit()
     cur.close()
     conn.close()
@@ -115,7 +122,7 @@ def init_db():
             )
         ''')
 
-        # Notifications table (with type and related_id included)
+        # Notifications table (with type, related_id, and is_read included)
         cur.execute('''
             CREATE TABLE IF NOT EXISTS notifications (
                 id SERIAL PRIMARY KEY,
