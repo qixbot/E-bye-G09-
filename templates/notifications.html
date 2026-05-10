@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .notif-page { max-width: 700px; margin: 0 auto; padding: 0 16px; }
+    .notif-header { display: flex; align-items: center; padding: 16px 0; gap: 12px; }
+    .notif-header h2 { font-size: 20px; margin: 0; flex: 1; }
+    .notif-back { text-decoration: none; color: #205c30; font-size: 14px; font-weight: 600; }
+
+    .notif-tabs { display: flex; gap: 6px; padding: 8px 0 16px; overflow-x: auto; }
+    .notif-tab { padding: 8px 16px; border-radius: 20px; background: #f5f5f5; border: none; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+    .notif-tab.active { background: #205c30; color: white; }
+    .notif-tab .count { margin-left: 4px; font-size: 11px; }
+
+    .notif-list { display: flex; flex-direction: column; gap: 8px; }
+    .notif-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); display: flex; gap: 12px; transition: 0.2s; }
+    .notif-card.unread { border-left: 3px solid #e74c3c; background: #fff9f9; }
+    .notif-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .notif-icon.offer { background: #eaf4ed; }
+    .notif-icon.system { background: #fff3cd; }
+    .notif-icon.announcement { background: #e8f0fe; }
+    .notif-icon.review { background: #fef3e8; }
+    .notif-icon.order { background: #e8f5e9; }
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-msg { font-size: 14px; line-height: 1.5; word-break: break-word; }
+    .notif-time { font-size: 11px; color: #aaa; margin-top: 6px; }
+    .notif-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .notif-btn { padding: 7px 16px; border-radius: 20px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .notif-btn.primary { background: #205c30; color: white; }
+    .notif-btn.secondary { background: #e0e0e0; color: #333; }
+    .notif-btn.warning { background: #e67e22; color: white; }
+    .notif-btn.danger { background: #e74c3c; color: white; }
+    .notif-empty { text-align: center; padding: 60px 0; color: #bbb; }
+
+    /* 弹窗 */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
+    .modal-overlay.show { display: flex; }
+    .modal-box { background: #fff; border-radius: 20px; width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto; padding: 24px; }
+    .modal-box h3 { margin: 0 0 16px; font-size: 18px; }
+    .modal-close { float: right; background: none; border: none; font-size: 22px; cursor: pointer; color: #888; }
+    .location-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 250px; overflow-y: auto; margin: 12px 0; }
+    .location-btn { display: flex; flex-direction: column; align-items: center; padding: 8px; border: 1px solid #ddd; border-radius: 12px; cursor: pointer; font-size: 12px; }
+    .location-btn.selected { background: #205c3033; border-color: #205c30; }
+    .location-btn img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+    .offer-detail { background: #f9faf9; border-radius: 12px; padding: 14px; margin: 12px 0; }
+</style>
+
+<div class="notif-page">
+    <div class="notif-header">
+        <a href="{{ url_for('chat_list') }}" class="notif-back">← Back</a>
+        <h2>🔔 Notification Centre</h2>
+    </div>
+
+    <!-- 分类标签 -->
+    <div class="notif-tabs">
+        <button class="notif-tab active" data-filter="all" onclick="filterNotifications('all')">All</button>
+        <button class="notif-tab" data-filter="offer" onclick="filterNotifications('offer')">💰 Offers</button>
+        <button class="notif-tab" data-filter="order" onclick="filterNotifications('order')">📦 Orders</button>
+        <button class="notif-tab" data-filter="system" onclick="filterNotifications('system')">⚙️ System</button>
+        <button class="notif-tab" data-filter="announcement" onclick="filterNotifications('announcement')">📢 Announcements</button>
+        <button class="notif-tab" data-filter="review" onclick="filterNotifications('review')">⭐ Reviews</button>
+    </div>
+
+    <!-- 通知列表 -->
+    <div class="notif-list" id="notifList">
+        <div class="notif-empty">Loading...</div>
+    </div>
+</div>
+
+<!-- 确认购买弹窗 -->
+<div class="modal-overlay" id="purchaseModal">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closePurchaseModal()">✕</button>
+        <h3>📦 Confirm Purchase</h3>
+        <div id="purchaseProductInfo"></div>
+        <p style="font-size:13px;color:#888;">Select meetup locations (max 3):</p>
+        <div class="location-grid" id="purchaseLocationGrid"></div>
+        <p id="purchaseLocationInfo" style="font-size:12px;color:#e74c3c;"></p>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+            <button class="notif-btn secondary" onclick="closePurchaseModal()">Cancel</button>
+            <button class="notif-btn primary" id="confirmPurchaseBtn">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Offer 管理弹窗 -->
+<div class="modal-overlay" id="offerManageModal">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeOfferManageModal()">✕</button>
+        <h3>💰 Offer Details</h3>
+        <div id="offerManageContent">Loading...</div>
+    </div>
+</div>
+
+<script>
+var allNotifications = [];
+var currentFilter = 'all';
+var purchaseOfferId = null;
+var selectedLocations = [];
+var manageOfferId = null;
+
+const meetupLocations = [
+    { name: "Library", image: "/static/uploads/library.jpg" },
+    { name: "DTC", image: "/static/uploads/dtc.jpg" },
+    { name: "Starbees", image: "/static/uploads/starbees.jpg" },
+    { name: "CLC", image: "/static/uploads/clc.jpg" },
+    { name: "FCI", image: "/static/uploads/fci.jpg" },
+    { name: "FOM", image: "/static/uploads/fom.jpg" },
+    { name: "FAIE", image: "/static/uploads/faie.jpg" },
+    { name: "FCM", image: "/static/uploads/fcm.jpg" },
+    { name: "STC", image: "/static/uploads/stc.jpg" },
+    { name: "HB1", image: "/static/uploads/hb1.jpg" },
+    { name: "HB2", image: "/static/uploads/hb2.jpg" },
+    { name: "HB3", image: "/static/uploads/hb3.jpg" },
+    { name: "HB4", image: "/static/uploads/hb4.jpg" },
+    { name: "Masjid", image: "/static/uploads/masjid.jpg" },
+    { name: "Tekun Mart", image: "/static/uploads/tekun_mart.jpg" },
+    { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
+];
+
+// ========== LOAD NOTIFICATIONS ==========
+function loadNotifications() {
+    fetch('/api/notifications/all', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        allNotifications = data || [];
+        renderNotifications();
+    })
+    .catch(function() {
+        document.getElementById('notifList').innerHTML = '<div class="notif-empty">Failed to load</div>';
+    });
+}
+
+// ========== RENDER ==========
+function renderNotifications() {
+    var filtered = allNotifications;
+    if (currentFilter !== 'all') {
+        filtered = allNotifications.filter(function(n) {
+            var t = n.type || '';
+            if (currentFilter === 'offer') return t.includes('offer');
+            if (currentFilter === 'order') return t.includes('order');
+            if (currentFilter === 'system') return ['freeze', 'block', 'unblock', 'unfreeze', 'report'].some(function(k) { return t.includes(k); });
+            if (currentFilter === 'announcement') return t === 'announcement';
+            if (currentFilter === 'review') return t === 'review';
+            return true;
+        });
+    }
+
+    var html = '';
+    if (filtered.length === 0) {
+        html = '<div class="notif-empty">📭 No notifications</div>';
+    }
+    for (var i = 0; i < filtered.length; i++) {
+        var n = filtered[i];
+        var icon = '🔔';
+        var iconClass = 'system';
+        var actions = '';
+
+        var t = n.type || '';
+        if (t.includes('offer_accepted')) {
+            icon = '💰'; iconClass = 'offer';
+            actions = '<button class="notif-btn primary" onclick="openPurchaseModal(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
+        } else if (t.includes('offer_rejected')) {
+            icon = '❌'; iconClass = 'offer';
+        } else if (t.includes('new_offer')) {
+            icon = '💰'; iconClass = 'offer';
+            actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=listings\'">View Offers</button>';
+        } else if (t.includes('offer_countered')) {
+            icon = '🔄'; iconClass = 'offer';
+            actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
+        } else if (t.includes('order')) {
+            icon = '📦'; iconClass = 'order';
+            actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">View Order</button>';
+        } else if (t.includes('review')) {
+            icon = '⭐'; iconClass = 'review';
+        } else if (t.includes('announcement')) {
+            icon = '📢'; iconClass = 'announcement';
+        } else if (t.includes('freeze') || t.includes('block')) {
+            icon = '⚠️'; iconClass = 'system';
+        }
+
+        html += '<div class="notif-card ' + (!n.is_read ? 'unread' : '') + '" data-id="' + n.id + '">' +
+            '<div class="notif-icon ' + iconClass + '">' + icon + '</div>' +
+            '<div class="notif-body">' +
+                '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
+                '<div class="notif-time">' + (n.created_at ? formatDate(n.created_at) : '') + '</div>' +
+                '<div class="notif-actions">' + actions + '</div>' +
+            '</div>' +
+            '</div>';
+    }
+    document.getElementById('notifList').innerHTML = html;
+}
+
+// ========== FILTER ==========
+function filterNotifications(type) {
+    currentFilter = type;
+    document.querySelectorAll('.notif-tab').forEach(function(tab) { tab.classList.remove('active'); });
+    document.querySelector('.notif-tab[data-filter="' + type + '"]').classList.add('active');
+    renderNotifications();
+}
+
+// ========== PURCHASE MODAL ==========
+function openPurchaseModal(offerId) {
+    purchaseOfferId = offerId;
+    selectedLocations = [];
+    document.getElementById('purchaseModal').classList.add('show');
+    
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        document.getElementById('purchaseProductInfo').innerHTML = 
+            '<div class="offer-detail">' +
+            '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
+            'Price: RM ' + parseFloat(data.offer_price).toFixed(2) +
+            (data.product_image ? '<br><img src="' + data.product_image + '" style="width:80px;border-radius:8px;margin-top:8px;">' : '') +
+            '</div>';
+        buildLocationGrid('purchaseLocationGrid');
+    });
+}
+
+function closePurchaseModal() {
+    document.getElementById('purchaseModal').classList.remove('show');
+    purchaseOfferId = null;
+}
+
+function buildLocationGrid(gridId) {
+    var grid = document.getElementById(gridId);
+    grid.innerHTML = '';
+    meetupLocations.forEach(function(loc) {
+        var btn = document.createElement('button');
+        btn.className = 'location-btn';
+        btn.innerHTML = '<img src="' + loc.image + '" alt=""><span>' + loc.name + '</span>';
+        btn.onclick = function() { toggleLocation(loc.name); };
+        grid.appendChild(btn);
+    });
+}
+
+function toggleLocation(name) {
+    var idx = selectedLocations.indexOf(name);
+    if (idx !== -1) { selectedLocations.splice(idx, 1); }
+    else {
+        if (selectedLocations.length >= 3) { alert('Max 3 locations'); return; }
+        selectedLocations.push(name);
+    }
+    updateLocationUI();
+}
+
+function updateLocationUI() {
+    document.querySelectorAll('#purchaseLocationGrid .location-btn').forEach(function(btn) {
+        var name = btn.querySelector('span').innerText;
+        btn.classList.toggle('selected', selectedLocations.includes(name));
+    });
+    document.getElementById('purchaseLocationInfo').innerText = selectedLocations.length > 0 ? 
+        '✓ Selected: ' + selectedLocations.join(', ') : '⚠️ Please select 1-3 locations';
+}
+
+document.getElementById('confirmPurchaseBtn').addEventListener('click', function() {
+    if (selectedLocations.length === 0) { alert('Select locations'); return; }
+    fetch('/api/offer/' + purchaseOfferId + '/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meetup_locations: selectedLocations }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success) { alert('Order created!'); closePurchaseModal(); loadNotifications(); }
+        else { alert(d.error); }
+    });
+});
+
+// ========== OFFER MANAGE MODAL ==========
+function openOfferManageModal(offerId) {
+    manageOfferId = offerId;
+    document.getElementById('offerManageModal').classList.add('show');
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var html = '<div class="offer-detail"><strong>' + escapeHtml(data.product_name) + '</strong><br>' +
+            'Offer: RM ' + parseFloat(data.offer_price).toFixed(2) + '</div>' +
+            '<div style="display:flex;gap:8px;">';
+        if (data.status === 'countered') {
+            html += '<button class="notif-btn primary" onclick="acceptCounter(' + offerId + ')">✅ Accept</button>';
+            html += '<button class="notif-btn danger" onclick="rejectOffer(' + offerId + ')">❌ Reject</button>';
+        } else if (data.status === 'accepted') {
+            html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Checkout</button>';
+        }
+        html += '</div>';
+        document.getElementById('offerManageContent').innerHTML = html;
+    });
+}
+
+function closeOfferManageModal() {
+    document.getElementById('offerManageModal').classList.remove('show');
+}
+
+function acceptCounter(offerId) {
+    fetch('/api/offer/' + offerId + '/accept-counter', { method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'} })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success) { alert('Accepted!'); closeOfferManageModal(); loadNotifications(); }
+    });
+}
+
+function rejectOffer(offerId) {
+    fetch('/api/offer/' + offerId + '/reject', { method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'} })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success) { alert('Rejected'); closeOfferManageModal(); loadNotifications(); }
+    });
+}
+
+// ========== UTILS ==========
+function escapeHtml(s) { return s ? s.replace(/[&<>]/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]; }) : ''; }
+function formatDate(d) { if (!d) return ''; return new Date(d).toLocaleString(); }
+
+// ========== INIT ==========
+loadNotifications();
+</script>
+{% endblock %}

@@ -268,10 +268,7 @@ def add_review_columns():
     conn = get_db_with_retry()
     cur = conn.cursor()
     
-<<<<<<< HEAD
-=======
     # Add rating columns to users table
->>>>>>> cdb19a95a4c04293da38d0f1d801c3cae75e6502
     user_columns = [
         ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
         ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),

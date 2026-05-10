@@ -122,10 +122,10 @@
 
     <!-- Top Buttons -->
     <div class="top-btns">
-        <a href="#" onclick="toggleNotifications();return false;" class="top-btn" id="btnNotifications">
-            🔔 Notifications
-            <span class="badge" id="badgeNotif" style="display:{% if unread_notifications > 0 %}flex{% else %}none{% endif %};">{{ unread_notifications }}</span>
-        </a>
+        <a href="{{ url_for('notifications_page') }}" class="top-btn" id="btnNotifications">
+    🔔 Notifications
+    <span class="badge" id="badgeNotif" style="display:{% if unread_notifications > 0 %}flex{% else %}none{% endif %};">{{ unread_notifications }}</span>
+</a>
         <a href="#" onclick="openAnnouncements();return false;" class="top-btn" id="btnAnnouncements">
             📢 Announcements
             <span class="badge" id="badgeAnn" style="display:{% if unread_announcements > 0 %}flex{% else %}none{% endif %};">{{ unread_announcements }}</span>
@@ -745,6 +745,14 @@ function showToastMessage(message, type) {
     document.body.appendChild(container);
     setTimeout(function() { container.remove(); }, 3000);
 }
+
+// 如果 URL 带了 ?open=notifications，自动打开通知面板
+(function() {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('open') === 'notifications') {
+        toggleNotifications();
+    }
+})();
 
 </script>
 

@@ -1654,6 +1654,13 @@ def api_buy_now():
     
     return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
 
+@app.route('/notifications')
+def notifications_page():
+    if 'user_id' not in session:
+        flash("Please login first", "error")
+        return redirect(url_for('login'))
+    return render_template('notifications.html')
+
 @app.route('/api/notifications/unread')
 def get_unread_notifications():
     """Get unread notifications for current user"""
@@ -3889,11 +3896,7 @@ def api_submit_order_review(order_id):
     cur.close()
     db.close()   
 
-<<<<<<< HEAD
-    return jsonify({'success': True,'overall_rating':rating_overall})
-=======
     return jsonify({'success': True, 'overall_rating': rating_overall})
->>>>>>> cdb19a95a4c04293da38d0f1d801c3cae75e6502
 
 @app.route('/api/user/<int:user_id>/reviews', methods=['GET'])
 def api_get_user_reviews(user_id):
@@ -3923,11 +3926,7 @@ def api_get_user_reviews(user_id):
     db.close()
 
     import base64
-<<<<<<< HEAD
-    result = []
-=======
     result = []   
->>>>>>> cdb19a95a4c04293da38d0f1d801c3cae75e6502
     for r in reviews:
         r_dict = dict(r)
         # Convert reviewer avatar to base64
