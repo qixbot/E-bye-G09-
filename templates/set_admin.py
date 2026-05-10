@@ -14,12 +14,12 @@ def set_admin():
     
     email = 'EILEEN.KERK.HUI@student.mmu.edu.my'
     
-    cur.execute("SELECT id, email, is_admin FROM users WHERE email = ?", (email,))
+    cur.execute("SELECT id, email, is_admin FROM users WHERE email = %s", (email,))
     user = cur.fetchone()
     
     if user:
         print(f"Found user: {user['email']}, current is_admin={user['is_admin']}")
-        cur.execute("UPDATE users SET is_admin = 1 WHERE id = ?", (user['id'],))
+        cur.execute("UPDATE users SET is_admin = 1 WHERE id = %s", (user['id'],))
         db.commit()
         print(f"✅ {email} is now ADMIN!")
     else:
@@ -27,12 +27,12 @@ def set_admin():
         hashed_password = generate_password_hash('Uyhzv3q@')
         cur.execute('''
             INSERT INTO users (student_id, email, username, password, is_admin)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         ''', ('ADMIN001', email, 'Eileen', hashed_password, 1))
         db.commit()
         print(f"✅ Admin user {email} created!")
     
-    cur.execute("SELECT id, email, is_admin FROM users WHERE email = ?", (email,))
+    cur.execute("SELECT id, email, is_admin FROM users WHERE email = %s", (email,))
     result = cur.fetchone()
     print(f"Verification: {dict(result)}")
     
