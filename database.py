@@ -236,7 +236,7 @@ def add_review_columns():
     conn = get_db_with_retry()
     cur = conn.cursor()
     
-        user_columns = [
+    user_columns = [
         ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
         ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
         ('avg_quality_rating', 'DECIMAL(3,2) DEFAULT 0'),
