@@ -146,6 +146,16 @@
                         </div>
                         <div class="ep-verified">✓ MMU Verified</div>
                     </div>
+                    <!-- Edit profile rating -->
+                    <div id="editProfileRating" class="ep-rating-container" style="display: none;">
+                         <div class="ep-rating-header">
+                         <span>⭐ Seller Rating</span>
+                         <button class="view-reviews-btn" onclick="openEditProfileReviews()">📖 View all reviews (<span id="editReviewCount">0</span>)</button>
+                    </div>
+                    <div class="ep-rating-stars" id="editRatingStars"></div>
+                    <div class="ep-rating-score" id="editRatingScore"></div>
+                </div>
+
                 </div>
             </div>
 
@@ -568,6 +578,17 @@ function loadListings() {
                     thumbHtml = '<div class="carousel-placeholder">📦</div>';
                 }
 
+                // edit and delete button cannot use if the product have been sold, but can still view the product details page
+                var editDeleteBtns = '';
+                if (item.status !== 'sold') {
+                    editDeleteBtns = `
+                        <button class="edit-product-btn" onclick="editListing(${item.id})">✏️ Edit</button>
+                        <button class="delete-product-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name).replace(/\'/g,"\\\'")}')">🗑️</button>
+                    `;
+                } else {
+                    editDeleteBtns = '<span class="sold-label">✅ Sold</span>';
+                }
+
                 html += '<div class="product-card">' +
                     '<a href="/product/' + item.id + '" class="product-card-link">' +
                     '<div class="product-image-container"><span class="condition-badge">' + escapeHtml(condLabel) + '</span>' + thumbHtml + '</div>' +
@@ -576,10 +597,8 @@ function loadListings() {
                     '<div class="product-price">RM ' + parseFloat(item.price).toFixed(2) + '</div>' +
                     '<div class="product-status ' + statusClass + '">' + escapeHtml(statusText) + '</div>' +
                     '</div></a>' +
-                    '<div class="product-actions">' +
-                    '<button class="edit-product-btn" onclick="editListing(' + item.id + ')">✏️ Edit</button>' +
-                    '<button class="delete-product-btn" onclick="deleteListing(' + item.id + ', \'' + escapeHtml(item.name).replace(/\'/g,"\\\'") + '\')">🗑️</button>' +
-                    '</div></div>';
+                    '<div class="product-actions">' + editDeleteBtns + '</div>' +
+                    '</div>';
             }
             container.innerHTML = html;
         })
@@ -969,7 +988,7 @@ function closeEditModal() {
 }
 
 function deleteListing(id, name) {
-    // 创建自定义确认弹窗
+  
     var modalHtml = `
         <div id="deleteConfirmModal" class="custom-modal">
             <div class="modal-card">
@@ -984,23 +1003,19 @@ function deleteListing(id, name) {
         </div>
     `;
     
-    // 移除已存在的弹窗
     var existingModal = document.getElementById('deleteConfirmModal');
     if (existingModal) existingModal.remove();
     
-    // 添加弹窗
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     
     var modal = document.getElementById('deleteConfirmModal');
     var cancelBtn = document.getElementById('deleteCancelBtn');
     var confirmBtn = document.getElementById('deleteConfirmBtn');
     
-    // 取消按钮
     cancelBtn.onclick = function() {
         modal.remove();
     };
-    
-    // 确认按钮
+
     confirmBtn.onclick = function() {
         modal.remove();
         showToastMessage('Deleting "' + name + '"...', 'info');
@@ -1176,7 +1191,7 @@ function showToastMessage(message, type) {
 // CHECK ADMIN STATUS & SWITCH TO ADMIN
 // ============================================================
 
-// 检查是否为管理员，决定是否显示 Admin 按钮
+//  check admin status to decide whether to show Admin button
 function checkAdminStatus() {
     fetch('/api/user/is-admin', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
@@ -1193,7 +1208,7 @@ function checkAdminStatus() {
 
 window.switchToAdmin = function() {
     if (confirm('👑 Switch to Admin Dashboard?\n\nYou can return to user mode by logging out and logging back in.')) {
-        // 显示 toast
+        // show toast message before redirecting
         var container = document.createElement('div');
         container.className = 'toast-container';
         var toastDiv = document.createElement('div');
@@ -1202,7 +1217,7 @@ window.switchToAdmin = function() {
         container.appendChild(toastDiv);
         document.body.appendChild(container);
         
-        // 1.5秒后跳转
+        // 1.5second delay to allow user to see the message before redirecting
         setTimeout(function() {
             window.location.href = '/switch-to-admin';
         }, 400);
@@ -1449,8 +1464,51 @@ document.addEventListener('DOMContentLoaded', function() {
     if (deletePwInput) deletePwInput.addEventListener('input', checkDeletePasswordMatch);
     if (deleteConfirmInput) deleteConfirmInput.addEventListener('input', checkDeleteConfirm);
     
-    // Check admin status - 显示管理员按钮（如果是管理员）
+    // Check admin status - show admin button if user is admin
     checkAdminStatus();
 });
+
+function loadEditProfileRating() {
+    var userId = {{ user.id }};
+    fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var container = document.getElementById('editProfileRating');
+            if (data.total_reviews > 0 && container) {
+                container.style.display = 'block';
+                document.getElementById('editReviewCount').textContent = data.total_reviews;
+                document.getElementById('editRatingStars').innerHTML = generateStarsHtml(data.avg_overall);
+                document.getElementById('editRatingScore').innerHTML = data.avg_overall + '★ (' + data.total_reviews + ' reviews)';
+            }
+        });
+}
+
+function generateStarsHtml(rating) {
+    var fullStars = Math.floor(rating);
+    var halfStar = (rating - fullStars) >= 0.5;
+    var starsHtml = '';
+    for (var i = 0; i < fullStars; i++) {
+        starsHtml += '★';
+    }
+    if (halfStar) {
+        starsHtml += '½';
+    }
+    for (var j = starsHtml.length; j < 5; j++) {
+        starsHtml += '☆';
+    }
+    return starsHtml;
+}
+
+function openEditProfileReviews() {
+    var userId = {{ user.id }};
+    if (typeof openSellerReviewsModal === 'function') {
+        openSellerReviewsModal(userId);
+    } else {
+        window.location.href = '/view-reviews/' + userId;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadEditProfileRating);
+
 </script>
 {% endblock %}

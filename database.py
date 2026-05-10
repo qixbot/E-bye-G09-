@@ -13,7 +13,7 @@ if not DATABASE_URL:
     DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
 
 def get_db():
-    """获取数据库直接连接（不用连接池，避免复杂问题）"""
+    """Get database connection with SSL and keepalive parameters"""
     try:
         conn = psycopg2.connect(
             DATABASE_URL,
@@ -31,6 +31,7 @@ def get_db():
         raise
 
 def get_db_with_retry(retries=3, delay=2):
+    """Get database connection with retry mechanism"""
     for i in range(retries):
         try:
             return get_db()
@@ -41,8 +42,39 @@ def get_db_with_retry(retries=3, delay=2):
             time.sleep(delay)
     return get_db()
 
+def add_missing_notification_columns():
+    """Add missing columns to notifications table if they don't exist"""
+    conn = get_db_with_retry()
+    cur = conn.cursor()
+    
+    # Add type column
+    try:
+        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general'")
+        print("✅ Added 'type' column to notifications")
+    except Exception as e:
+        print(f"Note: type column already exists or error: {e}")
+    
+    # Add related_id column
+    try:
+        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS related_id INTEGER")
+        print("✅ Added 'related_id' column to notifications")
+    except Exception as e:
+        print(f"Note: related_id column already exists or error: {e}")
+    
+    # Add is_read column if not exists (already in CREATE TABLE but just in case)
+    try:
+        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0")
+        print("✅ Added 'is_read' column to notifications")
+    except Exception as e:
+        print(f"Note: is_read column already exists or error: {e}")
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("✅ Notification columns check completed")
+
 def init_db():
-    """初始化 PostgreSQL 表"""
+    """Initialize all PostgreSQL tables"""
     conn = None
     try:
         conn = get_db_with_retry()
@@ -90,7 +122,7 @@ def init_db():
             )
         ''')
 
-        # Notifications table
+        # Notifications table (with type, related_id, and is_read included)
         cur.execute('''
             CREATE TABLE IF NOT EXISTS notifications (
                 id SERIAL PRIMARY KEY,
@@ -232,10 +264,14 @@ def init_db():
         raise
 
 def add_review_columns():
-    """添加评分相关的列到已存在的表"""
+    """Add rating columns to existing tables (for multi-dimensional reviews)"""
     conn = get_db_with_retry()
     cur = conn.cursor()
     
+<<<<<<< HEAD
+=======
+    # Add rating columns to users table
+>>>>>>> cdb19a95a4c04293da38d0f1d801c3cae75e6502
     user_columns = [
         ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
         ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
@@ -251,7 +287,7 @@ def add_review_columns():
         except Exception as e:
             print(f"Could not add {col_name}: {e}")
     
-    # Reviews from users to products, we can add more detailed rating columns
+    # Add rating columns to reviews table
     review_columns = [
         ('rating_service', 'INTEGER DEFAULT 0'),
         ('rating_shipping', 'INTEGER DEFAULT 0'),
@@ -271,6 +307,8 @@ def add_review_columns():
     conn.close()
     print("✅ Review columns added successfully")
 
+
+# Empty functions for compatibility with existing code
 def init_products():
     pass
 
@@ -288,3 +326,9 @@ def init_orders():
 
 def init_reports():
     pass
+
+
+# Run column additions when this file is executed directly
+if __name__ == '__main__':
+    add_review_columns()
+    add_missing_notification_columns()

@@ -4,6 +4,14 @@
         data-total="{{ (product.images_base64_list[:3]|length) if product.images_base64_list else (product.images_list[:3]|length) }}"
         data-actual-total="{{ product.actual_total }}">
         <span class="condition-badge">{{ product.condition | replace('_', ' ') | title }}</span>
+        
+        <!-- 已售出覆盖层 - 只在 hover 时显示 -->
+        {% if product.status == 'sold' %}
+        <div class="sold-overlay">
+            <span class="sold-badge-large">SOLD</span>
+        </div>
+        {% endif %}
+        
         <div class="carousel-window">
             <div class="carousel-track">
                 {% if product.images_base64_list %}
@@ -44,7 +52,14 @@
     </div>
     <div class="product-info">
         <h4 class="product-name">{{ product.name }}</h4>
+        {% if product.status == 'sold' %}
+        <div class="product-price sold-price">
+            <span class="original-price-strikethrough">RM {{ "%.2f"|format(product.price) }}</span>
+            <span class="sold-label-card">SOLD</span>
+        </div>
+        {% else %}
         <div class="product-price">RM {{ "%.2f"|format(product.price) }}</div>
+        {% endif %}
         <div class="product-seller">
             <img src="{{ url_for('user_avatar', user_id=product.seller_id) }}" class="seller-icon-img"
                  onerror="this.onerror=null; this.src=''; this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
