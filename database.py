@@ -42,6 +42,30 @@ def get_db_with_retry(retries=3, delay=2):
             time.sleep(delay)
     return get_db()
 
+def add_missing_notification_columns():
+    """Add missing columns to notifications table if they don't exist"""
+    conn = get_db_with_retry()
+    cur = conn.cursor()
+    
+    # Add type column
+    try:
+        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general'")
+        print("✅ Added 'type' column to notifications")
+    except Exception as e:
+        print(f"Note: type column already exists or error: {e}")
+    
+    # Add related_id column
+    try:
+        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS related_id INTEGER")
+        print("✅ Added 'related_id' column to notifications")
+    except Exception as e:
+        print(f"Note: related_id column already exists or error: {e}")
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("✅ Notification columns check completed")
+
 def init_db():
     """Initialize all PostgreSQL tables"""
     conn = None
@@ -91,7 +115,7 @@ def init_db():
             )
         ''')
 
-        # Notifications table
+        # Notifications table (with type and related_id included)
         cur.execute('''
             CREATE TABLE IF NOT EXISTS notifications (
                 id SERIAL PRIMARY KEY,
@@ -232,7 +256,6 @@ def init_db():
             conn.close()
         raise
 
-
 def add_review_columns():
     """Add rating columns to existing tables (for multi-dimensional reviews)"""
     conn = get_db_with_retry()
@@ -295,6 +318,7 @@ def init_reports():
     pass
 
 
-# Run column addition when this file is executed directly
+# Run column additions when this file is executed directly
 if __name__ == '__main__':
     add_review_columns()
+    add_missing_notification_columns()

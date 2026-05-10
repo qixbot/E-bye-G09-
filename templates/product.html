@@ -106,11 +106,17 @@
             </div>
 
             <div class="action-buttons">
-                <div class="double-buttons">
-                    <button class="offer-btn" onclick="openOfferModal()">Make an Offer</button>
-                    <a href="{{ url_for('chat_page', other_user_id=product.seller_id, product_id=product.id) }}" class="chat-btn">💬 Chat with seller</a>
-                </div>
-                <button class="buy-btn" id="buyNowBtn">Buy Now</button>
+                {% if product.seller_id == session.user_id %}
+                    <div class="own-product-notice" style="background:#f0faf4;border:1px solid #00381f;border-radius:10px;padding:12px 16px;color:#00381f;font-weight:600;text-align:center;">
+                        🏷️ This is your listing. Manage it in <a href="{{ url_for('my_profile') }}?tab=listings" style="color:#00381f;text-decoration:underline;">My Listings</a>.
+                    </div>
+                {% else %}
+                    <div class="double-buttons">
+                        <button class="offer-btn" onclick="openOfferModal()">Make an Offer</button>
+                        <a href="{{ url_for('chat_page', other_user_id=product.seller_id, product_id=product.id) }}" class="chat-btn">💬 Chat with seller</a>
+                    </div>
+                    <button class="buy-btn" id="buyNowBtn">Buy Now</button>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -325,7 +331,7 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) {
-                showGlobalToast("✅ Offer sent to seller!", "success");
+                showGlobalToast(" Offer sent to seller!", "success");
                 offerInput.value = '';
                 closeOfferModal();
             } else {

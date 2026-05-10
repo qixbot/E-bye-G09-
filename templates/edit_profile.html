@@ -1460,8 +1460,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadEditProfileRating() {
-    // Implementation to load and display user rating on the edit profile page, if applicable.
-     fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
+    var userId = {{ user.id }};
+    fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             var container = document.getElementById('editProfileRating');
@@ -1476,16 +1476,19 @@ function loadEditProfileRating() {
 
 function generateStarsHtml(rating) {
     var fullStars = Math.floor(rating);
-    var halfStar = rating - fullStars >= 0.5;
-    var html = '';
+    var halfStar = (rating - fullStars) >= 0.5;
+    var starsHtml = '';
     for (var i = 0; i < fullStars; i++) {
-        html += '<span class="star">&#9733;</span>';
+        starsHtml += '★';
     }
     if (halfStar) {
-        html += '<span class="star">&#9733;</span>';
+        starsHtml += '½';
     }
-    return html;
-
+    for (var j = starsHtml.length; j < 5; j++) {
+        starsHtml += '☆';
+    }
+    return starsHtml;
+}
 
 function openEditProfileReviews() {
     var userId = {{ user.id }};
@@ -1495,6 +1498,7 @@ function openEditProfileReviews() {
         window.location.href = '/view-reviews/' + userId;
     }
 }
+
 document.addEventListener('DOMContentLoaded', loadEditProfileRating);
 
 </script>

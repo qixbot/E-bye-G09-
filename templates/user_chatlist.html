@@ -36,11 +36,41 @@
     .chat-meta { text-align: right; flex-shrink: 0; }
     .chat-time { font-size: 11px; color: #aaa; }
     .unread-dot { display: inline-block; background: #e74c3c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; text-align: center; line-height: 22px; margin-top: 4px; }
+
+    /* Notification Panel */
+    .notification-panel { display: none; margin-top: 15px; background: #fff; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .notification-item { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
+    .notification-item:hover { background: #fafafa; }
+    .notification-message { font-size: 13px; line-height: 1.4; color: #333; }
+    .notification-time { font-size: 10px; color: #aaa; margin-top: 4px; }
+    .notification-actions { margin-top: 10px; }
+    .notification-action-btn { background: #205c30; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; }
+    .notification-action-btn.secondary { background: #e0e0e0; color: #333; }
+
+    /* Confirm Purchase Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; }
+    .modal-content { background: white; border-radius: 24px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #eee; background: white; position: sticky; top: 0; }
+    .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; }
+    .buy-modal-two-columns { display: flex; gap: 24px; padding: 24px; }
+    .buy-modal-left { flex: 1; text-align: center; }
+    .buy-modal-right { flex: 1; }
+    .product-image-preview { width: 150px; height: 150px; margin: 0 auto 15px; background: #f5f5f5; border-radius: 12px; overflow: hidden; }
+    .product-image-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .offer-price-info { margin-top: 10px; padding: 8px; background: #e8f5e8; border-radius: 8px; }
+    .location-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 300px; overflow-y: auto; margin-top: 15px; }
+    .location-btn { display: flex; flex-direction: column; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 12px; background: white; cursor: pointer; transition: all 0.2s; }
+    .location-btn.selected { background: #205c3033; border-color: #205c30; }
+    .location-btn-img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-bottom: 5px; }
+    .location-btn-label { font-size: 12px; font-weight: 500; }
+    .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; padding: 20px 24px; border-top: 1px solid #eee; }
+    .modal-cancel { padding: 10px 24px; background: #f0f0f0; border: none; border-radius: 40px; cursor: pointer; }
+    .modal-send { padding: 10px 28px; background: #205c30; color: white; border: none; border-radius: 40px; cursor: pointer; }
 </style>
 
 <div class="chatlist-container">
 
-    <!-- 搜索用户 -->
+    <!-- Search User -->
     <div style="padding:10px 0;">
         <input type="text" id="userSearch" placeholder="🔍 Search user by name or ID..." 
                style="width:100%;padding:10px 16px;border-radius:22px;border:1px solid #ddd;font-size:14px;outline:none;"
@@ -48,9 +78,9 @@
         <div id="searchResults" style="margin-top:8px;"></div>
     </div>
 
-    <!-- 顶部功能按钮 -->
+    <!-- Top Buttons -->
     <div class="top-btns">
-        <a href="#" onclick="return false;" class="top-btn" id="btnNotifications">
+        <a href="#" onclick="toggleNotifications();return false;" class="top-btn" id="btnNotifications">
             🔔 Notifications
             <span class="badge" id="badgeNotif" style="display:{% if unread_notifications > 0 %}flex{% else %}none{% endif %};">{{ unread_notifications }}</span>
         </a>
@@ -64,7 +94,18 @@
         </a>
     </div>
 
-    <!-- 用户聊天列表 -->
+    <!-- Notification Panel -->
+    <div id="notificationsPanel" class="notification-panel">
+        <div style="padding:12px 16px; border-bottom:1px solid #eee; display:flex; justify-content:space-between;">
+            <span style="font-weight:600;">🔔 Notifications</span>
+            <button onclick="markAllNotificationsRead()" style="background:none; border:none; color:#205c30; font-size:12px; cursor:pointer;">Mark all as read</button>
+        </div>
+        <div id="notificationsList" style="max-height:400px; overflow-y:auto;">
+            <p style="text-align:center; padding:20px; color:#999;">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Messages Section -->
     <div class="section-title">💬 Messages</div>
     
     {% if chats and chats|length > 0 %}
@@ -95,7 +136,7 @@
 
 </div>
 
-<!-- 公告弹窗 -->
+<!-- Announcement Modal -->
 <div id="announcementModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;justify-content:center;align-items:center;">
     <div style="background:#fff;border-radius:16px;width:90%;max-width:500px;max-height:70vh;overflow-y:auto;padding:24px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -106,7 +147,282 @@
     </div>
 </div>
 
+<!-- Confirm Purchase Modal -->
+<div id="confirmPurchaseModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📦 Confirm Your Purchase</h2>
+            <button class="modal-close" onclick="closeConfirmPurchaseModal()">&times;</button>
+        </div>
+        <div class="buy-modal-two-columns">
+            <div class="buy-modal-left">
+                <div class="product-image-preview" id="confirmProductImage"></div>
+                <h3 id="confirmProductName"></h3>
+                <p id="confirmProductPrice"></p>
+                <p class="offer-price-info">Your offer: <strong id="confirmOfferPrice"></strong></p>
+            </div>
+            <div class="buy-modal-right">
+                <div class="location-header">
+                    <p>Preferred meetup location(s) – seller will contact you for further confirmation</p>
+                    <div id="confirmSelectedLocationsInfo" class="selected-locations-info"></div>
+                </div>
+                <div class="location-grid" id="confirmLocationGrid"></div>
+            </div>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-cancel" onclick="closeConfirmPurchaseModal()">Cancel</button>
+            <button class="modal-send" id="confirmPurchaseBtn">Confirm Purchase</button>
+        </div>
+    </div>
+</div>
+
 <script>
+// Meetup locations
+const meetupLocations = [
+    { name: "Library", image: "/static/uploads/library.jpg" },
+    { name: "DTC", image: "/static/uploads/dtc.jpg" },
+    { name: "Starbees", image: "/static/uploads/starbees.jpg" },
+    { name: "CLC", image: "/static/uploads/clc.jpg" },
+    { name: "FCI", image: "/static/uploads/fci.jpg" },
+    { name: "FOM", image: "/static/uploads/fom.jpg" },
+    { name: "FAIE", image: "/static/uploads/faie.jpg" },
+    { name: "FCM", image: "/static/uploads/fcm.jpg" },
+    { name: "STC", image: "/static/uploads/stc.jpg" },
+    { name: "HB1", image: "/static/uploads/hb1.jpg" },
+    { name: "HB2", image: "/static/uploads/hb2.jpg" },
+    { name: "HB3", image: "/static/uploads/hb3.jpg" },
+    { name: "HB4", image: "/static/uploads/hb4.jpg" },
+    { name: "Masjid", image: "/static/uploads/masjid.jpg" },
+    { name: "Tekun Mart", image: "/static/uploads/tekun_mart.jpg" },
+    { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
+];
+
+var pendingOffer = null;
+var selectedConfirmLocations = [];
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+function toggleNotifications() {
+    var panel = document.getElementById('notificationsPanel');
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+    } else {
+        panel.style.display = 'block';
+        loadNotifications();
+    }
+}
+
+function loadNotifications() {
+    fetch('/api/notifications/unread', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(notifications) {
+            var container = document.getElementById('notificationsList');
+            if (!notifications || notifications.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">No new notifications</p>';
+                return;
+            }
+            
+            var html = '';
+            for (var i = 0; i < notifications.length; i++) {
+                var n = notifications[i];
+                var actionHtml = '';
+                
+                if (n.type === 'offer_accepted') {
+                    actionHtml = '<button class="notification-action-btn" onclick="handleOfferAccepted(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
+                } else if (n.type === 'offer_rejected') {
+                    actionHtml = '<button class="notification-action-btn secondary" onclick="viewProduct(' + n.related_id + ')">👀 View Product</button>';
+                } else if (n.type === 'order_created') {
+                    actionHtml = '<button class="notification-action-btn secondary" onclick="viewOrder(' + n.related_id + ')">📋 View Order</button>';
+                } else if (n.type === 'review') {
+                    actionHtml = '<button class="notification-action-btn secondary" onclick="viewReviews()">⭐ View Review</button>';
+                }
+                
+                html += '<div class="notification-item" data-id="' + n.id + '">' +
+                    '<div class="notification-message">' + escapeHtml(n.message) + '</div>' +
+                    '<div class="notification-time">' + (n.created_at ? formatDate(n.created_at) : '') + '</div>' +
+                    '<div class="notification-actions">' + actionHtml + '</div>' +
+                    '</div>';
+            }
+            container.innerHTML = html;
+        });
+}
+
+function markAllNotificationsRead() {
+    fetch('/api/notifications/mark-read', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}), credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            document.getElementById('notificationsPanel').style.display = 'none';
+            document.getElementById('badgeNotif').style.display = 'none';
+        }
+    });
+}
+
+// ============================================================
+// HANDLE OFFER ACCEPTED - OPEN CONFIRM MODAL
+// ============================================================
+
+function handleOfferAccepted(offerId) {
+    showToastMessage('Loading product details...', 'info');
+    
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                openConfirmPurchaseModal(
+                    offerId,
+                    data.product_id,
+                    data.product_name,
+                    data.product_price,
+                    data.offer_price,
+                    data.product_image || '',
+                    data.product_condition || 'Like New'
+                );
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(function(err) {
+            showToastMessage('Error loading product: ' + err.message, 'error');
+        });
+}
+
+function openConfirmPurchaseModal(offerId, productId, productName, productPrice, offerPrice, productImage, condition) {
+    pendingOffer = { id: offerId, productId: productId, productName: productName, productPrice: productPrice, offerPrice: offerPrice, productImage: productImage };
+    selectedConfirmLocations = [];
+    
+    document.getElementById('confirmProductName').innerText = productName;
+    document.getElementById('confirmProductPrice').innerText = 'RM ' + parseFloat(productPrice).toFixed(2);
+    document.getElementById('confirmOfferPrice').innerText = 'RM ' + parseFloat(offerPrice).toFixed(2);
+    
+    var imgContainer = document.getElementById('confirmProductImage');
+    if (productImage && productImage.startsWith('data:')) {
+        imgContainer.innerHTML = '<img src="' + productImage + '" style="width:100%;height:100%;object-fit:cover;">';
+    } else if (productImage) {
+        imgContainer.innerHTML = '<img src="' + productImage + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.src=\'/static/uploads/placeholder.jpg\'">';
+    } else {
+        imgContainer.innerHTML = '<div style="font-size:40px;">📦</div>';
+    }
+    
+    generateConfirmLocationButtons();
+    updateConfirmLocationUI();
+    document.getElementById('confirmPurchaseModal').style.display = 'flex';
+}
+
+function closeConfirmPurchaseModal() {
+    document.getElementById('confirmPurchaseModal').style.display = 'none';
+    pendingOffer = null;
+    selectedConfirmLocations = [];
+}
+
+function generateConfirmLocationButtons() {
+    var grid = document.getElementById('confirmLocationGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    meetupLocations.forEach(function(loc) {
+        var btn = document.createElement('button');
+        btn.className = 'location-btn';
+        btn.setAttribute('data-location', loc.name);
+        btn.innerHTML = '<img src="' + loc.image + '" class="location-btn-img" alt="' + loc.name + '">' +
+                        '<div class="location-btn-label">' + loc.name + '</div>';
+        btn.onclick = function() { toggleConfirmLocation(loc.name); };
+        grid.appendChild(btn);
+    });
+}
+
+function toggleConfirmLocation(locationName) {
+    var index = selectedConfirmLocations.indexOf(locationName);
+    if (index !== -1) {
+        selectedConfirmLocations.splice(index, 1);
+    } else {
+        if (selectedConfirmLocations.length >= 3) {
+            showToastMessage('You can select up to 3 locations.', 'error');
+            return;
+        }
+        selectedConfirmLocations.push(locationName);
+    }
+    updateConfirmLocationUI();
+}
+
+function updateConfirmLocationUI() {
+    document.querySelectorAll('#confirmLocationGrid .location-btn').forEach(function(btn) {
+        var locName = btn.querySelector('.location-btn-label').innerText;
+        if (selectedConfirmLocations.includes(locName)) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+    
+    var infoDiv = document.getElementById('confirmSelectedLocationsInfo');
+    if (infoDiv) {
+        if (selectedConfirmLocations.length === 0) {
+            infoDiv.innerHTML = '⚠️ Please select 1-3 meetup locations.';
+            infoDiv.style.color = '#e74c3c';
+        } else {
+            infoDiv.innerHTML = '✓ Selected: ' + selectedConfirmLocations.join(', ') + ' (' + selectedConfirmLocations.length + '/3)';
+            infoDiv.style.color = '#2ecc71';
+        }
+    }
+}
+
+// ============================================================
+// CONFIRM PURCHASE - CREATE ORDER
+// ============================================================
+
+document.getElementById('confirmPurchaseBtn')?.addEventListener('click', function() {
+    if (selectedConfirmLocations.length === 0) {
+        showToastMessage('Please select at least one meetup location.', 'error');
+        return;
+    }
+    
+    if (!pendingOffer || !pendingOffer.id) {
+        showToastMessage('No pending offer found.', 'error');
+        return;
+    }
+    
+    var confirmBtn = document.getElementById('confirmPurchaseBtn');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Processing...';
+    
+    fetch('/api/offer/' + pendingOffer.id + '/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meetup_locations: selectedConfirmLocations }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('✅ Order created successfully! Order #: ' + data.order_number, 'success');
+            closeConfirmPurchaseModal();
+            // Redirect to My Orders page
+            setTimeout(function() {
+                window.location.href = '/my-profile?tab=orders';
+            }, 1500);
+        } else {
+            throw new Error(data.error);
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    })
+    .finally(function() {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm Purchase';
+    });
+});
+
+// ============================================================
+// UTILITY FUNCTIONS
+// ============================================================
+
 function searchUsers() {
     var q = document.getElementById('userSearch').value.trim();
     if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
@@ -144,31 +460,40 @@ function openAnnouncements() {
         document.getElementById('announcementList').innerHTML = html;
     });
 }
+
 function closeAnnouncements() { document.getElementById('announcementModal').style.display = 'none'; }
 
-function handleOfferAccepted(offerId) {
-    showToastMessage('Loading product details...', 'info');
-    
-    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                openConfirmPurchaseModal(
-                    offerId,
-                    data.product_id,
-                    data.product_name,
-                    data.product_price,
-                    data.offer_price,
-                    data.product_image || '',
-                    data.product_condition || 'Like New'
-                );
-            } else {
-                throw new Error(data.error);
-            }
-        })
-        .catch(function(err) {
-            showToastMessage('Error loading product: ' + err.message, 'error');
-        });
+function viewOrder(orderId) { window.location.href = '/my-profile?tab=orders'; }
+function viewReviews() { window.location.href = '/my-profile?tab=received-reviews'; }
+function viewProduct(productId) { window.location.href = '/product/' + productId; }
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    return d.toLocaleString();
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+function showToastMessage(message, type) {
+    var existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    var container = document.createElement('div');
+    container.className = 'toast-container';
+    var toastDiv = document.createElement('div');
+    toastDiv.className = 'toast toast-' + type;
+    toastDiv.innerHTML = '<span>' + message + '</span>';
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    setTimeout(function() { container.remove(); }, 3000);
 }
 </script>
 
