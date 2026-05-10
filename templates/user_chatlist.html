@@ -145,6 +145,31 @@ function openAnnouncements() {
     });
 }
 function closeAnnouncements() { document.getElementById('announcementModal').style.display = 'none'; }
+
+function handleOfferAccepted(offerId) {
+    showToastMessage('Loading product details...', 'info');
+    
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                openConfirmPurchaseModal(
+                    offerId,
+                    data.product_id,
+                    data.product_name,
+                    data.product_price,
+                    data.offer_price,
+                    data.product_image || '',
+                    data.product_condition || 'Like New'
+                );
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(function(err) {
+            showToastMessage('Error loading product: ' + err.message, 'error');
+        });
+}
 </script>
 
 {% endblock %}

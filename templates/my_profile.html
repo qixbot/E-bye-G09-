@@ -89,14 +89,16 @@
                     <span class="pf-detail-icon">📅</span>
                     <span><span class="pf-detail-label">Member since</span>&nbsp;{{ user.created_at|time_since or 'New' }}</span>
                 </div>
-                <div id="sellerRatingContainer" class="pf-rating-container" style="display: none;">
-                    <div class="pf-rating-header">
-                        <span class="rating-label">⭐ Seller Rating</span>
-                        <button class="view-reviews-btn" id="viewReviewsBtn" onclick="openReviewsModal()">📖 View all reviews (<span id="reviewCount">0</span>)</button>
+            </div>
+
+            <!-- Seller Rating Button - Only shown for sellers with reviews -->
+            <div id="sellerRatingContainer" class="pf-rating-container" style="display: none;">
+                <div class="pf-rating-header">
+                    <span class="rating-label">⭐ Seller Rating</span>
+                    <button class="view-reviews-btn" id="viewReviewsBtn" onclick="openReviewsModal()">📖 View all reviews (<span id="reviewCount">0</span>)</button>
                 </div>
                 <div class="pf-rating-stars" id="userRatingStars"></div>
-                     <div class="pf-rating-score" id="userRatingScore"></div>
-                </div>
+                <div class="pf-rating-score" id="userRatingScore"></div>
             </div>
         </div>
 
@@ -160,21 +162,21 @@
                         <option value="fair">Fair</option>
                     </select>
                 </div>
-               <div class="form-group">
-               <label>Category</label>
-               <select id="edit_category">
-                    <option value="books">📚 Books</option>
-                    <option value="gadgets">💻 Gadgets</option>
-                    <option value="dorm">🛏️ Dorm Items</option>
-                    <option value="fashion">👕 Fashion</option>
-                    <option value="beauty">💄 Beauty</option>
-                    <option value="sports">⚽ Sports</option>
-                    <option value="groceries">🛒 Groceries</option>
-                    <option value="stationery">✏️ Stationery</option>
-                    <option value="music">🎸 Music</option>
-                    <option value="others">📦 Others</option>
-              </select>
-          </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="edit_category">
+                        <option value="books">📚 Books</option>
+                        <option value="gadgets">💻 Gadgets</option>
+                        <option value="dorm">🛏️ Dorm Items</option>
+                        <option value="fashion">👕 Fashion</option>
+                        <option value="beauty">💄 Beauty</option>
+                        <option value="sports">⚽ Sports</option>
+                        <option value="groceries">🛒 Groceries</option>
+                        <option value="stationery">✏️ Stationery</option>
+                        <option value="music">🎸 Music</option>
+                        <option value="others">📦 Others</option>
+                    </select>
+                </div>
             </div>
             
             <div class="form-group">
@@ -213,7 +215,7 @@
 </div>
 
 <!-- Public comment Modal - check all the buyer comment -->
-<div id="reviewsModal" class="modal" style = "display:none;">
+<div id="reviewsModal" class="modal" style="display:none;">
     <div class="modal-content reviews-modal">
         <div class="modal-header">
             <h2>⭐ Seller Reviews</h2>
@@ -317,7 +319,6 @@ function loadListings() {
     var countSpan = document.getElementById('cnt-listings');
     if (!container) return;
     
-    // 定义上传链接变量，避免 Jinja2 转义问题
     var uploadUrl = "{{ url_for('upload_product') }}";
     
     container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
@@ -422,7 +423,7 @@ function loadPurchases() {
                                     <div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
                                 </div>
                                 <div class="purchase-status-badge ${item.status || 'pending'}">
-                                    ${item.status === 'completed' ? ' Completed' : (item.status === 'pending' ? '⏳ Pending' : (item.status || 'Pending'))}
+                                    ${item.status === 'completed' ? '✅ Completed' : (item.status === 'pending' ? '⏳ Pending' : (item.status || 'Pending'))}
                                 </div>
                             </div>
                             <div class="purchase-details">
@@ -474,19 +475,19 @@ function viewOffers(productId, productName) {
                 if (offer.status === 'pending') {
                     statusBadge = '<span class="offer-status pending">⏳ Pending</span>';
                     actionButtons = `
-                        <button class="accept-offer-btn" onclick="respondToOffer(${offer.id}, 'accept')"> Accept</button>
+                        <button class="accept-offer-btn" onclick="respondToOffer(${offer.id}, 'accept')">✅ Accept</button>
                         <button class="reject-offer-btn" onclick="respondToOffer(${offer.id}, 'reject')">❌ Reject</button>
                         <button class="counter-offer-btn" onclick="makeCounterOffer(${offer.id})">💰 Counter</button>
                     `;
                 } else if (offer.status === 'accepted') {
-                    statusBadge = '<span class="offer-status accepted"> Accepted</span>';
+                    statusBadge = '<span class="offer-status accepted">✅ Accepted</span>';
                     actionButtons = '<button class="contact-buyer-btn" onclick="contactBuyer(' + offer.buyer_id + ')">💬 Contact Buyer</button>';
                 } else if (offer.status === 'rejected') {
                     statusBadge = '<span class="offer-status rejected">❌ Rejected</span>';
                 } else if (offer.status === 'countered') {
                     statusBadge = '<span class="offer-status countered">🔄 Counter Offer</span>';
                     actionButtons = `
-                        <button class="accept-offer-btn" onclick="respondToOffer(${offer.id}, 'accept')"> Accept</button>
+                        <button class="accept-offer-btn" onclick="respondToOffer(${offer.id}, 'accept')">✅ Accept</button>
                         <button class="reject-offer-btn" onclick="respondToOffer(${offer.id}, 'reject')">❌ Reject</button>
                     `;
                 }
@@ -574,19 +575,16 @@ var currentMediaFiles = [];
 var newMediaFiles = [];        
 var mediaToDelete = [];        
 
-// load product data for editing
 function editListing(productId) {
     fetch('/api/product/' + productId, { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(product) {
             console.log('Product data received:', product);
             
-            // reset state
             currentMediaFiles = [];
             newMediaFiles = [];
             mediaToDelete = [];
             
-            // fill form fields
             document.getElementById('edit_product_id').value = product.id;
             document.getElementById('edit_name').value = product.name;
             document.getElementById('edit_price').value = product.price;
@@ -596,7 +594,6 @@ function editListing(productId) {
             
             if (product.images_blob) {
                 try {
-                    // if is string, parse JSON
                     if (typeof product.images_blob === 'string') {
                         var parsed = JSON.parse(product.images_blob);
                         if (Array.isArray(parsed)) {
@@ -604,19 +601,14 @@ function editListing(productId) {
                         } else {
                             currentMediaFiles = [parsed];
                         }
-                    } 
-                    // if is array, use directly
-                    else if (Array.isArray(product.images_blob)) {
+                    } else if (Array.isArray(product.images_blob)) {
                         currentMediaFiles = product.images_blob;
-                    }
-                    // other situations
-                    else {
+                    } else {
                         currentMediaFiles = [];
                     }
                     console.log('Loaded from images_blob:', currentMediaFiles.length);
                 } catch(e) {
                     console.error('Parse images_blob error:', e);
-                    // if not json, maybe a single base64 string
                     if (product.images_blob && typeof product.images_blob === 'string' && product.images_blob.startsWith('data:')) {
                         currentMediaFiles = [product.images_blob];
                     } else {
@@ -625,7 +617,6 @@ function editListing(productId) {
                 }
             }
             
-            // backup solution for disk-stored media to ensure backward compatibility
             if (currentMediaFiles.length === 0 && product.images && typeof product.images === 'string' && product.images.trim()) {
                 var imagePaths = product.images.split(',');
                 for (var i = 0; i < imagePaths.length; i++) {
@@ -641,7 +632,6 @@ function editListing(productId) {
             document.getElementById('new_media_preview').innerHTML = '';
             updateUploadButtonState();
             
-            // show modal after data is loaded to prevent flickering
             var modal = document.getElementById('editProductModal');
             if (modal) modal.style.display = 'flex';
         })
@@ -651,12 +641,10 @@ function editListing(productId) {
         });
 }
 
-// count total media files considering current, new, and deleted ones
 function getTotalMediaCount() {
     return (currentMediaFiles.length - mediaToDelete.length) + newMediaFiles.length;
 }
 
-// according to the total media count, enable or disable the upload button and show/hide warning
 function updateUploadButtonState() {
     var uploadBtn = document.getElementById('uploadBtn');
     var warning = document.getElementById('mediaLimitWarning');
@@ -677,7 +665,6 @@ function updateUploadButtonState() {
     }
 }
 
-// render existing media files in the edit form, with delete marking and video badges
 function renderExistingMedia() {
     var container = document.getElementById('existing_media_container');
     if (!container) {
@@ -694,7 +681,6 @@ function renderExistingMedia() {
     for (var i = 0; i < currentMediaFiles.length; i++) {
         var media = currentMediaFiles[i];
         
-        // check if media is video based on MIME type or file extension
         var isVideo = false;
         if (media) {
             if (media.startsWith('data:video/')) {
@@ -730,7 +716,6 @@ function renderExistingMedia() {
     container.innerHTML = html;
 }
 
-// mark or unmark media for deletion when delete button is clicked, then re-render the media list and update upload button state
 function toggleMediaDeletion(index) {
     var idx = mediaToDelete.indexOf(index);
     if (idx !== -1) {
@@ -742,7 +727,6 @@ function toggleMediaDeletion(index) {
     updateUploadButtonState();
 }
 
-// preview new media files selected for upload, with validation, duplicate checking, and slot limit enforcement. After processing, clear the file input to allow re-selection of the same files if needed.
 function previewNewMedia(input) {
     var preview = document.getElementById('new_media_preview');
     var files = Array.from(input.files);
@@ -753,27 +737,23 @@ function previewNewMedia(input) {
     for (var i = 0; i < files.length; i++) {
         var file = files[i];
 
-        // check if we have available slots for this file, considering current media count and new media count
         var remainingSlots = MAX_MEDIA_FILES - getTotalMediaCount() - addedCount;
         if (remainingSlots <= 0) {
             skippedSlot++;
             continue;
         }
 
-        //validate file type (only images and videos)
         if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
             showToastMessage(file.name + ' is not a supported format', 'error');
             continue;
         }
 
-        // vslidate file size (max 50MB)
         var maxSize = 50 * 1024 * 1024;
         if (file.size > maxSize) {
             showToastMessage(file.name + ' is too large (max 50MB)', 'error');
             continue;
         }
 
-        // check against both currentMediaFiles and newMediaFiles
         var isDuplicate = false;
         for (var d = 0; d < newMediaFiles.length; d++) {
             if (newMediaFiles[d].name === file.name && newMediaFiles[d].size === file.size) {
@@ -822,11 +802,9 @@ function previewNewMedia(input) {
     updateUploadButtonState();
 }
 
-// remove new media item from preview and list
 function removeNewMediaItem(btn, filename) {
     var container = btn.closest('.media-preview');
     if (container) container.remove();
-    // removed by filename, which is not perfect but should work for most cases
     for (var i = 0; i < newMediaFiles.length; i++) {
         if (newMediaFiles[i].name === filename) {
             newMediaFiles.splice(i, 1);
@@ -836,7 +814,6 @@ function removeNewMediaItem(btn, filename) {
     updateUploadButtonState();
 }
 
-//save changes to server, including media handling
 function saveProductChanges(event) {
     event.preventDefault();
     var id = document.getElementById('edit_product_id').value;
@@ -846,7 +823,6 @@ function saveProductChanges(event) {
         return;
     }
     
-    // save no matter if we have new media or not, to ensure we don't lose them
     var remainingMedia = [];
     for (var i = 0; i < currentMediaFiles.length; i++) {
         if (mediaToDelete.indexOf(i) === -1) {
@@ -868,7 +844,6 @@ function saveProductChanges(event) {
     
     showToastMessage('Updating product...', 'info');
     
-    // change to base64 for all new files before sending to server
     if (newMediaFiles.length > 0) {
         var uploadPromises = [];
         for (var i = 0; i < newMediaFiles.length; i++) {
@@ -882,18 +857,15 @@ function saveProductChanges(event) {
         }
         
         Promise.all(uploadPromises).then(function(newBase64Media) {
-            // commit to server 
             var allMedia = remainingMedia.concat(newBase64Media);
             var imagesBlobJson = JSON.stringify(allMedia);
             
-            // gain access to all form fields here to ensure we have the latest values
             var name = document.getElementById('edit_name').value;
             var price = document.getElementById('edit_price').value;
             var description = document.getElementById('edit_description').value;
             var condition = document.getElementById('edit_condition').value;
             var category = document.getElementById('edit_category').value;
             
-            // send to server
             var fd = new FormData();
             fd.append('name', name);
             fd.append('price', price);
@@ -912,7 +884,7 @@ function saveProductChanges(event) {
                 if (data.success) {
                     showToastMessage('Product updated successfully!', 'success');
                     closeEditModal();
-                    loadListings();  //refresh listings
+                    loadListings();
                 } else {
                     throw new Error(data.error || 'Update failed');
                 }
@@ -923,7 +895,6 @@ function saveProductChanges(event) {
             });
         });
     } else {
-        // no new media, just save remaining
         var imagesBlobJson = JSON.stringify(remainingMedia);
         
         var fd = new FormData();
@@ -944,7 +915,7 @@ function saveProductChanges(event) {
             if (data.success) {
                 showToastMessage('Product updated successfully!', 'success');
                 closeEditModal();
-                loadListings();  // 刷新列表
+                loadListings();
             } else {
                 throw new Error(data.error || 'Update failed');
             }
@@ -956,7 +927,6 @@ function saveProductChanges(event) {
     }
 }
 
-// close edit modal and reset state
 function closeEditModal() {
     var modal = document.getElementById('editProductModal');
     if (modal) modal.style.display = 'none';
@@ -965,9 +935,7 @@ function closeEditModal() {
     mediaToDelete = [];
 }
 
-// delete product with confirmation
 function deleteListing(id, name) {
-    // custom confirmation modal
     var modalHtml = `
         <div id="deleteConfirmModal" class="custom-modal">
             <div class="modal-card">
@@ -982,11 +950,9 @@ function deleteListing(id, name) {
         </div>
     `;
     
-    // remove existing modal if any to prevent duplicates
     var existingModal = document.getElementById('deleteConfirmModal');
     if (existingModal) existingModal.remove();
     
-    // add to body to avoid z-index issues
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     
     var modal = document.getElementById('deleteConfirmModal');
@@ -1037,12 +1003,10 @@ function loadSellerRating() {
         var container = document.getElementById('sellerRatingContainer');
         if (!container) return;
         
-        // Only sellers with reviews will have the button displayed
         if (data.total_reviews > 0) {
             container.style.display = 'block';
             document.getElementById('reviewCount').textContent = data.total_reviews;
 
-            // Show star rating
             var starsHtml = generateStarsHtml(data.avg_overall);
             document.getElementById('userRatingStars').innerHTML = starsHtml;
             document.getElementById('userRatingScore').innerHTML = data.avg_overall + '★ (' + data.total_reviews + ' reviews)';
@@ -1097,7 +1061,6 @@ function openReviewsModal() {
         `;
         document.getElementById('reviewsStats').innerHTML = statsHtml;
 
-        // Show reviews with text content
         if (!data.reviews || data.reviews.length === 0) {
             document.getElementById('reviewsList').innerHTML = '<div class="empty-state">No reviews yet</div>';
         } else {
@@ -1148,17 +1111,6 @@ function formatReviewDate(dateStr) {
     return d.toLocaleDateString();
 }
 
-// Escape HTML to prevent XSS
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
-
 // Click outside modal to close
 window.onclick = function(event) {
     var modal = document.getElementById('reviewsModal');
@@ -1173,6 +1125,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadCoverFromServer();
     loadListings();
     loadPurchases();
-    loadSellerRating();  // Load seller rating button
+    loadSellerRating();
 });
+</script>
 {% endblock %}
