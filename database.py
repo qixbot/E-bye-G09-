@@ -13,7 +13,7 @@ if not DATABASE_URL:
     DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
 
 def get_db():
-    """获取数据库直接连接（不用连接池，避免复杂问题）"""
+    """Get database connection with SSL and keepalive parameters"""
     try:
         conn = psycopg2.connect(
             DATABASE_URL,
@@ -31,6 +31,7 @@ def get_db():
         raise
 
 def get_db_with_retry(retries=3, delay=2):
+    """Get database connection with retry mechanism"""
     for i in range(retries):
         try:
             return get_db()
@@ -42,7 +43,7 @@ def get_db_with_retry(retries=3, delay=2):
     return get_db()
 
 def init_db():
-    """初始化 PostgreSQL 表"""
+    """Initialize all PostgreSQL tables"""
     conn = None
     try:
         conn = get_db_with_retry()
@@ -231,12 +232,14 @@ def init_db():
             conn.close()
         raise
 
+
 def add_review_columns():
-    """添加评分相关的列到已存在的表"""
+    """Add rating columns to existing tables (for multi-dimensional reviews)"""
     conn = get_db_with_retry()
     cur = conn.cursor()
     
-        user_columns = [
+    # Add rating columns to users table
+    user_columns = [
         ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
         ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
         ('avg_quality_rating', 'DECIMAL(3,2) DEFAULT 0'),
@@ -251,7 +254,7 @@ def add_review_columns():
         except Exception as e:
             print(f"Could not add {col_name}: {e}")
     
-    # Reviews from users to products, we can add more detailed rating columns
+    # Add rating columns to reviews table
     review_columns = [
         ('rating_service', 'INTEGER DEFAULT 0'),
         ('rating_shipping', 'INTEGER DEFAULT 0'),
@@ -271,6 +274,8 @@ def add_review_columns():
     conn.close()
     print("✅ Review columns added successfully")
 
+
+# Empty functions for compatibility with existing code
 def init_products():
     pass
 
@@ -288,3 +293,8 @@ def init_orders():
 
 def init_reports():
     pass
+
+
+# Run column addition when this file is executed directly
+if __name__ == '__main__':
+    add_review_columns()

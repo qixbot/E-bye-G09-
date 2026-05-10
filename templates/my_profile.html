@@ -89,6 +89,14 @@
                     <span class="pf-detail-icon">📅</span>
                     <span><span class="pf-detail-label">Member since</span>&nbsp;{{ user.created_at|time_since or 'New' }}</span>
                 </div>
+                <div id="sellerRatingContainer" class="pf-rating-container" style="display: none;">
+                    <div class="pf-rating-header">
+                        <span class="rating-label">⭐ Seller Rating</span>
+                        <button class="view-reviews-btn" id="viewReviewsBtn" onclick="openReviewsModal()">📖 View all reviews (<span id="reviewCount">0</span>)</button>
+                </div>
+                <div class="pf-rating-stars" id="userRatingStars"></div>
+                     <div class="pf-rating-score" id="userRatingScore"></div>
+                </div>
             </div>
         </div>
 
@@ -204,6 +212,20 @@
     </div>
 </div>
 
+<!-- Public comment Modal - check all the buyer comment -->
+<div id="reviewsModal" class="modal" style = "display:none;">
+    <div class="modal-content reviews-modal">
+        <div class="modal-header">
+            <h2>⭐ Seller Reviews</h2>
+            <button class="modal-close" onclick="closeReviewsModal()">&times;</button>
+        </div>
+        <div id="reviewsStats" class="reviews-stats">
+            <div class="loading-state">Loading reviews...</div>
+        </div>
+        <div id="reviewsList" class="reviews-list"></div>
+    </div>
+</div>
+
 <div class="pf-toast" id="pfToast"></div>
 
 <script>
@@ -270,10 +292,9 @@ function escapeHtml(str) {
 }
 
 // ============================================================
-// SHOW TOAST MESSAGE (统一使用 showToastMessage，与 edit_profile 一致)
+// SHOW TOAST MESSAGE 
 // ============================================================
 function showToastMessage(message, type) {
-    // 移除已存在的 toast
     var existing = document.querySelector('.toast-container');
     if (existing) existing.remove();
     
@@ -401,7 +422,7 @@ function loadPurchases() {
                                     <div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
                                 </div>
                                 <div class="purchase-status-badge ${item.status || 'pending'}">
-                                    ${item.status === 'completed' ? '✅ Completed' : (item.status === 'pending' ? '⏳ Pending' : (item.status || 'Pending'))}
+                                    ${item.status === 'completed' ? ' Completed' : (item.status === 'pending' ? '⏳ Pending' : (item.status || 'Pending'))}
                                 </div>
                             </div>
                             <div class="purchase-details">
@@ -453,19 +474,19 @@ function viewOffers(productId, productName) {
                 if (offer.status === 'pending') {
                     statusBadge = '<span class="offer-status pending">⏳ Pending</span>';
                     actionButtons = `
-                        <button class="accept-offer-btn" onclick="respondToOffer(${offer.id}, 'accept')">✅ Accept</button>
+                        <button class="accept-offer-btn" onclick="respondToOffer(${offer.id}, 'accept')"> Accept</button>
                         <button class="reject-offer-btn" onclick="respondToOffer(${offer.id}, 'reject')">❌ Reject</button>
                         <button class="counter-offer-btn" onclick="makeCounterOffer(${offer.id})">💰 Counter</button>
                     `;
                 } else if (offer.status === 'accepted') {
-                    statusBadge = '<span class="offer-status accepted">✅ Accepted</span>';
+                    statusBadge = '<span class="offer-status accepted"> Accepted</span>';
                     actionButtons = '<button class="contact-buyer-btn" onclick="contactBuyer(' + offer.buyer_id + ')">💬 Contact Buyer</button>';
                 } else if (offer.status === 'rejected') {
                     statusBadge = '<span class="offer-status rejected">❌ Rejected</span>';
                 } else if (offer.status === 'countered') {
                     statusBadge = '<span class="offer-status countered">🔄 Counter Offer</span>';
                     actionButtons = `
-                        <button class="accept-offer-btn" onclick="respondToOffer(${offer.id}, 'accept')">✅ Accept</button>
+                        <button class="accept-offer-btn" onclick="respondToOffer(${offer.id}, 'accept')"> Accept</button>
                         <button class="reject-offer-btn" onclick="respondToOffer(${offer.id}, 'reject')">❌ Reject</button>
                     `;
                 }
@@ -547,25 +568,25 @@ function contactBuyer(buyerId) {
 }
 
 // ============================================================
-// EDIT PRODUCT MODAL FUNCTIONS - 修复版（与 edit_profile.html 完全一致）
+// EDIT PRODUCT MODAL FUNCTIONS 
 // ============================================================
-var currentMediaFiles = [];    // 现有媒体数组（Base64 字符串或 URL）
-var newMediaFiles = [];        // 新增的 File 对象数组
-var mediaToDelete = [];        // 标记删除的媒体索引数组
+var currentMediaFiles = [];   
+var newMediaFiles = [];        
+var mediaToDelete = [];        
 
-// 加载商品数据用于编辑
+// load product data for editing
 function editListing(productId) {
     fetch('/api/product/' + productId, { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(product) {
             console.log('Product data received:', product);
             
-            // 重置状态
+            // reset state
             currentMediaFiles = [];
             newMediaFiles = [];
             mediaToDelete = [];
             
-            // 填充表单字段
+            // fill form fields
             document.getElementById('edit_product_id').value = product.id;
             document.getElementById('edit_name').value = product.name;
             document.getElementById('edit_price').value = product.price;
@@ -573,10 +594,9 @@ function editListing(productId) {
             document.getElementById('edit_condition').value = product.condition || 'good';
             document.getElementById('edit_category').value = product.category || 'others';
             
-            // ========== 关键修复：优先从 images_blob 读取 Base64 数据 ==========
             if (product.images_blob) {
                 try {
-                    // 如果是字符串，解析 JSON
+                    // if is string, parse JSON
                     if (typeof product.images_blob === 'string') {
                         var parsed = JSON.parse(product.images_blob);
                         if (Array.isArray(parsed)) {
@@ -585,18 +605,18 @@ function editListing(productId) {
                             currentMediaFiles = [parsed];
                         }
                     } 
-                    // 如果已经是数组
+                    // if is array, use directly
                     else if (Array.isArray(product.images_blob)) {
                         currentMediaFiles = product.images_blob;
                     }
-                    // 其他情况
+                    // other situations
                     else {
                         currentMediaFiles = [];
                     }
                     console.log('Loaded from images_blob:', currentMediaFiles.length);
                 } catch(e) {
                     console.error('Parse images_blob error:', e);
-                    // 如果不是 JSON，可能是单个 base64 字符串
+                    // if not json, maybe a single base64 string
                     if (product.images_blob && typeof product.images_blob === 'string' && product.images_blob.startsWith('data:')) {
                         currentMediaFiles = [product.images_blob];
                     } else {
@@ -605,7 +625,7 @@ function editListing(productId) {
                 }
             }
             
-            // 备选方案：使用 images 字段（磁盘文件）
+            // backup solution for disk-stored media to ensure backward compatibility
             if (currentMediaFiles.length === 0 && product.images && typeof product.images === 'string' && product.images.trim()) {
                 var imagePaths = product.images.split(',');
                 for (var i = 0; i < imagePaths.length; i++) {
@@ -616,14 +636,12 @@ function editListing(productId) {
                 }
                 console.log('Loaded from images field (fallback):', currentMediaFiles.length);
             }
-            // ================================================================
-            
-            // 渲染现有媒体
+
             renderExistingMedia();
             document.getElementById('new_media_preview').innerHTML = '';
             updateUploadButtonState();
             
-            // 显示模态框
+            // show modal after data is loaded to prevent flickering
             var modal = document.getElementById('editProductModal');
             if (modal) modal.style.display = 'flex';
         })
@@ -633,12 +651,12 @@ function editListing(productId) {
         });
 }
 
-// 计算总媒体数量（现有 - 删除 + 新增）
+// count total media files considering current, new, and deleted ones
 function getTotalMediaCount() {
     return (currentMediaFiles.length - mediaToDelete.length) + newMediaFiles.length;
 }
 
-// 根据媒体数量限制更新上传按钮状态
+// according to the total media count, enable or disable the upload button and show/hide warning
 function updateUploadButtonState() {
     var uploadBtn = document.getElementById('uploadBtn');
     var warning = document.getElementById('mediaLimitWarning');
@@ -659,7 +677,7 @@ function updateUploadButtonState() {
     }
 }
 
-// 渲染现有媒体缩略图
+// render existing media files in the edit form, with delete marking and video badges
 function renderExistingMedia() {
     var container = document.getElementById('existing_media_container');
     if (!container) {
@@ -676,7 +694,7 @@ function renderExistingMedia() {
     for (var i = 0; i < currentMediaFiles.length; i++) {
         var media = currentMediaFiles[i];
         
-        // 检测是否为视频
+        // check if media is video based on MIME type or file extension
         var isVideo = false;
         if (media) {
             if (media.startsWith('data:video/')) {
@@ -712,7 +730,7 @@ function renderExistingMedia() {
     container.innerHTML = html;
 }
 
-// 标记/取消标记媒体删除
+// mark or unmark media for deletion when delete button is clicked, then re-render the media list and update upload button state
 function toggleMediaDeletion(index) {
     var idx = mediaToDelete.indexOf(index);
     if (idx !== -1) {
@@ -724,7 +742,7 @@ function toggleMediaDeletion(index) {
     updateUploadButtonState();
 }
 
-// 预览新选择的媒体文件
+// preview new media files selected for upload, with validation, duplicate checking, and slot limit enforcement. After processing, clear the file input to allow re-selection of the same files if needed.
 function previewNewMedia(input) {
     var preview = document.getElementById('new_media_preview');
     var files = Array.from(input.files);
@@ -735,27 +753,27 @@ function previewNewMedia(input) {
     for (var i = 0; i < files.length; i++) {
         var file = files[i];
 
-        // 检查剩余槽位（每次迭代重新计算，因为 addedCount 在增长）
+        // check if we have available slots for this file, considering current media count and new media count
         var remainingSlots = MAX_MEDIA_FILES - getTotalMediaCount() - addedCount;
         if (remainingSlots <= 0) {
             skippedSlot++;
             continue;
         }
 
-        // 验证文件格式
+        //validate file type (only images and videos)
         if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
             showToastMessage(file.name + ' is not a supported format', 'error');
             continue;
         }
 
-        // 验证文件大小（最大 50MB）
+        // vslidate file size (max 50MB)
         var maxSize = 50 * 1024 * 1024;
         if (file.size > maxSize) {
             showToastMessage(file.name + ' is too large (max 50MB)', 'error');
             continue;
         }
 
-        // 重复检测：相同名称 + 大小
+        // check against both currentMediaFiles and newMediaFiles
         var isDuplicate = false;
         for (var d = 0; d < newMediaFiles.length; d++) {
             if (newMediaFiles[d].name === file.name && newMediaFiles[d].size === file.size) {
@@ -804,11 +822,11 @@ function previewNewMedia(input) {
     updateUploadButtonState();
 }
 
-// 移除新添加的媒体项
+// remove new media item from preview and list
 function removeNewMediaItem(btn, filename) {
     var container = btn.closest('.media-preview');
     if (container) container.remove();
-    // 按名称移除第一个匹配项
+    // removed by filename, which is not perfect but should work for most cases
     for (var i = 0; i < newMediaFiles.length; i++) {
         if (newMediaFiles[i].name === filename) {
             newMediaFiles.splice(i, 1);
@@ -818,7 +836,7 @@ function removeNewMediaItem(btn, filename) {
     updateUploadButtonState();
 }
 
-// 保存商品修改 - 核心函数（与 edit_profile.html 完全一致）
+//save changes to server, including media handling
 function saveProductChanges(event) {
     event.preventDefault();
     var id = document.getElementById('edit_product_id').value;
@@ -828,7 +846,7 @@ function saveProductChanges(event) {
         return;
     }
     
-    // 收集未被删除的现有媒体（保留的）
+    // save no matter if we have new media or not, to ensure we don't lose them
     var remainingMedia = [];
     for (var i = 0; i < currentMediaFiles.length; i++) {
         if (mediaToDelete.indexOf(i) === -1) {
@@ -850,7 +868,7 @@ function saveProductChanges(event) {
     
     showToastMessage('Updating product...', 'info');
     
-    // 将所有新文件转换为 Base64
+    // change to base64 for all new files before sending to server
     if (newMediaFiles.length > 0) {
         var uploadPromises = [];
         for (var i = 0; i < newMediaFiles.length; i++) {
@@ -864,18 +882,18 @@ function saveProductChanges(event) {
         }
         
         Promise.all(uploadPromises).then(function(newBase64Media) {
-            // 合并保留的媒体和新媒体
+            // commit to server 
             var allMedia = remainingMedia.concat(newBase64Media);
             var imagesBlobJson = JSON.stringify(allMedia);
             
-            // 获取表单数据
+            // gain access to all form fields here to ensure we have the latest values
             var name = document.getElementById('edit_name').value;
             var price = document.getElementById('edit_price').value;
             var description = document.getElementById('edit_description').value;
             var condition = document.getElementById('edit_condition').value;
             var category = document.getElementById('edit_category').value;
             
-            // 发送到后端
+            // send to server
             var fd = new FormData();
             fd.append('name', name);
             fd.append('price', price);
@@ -894,7 +912,7 @@ function saveProductChanges(event) {
                 if (data.success) {
                     showToastMessage('Product updated successfully!', 'success');
                     closeEditModal();
-                    loadListings();  // 刷新列表
+                    loadListings();  //refresh listings
                 } else {
                     throw new Error(data.error || 'Update failed');
                 }
@@ -905,7 +923,7 @@ function saveProductChanges(event) {
             });
         });
     } else {
-        // 没有新文件，直接保存现有媒体
+        // no new media, just save remaining
         var imagesBlobJson = JSON.stringify(remainingMedia);
         
         var fd = new FormData();
@@ -938,7 +956,7 @@ function saveProductChanges(event) {
     }
 }
 
-// 关闭编辑模态框并重置状态
+// close edit modal and reset state
 function closeEditModal() {
     var modal = document.getElementById('editProductModal');
     if (modal) modal.style.display = 'none';
@@ -947,9 +965,9 @@ function closeEditModal() {
     mediaToDelete = [];
 }
 
-// 删除商品
+// delete product with confirmation
 function deleteListing(id, name) {
-    // 创建自定义确认弹窗
+    // custom confirmation modal
     var modalHtml = `
         <div id="deleteConfirmModal" class="custom-modal">
             <div class="modal-card">
@@ -964,23 +982,21 @@ function deleteListing(id, name) {
         </div>
     `;
     
-    // 移除已存在的弹窗
+    // remove existing modal if any to prevent duplicates
     var existingModal = document.getElementById('deleteConfirmModal');
     if (existingModal) existingModal.remove();
     
-    // 添加弹窗
+    // add to body to avoid z-index issues
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     
     var modal = document.getElementById('deleteConfirmModal');
     var cancelBtn = document.getElementById('deleteCancelBtn');
     var confirmBtn = document.getElementById('deleteConfirmBtn');
     
-    // 取消按钮
     cancelBtn.onclick = function() {
         modal.remove();
     };
     
-    // 确认按钮
     confirmBtn.onclick = function() {
         modal.remove();
         showToastMessage('Deleting "' + name + '"...', 'info');
@@ -1003,11 +1019,151 @@ function deleteListing(id, name) {
         });
     };
     
-    // 点击背景关闭
     modal.onclick = function(e) {
         if (e.target === modal) modal.remove();
     };
 }
+
+// ============================================================
+// SELLER RATING BUTTON 
+// ============================================================
+
+function loadSellerRating() {
+    var userId = {{ user.id }};
+
+    fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var container = document.getElementById('sellerRatingContainer');
+        if (!container) return;
+        
+        // Only sellers with reviews will have the button displayed
+        if (data.total_reviews > 0) {
+            container.style.display = 'block';
+            document.getElementById('reviewCount').textContent = data.total_reviews;
+
+            // Show star rating
+            var starsHtml = generateStarsHtml(data.avg_overall);
+            document.getElementById('userRatingStars').innerHTML = starsHtml;
+            document.getElementById('userRatingScore').innerHTML = data.avg_overall + '★ (' + data.total_reviews + ' reviews)';
+        } else {
+            container.style.display = 'none';
+        }
+    })
+    .catch(function(err) {
+        console.log('Load seller rating error:', err);
+    });
+}
+
+function generateStarsHtml(rating) {
+    var fullStars = Math.floor(rating);
+    var halfStar = (rating - fullStars) >= 0.5;
+    var emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    
+    var html = '';
+    for (var i = 0; i < fullStars; i++) {
+        html += '<span class="star full">★</span>';
+    }
+    if (halfStar) {
+        html += '<span class="star half">½</span>';
+    }
+    for (var j = 0; j < emptyStars; j++) {
+        html += '<span class="star empty">☆</span>';
+    }
+    return html;
+}
+
+// ============================================================
+// Open reviews modal - show all buyer reviews with comments
+// ============================================================
+
+function openReviewsModal() {
+    var userId = {{ user.id }};
+
+    fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var starsHtml = generateStarsHtml(data.avg_overall);
+        
+        var statsHtml = `
+            <div class="overall-score">${data.avg_overall}</div>
+            <div class="overall-stars">${starsHtml}</div>
+            <div>Based on ${data.total_reviews} review(s)</div>
+            <div class="stats-detail">
+                <span>😊 Service: ${data.avg_service}★</span>
+                <span>📦 Delivery: ${data.avg_shipping}★</span>
+                <span>✨ Quality: ${data.avg_quality}★</span>
+            </div>
+        `;
+        document.getElementById('reviewsStats').innerHTML = statsHtml;
+
+        // Show reviews with text content
+        if (!data.reviews || data.reviews.length === 0) {
+            document.getElementById('reviewsList').innerHTML = '<div class="empty-state">No reviews yet</div>';
+        } else {
+            var listHtml = '';
+            for (var i = 0; i < data.reviews.length; i++) {
+                var review = data.reviews[i];
+                var avatarHtml = review.reviewer_avatar_base64 ?
+                    '<img src="' + review.reviewer_avatar_base64 + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">' :
+                    '<div class="reviewer-avatar">' + (review.reviewer_name ? review.reviewer_name[0].toUpperCase() : 'U') + '</div>';
+                
+                var reviewStars = generateStarsHtml(review.rating_overall);
+                var commentText = review.comment ? review.comment : 'No comment provided';
+                
+                listHtml += `
+                    <div class="review-card">
+                        <div class="review-header">
+                            ${avatarHtml}
+                            <div class="reviewer-name">👤 ${escapeHtml(review.reviewer_full_name || review.reviewer_name)}</div>
+                            <div class="review-overall">${reviewStars} (${review.rating_overall})</div>
+                        </div>
+                        <div class="review-detail-ratings">
+                            <span>😊 Service: ${review.rating_service}★</span>
+                            <span>📦 Delivery: ${review.rating_shipping}★</span>
+                            <span>✨ Quality: ${review.rating_quality}★</span>
+                        </div>
+                        <div class="review-product">📦 ${escapeHtml(review.product_name)}</div>
+                        <div class="review-comment">"${escapeHtml(commentText)}"</div>
+                        <div class="review-date">${formatReviewDate(review.created_at)}</div>
+                    </div>
+                `;
+            }
+            document.getElementById('reviewsList').innerHTML = listHtml;
+        }
+        document.getElementById('reviewsModal').style.display = 'flex';
+    })
+    .catch(function(err) {
+        showToastMessage('Failed to load reviews: ' + err.message, 'error');
+    });
+}
+
+function closeReviewsModal() {
+    document.getElementById('reviewsModal').style.display = 'none';
+}
+
+function formatReviewDate(dateStr) {
+    if (!dateStr) return 'Recently';
+    var d = new Date(dateStr);
+    return d.toLocaleDateString();
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+// Click outside modal to close
+window.onclick = function(event) {
+    var modal = document.getElementById('reviewsModal');
+    if (event.target === modal) closeReviewsModal();
+};
 
 // ============================================================
 // PAGE INITIALIZATION
@@ -1017,6 +1173,5 @@ document.addEventListener('DOMContentLoaded', function() {
     loadCoverFromServer();
     loadListings();
     loadPurchases();
+    loadSellerRating();  // Load seller rating button
 });
-</script>
-{% endblock %}

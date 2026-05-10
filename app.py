@@ -3877,7 +3877,7 @@ def api_submit_order_review(order_id):
     cur.close()
     db,close()
 
-    return jsonify({'success': True.'overall_rating':rating_overall})
+    return jsonify({'success': True,'overall_rating':rating_overall})
 
 @app.route('/api/user/<int:user_id>/reviews', methods=['GET'])
 def api_get_user_reviews(user_id):
@@ -3907,7 +3907,7 @@ def api_get_user_reviews(user_id):
     db.close()
 
     import base64
-    result[]
+    rresult = []
     for r in reviews:
         r_dict = dict(r)
         # Convert reviewer avatar to base64
