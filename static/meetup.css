@@ -118,9 +118,72 @@
     background: rgba(0,0,0,0.7);
 }
 
+/* Meetup Modal – make image square and fully visible */
+#locationModal .modal-content {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#locationModal .buy-modal-two-columns {
+    display: flex;
+    gap: 30px;
+    flex: 1;
+    min-height: 0;      /* critical for flex children to respect height */
+    overflow: hidden;
+}
+
+#locationModal .buy-modal-divider {
+    display: none;
+}
+
+#locationModal .buy-modal-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+#locationModal .product-image-preview {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-height: 100%;
+    background: #f0f0f0;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#locationModal .product-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;   /* shows the entire image without cropping */
+    display: block;
+}
+
+#locationModal .buy-modal-right {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+    max-height: 100%;
+}
+
 @media (max-width: 768px) {
     .location-card {
         flex: 0 0 calc(50% - 20px);
         min-width: 140px;
+    }
+    #locationModal .buy-modal-two-columns {
+        flex-direction: column;
+    }
+    #locationModal .buy-modal-left {
+        flex: none;
+        width: 100%;
+        max-height: 50vh;
     }
 }
