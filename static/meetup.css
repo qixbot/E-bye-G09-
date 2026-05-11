@@ -53,7 +53,7 @@
     flex-direction: column;
     overflow: hidden;
     transition: transform 0.2s, box-shadow 0.2s;
-    cursor: default;
+    cursor: pointer;
 }
 
 .location-card:hover {
@@ -77,6 +77,45 @@
     font-size: 1rem;
     color: #333;
     background: white;
+}
+
+.map-icon-btn {
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.map-icon-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.media-nav-prev, .media-nav-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+.media-nav-prev { left: 10px; }
+.media-nav-next { right: 10px; }
+.media-nav-prev:hover, .media-nav-next:hover {
+    background: rgba(0,0,0,0.7);
 }
 
 @media (max-width: 768px) {

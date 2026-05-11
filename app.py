@@ -3975,7 +3975,7 @@ def api_get_user_reviews(user_id):
 # ============================================================
 @app.route('/meetup-locations')
 def meetup_locations():
-    return render_template('meetup_locations.html')
+    return render_template('meetup.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
