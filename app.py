@@ -3970,5 +3970,12 @@ def api_get_user_reviews(user_id):
         'total_reviews': stats['total'] or 0
     })
 
+# ============================================================
+# Xingru's Route - Meetup Location Page
+# ============================================================
+@app.route('/meetup-locations')
+def meetup_locations():
+    return render_template('meetup_locations.html')
+
 if __name__ == '__main__':
     app.run(debug=True)
