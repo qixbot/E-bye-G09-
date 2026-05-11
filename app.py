@@ -436,7 +436,7 @@ def home():
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.status = 'approved' AND u.is_blocked = 0
+        WHERE p.status IN ('approved') AND u.is_blocked = 0
         ORDER BY p.created_at DESC
     ''')
     products_data = cur.fetchall()
@@ -526,7 +526,7 @@ def search():
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.status IN ('approved', 'sold') AND u.is_blocked = 0
+        WHERE p.status IN ('approved', 'sold', 'reserved') AND u.is_blocked = 0
     """
     params = []
 
@@ -1599,7 +1599,9 @@ def api_buy_now():
     data = request.get_json()
     product_id = data.get('product_id')
     meetup_locations = data.get('meetup_locations', [])
-    
+    meeting_dates = data.get('meeting_dates', [])
+    meeting_dates_str = ','.join(meeting_dates) if meeting_dates else ''
+
     if not product_id or not meetup_locations:
         return jsonify({'success': False, 'error': 'Missing required data'}), 400
     
@@ -1624,13 +1626,13 @@ def api_buy_now():
     
     cur.execute('''
         INSERT INTO orders (order_number, product_id, buyer_id, seller_id, offer_price,
-                           meeting_point, status, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW()) RETURNING id
+                        meeting_point, meeting_time, status, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW())
     ''', (order_number, product_id, session['user_id'], product['seller_id'],
-          product['price'], ','.join(meetup_locations)))
+        product['price'], ','.join(meetup_locations), meeting_dates_str))
     
     order_id = cur.fetchone()['id']
-    cur.execute("UPDATE products SET status = 'sold' WHERE id = %s", (product_id,))
+    cur.execute("UPDATE products SET status = 'reserved' WHERE id = %s", (product_id,))
     
     # Notify seller of new order
     cur.execute('''
@@ -3586,7 +3588,7 @@ def product_detail(product_id):
             u.is_blocked as seller_blocked
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.id = %s AND p.status IN ('approved', 'sold')
+        WHERE p.id = %s AND p.status IN ('approved', 'sold', 'reserved')
     ''', (product_id,))
     product = cur.fetchone()
     cur.close()
@@ -3616,6 +3618,26 @@ def product_detail(product_id):
         images = product['images'].split(',') if product['images'] else []
 
     return render_template('product.html', product=product, images=images)
+
+@app.route('/api/report-product/<int:product_id>', methods=['POST'])
+def api_report_product(product_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    data = request.get_json()
+    reason = data.get('reason', '').strip()
+    details = data.get('details', '').strip()
+    if not reason:
+        return jsonify({'success': False, 'error': 'Reason required'}), 400
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        INSERT INTO reports (reporter_id, product_id, reason, details)
+        VALUES (%s, %s, %s, %s)
+    ''', (session['user_id'], product_id, reason, details))
+    db.commit()
+    cur.close()
+    db.close()
+    return jsonify({'success': True, 'message': 'Report submitted'})
 
 # ============================================================
 # Xingru's Route - Temporary route for testing product page only

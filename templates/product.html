@@ -115,8 +115,15 @@
                         <small style="color:#777;">Thank you for your interest!</small>
                     </div>
                 {% elif product.seller_id == session.user_id %}
+                    <!-- seller's own product – show edit link -->
                     <div class="own-product-notice" style="background:#f0faf4;border:1px solid #00381f;border-radius:10px;padding:12px 16px;color:#00381f;font-weight:600;text-align:center;">
                         🏷️ This is your listing. Manage it in <a href="{{ url_for('my_profile') }}?tab=listings" style="color:#00381f;text-decoration:underline;">My Listings</a>.
+                    </div>
+                {% elif product.status == 'reserved' %}
+                    <div class="sold-notice" style="background:#fef9e6;border:1px solid #f39c12;border-radius:10px;padding:16px;text-align:center;">
+                        <span style="font-size:1.5rem;">🟡</span>
+                        <p style="margin:8px 0 0 0;font-weight:600;color:#e67e22;">This item is RESERVED</p>
+                        <small style="color:#777;">Awaiting seller confirmation. You cannot purchase it now.</small>
                     </div>
                 {% else %}
                     <div class="double-buttons">
@@ -166,6 +173,26 @@
         <div class="modal-buttons" style="margin-top: 25px;">
             <button class="modal-cancel" onclick="closeReportModal()">Cancel</button>
             <button class="modal-send" id="sendReportBtn">Send Report</button>
+        </div>
+    </div>
+</div>
+
+<!-- Date & Time Selection Modal (Step 1) -->
+<div id="dateModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close" onclick="closeDateModal()">&times;</span>
+        <h2>📅 Preferred Dates & Times</h2>
+        <p class="modal-caption">Select up to 3 dates and times when you can meet. Seller will confirm one.</p>
+        <div id="dateTimeRows">
+            <div class="date-row">
+                <input type="datetime-local" class="datetime-picker" step="60">
+                <button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button>
+            </div>
+        </div>
+        <button type="button" id="addDateBtn" class="add-more-btn" style="margin:10px 0;">+ Add another date</button>
+        <div class="modal-buttons">
+            <button class="modal-cancel" onclick="closeDateModal()">Cancel</button>
+            <button class="modal-send" id="confirmDatesBtn">Confirm Dates →</button>
         </div>
     </div>
 </div>
@@ -410,14 +437,23 @@
                 return;
             }
         }
-        const reportData = {
-            product_id: {{ product.id }},
-            reason: selectedReason,
-            details: extraDetails
-        };
-        console.log('Report sent:', reportData);
-        showGlobalToast('Thank you. Your report has been sent to the admin.', 'success');
-        closeReportModal();
+        const reportData = { reason: selectedReason, details: extraDetails };
+        fetch('/api/report-product/{{ product.id }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reportData),
+            credentials: 'same-origin'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showGlobalToast('Report sent. Thank you.', 'success');
+                closeReportModal();
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(err => showGlobalToast('Failed to send report: ' + err.message, 'error'));
     });
 
     // Close modals when clicking outside their content — unified handler
@@ -591,6 +627,58 @@
         if (modal) modal.style.display = 'none';
     }
 
+    // ========== DATE MODAL FUNCTIONS (NEW) ==========
+    let selectedDates = [];
+
+    function openDateModal() {
+        document.getElementById('dateModal').style.display = 'flex';
+        resetDateModal();
+    }
+    function closeDateModal() { document.getElementById('dateModal').style.display = 'none'; }
+    function resetDateModal() {
+        const container = document.getElementById('dateTimeRows');
+        container.innerHTML = '<div class="date-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
+        selectedDates = [];
+        updateRemoveButtons();
+    }
+    function addDateTimeRow() {
+        const rows = document.querySelectorAll('#dateTimeRows .date-row');
+        if (rows.length >= 3) { showGlobalToast('You can only select up to 3 dates.', 'error'); return; }
+        const container = document.getElementById('dateTimeRows');
+        const newRow = document.createElement('div');
+        newRow.className = 'date-row';
+        newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="removeDateTimeRow(this)">✕</button>';
+        container.appendChild(newRow);
+        updateRemoveButtons();
+    }
+    function removeDateTimeRow(btn) {
+        btn.closest('.date-row').remove();
+        updateRemoveButtons();
+    }
+    function updateRemoveButtons() {
+        const rows = document.querySelectorAll('#dateTimeRows .date-row');
+        rows.forEach(row => {
+            const removeBtn = row.querySelector('.remove-date-btn');
+            removeBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+        });
+    }
+    function validateAndProceed() {
+        const rows = document.querySelectorAll('#dateTimeRows .date-row');
+        if (rows.length === 0) { showGlobalToast('Please select at least one date and time.', 'error'); return; }
+        const selected = [];
+        const now = new Date();
+        for (let i = 0; i < rows.length; i++) {
+            const input = rows[i].querySelector('.datetime-picker');
+            const val = input.value;
+            if (!val) { showGlobalToast('Please fill all date/time fields.', 'error'); return; }
+            if (new Date(val) <= now) { showGlobalToast('Dates must be in the future.', 'error'); return; }
+            selected.push(val);
+        }
+        selectedDates = selected;
+        closeDateModal();
+        openBuyModal();  // opens the existing location modal
+    }
+
     // ============================================================
     // BUY NOW CONFIRMATION - Send request to backend
     // ============================================================
@@ -601,7 +689,6 @@
                 showGlobalToast('Please select at least one meetup location.', 'error');
                 return;
             }
-            
             const confirmBtn = document.getElementById('confirmBuyBtn');
             const originalText = confirmBtn.textContent;
             confirmBtn.disabled = true;
@@ -613,14 +700,15 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     product_id: {{ product.id }}, 
-                    meetup_locations: selectedLocations 
+                    meetup_locations: selectedLocations,
+                    meeting_dates: selectedDates   // <-- ADD THIS LINE
                 }),
                 credentials: 'same-origin'
             })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data.success) {
-                    showGlobalToast('✅ Purchase successful! Seller will be notified.', 'success');
+                    showGlobalToast('✅ Purchase reserved! Seller will confirm.', 'success'); // changed text
                     closeBuyModal();
                     // Redirect to orders page after 2 seconds
                     setTimeout(function() {
@@ -646,7 +734,7 @@
         buyNowBtn.removeAttribute('onclick');
         buyNowBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            openBuyModal();
+            openDateModal();   // ← changed from openBuyModal()
         });
     }
 </script>
