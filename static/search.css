@@ -114,6 +114,13 @@
     color: #333;
 }
 
+.status-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
 /* Category pills */
 .category-pills {
     display: flex;

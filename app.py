@@ -515,22 +515,33 @@ def search():
     else:
         conditions = []
     
+    # Status (multi-select, comma-separated)
+    status_raw = request.args.get('status', '')
+    if status_raw:
+        statuses = [s.strip() for s in status_raw.split(',') if s.strip()]
+    else:
+        # Default: show all three statuses
+        statuses = ['approved', 'sold', 'reserved']
+    
     date_range = request.args.get('date_range')
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
     min_price = request.args.get('min_price', type=float)
     max_price = request.args.get('max_price', type=float)
 
-    # Base query for products - includes seller details for searching
+    # Build the query – note: statuses placeholders come first
     query = """
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.status IN ('approved', 'sold', 'reserved') AND u.is_blocked = 0
-    """
+        WHERE p.status IN ({})
+          AND u.is_blocked = 0
+    """.format(','.join(['%s']*len(statuses)))
+    
     params = []
+    params.extend(statuses)          # add status values first
 
-    # Keyword search - product name, description, AND seller name
+    # Keyword search
     if keyword:
         query += """ AND (p.name LIKE %s 
                          OR p.description LIKE %s
@@ -541,17 +552,17 @@ def search():
 
     # Category filter
     if categories:
-        placeholders = ','.join('%s' for _ in categories)
+        placeholders = ','.join(['%s'] * len(categories))
         query += f" AND p.category IN ({placeholders})"
         params.extend(categories)
 
-    # Condition filter (multi)
+    # Condition filter
     if conditions:
-        placeholders = ','.join('%s' for _ in conditions)
+        placeholders = ','.join(['%s'] * len(conditions))
         query += f" AND p.condition IN ({placeholders})"
         params.extend(conditions)
 
-    # Date range – prioritise date_range if provided, else use custom dates
+    # Date range – quick pills
     if date_range and date_range.isdigit():
         days = int(date_range)
         query += " AND p.created_at >= NOW() - (%s * INTERVAL '1 day')"
@@ -605,7 +616,7 @@ def search():
     cur.close()
     db.close()
 
-    # Process each product (same as home route, with base64 support)
+    # Process products (same as before)
     import json
     products = []
     for row in products_data:
@@ -613,17 +624,14 @@ def search():
         images_str = product.get('images', '')
         images_blob_str = product.get('images_blob', '[]')
         
-        # Parse base64 list from images_blob
         base64_list = []
         if images_blob_str and images_blob_str != '[]':
             try:
                 base64_list = json.loads(images_blob_str)
-                # Keep only valid data URLs (they start with data:)
                 base64_list = [img for img in base64_list if img.startswith('data:')]
             except:
                 base64_list = []
         
-        # For file-based images (fallback)
         if images_str:
             img_list = images_str.split(',')
             image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
@@ -639,14 +647,12 @@ def search():
             product['image_1'] = None
             product['image_2'] = None
         
-        # Store base64 list for carousel
         product['images_base64_list'] = base64_list
-        # Override actual_total if base64 list is the real source
         if base64_list:
             product['actual_total'] = len(base64_list)
         products.append(product)
 
-    # ========== USER SEARCH - ONLY SHOW WHEN KEYWORD IS PROVIDED ==========
+    # User search (unchanged)
     user_results = []
     if keyword:
         db_u = get_db()
@@ -662,7 +668,6 @@ def search():
         user_results = cur_u.fetchall()
         cur_u.close()
         db_u.close()
-    # else: leave user_results as empty list - no keyword, no user results
 
     return render_template('search.html', products=products, user_results=user_results)
 
