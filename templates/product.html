@@ -177,22 +177,44 @@
     </div>
 </div>
 
-<!-- Date & Time Selection Modal (Step 1) -->
+<!-- Date & Time Selection Modal (Step 1) – Two‑column layout -->
 <div id="dateModal" class="modal">
-    <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-content buy-modal-content" style="max-width: 1100px; width: 90%;">
         <span class="close" onclick="closeDateModal()">&times;</span>
-        <h2>📅 Preferred Dates & Times</h2>
-        <p class="modal-caption">Select up to 3 dates and times when you can meet. Seller will confirm one.</p>
-        <div id="dateTimeRows">
-            <div class="date-row">
-                <input type="datetime-local" class="datetime-picker" step="60">
-                <button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button>
+
+        <div class="buy-modal-two-columns">
+            <!-- LEFT COLUMN – product details (static, same as location modal) -->
+            <div class="buy-modal-left">
+                <div class="product-image-preview" id="dateModalProductImage">
+                    <!-- Image will be copied from main product view (same as location modal) -->
+                </div>
+                <h3 class="modal-product-name">{{ product.name }}</h3>
+                <p class="modal-product-price">RM {{ "%.2f"|format(product.price) }}</p>
+                <p><span class="condition-badge" style="background-color:#00381f; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; display:inline-block;">{{ product.condition | replace('_', ' ') | title }}</span></p>
+            </div>
+
+            <!-- VERTICAL DIVIDER -->
+            <div class="buy-modal-divider"></div>
+
+            <!-- RIGHT COLUMN – date/time selection (styled) -->
+            <div class="buy-modal-right">
+                <div class="location-header">
+                    <p class="location-instruction">Select up to 3 preferred dates and times (all must be in the future).</p>
+                    <div id="selectedDatesInfo" class="selected-locations-info"></div>
+                </div>
+                <div id="dateTimeInputs" style="display: flex; flex-direction: column; gap: 15px; max-height: 360px; overflow-y: auto; padding-right: 8px;">
+                    <div class="date-row">
+                        <input type="datetime-local" class="datetime-picker" step="60">
+                        <button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button>
+                    </div>
+                </div>
+                <button type="button" id="addDateBtn" class="add-more-btn" style="margin-top: 16px; background: #00381f; color: white; border: none; padding: 10px 16px; border-radius: 30px; cursor: pointer; width: auto; align-self: flex-start;">+ Add another date</button>
             </div>
         </div>
-        <button type="button" id="addDateBtn" class="add-more-btn" style="margin:10px 0;">+ Add another date</button>
-        <div class="modal-buttons">
+
+        <div class="modal-buttons" style="margin-top: 20px; justify-content: flex-end;">
             <button class="modal-cancel" onclick="closeDateModal()">Cancel</button>
-            <button class="modal-send" id="confirmDatesBtn">Confirm Dates →</button>
+            <button class="modal-send" id="confirmDatesBtn">Confirm Dates</button>
         </div>
     </div>
 </div>
@@ -200,7 +222,7 @@
 <!-- Buy Now Modal - Meetup location selection -->
 <div id="buyModal" class="modal">
     <div class="modal-content buy-modal-content">
-        <span class="close" onclick="closeBuyModal()">&times;</span>
+        <span class="close" onclick="finalCancel()">&times;</span>
 
         <div class="buy-modal-two-columns">
             <!-- LEFT COLUMN – product details (static) -->
@@ -229,7 +251,7 @@
         </div>
 
         <div class="modal-buttons" style="margin-top: 20px; justify-content: flex-end;">
-            <button class="modal-cancel" onclick="closeBuyModal()">Cancel</button>
+            <button class="modal-cancel" onclick="goBackToDateModal()">Back</button>
             <button class="modal-send" id="confirmBuyBtn">Confirm Purchase</button>
         </div>
     </div>
@@ -572,111 +594,225 @@
     }
 
     // Open buy modal – copy main product image and reset selection
-    function openBuyModal() {
+    function openBuyModal(preserve = false) {
         const modal = document.getElementById('buyModal');
         if (!modal) return;
 
+        // Copy product preview image (always)
         const modalImageContainer = document.getElementById('modalProductImage');
-        if (!modalImageContainer) return;
-
-        // Get the first media (index 0) from the global mediaItems array
-        const firstMedia = mediaItems[0];
-        if (!firstMedia) {
-            modalImageContainer.innerHTML = '<div class="no-image-placeholder">📦 No image available</div>';
-        } else {
-            if (firstMedia.isVideo) {
-                // Create video element
-                const video = document.createElement('video');
-                video.controls = true;
-                video.autoplay = true;
-                video.muted = true;
-                video.loop = true;
-                const source = document.createElement('source');
-                source.src = firstMedia.src;
-                source.type = firstMedia.src.startsWith('data:') 
-                    ? firstMedia.src.split(';')[0].split(':')[1]
-                    : 'video/mp4';
-                video.appendChild(source);
-                modalImageContainer.innerHTML = '';
-                modalImageContainer.appendChild(video);
+        if (modalImageContainer) {
+            const firstMedia = mediaItems[0];
+            if (!firstMedia) {
+                modalImageContainer.innerHTML = '<div class="no-image-placeholder">📦 No image available</div>';
             } else {
-                // Create img element
-                const img = document.createElement('img');
-                img.src = firstMedia.src;
-                img.alt = 'Product preview';
-                modalImageContainer.innerHTML = '';
-                modalImageContainer.appendChild(img);
+                if (firstMedia.isVideo) {
+                    const video = document.createElement('video');
+                    video.controls = true;
+                    video.autoplay = true;
+                    video.muted = true;
+                    video.loop = true;
+                    const source = document.createElement('source');
+                    source.src = firstMedia.src;
+                    source.type = firstMedia.src.startsWith('data:') 
+                        ? firstMedia.src.split(';')[0].split(':')[1]
+                        : 'video/mp4';
+                    video.appendChild(source);
+                    modalImageContainer.innerHTML = '';
+                    modalImageContainer.appendChild(video);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = firstMedia.src;
+                    img.alt = 'Product preview';
+                    modalImageContainer.innerHTML = '';
+                    modalImageContainer.appendChild(img);
+                }
             }
         }
 
-        // Reset location selection
+        // Reset or preserve location selection
+        if (!preserve) {
+            selectedLocations = [];
+        }
+        // Regenerate location buttons (they are always generated from scratch)
+        generateLocationButtons();
+        updateLocationUI(); // this will highlight previously selected locations if preserve=true (because selectedLocations still has the array)
+
+        modal.style.display = 'flex';
+    }
+
+    function closeBuyModal() {
+        const modal = document.getElementById('buyModal');
+        if (modal) modal.style.display = 'none';
+        // Clear selections only when user closes the modal (e.g., Cancel/X)
+        // But we don't clear if we are going back – that's handled by goBackToDateModal
+        // So we only clear here when used as final cancel.
+        // We'll separate the close action: 
+        // - For Cancel button, we call finalCancel().
+        // - For X button, also finalCancel().
+        // For Back button, we call goBackToDateModal() which does NOT clear.
+    }
+
+    // New function for final cancel (clears everything)
+    function finalCancel() {
+        closeBuyModal();
+        resetDateModal();
+        selectedDates = [];
         selectedLocations = [];
-        if (document.querySelectorAll('.location-btn').length > 0) {
-            updateLocationUI();
+        // Also close date modal if open (but it's already closed)
+        const dateModal = document.getElementById('dateModal');
+        if (dateModal) dateModal.style.display = 'none';
+    }
+
+    // ========== DATE MODAL FUNCTIONS ==========
+    let selectedDates = [];
+
+    function openDateModal(preserve = false) {
+        const modal = document.getElementById('dateModal');
+        if (!modal) return;
+
+        // Copy product preview image
+        const modalImageContainer = document.getElementById('dateModalProductImage');
+        if (modalImageContainer) {
+            const firstMedia = mediaItems[0];
+            if (!firstMedia) {
+                modalImageContainer.innerHTML = '<div class="no-image-placeholder">📦 No image available</div>';
+            } else {
+                if (firstMedia.isVideo) {
+                    const video = document.createElement('video');
+                    video.controls = true;
+                    video.autoplay = true;
+                    video.muted = true;
+                    video.loop = true;
+                    const source = document.createElement('source');
+                    source.src = firstMedia.src;
+                    source.type = firstMedia.src.startsWith('data:') 
+                        ? firstMedia.src.split(';')[0].split(':')[1]
+                        : 'video/mp4';
+                    video.appendChild(source);
+                    modalImageContainer.innerHTML = '';
+                    modalImageContainer.appendChild(video);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = firstMedia.src;
+                    img.alt = 'Product preview';
+                    modalImageContainer.innerHTML = '';
+                    modalImageContainer.appendChild(img);
+                }
+            }
+        }
+
+        if (!preserve) {
+            resetDateModal();
         } else {
-            generateLocationButtons();
-            updateLocationUI();
+            repopulateDateModal();
         }
 
         modal.style.display = 'flex';
     }
 
-    // Close buy modal
-    function closeBuyModal() {
-        const modal = document.getElementById('buyModal');
-        if (modal) modal.style.display = 'none';
+    function closeDateModal(preserve = false) {
+        document.getElementById('dateModal').style.display = 'none';
+        if (!preserve) {
+            resetDateModal();
+            selectedDates = [];
+            selectedLocations = [];
+            updateLocationUI();
+        }
     }
 
-    // ========== DATE MODAL FUNCTIONS (NEW) ==========
-    let selectedDates = [];
-
-    function openDateModal() {
-        document.getElementById('dateModal').style.display = 'flex';
-        resetDateModal();
-    }
-    function closeDateModal() { document.getElementById('dateModal').style.display = 'none'; }
     function resetDateModal() {
-        const container = document.getElementById('dateTimeRows');
+        const container = document.getElementById('dateTimeInputs');
         container.innerHTML = '<div class="date-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
         selectedDates = [];
         updateRemoveButtons();
     }
+
+    function repopulateDateModal() {
+        const container = document.getElementById('dateTimeInputs');
+        container.innerHTML = '';
+        if (selectedDates.length === 0) {
+            container.innerHTML = '<div class="date-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
+        } else {
+            for (let i = 0; i < selectedDates.length; i++) {
+                const dt = selectedDates[i];
+                const row = document.createElement('div');
+                row.className = 'date-row';
+                row.innerHTML = `
+                    <input type="datetime-local" class="datetime-picker" step="60" value="${dt}">
+                    <button type="button" class="remove-date-btn" onclick="removeDateTimeRow(this)">✕</button>
+                `;
+                container.appendChild(row);
+            }
+        }
+        updateRemoveButtons();
+    }
+
     function addDateTimeRow() {
-        const rows = document.querySelectorAll('#dateTimeRows .date-row');
-        if (rows.length >= 3) { showGlobalToast('You can only select up to 3 dates.', 'error'); return; }
-        const container = document.getElementById('dateTimeRows');
+        const rows = document.querySelectorAll('#dateTimeInputs .date-row');
+        if (rows.length >= 3) {
+            showGlobalToast('You can only select up to 3 dates.', 'error');
+            return;
+        }
+        const container = document.getElementById('dateTimeInputs');
         const newRow = document.createElement('div');
         newRow.className = 'date-row';
         newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="removeDateTimeRow(this)">✕</button>';
         container.appendChild(newRow);
         updateRemoveButtons();
     }
+
     function removeDateTimeRow(btn) {
-        btn.closest('.date-row').remove();
+        const row = btn.closest('.date-row');
+        row.remove();
         updateRemoveButtons();
     }
+
     function updateRemoveButtons() {
-        const rows = document.querySelectorAll('#dateTimeRows .date-row');
+        const rows = document.querySelectorAll('#dateTimeInputs .date-row');
         rows.forEach(row => {
             const removeBtn = row.querySelector('.remove-date-btn');
             removeBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
         });
     }
+
     function validateAndProceed() {
-        const rows = document.querySelectorAll('#dateTimeRows .date-row');
-        if (rows.length === 0) { showGlobalToast('Please select at least one date and time.', 'error'); return; }
+        const rows = document.querySelectorAll('#dateTimeInputs .date-row');
+        if (rows.length === 0) {
+            showGlobalToast('Please select at least one date and time.', 'error');
+            return;
+        }
         const selected = [];
         const now = new Date();
+        now.setSeconds(0, 0);
         for (let i = 0; i < rows.length; i++) {
             const input = rows[i].querySelector('.datetime-picker');
             const val = input.value;
-            if (!val) { showGlobalToast('Please fill all date/time fields.', 'error'); return; }
-            if (new Date(val) <= now) { showGlobalToast('Dates must be in the future.', 'error'); return; }
+            if (!val) {
+                showGlobalToast(`Please fill all date/time fields (row ${i+1}).`, 'error');
+                return;
+            }
+            const dt = new Date(val);
+            if (dt <= now) {
+                showGlobalToast(`Date/time must be in the future (row ${i+1}).`, 'error');
+                return;
+            }
             selected.push(val);
         }
         selectedDates = selected;
-        closeDateModal();
-        openBuyModal();  // opens the existing location modal
+        closeDateModal(true);   // preserve selections when closing
+        openBuyModal(true);     // preserve locations when opening location modal
+    }
+
+    // Add event listener for Confirm Dates button
+    document.getElementById('confirmDatesBtn')?.addEventListener('click', validateAndProceed);
+    document.getElementById('addDateBtn')?.addEventListener('click', addDateTimeRow);
+
+    function updateRemoveButtons() {
+        const rows = document.querySelectorAll('#dateTimeInputs .date-row');
+        rows.forEach(row => {
+            const removeBtn = row.querySelector('.remove-date-btn');
+            removeBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+        });
     }
 
     // ============================================================
@@ -710,6 +846,8 @@
                 if (data.success) {
                     showGlobalToast('✅ Purchase reserved! Seller will confirm.', 'success'); // changed text
                     closeBuyModal();
+                    selectedDates = [];
+                    selectedLocations = [];
                     // Redirect to orders page after 2 seconds
                     setTimeout(function() {
                         window.location.href = '/my-profile?tab=orders';
@@ -736,6 +874,13 @@
             e.preventDefault();
             openDateModal();   // ← changed from openBuyModal()
         });
+    }
+    function goBackToDateModal() {
+        // Close location modal without clearing selections
+        const modal = document.getElementById('buyModal');
+        if (modal) modal.style.display = 'none';
+        // Reopen date modal with preserve=true
+        openDateModal(true);
     }
 </script>
 {% endblock %}

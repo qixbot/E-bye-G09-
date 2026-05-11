@@ -1624,17 +1624,20 @@ def api_buy_now():
     import random
     order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
     
+    # FIXED: Added RETURNING id at the end
     cur.execute('''
         INSERT INTO orders (order_number, product_id, buyer_id, seller_id, offer_price,
-                        meeting_point, meeting_time, status, created_at, updated_at)
+                            meeting_point, meeting_time, status, created_at, updated_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW())
+        RETURNING id
     ''', (order_number, product_id, session['user_id'], product['seller_id'],
-        product['price'], ','.join(meetup_locations), meeting_dates_str))
+          product['price'], ','.join(meetup_locations), meeting_dates_str))
     
-    order_id = cur.fetchone()['id']
+    order_id = cur.fetchone()['id']   # now this works because of RETURNING
+    
     cur.execute("UPDATE products SET status = 'reserved' WHERE id = %s", (product_id,))
     
-    # Notify seller of new order
+    # Notify seller
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
@@ -1642,7 +1645,7 @@ def api_buy_now():
           f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Go to My Orders to confirm.",
           'order_created', order_id))
     
-    # Notify buyer that order was created
+    # Notify buyer
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
