@@ -327,16 +327,34 @@ function showToastMessage(message, type) {
 function loadListings() {
     var container = document.getElementById('listings-grid');
     var countSpan = document.getElementById('cnt-listings');
-    if (!container) return;
+    if (!container) {
+        console.error('listings-grid element not found');
+        return;
+    }
     
     var uploadUrl = "{{ url_for('upload_product') }}";
     
     container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
 
     fetch('/api/user/listings', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { 
+            if (!r.ok) {
+                throw new Error('HTTP ' + r.status);
+            }
+            return r.json(); 
+        })
         .then(function(data) {
-            if (!data || data.length === 0) {
+            console.log('Listings data received:', data);
+            console.log('Data type:', typeof data, 'Is array:', Array.isArray(data));
+            
+            // 确保 data 是数组
+            if (!data || !Array.isArray(data)) {
+                console.error('Invalid data format:', data);
+                container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings: Invalid data format</div>';
+                return;
+            }
+            
+            if (data.length === 0) {
                 container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><p>You haven\'t listed any items yet</p><small><a href="' + uploadUrl + '">Click here to post your first item!</a></small></div>';
                 if (countSpan) countSpan.textContent = '0';
                 return;
@@ -370,7 +388,6 @@ function loadListings() {
                         <button class="delete-product-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name).replace(/\'/g,"\\\'")}')">🗑️</button>
                     `;
                 } else {
-                    //Sold products are displayed with a "Sold" tag, and the edit/delete buttons are not shown.
                     editDeleteBtns = '<span class="sold-label">✅ Sold</span>';
                 }
 
@@ -411,7 +428,7 @@ function loadListings() {
         })
         .catch(function(err) {
             console.error('Load listings error:', err);
-            container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings.<br><small>' + err.message + '</small></div>';
+            container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings.<br><small>' + (err.message || 'Unknown error') + '</small><br><small>Check console for details (F12)</small></div>';
         });
 }
 
@@ -520,20 +537,20 @@ function loadOrders() {
         });
 }
 
-function renderOrderCard(order,role){
+function renderOrderCard(order, role) {
     var status = order.status;
     var statusText = getStatusText(status);
-    var statusClass= getStatusClass(status);
+    var statusClass = getStatusClass(status);
 
     var actionButtons = '';
-    var meetupInfo='';
+    var meetupInfo = '';
 
     if (order.meeting_point) {
         meetupInfo = '<div>📍 Meetup: ' + escapeHtml(order.meeting_point) + '</div>';
     }
 
-    if(role=='seller'){
-        if(status === 'pending'){
+    if (role == 'seller') {
+        if (status === 'pending') {
             actionButtons = '<button class="order-action-btn confirm-btn" onclick="openConfirmOrderModal(' + order.id + ', \'' + escapeHtml(order.order_number) + '\', \'' + escapeHtml(order.product_name) + '\', \'' + escapeHtml(order.meeting_point || '') + '\', \'' + escapeHtml(order.meeting_time || '') + '\')">✅ Confirm Order</button>';
         } else if (status === 'confirmed') {
             actionButtons = '<button class="order-action-btn deliver-btn" onclick="updateOrderStatus(' + order.id + ', \'delivered\')">🚚 Mark as Delivered</button>';
@@ -545,7 +562,6 @@ function renderOrderCard(order,role){
             actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
         }
     } else if (role === 'buyer') {
-        // buyer can only confirm receipt or leave review based on order status
         if (status === 'delivered') {
             actionButtons = '<button class="order-action-btn complete-btn" onclick="confirmOrderCompletion(' + order.id + ')">✅ Confirm Received</button>';
         } else if (status === 'completed') {
@@ -559,8 +575,7 @@ function renderOrderCard(order,role){
         }
     }
     
-    return
-    <div class="order-card">
+    return `<div class="order-card">
             <div class="order-header">
                 <div class="order-number">#${escapeHtml(order.order_number)}</div>
                 <div class="order-status ${statusClass}">${statusText}</div>
@@ -577,8 +592,7 @@ function renderOrderCard(order,role){
             <div class="order-actions">
                 ${actionButtons}
             </div>
-        </div>
-    `;
+        </div>`;
 }
 
 function getStatusText(status) {
@@ -637,7 +651,7 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
     var locations = meetupLocations ? meetupLocations.split(',') : [];
     var times = meetingTimes ? meetingTimes.split(',') : [];
     
-    var modalHtml= <div id="confirmOrderModal" class="custom-modal">
+    var modalHtml = `<div id="confirmOrderModal" class="custom-modal">
             <div class="modal-card" style="max-width: 500px;">
                 <div class="modal-icon">📋</div>
                 <div class="modal-title">Confirm Order #${escapeHtml(orderNumber)}</div>
@@ -672,14 +686,14 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
                     <button class="modal-confirm" onclick="submitOrderConfirmation(${orderId})">Confirm Order</button>
                 </div>
             </div>
-        </div>
-    `;
+        </div>`;
     
     var existingModal = document.getElementById('confirmOrderModal');
     if (existingModal) {
         existingModal.remove();
     }
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
 
 function closeConfirmOrderModal() {
     var modal = document.getElementById('confirmOrderModal');
