@@ -1410,6 +1410,19 @@ document.addEventListener('DOMContentLoaded', function() {
     loadListings();
     loadPurchases();
     loadSellerRating();
+    
+    // support URL hash for tab switching (for old links like #orders)
+    var hash = window.location.hash;
+    if (hash === '#orders') {
+        switchTab('orders');
+    } else if (hash === '#listings') {
+        switchTab('listings');
+    } else if (hash === '#purchases') {
+        switchTab('purchases');
+    } else if (hash === '#received-reviews') {
+        openReviewsModal();
+    }
 });
+
 </script>
 {% endblock %}
