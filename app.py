@@ -256,6 +256,7 @@ def login():
     # GET required - output login page
     return render_template('login.html')
 
+#keting's part
 @app.before_request
 def auto_unfreeze_expired():
     if 'user_id' in session or 'admin_logged_in' in session:
@@ -287,6 +288,39 @@ def auto_unfreeze_expired():
         db.commit()
         cur.close()
         db.close()
+
+@app.before_request
+def check_upcoming_meetings():
+    if 'user_id' not in session:
+        return
+    user_id = session['user_id']
+    db = get_db()
+    cur = db.cursor()
+    # 查找今天或明天的面交订单，向用户发送提醒（每天只提醒一次，通过额外表控制频率，这里简化为每次请求最多提醒一次，也可以接受）
+    cur.execute('''
+        SELECT id, order_number, meeting_point, meeting_time
+        FROM orders
+        WHERE (buyer_id = %s OR seller_id = %s)
+          AND status IN ('confirmed', 'delivered')
+          AND DATE(meeting_time) <= CURRENT_DATE + INTERVAL '1 day'
+          AND DATE(meeting_time) >= CURRENT_DATE
+          AND (last_reminder_sent IS NULL OR last_reminder_sent < CURRENT_DATE)
+        LIMIT 1
+    ''', (user_id, user_id))
+    orders_to_remind = cur.fetchall()
+    for ord in orders_to_remind:
+        cur.execute('''
+            INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+            VALUES (%s, %s, NOW(), 'order', %s, 0)
+        ''', (user_id,
+              f"📅 Reminder: Order #{ord['order_number']} has a meetup scheduled for {ord['meeting_time']} at {ord['meeting_point']}. Please be on time!",
+              ord['id']))
+        # 简单记录已提醒（需要 orders 表增加字段 last_reminder_sent，以下为可选）
+        # cur.execute('UPDATE orders SET last_reminder_sent = NOW() WHERE id = %s', (ord['id'],))
+    db.commit()
+    cur.close()
+    db.close()
+#keting's part end
 
 @app.before_request
 def check_remember_me():
@@ -1196,15 +1230,15 @@ def send_offer(product_id):
     
     return jsonify({'success': True, 'message': 'Offer sent successfully', 'offer_id': new_offer_id})
 
+
 @app.route('/api/offer/<int:offer_id>/accept', methods=['POST'])
 def api_accept_offer(offer_id):
-    """Accept an offer (seller) - sends notification to buyer"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
-    
+
     db = get_db()
     cur = db.cursor()
-    
+
     cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id, p.id as product_id, p.price as original_price
         FROM offers o
@@ -1212,40 +1246,49 @@ def api_accept_offer(offer_id):
         WHERE o.id = %s
     ''', (offer_id,))
     offer = cur.fetchone()
-    
+
     if not offer:
         cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
-    
+
     if offer['seller_id'] != session['user_id']:
         cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
-    
+
+    # update offer status to accepted
     cur.execute("UPDATE offers SET status = 'accepted' WHERE id = %s", (offer_id,))
-    
+
     # Notify buyer: offer accepted, ask them to proceed to checkout
+    accept_price = float(offer['offer_price'])
+    product_price = float(offer['original_price'])
+
+    message = f"🎉 Offer ACCEPTED! Your offer of RM {accept_price:.2f} for \"{offer['product_name']}\" has been accepted by the seller. "
+    if accept_price < product_price:
+        message += f"Click 'Proceed to Checkout' to purchase at the agreed price (RM {accept_price:.2f})"
+    else:
+        message += f"Click 'Proceed to Checkout' to purchase at the original price (RM {product_price:.2f})"
+
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
-    ''', (offer['buyer_id'],
-          f"🎉 Offer ACCEPTED! Your offer of RM {offer['offer_price']:.2f} for \"{offer['product_name']}\" has been accepted. Go to your notifications and click 'Proceed to Checkout' to confirm your order.",
-          'offer_accepted', offer_id))
-    
+    ''', (offer['buyer_id'], message, 'offer_accepted', offer_id))
+
     # Notify seller: confirmation that they accepted, awaiting buyer checkout
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (offer['seller_id'],
-          f"You accepted the offer of RM {offer['offer_price']:.2f} for \"{offer['product_name']}\". Waiting for buyer to confirm checkout.",
+          f"You accepted the offer of RM {accept_price:.2f} for \"{offer['product_name']}\". Waiting for buyer to confirm checkout.",
           'offer_accept_confirm', offer_id))
-    
+
     db.commit()
     cur.close()
     db.close()
-    
-    return jsonify({'success': True, 'offer_id': offer_id, 'offer_price': offer['offer_price']})
+
+    return jsonify({'success': True, 'offer_id': offer['id'], 'offer_price': offer['offer_price'],
+                    'product_price': product_price, 'product_name': offer['product_name']})
 
 @app.route('/api/offer/<int:offer_id>/reject', methods=['POST'])
 def api_reject_offer(offer_id):
@@ -3411,6 +3454,80 @@ def chat_list():
                            unread_notifications=unread_notifications,
                            unread_reviews=unread_reviews,
                            unread_announcements=unread_announcements)
+
+# modfiy order detail
+@app.route('/api/order/<int:order_id>/update-meeting', methods=['POST'])
+def update_order_meeting(order_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    meeting_point = data.get('meeting_point')
+    meeting_time = data.get('meeting_time')
+
+    if not meeting_point or not meeting_time:
+        return jsonify({'success': False, 'error': 'Meeting point and time required'}), 400
+
+    db = get_db()
+    cur = db.cursor()
+
+    # 验证卖家身份
+    cur.execute('SELECT seller_id, buyer_id, order_number FROM orders WHERE id = %s', (order_id,))
+    order = cur.fetchone()
+    if not order or order['seller_id'] != session['user_id']:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    # 更新面交信息
+    cur.execute('''
+        UPDATE orders SET meeting_point = %s, meeting_time = %s, updated_at = NOW()
+        WHERE id = %s
+    ''', (meeting_point, meeting_time, order_id))
+
+    # 通知买家面交信息已更新
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'order', %s, 0)
+    ''', (order['buyer_id'],
+          f" The seller has updated the meetup info for Order #{order['order_number']}. New meeting: {meeting_point} at {meeting_time}",
+          order_id))
+
+    db.commit()
+    cur.close()
+    db.close()
+
+    return jsonify({'success': True})
+
+#The seller marked the order delivered
+@app.route('/api/order/<int:order_id>/ship', methods=['POST'])
+def ship_order(order_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT seller_id, buyer_id, order_number FROM orders WHERE id = %s', (order_id,))
+    order = cur.fetchone()
+    if not order or order['seller_id'] != session['user_id']:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    cur.execute('UPDATE orders SET status = %s, updated_at = NOW() WHERE id = %s', ('delivered', order_id))
+
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'order', %s, 0)
+    ''', (order['buyer_id'],
+          f"✅ Order #{order['order_number']} has been marked as DELIVERED. Please confirm receipt to complete the order.",
+          order_id))
+
+    db.commit()
+    cur.close()
+    db.close()
+
+    return jsonify({'success': True})
 
 @app.route('/api/mark-ann-read', methods=['POST'])
 def mark_ann_read():

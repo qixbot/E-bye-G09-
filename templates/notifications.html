@@ -43,6 +43,41 @@
     .location-btn.selected { background: #205c3033; border-color: #205c30; }
     .location-btn img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
     .offer-detail { background: #f9faf9; border-radius: 12px; padding: 14px; margin: 12px 0; }
+
+    /* 增强通知卡片 */
+    .notif-card {
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .notif-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .unread-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #e74c3c;
+        border-radius: 50%;
+        margin-right: 6px;
+        flex-shrink: 0;
+    }
+    .notif-msg {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .notif-btn.primary:hover {
+        background: #154a23;
+        transform: translateY(-1px);
+    }
+    .notif-btn.secondary:hover {
+        background: #d0d0d0;
+    }
+    .notif-btn.warning:hover {
+        background: #d35400;
+    }
+</style>
 </style>
 
 <div class="notif-page">
@@ -132,6 +167,7 @@ function loadNotifications() {
 }
 
 // ========== RENDER ==========
+// ========== RENDER NOTIFICATIONS ==========
 function renderNotifications() {
     var filtered = allNotifications;
     if (currentFilter !== 'all') {
@@ -146,51 +182,223 @@ function renderNotifications() {
         });
     }
 
+    // 按时间倒序排序（最新的在上面）
+    filtered.sort(function(a, b) {
+        return new Date(b.created_at) - new Date(a.created_at);
+    });
+
     var html = '';
     if (filtered.length === 0) {
         html = '<div class="notif-empty">📭 No notifications</div>';
-    }
-    for (var i = 0; i < filtered.length; i++) {
-        var n = filtered[i];
-        var icon = '🔔';
-        var iconClass = 'system';
-        var actions = '';
+    } else {
+        for (var i = 0; i < filtered.length; i++) {
+            var n = filtered[i];
+            var icon = '🔔';
+            var iconClass = 'system';
+            var actions = '';
+            var extraData = '';
 
-        var t = n.type || '';
-        if (t.includes('offer_accepted')) {
-            icon = '💰'; iconClass = 'offer';
-            actions = '<button class="notif-btn primary" onclick="openPurchaseModal(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
-        } else if (t.includes('offer_rejected')) {
-            icon = '❌'; iconClass = 'offer';
-        } else if (t.includes('new_offer')) {
-            icon = '💰'; iconClass = 'offer';
-            actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=listings\'">View Offers</button>';
-        } else if (t.includes('offer_countered')) {
-            icon = '🔄'; iconClass = 'offer';
-            actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
-        } else if (t.includes('order')) {
-            icon = '📦'; iconClass = 'order';
-            actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">View Order</button>';
-        } else if (t.includes('review')) {
-            icon = '⭐'; iconClass = 'review';
-        } else if (t.includes('announcement')) {
-            icon = '📢'; iconClass = 'announcement';
-        } else if (t.includes('freeze') || t.includes('block')) {
-            icon = '⚠️'; iconClass = 'system';
+            var t = n.type || '';
+            
+            // ========== OFFER ACCEPTED - 显示购买按钮 ==========
+            if (t.includes('offer_accepted')) {
+                icon = '💰'; 
+                iconClass = 'offer';
+                // 检查消息中是否包含购买提示，或者直接显示购买按钮
+                actions = '<button class="notif-btn primary" onclick="openPurchaseModal(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
+                
+            // ========== OFFER REJECTED - 可查看商品 ==========
+            } else if (t.includes('offer_rejected')) {
+                icon = '❌'; 
+                iconClass = 'offer';
+                actions = '<button class="notif-btn secondary" onclick="viewProductByOffer(' + n.related_id + ')">👀 View Product</button>';
+                
+            // ========== NEW OFFER - 卖家查看报价 ==========
+            } else if (t.includes('new_offer')) {
+                icon = '💰'; 
+                iconClass = 'offer';
+                actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=listings\'">💰 View Offers</button>';
+                
+            // ========== COUNTER OFFER - 买家查看还价 ==========
+            } else if (t.includes('offer_countered')) {
+                icon = '🔄'; 
+                iconClass = 'offer';
+                actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">🔄 View & Respond</button>';
+                
+            // ========== ORDER CREATED - 新订单 ==========
+            } else if (t.includes('order_created')) {
+                icon = '📦'; 
+                iconClass = 'order';
+                // 根据用户角色显示不同按钮
+                if (n.message.includes('placed an order') || n.message.includes('BUY NOW')) {
+                    // 卖家视角
+                    actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=orders\'">📋 Confirm Order</button>';
+                } else {
+                    // 买家视角
+                    actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">📋 View Order</button>';
+                }
+                
+            // ========== ORDER STATUS UPDATES ==========
+            } else if (t.includes('order') && (n.message.includes('CONFIRMED') || n.message.includes('updated the meetup'))) {
+                icon = '✅'; 
+                iconClass = 'order';
+                actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">📋 View Order</button>';
+                
+            } else if (t.includes('order') && n.message.includes('DELIVERED')) {
+                icon = '🚚'; 
+                iconClass = 'order';
+                actions = '<button class="notif-btn primary" onclick="confirmDeliveryAndComplete(' + n.related_id + ')">✅ Confirm Receipt</button>';
+                
+            } else if (t.includes('order') && n.message.includes('COMPLETED')) {
+                icon = '🎉'; 
+                iconClass = 'order';
+                actions = '<button class="notif-btn warning" onclick="openReviewFromNotification(' + n.related_id + ')">⭐ Leave a Review</button>';
+                
+            // ========== REVIEW NOTIFICATIONS ==========
+            } else if (t.includes('review')) {
+                icon = '⭐'; 
+                iconClass = 'review';
+                actions = '<button class="notif-btn secondary" onclick="viewMyReviews()">📖 View Review</button>';
+                
+            // ========== ANNOUNCEMENTS ==========
+            } else if (t.includes('announcement')) {
+                icon = '📢'; 
+                iconClass = 'announcement';
+                actions = '<button class="notif-btn secondary" onclick="openAnnouncements()">📖 Read More</button>';
+                
+            // ========== SYSTEM (FREEZE/BLOCK) ==========
+            } else if (t.includes('freeze') || t.includes('block') || t.includes('unfreeze') || t.includes('unblock')) {
+                icon = '⚠️'; 
+                iconClass = 'system';
+                // 系统消息通常不需要操作按钮，但可以添加联系支持的链接
+                actions = '<button class="notif-btn secondary" onclick="contactSupport()">📧 Contact Support</button>';
+                
+            // ========== GENERIC ORDER ==========
+            } else if (t.includes('order')) {
+                icon = '📦'; 
+                iconClass = 'order';
+                actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">📋 View Order</button>';
+            }
+
+            // 添加未读标记的样式
+            var unreadClass = !n.is_read ? 'unread' : '';
+            var unreadBadge = !n.is_read ? '<span class="unread-dot"></span>' : '';
+
+            html += '<div class="notif-card ' + unreadClass + '" data-id="' + n.id + '" data-type="' + t + '">' +
+                '<div class="notif-icon ' + iconClass + '">' + icon + '</div>' +
+                '<div class="notif-body">' +
+                    '<div class="notif-msg">' + unreadBadge + ' ' + escapeHtml(n.message) + '</div>' +
+                    '<div class="notif-time">' + formatRelativeTime(n.created_at) + '</div>' +
+                    '<div class="notif-actions">' + actions + '</div>' +
+                '</div>' +
+                '</div>';
         }
-
-        html += '<div class="notif-card ' + (!n.is_read ? 'unread' : '') + '" data-id="' + n.id + '">' +
-            '<div class="notif-icon ' + iconClass + '">' + icon + '</div>' +
-            '<div class="notif-body">' +
-                '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
-                '<div class="notif-time">' + (n.created_at ? formatDate(n.created_at) : '') + '</div>' +
-                '<div class="notif-actions">' + actions + '</div>' +
-            '</div>' +
-            '</div>';
     }
     document.getElementById('notifList').innerHTML = html;
 }
 
+// ========== 辅助函数：相对时间显示 ==========
+function formatRelativeTime(dateStr) {
+    if (!dateStr) return '';
+    var date = new Date(dateStr);
+    var now = new Date();
+    var diffSeconds = Math.floor((now - date) / 1000);
+    var diffMinutes = Math.floor(diffSeconds / 60);
+    var diffHours = Math.floor(diffMinutes / 60);
+    var diffDays = Math.floor(diffHours / 24);
+    
+    if (diffSeconds < 60) return 'just now';
+    if (diffMinutes < 60) return diffMinutes + ' min ago';
+    if (diffHours < 24) return diffHours + ' hour' + (diffHours > 1 ? 's' : '') + ' ago';
+    if (diffDays < 7) return diffDays + ' day' + (diffDays > 1 ? 's' : '') + ' ago';
+    return date.toLocaleDateString();
+}
+
+// ========== 辅助函数：从通知确认收货并完成订单 ==========
+function confirmDeliveryAndComplete(orderId) {
+    if (!confirm('Have you received the item? Confirming will complete the order and you can leave a review.')) {
+        return;
+    }
+    
+    showToastMessage('Confirming receipt...', 'info');
+    
+    fetch('/api/order/' + orderId + '/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('✅ Order completed! You can now leave a review.', 'success');
+            // 刷新通知和订单列表
+            loadNotifications();
+            if (typeof loadOrders === 'function') loadOrders();
+            // 自动打开评价弹窗
+            setTimeout(function() {
+                openReviewFromNotification(orderId);
+            }, 1000);
+        } else {
+            throw new Error(data.error || 'Failed to complete order');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 从通知打开评价弹窗 ==========
+function openReviewFromNotification(orderId) {
+    // 获取订单详情
+    fetch('/api/order/' + orderId + '/details', {
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            openReviewModal(orderId, data.product_name);
+        } else {
+            window.location.href = '/my-profile?tab=orders';
+        }
+    })
+    .catch(function() {
+        window.location.href = '/my-profile?tab=orders';
+    });
+}
+
+// ========== 联系客服 ==========
+function contactSupport() {
+    window.location.href = 'mailto:support@ebye.edu.my';
+}
+
+// ========== 点击通知卡片标记为已读 ==========
+function markNotificationRead(notificationId, element) {
+    fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification_ids: [notificationId] }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success && element) {
+            element.classList.remove('unread');
+            var dot = element.querySelector('.unread-dot');
+            if (dot) dot.remove();
+        }
+    });
+}
+
+// 添加点击卡片标记已读的事件委托
+document.addEventListener('click', function(e) {
+    var card = e.target.closest('.notif-card');
+    if (card && card.classList.contains('unread')) {
+        var notifId = card.getAttribute('data-id');
+        if (notifId) {
+            markNotificationRead(parseInt(notifId), card);
+        }
+    }
+});
 // ========== FILTER ==========
 function filterNotifications(type) {
     currentFilter = type;
