@@ -1,0 +1,189 @@
+.meetup-page {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+.campus-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.campus-btn {
+    background: white;
+    border: 2px solid #00381f;
+    border-radius: 40px;
+    padding: 12px 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #00381f;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.campus-btn.active {
+    background: #00381f;
+    color: white;
+}
+
+.campus-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 56, 31, 0.2);
+}
+
+.locations-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    justify-content: center;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.location-card {
+    flex: 0 0 calc(25% - 30px);
+    min-width: 180px;
+    aspect-ratio: 1 / 1;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.location-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    border-color: #00381f;
+}
+
+.location-img {
+    width: 100%;
+    height: calc(100% - 50px);
+    object-fit: cover;
+    background-color: #f0f0f0;
+}
+
+.location-label {
+    height: 50px;
+    line-height: 50px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+    background: white;
+}
+
+.map-icon-btn {
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.map-icon-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.media-nav-prev, .media-nav-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+.media-nav-prev { left: 10px; }
+.media-nav-next { right: 10px; }
+.media-nav-prev:hover, .media-nav-next:hover {
+    background: rgba(0,0,0,0.7);
+}
+
+/* Meetup Modal – make image square and fully visible */
+#locationModal .modal-content {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#locationModal .buy-modal-two-columns {
+    display: flex;
+    gap: 30px;
+    flex: 1;
+    min-height: 0;      /* critical for flex children to respect height */
+    overflow: hidden;
+}
+
+#locationModal .buy-modal-divider {
+    display: none;
+}
+
+#locationModal .buy-modal-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+#locationModal .product-image-preview {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-height: 100%;
+    background: #f0f0f0;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#locationModal .product-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;   /* shows the entire image without cropping */
+    display: block;
+}
+
+#locationModal .buy-modal-right {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+    max-height: 100%;
+}
+
+@media (max-width: 768px) {
+    .location-card {
+        flex: 0 0 calc(50% - 20px);
+        min-width: 140px;
+    }
+    #locationModal .buy-modal-two-columns {
+        flex-direction: column;
+    }
+    #locationModal .buy-modal-left {
+        flex: none;
+        width: 100%;
+        max-height: 50vh;
+    }
+}

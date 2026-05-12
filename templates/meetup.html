@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='meetup.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='product.css') }}">
+
+<div class="meetup-page">
+    <div class="campus-tabs">
+        <button class="campus-btn active" id="btnCyberjaya">Cyberjaya</button>
+        <button class="campus-btn" id="btnMelaka">Melaka</button>
+    </div>
+    <div id="locationsContainer" class="locations-grid">
+        <!-- location cards inserted by JavaScript -->
+    </div>
+
+    <!-- Location Detail Modal -->
+    <div id="locationModal" class="modal" style="display: none;">
+        <div class="modal-content buy-modal-content" style="max-width: 1100px; width: 90%;">
+            <span class="close" onclick="closeLocationModal()">&times;</span>
+
+            <div class="buy-modal-two-columns">
+                <!-- LEFT COLUMN – image carousel -->
+                <div class="buy-modal-left" style="position: relative;">
+                    <div class="product-image-preview" id="modalLocationImage">
+                        <img src="" alt="Location image" style="width:100%; height:100%; object-fit: cover;">
+                    </div>
+                    <button class="media-nav-prev" id="modalPrevBtn" onclick="prevLocationImage()" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer;">‹</button>
+                    <button class="media-nav-next" id="modalNextBtn" onclick="nextLocationImage()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer;">›</button>
+                </div>
+
+                <!-- RIGHT COLUMN – details -->
+                <div class="buy-modal-right" style="overflow-y: auto; max-height: 70vh;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <button id="googleMapsBtn" class="map-icon-btn" onclick="openGoogleMaps()">
+                            <span style="font-size: 1.2rem;">🗺️</span>
+                        </button>
+                        <span id="modalShortName" style="font-size: 0.9rem; color: #666;">Short name</span>
+                    </div>
+                    <h3 id="modalFullName" style="margin: 0 0 8px 0; font-size: 1.5rem;">Full Name</h3>
+                    <hr style="margin: 12px 0;">
+                    <p id="modalDescription" style="color: #555; line-height: 1.5; font-size: 0.9rem;">Description goes here...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Cyberjaya locations (same as product modal)
+    const cyberjayaLocations = [
+        {
+            shortName: "Library",
+            fullName: "MMU Cyberjaya Library",
+            description: "The main library with study halls, computer labs, and group discussion rooms.",
+            images: ["/static/uploads/library.jpg", "/static/uploads/library2.jpg"], // add more images
+            mapUrl: "https://maps.app.goo.gl/GPzaCYDurzXkVeF87"
+        },
+        {
+            shortName: "DTC",
+            fullName: "Dewan Tun Canselor",
+            description: "The main administrative building for student services and support.",
+            images: ["/static/uploads/dtc.jpg"],
+            mapUrl: "https://maps.app.goo.gl/cKFBKG4rzSg81agR6"
+        },
+        {
+            shortName: "Starbees",
+            fullName: "Starbees Café",
+            description: "A popular café offering a variety of beverages and light meals.",
+            images: ["/static/uploads/starbees.jpg"],
+            mapUrl: "https://maps.app.goo.gl/R3NwCDq4rUXMiTaz9"
+        },
+        {
+            shortName: "CLC",
+            fullName: "Computer Lab Complex",
+            description: "A state-of-the-art facility with modern computer labs for learning and research.",
+            images: ["/static/uploads/clc.jpg"],
+            mapUrl: "https://maps.app.goo.gl/DbAnFR2fQyNodfzC8"
+        },
+        {
+            shortName: "FCI",
+            fullName: "Faculty of Computing and Informatics",
+            description: "The main building for the Faculty of Computing and Informatics.",
+            images: ["/static/uploads/fci.jpg"],
+            mapUrl: "https://maps.app.goo.gl/FQn29VDrRFD9CLKT9"
+        },
+        {
+            shortName: "FOM",
+            fullName: "Faculty of Management",
+            description: "The main building for the Faculty of Management.",
+            images: ["/static/uploads/fom.jpg"],
+            mapUrl: "https://maps.app.goo.gl/fz4MkJzgfaYZedTQA"
+        },
+        {
+            shortName: "FAIE",
+            fullName: "Faculty of Accountancy and Information Technology",
+            description: "The main building for the Faculty of Accountancy and Information Technology.",
+            images: ["/static/uploads/faie.jpg"],
+            mapUrl: "https://maps.app.goo.gl/J5sN7VugkJ9zwPAX8"
+        },
+        {
+            shortName: "FCM",
+            fullName: "Faculty of Creative Media",
+            description: "The main building for the Faculty of Creative Media.",
+            images: ["/static/uploads/fcm.jpg"],
+            mapUrl: "https://maps.app.goo.gl/knEABSBBHNemUV3p9"
+        },
+        {
+            shortName: "STC",
+            fullName: "Student Services Complex",
+            description: "A facility providing various student services and support.",
+            images: ["/static/uploads/stc.jpg"],
+            mapUrl: "https://maps.app.goo.gl/PBjF6JkLednaVtXDA"
+        },
+        {
+            shortName: "HB1",
+            fullName: "Hostel Block 1",
+            description: "The first hostel block for student accommodation.",
+            images: ["/static/uploads/hb1.jpg"],
+            mapUrl: "https://maps.app.goo.gl/8sqP8b8CmQ3hoUHb7"
+        },
+        {
+            shortName: "HB2",
+            fullName: "Hostel Block 2",
+            description: "The second hostel block for student accommodation.",
+            images: ["/static/uploads/hb2.jpg"],
+            mapUrl: "https://maps.app.goo.gl/Ty8zESUhX9ZYNmwV8"
+        },
+        {
+            shortName: "HB3",
+            fullName: "Hostel Block 3",
+            description: "The third hostel block for student accommodation.",
+            images: ["/static/uploads/hb3.jpg"],
+            mapUrl: "https://maps.app.goo.gl/PBtx144qeYEJ6yzx8"
+        },
+        {
+            shortName: "HB4",
+            fullName: "Hostel Block 4",
+            description: "The fourth hostel block for student accommodation.",
+            images: ["/static/uploads/hb4.jpg"],
+            mapUrl: "https://maps.app.goo.gl/jkmzK4BGx8mSwv127"
+        },
+        {
+            shortName: "Masjid",
+            fullName: "Main Mosque",
+            description: "The main mosque on campus for religious activities.",
+            images: ["/static/uploads/masjid.jpg"],
+            mapUrl: "https://maps.app.goo.gl/scchfN5JHGLY6K2f8"
+        },
+        {
+            shortName: "Tekun Mart",
+            fullName: "Tekun Mart",
+            description: "A convenience store offering daily necessities.",
+            images: ["/static/uploads/tekun_mart.jpg"],
+            mapUrl: "https://maps.app.goo.gl/6E5C6C7zyGpwjn6VA"
+        },
+        {
+            shortName: "Chancellery",
+            fullName: "Chancellery Building",
+            description: "The administrative center for university operations.",
+            images: ["/static/uploads/chancellery.jpg"],
+            mapUrl: "https://maps.app.goo.gl/KFPCssy95whKcpv29"
+        }
+    ];
+
+    // Melaka locations (placeholders – replace names and images later)
+    const melakaLocations = [
+        {
+            shortName: "Library (Melaka)",
+            fullName: "MMU Melaka Library",
+            description: "Central library of Melaka campus.",
+            images: ["/static/uploads/library.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Library"
+        },
+        {
+            shortName: "Dewan Tun Canselor",
+            fullName: "Dewan Tun Canselor",
+            description: "The main auditorium for events and ceremonies.",
+            images: ["/static/uploads/dtc.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Dewan+Tun+Canselor"
+        },
+        {
+            shortName: "Cafeteria",
+            fullName: "Cafeteria",
+            description: "A place to grab a quick bite or coffee.",
+            images: ["/static/uploads/starbees.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Cafeteria"
+        },
+        {
+            shortName: "Block A",
+            fullName: "Block A",
+            description: "Academic building for various departments.",
+            images: ["/static/uploads/clc.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+A"
+        },
+        {
+            shortName: "Block B",
+            fullName: "Block B",
+            description: "Another academic building for different programs.",
+            images: ["/static/uploads/fci.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+B"
+        },
+        {
+            shortName: "Block C",
+            fullName: "Block C",
+            description: "Support building for student services.",
+            images: ["/static/uploads/fom.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+C"
+        },
+        {
+            shortName: "Block D",
+            fullName: "Block D",
+            description: "Facility for sports and physical activities.",
+            images: ["/static/uploads/faie.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+D"
+        },
+        {
+            shortName: "Block E",
+            fullName: "Block E",
+            description: "Another academic building for different programs.",
+            images: ["/static/uploads/fcm.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+E"
+        },
+        {
+            shortName: "Sports Complex",
+            fullName: "Sports Complex",
+            description: "A facility for various sports and physical activities.",
+            images: ["/static/uploads/stc.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Sports+Complex"
+        },
+        {
+            shortName: "Hostel 1",
+            fullName: "Hostel 1",
+            description: "Student accommodation for the first hostel.",
+            images: ["/static/uploads/hb1.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Hostel+1"
+        },
+        {
+            shortName: "Hostel 2",
+            fullName: "Hostel 2",
+            description: "Student accommodation for the second hostel.",
+            images: ["/static/uploads/hb2.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Hostel+2"
+        },
+        {
+            shortName: "Hostel 3",
+            fullName: "Hostel 3",
+            description: "Student accommodation for the third hostel.",
+            images: ["/static/uploads/hb3.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Hostel+3"
+        },
+        {
+            shortName: "Hostel 4",
+            fullName: "Hostel 4",
+            description: "Student accommodation for the fourth hostel.",
+            images: ["/static/uploads/hb4.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Hostel+4"
+        },
+        {
+            shortName: "Surau",
+            fullName: "Surau",
+            description: "A place of worship for the Muslim community.",
+            images: ["/static/uploads/masjid.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Surau"
+        },
+        {
+            shortName: "Mini Mart",
+            fullName: "Mini Mart",
+            description: "A small convenience store for daily needs.",
+            images: ["/static/uploads/tekun_mart.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Mini+Mart"
+        },
+        {
+            shortName: "Admin Building",
+            fullName: "Admin Building",
+            description: "The administrative center for university operations.",
+            images: ["/static/uploads/chancellery.jpg"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Admin+Building"
+        }
+    ];
+
+    let currentCampus = 'cyberjaya';
+
+    function renderLocations() {
+        const container = document.getElementById('locationsContainer');
+        const locations = currentCampus === 'cyberjaya' ? cyberjayaLocations : melakaLocations;
+        container.innerHTML = '';
+        locations.forEach(loc => {
+            const card = document.createElement('div');
+            card.className = 'location-card';
+            card.innerHTML = `
+                <img src="${loc.images[0]}" class="location-img" alt="${loc.shortName}">
+                <div class="location-label">${loc.shortName}</div>
+            `;
+            card.addEventListener('click', () => openLocationModal(loc));
+            container.appendChild(card);
+        });
+    }
+
+    document.getElementById('btnCyberjaya').addEventListener('click', () => {
+        currentCampus = 'cyberjaya';
+        document.getElementById('btnCyberjaya').classList.add('active');
+        document.getElementById('btnMelaka').classList.remove('active');
+        renderLocations();
+    });
+    document.getElementById('btnMelaka').addEventListener('click', () => {
+        currentCampus = 'melaka';
+        document.getElementById('btnMelaka').classList.add('active');
+        document.getElementById('btnCyberjaya').classList.remove('active');
+        renderLocations();
+    });
+
+    renderLocations();
+
+    let currentLocationData = null;
+    let currentImageIndex = 0;
+
+    function openLocationModal(location) {
+        currentLocationData = location;
+        currentImageIndex = 0;
+        document.getElementById('modalShortName').innerText = location.shortName;
+        document.getElementById('modalFullName').innerText = location.fullName;
+        document.getElementById('modalDescription').innerText = location.description;
+        document.getElementById('googleMapsBtn').setAttribute('data-map-url', location.mapUrl);
+        updateModalImage();
+        // Hide navigation buttons if only one image
+        const hasMultiple = location.images && location.images.length > 1;
+        document.getElementById('modalPrevBtn').style.display = hasMultiple ? 'flex' : 'none';
+        document.getElementById('modalNextBtn').style.display = hasMultiple ? 'flex' : 'none';
+        document.getElementById('locationModal').style.display = 'flex';
+    }
+
+    function closeLocationModal() {
+        document.getElementById('locationModal').style.display = 'none';
+    }
+
+    function updateModalImage() {
+        const imgElement = document.querySelector('#modalLocationImage img');
+        if (currentLocationData && currentLocationData.images && currentLocationData.images.length > 0) {
+            imgElement.src = currentLocationData.images[currentImageIndex];
+        } else {
+            imgElement.src = '/static/uploads/placeholder.jpg';
+        }
+    }
+
+    function prevLocationImage() {
+        if (!currentLocationData || !currentLocationData.images) return;
+        if (currentLocationData.images.length <= 1) return;
+        currentImageIndex = (currentImageIndex - 1 + currentLocationData.images.length) % currentLocationData.images.length;
+        updateModalImage();
+    }
+
+    function nextLocationImage() {
+        if (!currentLocationData || !currentLocationData.images) return;
+        if (currentLocationData.images.length <= 1) return;
+        currentImageIndex = (currentImageIndex + 1) % currentLocationData.images.length;
+        updateModalImage();
+    }
+
+    function openGoogleMaps() {
+        const mapUrl = document.getElementById('googleMapsBtn').getAttribute('data-map-url');
+        if (mapUrl) {
+            window.open(mapUrl, '_blank');
+        }
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('locationModal');
+        if (event.target === modal) {
+            closeLocationModal();
+        }
+    };
+</script>
+{% endblock %}

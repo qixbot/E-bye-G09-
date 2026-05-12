@@ -5,10 +5,14 @@
         data-actual-total="{{ product.actual_total }}">
         <span class="condition-badge">{{ product.condition | replace('_', ' ') | title }}</span>
         
-        <!-- 已售出覆盖层 - 只在 hover 时显示 -->
+        <!-- sold & reserved overlay -->
         {% if product.status == 'sold' %}
         <div class="sold-overlay">
             <span class="sold-badge-large">SOLD</span>
+        </div>
+        {% elif product.status == 'reserved' %}
+        <div class="sold-overlay">
+            <span class="sold-badge-large" style="background: linear-gradient(135deg, #f39c12, #e67e22);">RESERVED</span>
         </div>
         {% endif %}
         
@@ -56,6 +60,11 @@
         <div class="product-price sold-price">
             <span class="original-price-strikethrough">RM {{ "%.2f"|format(product.price) }}</span>
             <span class="sold-label-card">SOLD</span>
+        </div>
+        {% elif product.status == 'reserved' %}
+        <div class="product-price sold-price">
+            <span class="original-price-strikethrough">RM {{ "%.2f"|format(product.price) }}</span>
+            <span class="sold-label-card" style="background: linear-gradient(135deg, #f39c12, #e67e22);">RESERVED</span>
         </div>
         {% else %}
         <div class="product-price">RM {{ "%.2f"|format(product.price) }}</div>

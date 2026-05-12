@@ -436,7 +436,7 @@ def home():
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.status = 'approved' AND u.is_blocked = 0
+        WHERE p.status IN ('approved') AND u.is_blocked = 0
         ORDER BY p.created_at DESC
     ''')
     products_data = cur.fetchall()
@@ -515,22 +515,33 @@ def search():
     else:
         conditions = []
     
+    # Status (multi-select, comma-separated)
+    status_raw = request.args.get('status', '')
+    if status_raw:
+        statuses = [s.strip() for s in status_raw.split(',') if s.strip()]
+    else:
+        # Default: show all three statuses
+        statuses = ['approved', 'sold', 'reserved']
+    
     date_range = request.args.get('date_range')
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
     min_price = request.args.get('min_price', type=float)
     max_price = request.args.get('max_price', type=float)
 
-    # Base query for products - includes seller details for searching
+    # Build the query – note: statuses placeholders come first
     query = """
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.status IN ('approved', 'sold') AND u.is_blocked = 0
-    """
+        WHERE p.status IN ({})
+          AND u.is_blocked = 0
+    """.format(','.join(['%s']*len(statuses)))
+    
     params = []
+    params.extend(statuses)          # add status values first
 
-    # Keyword search - product name, description, AND seller name
+    # Keyword search
     if keyword:
         query += """ AND (p.name LIKE %s 
                          OR p.description LIKE %s
@@ -541,17 +552,17 @@ def search():
 
     # Category filter
     if categories:
-        placeholders = ','.join('%s' for _ in categories)
+        placeholders = ','.join(['%s'] * len(categories))
         query += f" AND p.category IN ({placeholders})"
         params.extend(categories)
 
-    # Condition filter (multi)
+    # Condition filter
     if conditions:
-        placeholders = ','.join('%s' for _ in conditions)
+        placeholders = ','.join(['%s'] * len(conditions))
         query += f" AND p.condition IN ({placeholders})"
         params.extend(conditions)
 
-    # Date range – prioritise date_range if provided, else use custom dates
+    # Date range – quick pills
     if date_range and date_range.isdigit():
         days = int(date_range)
         query += " AND p.created_at >= NOW() - (%s * INTERVAL '1 day')"
@@ -605,7 +616,7 @@ def search():
     cur.close()
     db.close()
 
-    # Process each product (same as home route, with base64 support)
+    # Process products (same as before)
     import json
     products = []
     for row in products_data:
@@ -613,17 +624,14 @@ def search():
         images_str = product.get('images', '')
         images_blob_str = product.get('images_blob', '[]')
         
-        # Parse base64 list from images_blob
         base64_list = []
         if images_blob_str and images_blob_str != '[]':
             try:
                 base64_list = json.loads(images_blob_str)
-                # Keep only valid data URLs (they start with data:)
                 base64_list = [img for img in base64_list if img.startswith('data:')]
             except:
                 base64_list = []
         
-        # For file-based images (fallback)
         if images_str:
             img_list = images_str.split(',')
             image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
@@ -639,14 +647,12 @@ def search():
             product['image_1'] = None
             product['image_2'] = None
         
-        # Store base64 list for carousel
         product['images_base64_list'] = base64_list
-        # Override actual_total if base64 list is the real source
         if base64_list:
             product['actual_total'] = len(base64_list)
         products.append(product)
 
-    # ========== USER SEARCH - ONLY SHOW WHEN KEYWORD IS PROVIDED ==========
+    # User search (unchanged)
     user_results = []
     if keyword:
         db_u = get_db()
@@ -662,7 +668,6 @@ def search():
         user_results = cur_u.fetchall()
         cur_u.close()
         db_u.close()
-    # else: leave user_results as empty list - no keyword, no user results
 
     return render_template('search.html', products=products, user_results=user_results)
 
@@ -1014,6 +1019,54 @@ def api_user_listings():
         listings.append(item)
     
     return jsonify(listings)
+
+
+# ============================================================
+# Eileen's route My order SYSTEM API ROUTES
+# ============================================================
+@app.route('/api/order/<int:order_id>/confirm', methods=['POST'])
+def api_confirm_order(order_id):
+    """Seller confirms order with selected meetup location/time"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    meeting_point = data.get('meeting_point')
+    meeting_time = data.get('meeting_time')
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    # Verify seller owns this order
+    cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s', 
+                (order_id, session['user_id']))
+    order = cur.fetchone()
+    
+    if not order:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Order not found'}), 404
+    
+    # Update order with confirmed meeting details
+    cur.execute('''
+        UPDATE orders 
+        SET meeting_point = %s, meeting_time = %s, status = 'confirmed', updated_at = NOW()
+        WHERE id = %s
+    ''', (meeting_point, meeting_time, order_id))
+    
+    # Notify buyer
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'order', %s, 0)
+    ''', (order['buyer_id'], 
+          f" Order #{order['order_number']} has been CONFIRMED by seller! Meeting at: {meeting_point} on {meeting_time}",
+          order_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
 
 # ============================================================
 # Eileen's route OFFER SYSTEM API ROUTES
@@ -1599,7 +1652,9 @@ def api_buy_now():
     data = request.get_json()
     product_id = data.get('product_id')
     meetup_locations = data.get('meetup_locations', [])
-    
+    meeting_dates = data.get('meeting_dates', [])
+    meeting_dates_str = ','.join(meeting_dates) if meeting_dates else ''
+
     if not product_id or not meetup_locations:
         return jsonify({'success': False, 'error': 'Missing required data'}), 400
     
@@ -1622,17 +1677,20 @@ def api_buy_now():
     import random
     order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
     
+    # FIXED: Added RETURNING id at the end
     cur.execute('''
         INSERT INTO orders (order_number, product_id, buyer_id, seller_id, offer_price,
-                           meeting_point, status, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW()) RETURNING id
+                            meeting_point, meeting_time, status, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW())
+        RETURNING id
     ''', (order_number, product_id, session['user_id'], product['seller_id'],
-          product['price'], ','.join(meetup_locations)))
+          product['price'], ','.join(meetup_locations), meeting_dates_str))
     
-    order_id = cur.fetchone()['id']
-    cur.execute("UPDATE products SET status = 'sold' WHERE id = %s", (product_id,))
+    order_id = cur.fetchone()['id']   # now this works because of RETURNING
     
-    # Notify seller of new order
+    cur.execute("UPDATE products SET status = 'reserved' WHERE id = %s", (product_id,))
+    
+    # Notify seller
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
@@ -1640,7 +1698,7 @@ def api_buy_now():
           f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Go to My Orders to confirm.",
           'order_created', order_id))
     
-    # Notify buyer that order was created
+    # Notify buyer
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
@@ -3593,7 +3651,7 @@ def product_detail(product_id):
             u.is_blocked as seller_blocked
         FROM products p
         JOIN users u ON p.seller_id = u.id
-        WHERE p.id = %s AND p.status IN ('approved', 'sold')
+        WHERE p.id = %s AND p.status IN ('approved', 'sold', 'reserved')
     ''', (product_id,))
     product = cur.fetchone()
     cur.close()
@@ -3623,6 +3681,26 @@ def product_detail(product_id):
         images = product['images'].split(',') if product['images'] else []
 
     return render_template('product.html', product=product, images=images)
+
+@app.route('/api/report-product/<int:product_id>', methods=['POST'])
+def api_report_product(product_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    data = request.get_json()
+    reason = data.get('reason', '').strip()
+    details = data.get('details', '').strip()
+    if not reason:
+        return jsonify({'success': False, 'error': 'Reason required'}), 400
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        INSERT INTO reports (reporter_id, product_id, reason, details)
+        VALUES (%s, %s, %s, %s)
+    ''', (session['user_id'], product_id, reason, details))
+    db.commit()
+    cur.close()
+    db.close()
+    return jsonify({'success': True, 'message': 'Report submitted'})
 
 # ============================================================
 # Xingru's Route - Temporary route for testing product page only
@@ -3946,6 +4024,13 @@ def api_get_user_reviews(user_id):
         'avg_overall': round(stats['avg_overall'], 1) if stats['avg_overall'] else 0,
         'total_reviews': stats['total'] or 0
     })
+
+# ============================================================
+# Xingru's Route - Meetup Location Page
+# ============================================================
+@app.route('/meetup-locations')
+def meetup_locations():
+    return render_template('meetup.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

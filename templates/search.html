@@ -18,16 +18,41 @@
             {% if request.args.get('q') %}
                 📦 Products matching "{{ request.args.get('q') }}"
             {% else %}
-                📦 All Products
+                📦 Search Products
             {% endif %}
         </h3>
     </div>
     <div class="filter-summary">
         {% set filters = [] %}
         {% if request.args.get('q') %}{% set _ = filters.append('Keyword: ' + request.args.get('q')) %}{% endif %}
-        {% if request.args.get('category') %}{% set _ = filters.append('Category: ' + request.args.get('category')) %}{% endif %}
-        {% if request.args.get('condition') %}
-            {% set condition_vals = request.args.get('condition').split(',') %}
+        
+        {# Status filter – only if explicitly selected (non-empty status param) #}
+        {% set status_param = request.args.get('status', '') %}
+        {% if status_param %}
+            {% set status_vals = status_param.split(',') %}
+            {% set status_labels = [] %}
+            {% for s in status_vals %}
+                {% if s == 'approved' %}{% set _ = status_labels.append('Available') %}
+                {% elif s == 'reserved' %}{% set _ = status_labels.append('Reserved') %}
+                {% elif s == 'sold' %}{% set _ = status_labels.append('Sold') %}
+                {% endif %}
+            {% endfor %}
+            {% if status_labels|length > 0 %}
+                {% set _ = filters.append('Status: ' + status_labels|join(', ')) %}
+            {% endif %}
+        {% endif %}
+        
+        {# Categories #}
+        {% set category_param = request.args.get('category', '').strip(',') %}
+        {% if category_param %}
+            {% set category_vals = category_param.split(',') %}
+            {% set _ = filters.append('Category: ' + category_vals|join(', ')) %}
+        {% endif %}
+        
+        {# Condition #}
+        {% set condition_param = request.args.get('condition', '').strip(',') %}
+        {% if condition_param %}
+            {% set condition_vals = condition_param.split(',') %}
             {% set condition_labels = [] %}
             {% for c in condition_vals %}
                 {% if c == 'like_new' %}{% set _ = condition_labels.append('Like New') %}
@@ -35,25 +60,41 @@
                 {% elif c == 'fair' %}{% set _ = condition_labels.append('Fair') %}
                 {% endif %}
             {% endfor %}
-            {% set _ = filters.append('Condition: ' + condition_labels | join(', ')) %}
+            {% if condition_labels %}
+                {% set _ = filters.append('Condition: ' + condition_labels|join(', ')) %}
+            {% endif %}
         {% endif %}
-        {% if request.args.get('date_range') %}
-            {% set days = request.args.get('date_range') %}
+        
+        {# Date range – quick pills or custom #}
+        {% set date_from = request.args.get('date_from', '') %}
+        {% set date_to = request.args.get('date_to', '') %}
+        {% set date_range = request.args.get('date_range', '') %}
+        {% if date_range %}
+            {% set days = date_range %}
             {% if days == '7' %}{% set _ = filters.append('Last 7 days') %}
             {% elif days == '30' %}{% set _ = filters.append('Last 30 days') %}
             {% elif days == '365' %}{% set _ = filters.append('Last year') %}
             {% endif %}
         {% else %}
-            {% if request.args.get('date_from') or request.args.get('date_to') %}
-                {% set _ = filters.append('Custom date range') %}
+            {% if date_from or date_to %}
+                {% set from_fmt = date_from.replace('-', '/') if date_from else '' %}
+                {% set to_fmt = date_to.replace('-', '/') if date_to else '' %}
+                {% set date_str = from_fmt + ('' if not from_fmt else ' – ') + to_fmt %}
+                {% set _ = filters.append('Date: ' + date_str) %}
             {% endif %}
         {% endif %}
+        
+        {# Price range #}
         {% if request.args.get('min_price') or request.args.get('max_price') %}
-            {% set _ = filters.append('Price: ' + (request.args.get('min_price') or '0') + ' - ' + (request.args.get('max_price') or '∞')) %}
+            {% set min_p = request.args.get('min_price') or '0' %}
+            {% set max_p = request.args.get('max_price') or '∞' %}
+            {% set _ = filters.append('Price: RM ' + min_p + ' – RM ' + max_p) %}
         {% endif %}
-        {% if filters %}
+        
+        {# Only show the summary bar if there is at least one active filter #}
+        {% if filters|length > 0 %}
             <div class="filter-summary-text">
-                Showing results for: {{ filters | join(', ') }}
+                Showing results for: {{ filters | join(' · ') }}
             </div>
         {% endif %}
     </div>
@@ -86,6 +127,18 @@
                 <input type="hidden" name="q" value="{{ request.args.get('q', '') }}">
                 <!-- Hidden input to store selected categories (comma-separated) -->
                 <input type="hidden" name="category" id="selectedCategories" value="">
+
+                <!-- Status Filter -->
+                <div class="filter-group">
+                    <label>Status</label>
+                    <div class="status-pills" id="statusPills">
+                        <button type="button" class="pill" data-status="all">🌐 All</button>
+                        <button type="button" class="pill" data-status="approved">🟢 Available</button>
+                        <button type="button" class="pill" data-status="reserved">🟡 Reserved</button>
+                        <button type="button" class="pill" data-status="sold">🔴 Sold</button>
+                    </div>
+                    <input type="hidden" name="status" id="selectedStatuses" value="">
+                </div>
 
                 <!-- Category pills -->
                 <div class="filter-group">
@@ -133,9 +186,9 @@
                 <div class="filter-group">
                     <label>Custom date range</label>
                     <div class="date-range-custom">
-                        <input type="text" name="date_from" placeholder="DD/MM/YYYY" value="{{ request.args.get('date_from', '') }}" class="date-input">
+                        <input type="date" name="date_from" id="date_from" value="{{ request.args.get('date_from', '') }}" class="date-input">
                         <span>to</span>
-                        <input type="text" name="date_to" placeholder="DD/MM/YYYY" value="{{ request.args.get('date_to', '') }}" class="date-input">
+                        <input type="date" name="date_to" id="date_to" value="{{ request.args.get('date_to', '') }}" class="date-input">
                     </div>
                 </div>
 
@@ -476,49 +529,65 @@
         dateToInput.addEventListener('change', clearQuickRange);
     }
 
-    // Convert DD/MM/YYYY to YYYY-MM-DD
-    function convertToISO(dateStr) {
-        if (!dateStr) return '';
-        let parts = dateStr.split('/');
-        if (parts.length === 3) {
-            let day = parts[0].padStart(2, '0');
-            let month = parts[1].padStart(2, '0');
-            let year = parts[2];
-            if (year.length === 4 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-                return `${year}-${month}-${day}`;
-            }
-        }
-        return '';
-    }
+    // ========== Status Pills (multi‑select) ==========
+    const statusPills = document.querySelectorAll('#statusPills .pill');
+    const selectedStatusesInput = document.getElementById('selectedStatuses');
+    let selectedStatuses = [];
 
-    // Intercept form submission to convert date fields
-    const filterForm = document.getElementById('filterForm');
-    if (filterForm) {
-        filterForm.addEventListener('submit', function(e) {
-            const fromInput = document.querySelector('input[name="date_from"]');
-            const toInput = document.querySelector('input[name="date_to"]');
-            
-            if (fromInput && fromInput.value) {
-                const iso = convertToISO(fromInput.value);
-                // Replace the original input with a hidden one in ISO format
-                const hiddenFrom = document.createElement('input');
-                hiddenFrom.type = 'hidden';
-                hiddenFrom.name = 'date_from';
-                hiddenFrom.value = iso;
-                fromInput.removeAttribute('name');
-                this.appendChild(hiddenFrom);
-            }
-            if (toInput && toInput.value) {
-                const iso = convertToISO(toInput.value);
-                const hiddenTo = document.createElement('input');
-                hiddenTo.type = 'hidden';
-                hiddenTo.name = 'date_to';
-                hiddenTo.value = iso;
-                toInput.removeAttribute('name');
-                this.appendChild(hiddenTo);
+    function updateStatusPills() {
+        statusPills.forEach(pill => {
+            const val = pill.getAttribute('data-status');
+            if (val === 'all') {
+                // 'All' is active only when no other status is selected
+                if (selectedStatuses.length === 0) {
+                    pill.classList.add('active');
+                } else {
+                    pill.classList.remove('active');
+                }
+            } else {
+                if (selectedStatuses.includes(val)) {
+                    pill.classList.add('active');
+                } else {
+                    pill.classList.remove('active');
+                }
             }
         });
+        selectedStatusesInput.value = selectedStatuses.join(',');
     }
+
+    statusPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            const val = pill.getAttribute('data-status');
+            if (val === 'all') {
+                // Clear all selections
+                selectedStatuses = [];
+            } else {
+                // If 'All' was active before, remove it
+                if (selectedStatuses.length === 0) {
+                    selectedStatuses = [val];
+                } else {
+                    // Toggle the clicked status
+                    const index = selectedStatuses.indexOf(val);
+                    if (index === -1) {
+                        selectedStatuses.push(val);
+                    } else {
+                        selectedStatuses.splice(index, 1);
+                    }
+                }
+            }
+            updateStatusPills();
+        });
+    });
+
+    // Initialize from URL if present
+    const urlStatus = '{{ request.args.get("status", "") }}';
+    if (urlStatus) {
+        selectedStatuses = urlStatus.split(',');
+    } else {
+        // Default: show 'All' (empty array means all)
+        selectedStatuses = [];
+    }
+    updateStatusPills();
 
     // ========== Price formatting functions ==========
     function limitPrice(input) {
