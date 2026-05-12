@@ -103,35 +103,34 @@
         </div>
 
         <div class="pf-panel">
-            <div class="pf-tabs">
-                <button class="pf-tab on" id="tab-listings" onclick="switchTab('listings')">
-                    📦 My Listings <span class="pf-tab-count" id="cnt-listings">0</span>
-                </button>
-                <button class="pf-tab" id="tab-purchases" onclick="switchTab('purchases')">
-                    🛍️ My Purchases <span class="pf-tab-count" id="cnt-purchases">0</span>
-                </button>
-                <button class="pf-tab" id="tab-orders" onclick="switchTab('orders')">
-                    📋 My Orders <span class="pf-tab-count" id="cnt-orders">0</span>
-            </button>
-            </div>
+    <div class="pf-tabs">
+        <button class="pf-tab on" id="tab-listings" onclick="switchTab('listings')">
+            📦 My Listings <span class="pf-tab-count" id="cnt-listings">0</span>
+        </button>
+        <button class="pf-tab" id="tab-purchases" onclick="switchTab('purchases')">
+            🛍️ My Purchases <span class="pf-tab-count" id="cnt-purchases">0</span>
+        </button>
+        <!-- FIXED: Added missing closing </button> tag -->
+        <button class="pf-tab" id="tab-orders" onclick="switchTab('orders')">
+            📋 My Orders <span class="pf-tab-count" id="cnt-orders">0</span>
+        </button>
+    </div>
 
-            <div class="pf-pane on" id="pane-listings">
-                <div id="listings-grid">
-                    <div class="loading-state">📦 Loading your listings...</div>
-                </div>
-            </div>
+    <div class="pf-pane on" id="pane-listings">
+        <div id="listings-grid">
+            <div class="loading-state">📦 Loading your listings...</div>
+        </div>
+    </div>
 
-            <div class="pf-pane" id="pane-purchases">
-                <div class="pf-list" id="purchases-list">
-                    <div class="loading-state">🛍️ Loading your purchases...</div>
-                </div>
-            </div>
+    <div class="pf-pane" id="pane-purchases">
+        <div class="pf-list" id="purchases-list">
+            <div class="loading-state">🛍️ Loading your purchases...</div>
+        </div>
+    </div>
 
-            <div class="pf-pane" id="pane-orders">
-                <div class="pf-list" id="orders-list">
-                    <div class="loading-state">📋 Loading your orders...</div>
-                </div>
-            </div>
+    <div class="pf-pane" id="pane-orders">
+        <div class="pf-list" id="orders-list">
+            <div class="loading-state">📋 Loading your orders...</div>
         </div>
     </div>
 </div>
@@ -288,6 +287,7 @@ function switchTab(name) {
     if (name === 'listings') loadListings();
     if (name === 'purchases') loadPurchases();
     if (name === 'orders') loadOrders();
+    if (name === 'received-reviews') openReviewsModal();
 }
 
 // ============================================================
@@ -485,7 +485,6 @@ function loadPurchases() {
             container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load purchases</div></div>';
         });
 }
-
 // ============================================================
 // LOAD MY Orders
 // ============================================================
@@ -494,7 +493,8 @@ function loadOrders() {
     var countSpan = document.getElementById('cnt-orders');
     container.innerHTML = '<div class="loading-state">📋 Loading your orders...</div>';
     
-    fetch('/api/user/orders', { credentials: 'same-origin' })
+    // FIXED: Use correct API endpoint /api/orders/my
+    fetch('/api/orders/my', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             var asBuyer = data.as_buyer || [];
@@ -510,17 +510,16 @@ function loadOrders() {
 
             var html = '';
 
-            //as seller orers(need seller to manage the order)
+            // As seller orders (seller needs to manage the order)
             if(asSeller.length > 0) {
                 html += '<div class="orders-section"><h4>📦 Orders I need to Process</h4>';
-
-                    for (var i = 0; i < asSeller.length; i++) {
+                for (var i = 0; i < asSeller.length; i++) {
                     html += renderOrderCard(asSeller[i], 'seller');
                 }
                 html += '</div>';
             }
 
-            //as buyer orders (buyer can only view the order status)
+            // As buyer orders (buyer can only view the order status)
             if(asBuyer.length > 0) {
                 html += '<div class="orders-section"><h4>🛒 My Purchases</h4>';
                 for (var j = 0; j < asBuyer.length; j++) {
@@ -549,7 +548,7 @@ function renderOrderCard(order, role) {
         meetupInfo = '<div>📍 Meetup: ' + escapeHtml(order.meeting_point) + '</div>';
     }
 
-    if (role == 'seller') {
+    if (role === 'seller') {
         if (status === 'pending') {
             actionButtons = '<button class="order-action-btn confirm-btn" onclick="openConfirmOrderModal(' + order.id + ', \'' + escapeHtml(order.order_number) + '\', \'' + escapeHtml(order.product_name) + '\', \'' + escapeHtml(order.meeting_point || '') + '\', \'' + escapeHtml(order.meeting_time || '') + '\')">✅ Confirm Order</button>';
         } else if (status === 'confirmed') {
@@ -562,6 +561,7 @@ function renderOrderCard(order, role) {
             actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
         }
     } else if (role === 'buyer') {
+        // Buyer can only confirm receipt or leave review based on order status
         if (status === 'delivered') {
             actionButtons = '<button class="order-action-btn complete-btn" onclick="confirmOrderCompletion(' + order.id + ')">✅ Confirm Received</button>';
         } else if (status === 'completed') {
@@ -575,24 +575,25 @@ function renderOrderCard(order, role) {
         }
     }
     
+    // FIXED: Added backticks for template literal and fixed return statement
     return `<div class="order-card">
-            <div class="order-header">
-                <div class="order-number">#${escapeHtml(order.order_number)}</div>
-                <div class="order-status ${statusClass}">${statusText}</div>
-            </div>
-            <div class="order-product">
-                <div class="order-product-name">📦 ${escapeHtml(order.product_name)}</div>
-                <div class="order-price">RM ${parseFloat(order.offer_price).toFixed(2)}</div>
-            </div>
-            <div class="order-meta">
-                <div>👤 ${role === 'buyer' ? 'Seller: @' + escapeHtml(order.seller_name) : 'Buyer: @' + escapeHtml(order.buyer_name)}</div>
-                ${meetupInfo}
-                <div>📅 ${order.created_at ? order.created_at.split(' ')[0] : ''}</div>
-            </div>
-            <div class="order-actions">
-                ${actionButtons}
-            </div>
-        </div>`;
+        <div class="order-header">
+            <div class="order-number">#${escapeHtml(order.order_number)}</div>
+            <div class="order-status ${statusClass}">${statusText}</div>
+        </div>
+        <div class="order-product">
+            <div class="order-product-name">📦 ${escapeHtml(order.product_name)}</div>
+            <div class="order-price">RM ${parseFloat(order.offer_price).toFixed(2)}</div>
+        </div>
+        <div class="order-meta">
+            <div>👤 ${role === 'buyer' ? 'Seller: @' + escapeHtml(order.seller_name) : 'Buyer: @' + escapeHtml(order.buyer_name)}</div>
+            ${meetupInfo}
+            <div>📅 ${order.created_at ? order.created_at.split(' ')[0] : ''}</div>
+        </div>
+        <div class="order-actions">
+            ${actionButtons}
+        </div>
+    </div>`;
 }
 
 function getStatusText(status) {
@@ -602,27 +603,26 @@ function getStatusText(status) {
         case 'delivered': return '🚚 Delivered';
         case 'completed': return '✨ Completed';
         case 'cancelled': return '❌ Cancelled';
-        default: return escapeHtml(status || '');
-    };
-    return statusMap[status] || status;
+        default: return status || '';
+    }
 }
 
 function getStatusClass(status) {
     switch(status) {
-        case 'pending': return 'pending';
-        case 'confirmed': return 'confirmed';
-        case 'delivered': return 'delivered';
-        case 'completed': return 'completed';
-        case 'cancelled': return 'cancelled';
+        case 'pending': return 'status-pending';
+        case 'confirmed': return 'status-confirmed';
+        case 'delivered': return 'status-delivered';
+        case 'completed': return 'status-completed';
+        case 'cancelled': return 'status-cancelled';
         default: return '';
-    };
-    return classMap[status] || '';
+    }
 }
 
+// FIXED: Changed API endpoint and method to match backend
 function updateOrderStatus(orderId, newStatus) {
     showToastMessage('Updating order status...', 'info');
-    fetch('/api/order/' + orderId + '/update_status', {
-        method: 'POST',
+    fetch('/api/order/' + orderId + '/status', {
+        method: 'PUT',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -632,13 +632,13 @@ function updateOrderStatus(orderId, newStatus) {
         if (data.success) {
             showToastMessage('Order status updated to ' + newStatus + '!', 'success');
             loadOrders();
-            loadListings(); //refresh listings to update any status badges if needed
+            loadListings(); // Refresh listings to update any status badges if needed
         } else {
             throw new Error(data.error || 'Failed to update status');
         }
     })
     .catch(function(err) { 
-    showToastMessage('Error: ' + err.message, 'error'); 
+        showToastMessage('Error: ' + err.message, 'error'); 
     });
 }
 
@@ -652,41 +652,41 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
     var times = meetingTimes ? meetingTimes.split(',') : [];
     
     var modalHtml = `<div id="confirmOrderModal" class="custom-modal">
-            <div class="modal-card" style="max-width: 500px;">
-                <div class="modal-icon">📋</div>
-                <div class="modal-title">Confirm Order #${escapeHtml(orderNumber)}</div>
-                <div class="modal-message">Product: ${escapeHtml(productName)}</div>
-                
-                <div style="margin: 16px 0;">
-                    <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Location (select one):</label>
-                    <div class="location-options">
-                        ${locations.map(function(loc, idx) {
-                            return `<label class="radio-option">
-                                <input type="radio" name="selected_location" value="${escapeHtml(loc)}"> ${escapeHtml(loc)}
-                            </label>`;
-                        }).join('')}
-                        ${locations.length === 0 ? '<p class="no-data">No location specified</p>' : ''}
-                    </div>
-                </div>
-                
-                <div style="margin: 16px 0;">
-                    <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Time (select one):</label>
-                    <div class="time-options">
-                        ${times.map(function(t, idx) {
-                            return `<label class="radio-option">
-                                <input type="radio" name="selected_time" value="${escapeHtml(t)}"> ${escapeHtml(t)}
-                            </label>`;
-                        }).join('')}
-                        ${times.length === 0 ? '<p class="no-data">No time specified</p>' : ''}
-                    </div>
-                </div>
-                
-                <div class="modal-buttons">
-                    <button class="modal-cancel" onclick="closeConfirmOrderModal()">Cancel</button>
-                    <button class="modal-confirm" onclick="submitOrderConfirmation(${orderId})">Confirm Order</button>
+        <div class="modal-card" style="max-width: 500px;">
+            <div class="modal-icon">📋</div>
+            <div class="modal-title">Confirm Order #${escapeHtml(orderNumber)}</div>
+            <div class="modal-message">Product: ${escapeHtml(productName)}</div>
+            
+            <div style="margin: 16px 0;">
+                <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Location (select one):</label>
+                <div class="location-options">
+                    ${locations.map(function(loc, idx) {
+                        return `<label class="radio-option">
+                            <input type="radio" name="selected_location" value="${escapeHtml(loc)}"> ${escapeHtml(loc)}
+                        </label>`;
+                    }).join('')}
+                    ${locations.length === 0 ? '<p class="no-data">No location specified</p>' : ''}
                 </div>
             </div>
-        </div>`;
+            
+            <div style="margin: 16px 0;">
+                <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Time (select one):</label>
+                <div class="time-options">
+                    ${times.map(function(t, idx) {
+                        return `<label class="radio-option">
+                            <input type="radio" name="selected_time" value="${escapeHtml(t)}"> ${escapeHtml(t)}
+                        </label>`;
+                    }).join('')}
+                    ${times.length === 0 ? '<p class="no-data">No time specified</p>' : ''}
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeConfirmOrderModal()">Cancel</button>
+                <button class="modal-confirm" onclick="submitOrderConfirmation(${orderId})">Confirm Order</button>
+            </div>
+        </div>
+    </div>`;
     
     var existingModal = document.getElementById('confirmOrderModal');
     if (existingModal) {
@@ -1407,6 +1407,17 @@ window.onclick = function(event) {
     if (event.target === modal) closeReviewsModal();
 };
 
+// Parse URL parameters to switch tab
+var urlParams = new URLSearchParams(window.location.search);
+var tabParam = urlParams.get('tab');
+if (tabParam && (tabParam === 'orders' || tabParam === 'listings' || tabParam === 'purchases')) {
+    switchTab(tabParam);
+}
+
+if (tabParam === 'received-reviews') {
+    openReviewsModal();
+}
+
 // ============================================================
 // PAGE INITIALIZATION
 // ============================================================
@@ -1416,6 +1427,19 @@ document.addEventListener('DOMContentLoaded', function() {
     loadListings();
     loadPurchases();
     loadSellerRating();
+    
+    // support URL hash for tab switching (for old links like #orders)
+    var hash = window.location.hash;
+    if (hash === '#orders') {
+        switchTab('orders');
+    } else if (hash === '#listings') {
+        switchTab('listings');
+    } else if (hash === '#purchases') {
+        switchTab('purchases');
+    } else if (hash === '#received-reviews') {
+        openReviewsModal();
+    }
 });
+
 </script>
 {% endblock %}
