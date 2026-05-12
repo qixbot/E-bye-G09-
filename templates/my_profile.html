@@ -110,6 +110,9 @@
                 <button class="pf-tab" id="tab-purchases" onclick="switchTab('purchases')">
                     🛍️ My Purchases <span class="pf-tab-count" id="cnt-purchases">0</span>
                 </button>
+                <button class="pf-tab" id="tab-orders" onclick="switchTab('orders')">
+                    📋 My Orders <span class="pf-tab-count" id="cnt-orders">0</span>
+            </button>
             </div>
 
             <div class="pf-pane on" id="pane-listings">
@@ -121,6 +124,12 @@
             <div class="pf-pane" id="pane-purchases">
                 <div class="pf-list" id="purchases-list">
                     <div class="loading-state">🛍️ Loading your purchases...</div>
+                </div>
+            </div>
+
+            <div class="pf-pane" id="pane-orders">
+                <div class="pf-list" id="orders-list">
+                    <div class="loading-state">📋 Loading your orders...</div>
                 </div>
             </div>
         </div>
@@ -278,6 +287,7 @@ function switchTab(name) {
     document.getElementById('pane-' + name).classList.add('on');
     if (name === 'listings') loadListings();
     if (name === 'purchases') loadPurchases();
+    if (name === 'orders') loadOrders();
 }
 
 // ============================================================
@@ -348,19 +358,19 @@ function loadListings() {
                 var offerBtn = '';
                 var editDeleteBtns = '';
                 
-                // 只有 approved 状态的产品才显示 Offers 按钮
+                // Only approved products display the Offers button
                 if (item.status === 'approved') {
                     offerBtn = '<button class="offer-view-btn" onclick="event.stopPropagation();viewOffers(' + item.id + ', \'' + escapeHtml(item.name).replace(/\'/g,"\\\'") + '\')">💰 Offers</button>';
                 }
                 
-                // 已售出的产品 (sold) 不能编辑和删除
+                // Sold products are displayed with a "Sold" tag, and the edit/delete buttons are not shown
                 if (item.status !== 'sold') {
                     editDeleteBtns = `
                         <button class="edit-product-btn" onclick="editListing(${item.id})">✏️ Edit</button>
                         <button class="delete-product-btn" onclick="deleteListing(${item.id}, '${escapeHtml(item.name).replace(/\'/g,"\\\'")}')">🗑️</button>
                     `;
                 } else {
-                    // 已售出的产品显示已售标签，不显示编辑删除按钮
+                    //Sold products are displayed with a "Sold" tag, and the edit/delete buttons are not shown.
                     editDeleteBtns = '<span class="sold-label">✅ Sold</span>';
                 }
 
@@ -457,6 +467,259 @@ function loadPurchases() {
         .catch(function() {
             container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load purchases</div></div>';
         });
+}
+
+// ============================================================
+// LOAD MY Orders
+// ============================================================
+function loadOrders() {
+    var container = document.getElementById('orders-list');
+    var countSpan = document.getElementById('cnt-orders');
+    container.innerHTML = '<div class="loading-state">📋 Loading your orders...</div>';
+    
+    fetch('/api/user/orders', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var asBuyer = data.as_buyer || [];
+            var asSeller = data.as_seller || [];
+            var totalOrders = asBuyer.length + asSeller.length;
+
+            if(countSpan) countSpan.textContent = totalOrders;
+
+            if(totalOrders === 0) {
+                container.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><div class="empty-title">No orders yet</div><div class="empty-sub">Your orders will appear here</div></div>';
+                return;
+            }
+
+            var html = '';
+
+            //as seller orers(need seller to manage the order)
+            if(asSeller.length > 0) {
+                html += '<div class="orders-section"><h4>📦 Orders I need to Process</h4>';
+
+                    for (var i = 0; i < asSeller.length; i++) {
+                    html += renderOrderCard(asSeller[i], 'seller');
+                }
+                html += '</div>';
+            }
+
+            //as buyer orders (buyer can only view the order status)
+            if(asBuyer.length > 0) {
+                html += '<div class="orders-section"><h4>🛒 My Purchases</h4>';
+                for (var j = 0; j < asBuyer.length; j++) {
+                    html += renderOrderCard(asBuyer[j], 'buyer');
+                }
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+        })
+        .catch(function(err) {
+            console.error('Load orders error:', err);
+            container.innerHTML = '<div class="empty-state">⚠️ Failed to load orders</div>';
+        });
+}
+
+function renderOrderCard(order,role){
+    var status = order.status;
+    var statusText = getStatusText(status);
+    var statusClass= getStatusClass(status);
+
+    var actionButtons = '';
+    var meetupInfo='';
+
+    if (order.meeting_point) {
+        meetupInfo = '<div>📍 Meetup: ' + escapeHtml(order.meeting_point) + '</div>';
+    }
+
+    if(role=='seller'){
+        if(status === 'pending'){
+            actionButtons = '<button class="order-action-btn confirm-btn" onclick="openConfirmOrderModal(' + order.id + ', \'' + escapeHtml(order.order_number) + '\', \'' + escapeHtml(order.product_name) + '\', \'' + escapeHtml(order.meeting_point || '') + '\', \'' + escapeHtml(order.meeting_time || '') + '\')">✅ Confirm Order</button>';
+        } else if (status === 'confirmed') {
+            actionButtons = '<button class="order-action-btn deliver-btn" onclick="updateOrderStatus(' + order.id + ', \'delivered\')">🚚 Mark as Delivered</button>';
+        } else if (status === 'delivered') {
+            actionButtons = '<span class="order-status-badge waiting">⏳ Waiting for buyer to confirm</span>';
+        } else if (status === 'completed') {
+            actionButtons = '<span class="order-status-badge completed">✅ Completed</span>';
+        } else if (status === 'cancelled') {
+            actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
+        }
+    } else if (role === 'buyer') {
+        // buyer can only confirm receipt or leave review based on order status
+        if (status === 'delivered') {
+            actionButtons = '<button class="order-action-btn complete-btn" onclick="confirmOrderCompletion(' + order.id + ')">✅ Confirm Received</button>';
+        } else if (status === 'completed') {
+            actionButtons = '<button class="order-action-btn review-btn" onclick="openReviewModal(' + order.id + ', \'' + escapeHtml(order.product_name) + '\')">⭐ Leave Review</button>';
+        } else if (status === 'pending') {
+            actionButtons = '<span class="order-status-badge waiting">⏳ Awaiting seller confirmation</span>';
+        } else if (status === 'cancelled') {
+            actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
+        } else {
+            actionButtons = '<span class="order-status-badge ' + status + '">' + statusText + '</span>';
+        }
+    }
+    
+    return
+    <div class="order-card">
+            <div class="order-header">
+                <div class="order-number">#${escapeHtml(order.order_number)}</div>
+                <div class="order-status ${statusClass}">${statusText}</div>
+            </div>
+            <div class="order-product">
+                <div class="order-product-name">📦 ${escapeHtml(order.product_name)}</div>
+                <div class="order-price">RM ${parseFloat(order.offer_price).toFixed(2)}</div>
+            </div>
+            <div class="order-meta">
+                <div>👤 ${role === 'buyer' ? 'Seller: @' + escapeHtml(order.seller_name) : 'Buyer: @' + escapeHtml(order.buyer_name)}</div>
+                ${meetupInfo}
+                <div>📅 ${order.created_at ? order.created_at.split(' ')[0] : ''}</div>
+            </div>
+            <div class="order-actions">
+                ${actionButtons}
+            </div>
+        </div>
+    `;
+}
+
+function getStatusText(status) {
+    switch(status) {
+        case 'pending': return '⏳ Pending';
+        case 'confirmed': return '✅ Confirmed';
+        case 'delivered': return '🚚 Delivered';
+        case 'completed': return '✨ Completed';
+        case 'cancelled': return '❌ Cancelled';
+        default: return escapeHtml(status || '');
+    };
+    return statusMap[status] || status;
+}
+
+function getStatusClass(status) {
+    switch(status) {
+        case 'pending': return 'pending';
+        case 'confirmed': return 'confirmed';
+        case 'delivered': return 'delivered';
+        case 'completed': return 'completed';
+        case 'cancelled': return 'cancelled';
+        default: return '';
+    };
+    return classMap[status] || '';
+}
+
+function updateOrderStatus(orderId, newStatus) {
+    showToastMessage('Updating order status...', 'info');
+    fetch('/api/order/' + orderId + '/update_status', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Order status updated to ' + newStatus + '!', 'success');
+            loadOrders();
+            loadListings(); //refresh listings to update any status badges if needed
+        } else {
+            throw new Error(data.error || 'Failed to update status');
+        }
+    })
+    .catch(function(err) { 
+    showToastMessage('Error: ' + err.message, 'error'); 
+    });
+}
+
+function confirmOrderCompletion(orderId) {
+    if (!confirm('Have you received the item? Confirming will complete the order.')) return;
+    updateOrderStatus(orderId, 'completed');
+}
+
+function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocations, meetingTimes) {
+    var locations = meetupLocations ? meetupLocations.split(',') : [];
+    var times = meetingTimes ? meetingTimes.split(',') : [];
+    
+    var modalHtml= <div id="confirmOrderModal" class="custom-modal">
+            <div class="modal-card" style="max-width: 500px;">
+                <div class="modal-icon">📋</div>
+                <div class="modal-title">Confirm Order #${escapeHtml(orderNumber)}</div>
+                <div class="modal-message">Product: ${escapeHtml(productName)}</div>
+                
+                <div style="margin: 16px 0;">
+                    <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Location (select one):</label>
+                    <div class="location-options">
+                        ${locations.map(function(loc, idx) {
+                            return `<label class="radio-option">
+                                <input type="radio" name="selected_location" value="${escapeHtml(loc)}"> ${escapeHtml(loc)}
+                            </label>`;
+                        }).join('')}
+                        ${locations.length === 0 ? '<p class="no-data">No location specified</p>' : ''}
+                    </div>
+                </div>
+                
+                <div style="margin: 16px 0;">
+                    <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Time (select one):</label>
+                    <div class="time-options">
+                        ${times.map(function(t, idx) {
+                            return `<label class="radio-option">
+                                <input type="radio" name="selected_time" value="${escapeHtml(t)}"> ${escapeHtml(t)}
+                            </label>`;
+                        }).join('')}
+                        ${times.length === 0 ? '<p class="no-data">No time specified</p>' : ''}
+                    </div>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button class="modal-cancel" onclick="closeConfirmOrderModal()">Cancel</button>
+                    <button class="modal-confirm" onclick="submitOrderConfirmation(${orderId})">Confirm Order</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    var existingModal = document.getElementById('confirmOrderModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+function closeConfirmOrderModal() {
+    var modal = document.getElementById('confirmOrderModal');
+    if (modal) modal.remove();
+}
+
+function submitOrderConfirmation(orderId) {
+    var selectedLocation = document.querySelector('input[name="selected_location"]:checked');
+    var selectedTime = document.querySelector('input[name="selected_time"]:checked');
+    
+    if (!selectedLocation || !selectedTime) {
+        showToastMessage('Please select a location and time', 'error');
+        return;
+    }
+    
+    showToastMessage('Confirming order...', 'info');
+    
+    fetch('/api/order/' + orderId + '/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            meeting_point: selectedLocation.value,
+            meeting_time: selectedTime.value
+        }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Order confirmed!', 'success');
+            closeConfirmOrderModal();
+            loadOrders();
+            loadListings();
+        } else {
+            throw new Error(data.error);
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Failed: ' + err.message, 'error');
+    });
 }
 
 // ============================================================

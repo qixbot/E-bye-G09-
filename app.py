@@ -1020,6 +1020,54 @@ def api_user_listings():
     
     return jsonify(listings)
 
+
+# ============================================================
+# Eileen's route My order SYSTEM API ROUTES
+# ============================================================
+@app.route('/api/order/<int:order_id>/confirm', methods=['POST'])
+def api_confirm_order(order_id):
+    """Seller confirms order with selected meetup location/time"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    meeting_point = data.get('meeting_point')
+    meeting_time = data.get('meeting_time')
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    # Verify seller owns this order
+    cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s', 
+                (order_id, session['user_id']))
+    order = cur.fetchone()
+    
+    if not order:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Order not found'}), 404
+    
+    # Update order with confirmed meeting details
+    cur.execute('''
+        UPDATE orders 
+        SET meeting_point = %s, meeting_time = %s, status = 'confirmed', updated_at = NOW()
+        WHERE id = %s
+    ''', (meeting_point, meeting_time, order_id))
+    
+    # Notify buyer
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'order', %s, 0)
+    ''', (order['buyer_id'], 
+          f" Order #{order['order_number']} has been CONFIRMED by seller! Meeting at: {meeting_point} on {meeting_time}",
+          order_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
+
 # ============================================================
 # Eileen's route OFFER SYSTEM API ROUTES
 # ============================================================
