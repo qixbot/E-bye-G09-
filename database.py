@@ -1,8 +1,15 @@
 import os
+
 import psycopg2
+
+from psycopg2 import pool
+
 import time
+
 import logging
+
 from psycopg2.extras import RealDictCursor
+
 from werkzeug.security import generate_password_hash
 
 logging.basicConfig(level=logging.INFO)
@@ -12,18 +19,35 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
 
+connection_pool = None
+
+def init_connection_pool():
+    global connection_pool
+    if connection_pool is None:
+        try:
+            connection_pool = psycopg2.pool.SimpleConnectionPool(
+                1, 10,           # min 1, max 10 (leaves room for other connections)
+                DATABASE_URL,
+                connect_timeout=30,
+                keepalives=1,
+                keepalives_idle=5,
+                keepalives_interval=2,
+                keepalives_count=2,
+                sslmode='require'
+            )
+            logger.info("✅ Connection pool created (max: 10 connections)")
+        except Exception as e:
+            logger.error(f"Failed to create connection pool: {e}")
+            raise
+    return connection_pool
+
 def get_db():
-    """Get database connection with SSL and keepalive parameters"""
+    """Get a connection from the pool (must be paired with return_db)."""
+    global connection_pool
+    if connection_pool is None:
+        init_connection_pool()
     try:
-        conn = psycopg2.connect(
-            DATABASE_URL,
-            connect_timeout=30,
-            keepalives=1,
-            keepalives_idle=5,
-            keepalives_interval=2,
-            keepalives_count=2,
-            sslmode='require'
-        )
+        conn = connection_pool.getconn()
         conn.cursor_factory = RealDictCursor
         return conn
     except Exception as e:
@@ -31,53 +55,108 @@ def get_db():
         raise
 
 def get_db_with_retry(retries=3, delay=2):
-    """Get database connection with retry mechanism"""
+    """Get connection with retry on pool exhaustion."""
     for i in range(retries):
         try:
             return get_db()
         except Exception as e:
-            if i == retries - 1:
+            if "max clients reached" in str(e) and i < retries - 1:
+                wait = delay * (i + 1)
+                logger.warning(f"Pool full, retry {i+1}/{retries} in {wait}s...")
+                time.sleep(wait)
+                continue
+            elif i == retries - 1:
                 raise
-            logger.warning(f"Connection attempt {i+1} failed, retrying in {delay}s...")
             time.sleep(delay)
     return get_db()
 
-def add_missing_notification_columns():
-    """Add missing columns to notifications table if they don't exist"""
-    conn = get_db_with_retry()
-    cur = conn.cursor()
-    
-    try:
-        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general'")
-        print("✅ Added 'type' column to notifications")
-    except Exception as e:
-        print(f"Note: type column already exists or error: {e}")
-    
-    try:
-        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS related_id INTEGER")
-        print("✅ Added 'related_id' column to notifications")
-    except Exception as e:
-        print(f"Note: related_id column already exists or error: {e}")
-    
-    try:
-        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0")
-        print("✅ Added 'is_read' column to notifications")
-    except Exception as e:
-        print(f"Note: is_read column already exists or error: {e}")
-    
-    conn.commit()
-    cur.close()
-    conn.close()
-    print("✅ Notification columns check completed")
+def return_db(conn):
+    """Return connection to the pool (MUST be called after each get_db)."""
+    global connection_pool
+    if connection_pool and conn:
+        try:
+            connection_pool.putconn(conn)
+        except Exception as e:
+            logger.error(f"Error returning connection: {e}")
+            try:
+                conn.close()
+            except:
+                pass
 
-def init_db():
-    """Initialize all PostgreSQL tables"""
-    conn = None
+def close_all_connections():
+    global connection_pool
+    if connection_pool:
+        connection_pool.closeall()
+        logger.info("All database connections closed")
+
+# ----- Context manager for safe usage -----
+from contextlib import contextmanager
+
+@contextmanager
+def db_connection():
+    """Context manager that yields a connection and automatically returns it."""
+    conn = get_db_with_retry()
     try:
-        conn = get_db_with_retry()
+        yield conn
+    finally:
+        return_db(conn)
+
+@contextmanager
+def db_cursor():
+    """Context manager that yields a cursor and automatically returns connection."""
+    with db_connection() as conn:
+        cursor = conn.cursor()
+        try:
+            yield cursor, conn
+        finally:
+            cursor.close()
+
+# ----- Ensure missing columns exist -----
+def ensure_columns():
+    """Add any missing columns (e.g., rating_service) to prevent 500 errors."""
+    with db_connection() as conn:
+        cur = conn.cursor()
+        # Reviews table columns
+        review_cols = [
+            ('rating_service', 'INTEGER DEFAULT 0'),
+            ('rating_shipping', 'INTEGER DEFAULT 0'),
+            ('rating_quality', 'INTEGER DEFAULT 0'),
+            ('rating_overall', 'INTEGER DEFAULT 0'),
+        ]
+        for col, dtype in review_cols:
+            cur.execute(f"""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name='reviews' AND column_name='{col}'
+            """)
+            if not cur.fetchone():
+                cur.execute(f"ALTER TABLE reviews ADD COLUMN {col} {dtype}")
+                logger.info(f"Added column {col} to reviews")
+        # Users table additional columns
+        user_cols = [
+            ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
+            ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
+            ('avg_quality_rating', 'DECIMAL(3,2) DEFAULT 0'),
+            ('avg_overall_rating', 'DECIMAL(3,2) DEFAULT 0'),
+            ('total_reviews', 'INTEGER DEFAULT 0'),
+        ]
+        for col, dtype in user_cols:
+            cur.execute(f"""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name='users' AND column_name='{col}'
+            """)
+            if not cur.fetchone():
+                cur.execute(f"ALTER TABLE users ADD COLUMN {col} {dtype}")
+                logger.info(f"Added column {col} to users")
+        conn.commit()
+        cur.close()
+
+# ----- Table initialization -----
+def init_db():
+    """Create all tables if they don't exist."""
+    with db_connection() as conn:
         cur = conn.cursor()
 
-        # Users table
+        # Users
         cur.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -119,7 +198,7 @@ def init_db():
             )
         ''')
 
-        # Notifications table
+        # Notifications
         cur.execute('''
             CREATE TABLE IF NOT EXISTS notifications (
                 id SERIAL PRIMARY KEY,
@@ -133,7 +212,7 @@ def init_db():
             )
         ''')
 
-        # Products table
+        # Products
         cur.execute('''
             CREATE TABLE IF NOT EXISTS products (
                 id SERIAL PRIMARY KEY,
@@ -151,7 +230,7 @@ def init_db():
             )
         ''')
 
-        # Messages table
+        # Messages
         cur.execute('''
             CREATE TABLE IF NOT EXISTS messages (
                 id SERIAL PRIMARY KEY,
@@ -166,7 +245,7 @@ def init_db():
             )
         ''')
 
-        # Offers table
+        # Offers
         cur.execute('''
             CREATE TABLE IF NOT EXISTS offers (
                 id SERIAL PRIMARY KEY,
@@ -181,7 +260,7 @@ def init_db():
             )
         ''')
 
-        # Announcements table
+        # Announcements
         cur.execute('''
             CREATE TABLE IF NOT EXISTS announcements (
                 id SERIAL PRIMARY KEY,
@@ -191,7 +270,7 @@ def init_db():
             )
         ''')
 
-        # Reviews table
+        # Reviews
         cur.execute('''
             CREATE TABLE IF NOT EXISTS reviews (
                 id SERIAL PRIMARY KEY,
@@ -208,7 +287,7 @@ def init_db():
             )
         ''')
 
-        # Reports table
+        # Reports
         cur.execute('''
             CREATE TABLE IF NOT EXISTS reports (
                 id SERIAL PRIMARY KEY,
@@ -222,7 +301,7 @@ def init_db():
             )
         ''')
 
-        # Orders table
+        # Orders
         cur.execute('''
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
@@ -242,7 +321,7 @@ def init_db():
             )
         ''')
 
-        # Create default admin user
+        # Default admin
         admin_email = 'admin@student.mmu.edu.my'
         admin_password = generate_password_hash('Admin123!')
         cur.execute("SELECT id FROM users WHERE email = %s", (admin_email,))
@@ -254,73 +333,18 @@ def init_db():
 
         conn.commit()
         cur.close()
-        conn.close()
-        print("✅ All tables ready in PostgreSQL")
-        
-    except Exception as e:
-        logger.error(f"init_db failed: {e}")
-        if conn:
-            conn.close()
-        raise
 
-def add_review_columns():
-    """Add rating columns to existing tables (for multi-dimensional reviews)"""
-    conn = get_db_with_retry()
-    cur = conn.cursor()
-    
-    user_columns = [
-        ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
-        ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
-        ('avg_quality_rating', 'DECIMAL(3,2) DEFAULT 0'),
-        ('avg_overall_rating', 'DECIMAL(3,2) DEFAULT 0'),
-        ('total_reviews', 'INTEGER DEFAULT 0'),
-    ]
-    
-    for col_name, col_def in user_columns:
-        try:
-            cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-            print(f"✅ Added column {col_name} to users")
-        except Exception as e:
-            print(f"Could not add {col_name}: {e}")
-    
-    review_columns = [
-        ('rating_service', 'INTEGER DEFAULT 0'),
-        ('rating_shipping', 'INTEGER DEFAULT 0'),
-        ('rating_quality', 'INTEGER DEFAULT 0'),
-        ('rating_overall', 'INTEGER DEFAULT 0'),
-    ]
-    
-    for col_name, col_def in review_columns:
-        try:
-            cur.execute(f"ALTER TABLE reviews ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-            print(f"✅ Added column {col_name} to reviews")
-        except Exception as e:
-            print(f"Could not add {col_name}: {e}")
-    
-    conn.commit()
-    cur.close()
-    conn.close()
-    print("✅ Review columns added successfully")
+    # Ensure missing columns exist
+    ensure_columns()
 
-# Empty functions for compatibility
-def init_products():
-    pass
-
-def init_messages():
-    pass
-
-def init_announcements():
-    pass
-
-def init_reviews():
-    pass
-
-def init_orders():
-    pass
-
-def init_reports():
-    pass
+# Compatibility stubs
+def init_products(): pass
+def init_messages(): pass
+def init_announcements(): pass
+def init_reviews(): pass
+def init_orders(): pass
+def init_reports(): pass
 
 if __name__ == '__main__':
-    add_review_columns()
-    add_missing_notification_columns()
+    init_connection_pool()
+    init_db()
