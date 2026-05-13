@@ -124,16 +124,17 @@ def init_db():
 
         # Notifications table (with type, related_id, and is_read included)
         cur.execute('''
-            CREATE TABLE IF NOT EXISTS notifications (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL REFERENCES users(id),
-                message TEXT NOT NULL,
-                is_read INTEGER DEFAULT 0,
-                type TEXT DEFAULT 'general',
-                related_id INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+             CREATE TABLE IF NOT EXISTS notifications (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            message TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            type TEXT DEFAULT 'general',
+            related_id INTEGER,
+            product_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        ''')
+            ''')
 
         # Products table
         cur.execute('''
@@ -241,6 +242,21 @@ def init_db():
                 updated_at TIMESTAMP
             )
         ''')
+
+        # ========== 添加 product_id 列到 notifications 表 ==========
+        try:
+            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS product_id INTEGER")
+            print("✅ Added 'product_id' column to notifications")
+        except Exception as e:
+            print(f"Note: Could not add product_id column: {e}")
+
+        # ========== 添加 last_reminder_sent 列到 orders 表 ==========
+        try:
+            cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS last_reminder_sent TIMESTAMP")
+            print("✅ Added 'last_reminder_sent' column to orders")
+        except Exception as e:
+            print(f"Note: Could not add last_reminder_sent column: {e}")
+
 
         # Create default admin user
         admin_email = 'admin@student.mmu.edu.my'

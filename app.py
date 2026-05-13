@@ -446,7 +446,21 @@ def register():
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (student_id, email, username, hashed_password, gender,
               q1, a1, q2, a2))
+        
         db.commit()
+        
+        # Get the new user's ID for welcome notification
+        cur.execute('SELECT id FROM users WHERE email = %s', (email,))
+        new_user = cur.fetchone()
+        
+        # Add Welcome Notification
+        if new_user:
+            create_notification(
+                user_id=new_user['id'],
+                message='🎉 Welcome to E-bye! Complete your profile to increase your trust score.',
+                notif_type='welcome'
+            )
+        
         cur.close()
         db.close()
 
@@ -1755,6 +1769,40 @@ def api_buy_now():
     
     return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
 
+def create_notification(user_id, message, notif_type, related_id=None, product_id=None):
+    """统一的创建通知函数"""
+    try:
+        db = get_db()
+        cur = db.cursor()
+        cur.execute('''
+            INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
+            VALUES (%s, %s, NOW(), %s, %s, %s, 0)
+        ''', (user_id, message, notif_type, related_id, product_id))
+        db.commit()
+        cur.close()
+        db.close()
+        return True
+    except Exception as e:
+        print(f"Create notification error: {e}")
+        return False
+        
+def create_notification(user_id, message, notif_type, related_id=None, product_id=None):
+    """统一的创建通知函数"""
+    try:
+        db = get_db()
+        cur = db.cursor()
+        cur.execute('''
+            INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
+            VALUES (%s, %s, NOW(), %s, %s, %s, 0)
+        ''', (user_id, message, notif_type, related_id, product_id))
+        db.commit()
+        cur.close()
+        db.close()
+        return True
+    except Exception as e:
+        print(f"Create notification error: {e}")
+        return False
+    
 @app.route('/notifications')
 def notifications_page():
     if 'user_id' not in session:
@@ -1986,6 +2034,26 @@ def api_update_product(product_id):
         SET name = %s, price = %s, description = %s, condition = %s, category = %s, status = 'pending'
         WHERE id = %s
     ''', (name, price, description, condition, category, product_id))
+
+    # 插入数据库后，获取新商品ID
+    cur.execute('''
+        INSERT INTO products (seller_id, name, price, description, condition, category, images, images_blob, created_at, status)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s) RETURNING id
+    ''', (seller_id, name, price_val, description, condition, category, images_string, images_json, 'pending'))
+    
+    new_product_id = cur.fetchone()['id']  # 获取新插入的ID
+    
+    db.commit()
+    
+    # ========== 添加通知：商品上传成功 ==========
+    create_notification(
+        user_id=seller_id,
+        message=f'✅ Product "{name}" submitted. Awaiting admin approval (usually within 1 business day).',
+        notif_type='product_uploaded',
+        related_id=new_product_id,
+        product_id=new_product_id
+    )
+
     db.commit()
     cur.close()
     db.close()
@@ -2836,6 +2904,11 @@ def approve_product(pid):
 
     db = get_db()
     cur = db.cursor()
+    
+    # 获取商品信息（用于通知）
+    cur.execute('SELECT seller_id, name FROM products WHERE id = %s', (pid,))
+    product = cur.fetchone()
+    
     cur.execute('''
         UPDATE products
         SET status = 'approved', reject_reason = ''
@@ -2843,6 +2916,17 @@ def approve_product(pid):
     ''', (pid,))
 
     db.commit()
+    
+    # ========== 添加通知：商品审核通过 ==========
+    if product:
+        create_notification(
+            user_id=product['seller_id'],
+            message=f'🎉 Product "{product["name"]}" has been APPROVED and is now live!',
+            notif_type='product_approved',
+            related_id=pid,
+            product_id=pid
+        )
+    
     cur.close()
     db.close()
 
@@ -2864,6 +2948,11 @@ def reject_product(pid):
 
     db = get_db()
     cur = db.cursor()
+    
+    # 获取商品信息（用于通知）
+    cur.execute('SELECT seller_id, name FROM products WHERE id = %s', (pid,))
+    product = cur.fetchone()
+    
     cur.execute('''
         UPDATE products
         SET status = 'rejected', reject_reason = %s
@@ -2871,6 +2960,17 @@ def reject_product(pid):
     ''', (reject_reason, pid))
 
     db.commit()
+    
+    # ========== 添加通知：商品审核拒绝 ==========
+    if product:
+        create_notification(
+            user_id=product['seller_id'],
+            message=f'❌ Product "{product["name"]}" was REJECTED. Reason: {reject_reason}. You can edit and resubmit.',
+            notif_type='product_rejected',
+            related_id=pid,
+            product_id=pid
+        )
+    
     cur.close()
     db.close()
 
@@ -3096,27 +3196,34 @@ def handle_report(report_id, action):
 
     if action == 'dismiss':
         cur.execute("UPDATE reports SET status = 'dismissed' WHERE id = %s", (report_id,))
-        cur.execute("""
-            INSERT INTO notifications (user_id, message, created_at)
-            VALUES (%s, %s, NOW())
-        """, (report['reporter_id'],
-              f"📋 Your report has been reviewed and DISMISSED by admin.\nNo action was taken."))
+        
+        # ========== 通知举报者：举报被驳回 ==========
+        create_notification(
+            user_id=report['reporter_id'],
+            message=f'📋 Your report has been reviewed and DISMISSED by admin. No action was taken.',
+            notif_type='report_dismissed',
+            related_id=report_id
+        )
               
     elif action == 'block':
         cur.execute("UPDATE users SET is_blocked = 1 WHERE id = %s", (report['reported_user_id'],))
         cur.execute("UPDATE reports SET status = 'resolved' WHERE id = %s", (report_id,))
         
-        cur.execute("""
-            INSERT INTO notifications (user_id, message, created_at)
-            VALUES (%s, %s, NOW())
-        """, (report['reported_user_id'],
-              f"🚫 Your account has been BLOCKED due to user reports.\nIf you believe this is a mistake, please contact admin."))
+        # ========== 通知被举报用户：被封禁 ==========
+        create_notification(
+            user_id=report['reported_user_id'],
+            message=f'🚫 Your account has been BLOCKED due to user reports. Please contact admin if you believe this is a mistake.',
+            notif_type='block',
+            related_id=report_id
+        )
         
-        cur.execute("""
-            INSERT INTO notifications (user_id, message, created_at)
-            VALUES (%s, %s, NOW())
-        """, (report['reporter_id'],
-              f" Your report has been reviewed. The reported user has been BLOCKED.\nThank you!"))
+        # ========== 通知举报者：举报成功 ==========
+        create_notification(
+            user_id=report['reporter_id'],
+            message=f'✅ Your report has been verified. The reported user has been BLOCKED. Thank you for helping keep our community safe!',
+            notif_type='report_resolved',
+            related_id=report_id
+        )
 
     db.commit()
     cur.close()
@@ -3332,46 +3439,35 @@ def report_user(user_id):
     
     db = get_db()
     cur = db.cursor()
+    
+    # 获取被举报用户信息
+    cur.execute('SELECT username FROM users WHERE id = %s', (user_id,))
+    reported_user = cur.fetchone()
+    
     cur.execute('''
         INSERT INTO reports (reporter_id, reported_user_id, reason, details)
         VALUES (%s, %s, %s, %s)
     ''', (session['user_id'], user_id, reason, details))
     db.commit()
+    
+    # ========== 添加通知：举报用户成功 ==========
+    create_notification(
+        user_id=session['user_id'],
+        message=f'📋 You reported user @{reported_user["username"]} for: {reason}. Admin will review within 1-3 business days.',
+        notif_type='report_submitted'
+    )
+    
+    # 通知被举报用户
+    create_notification(
+        user_id=user_id,
+        message=f'⚠️ You received a report: {reason}. Please follow community guidelines. Repeated violations will result in account restrictions.',
+        notif_type='report_warning'
+    )
+    
     cur.close()
     db.close()
     
     return jsonify({'success': True})
-
-@app.route('/api/user/<int:user_id>/status')
-def user_status(user_id):
-    db = get_db()
-    cur = db.cursor()
-    cur.execute('SELECT last_seen FROM users WHERE id = %s', (user_id,))
-    user = cur.fetchone()
-    cur.close()
-    db.close()
-    
-    if not user or not user.get('last_seen'):
-        return jsonify({'online': False, 'last_seen': 'Unknown'})
-    
-    from datetime import timezone, timedelta
-    malaysia_tz = timezone(timedelta(hours=8))
-    
-    last_seen = user['last_seen']
-    if isinstance(last_seen, str):
-        last_dt = datetime.strptime(last_seen[:19], '%Y-%m-%d %H:%M:%S')
-    else:
-        last_dt = last_seen
-    
-    # 转马来西亚时间
-    last_dt = last_dt.replace(tzinfo=timezone.utc).astimezone(malaysia_tz)
-    diff = (datetime.now(timezone.utc).astimezone(malaysia_tz) - last_dt).seconds
-    online = diff < 300
-    
-    return jsonify({
-        'online': online,
-        'last_seen': last_dt.strftime('%Y-%m-%d %H:%M:%S')
-    })
 
 @app.route('/api/user/<int:user_id>/listings')
 def api_user_other_listings(user_id):
@@ -3803,20 +3899,47 @@ def product_detail(product_id):
 def api_report_product(product_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
     data = request.get_json()
     reason = data.get('reason', '').strip()
     details = data.get('details', '').strip()
+    
     if not reason:
         return jsonify({'success': False, 'error': 'Reason required'}), 400
+    
     db = get_db()
     cur = db.cursor()
+    
+    # 获取商品信息
+    cur.execute('SELECT name, seller_id FROM products WHERE id = %s', (product_id,))
+    product = cur.fetchone()
+    
     cur.execute('''
         INSERT INTO reports (reporter_id, product_id, reason, details)
         VALUES (%s, %s, %s, %s)
     ''', (session['user_id'], product_id, reason, details))
     db.commit()
+    
+    # ========== 添加通知：举报商品成功 ==========
+    if product:
+        create_notification(
+            user_id=session['user_id'],
+            message=f'📋 You reported product "{product["name"]}" for: {reason}. Admin will review within 1-3 business days.',
+            notif_type='report_submitted',
+            product_id=product_id
+        )
+        
+        # 可选：通知卖家被举报
+        create_notification(
+            user_id=product['seller_id'],
+            message=f'⚠️ Your product "{product["name"]}" received a report: {reason}. Please ensure your listing follows guidelines.',
+            notif_type='report_warning',
+            product_id=product_id
+        )
+    
     cur.close()
     db.close()
+    
     return jsonify({'success': True, 'message': 'Report submitted'})
 
 # ============================================================
