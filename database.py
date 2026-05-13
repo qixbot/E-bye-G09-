@@ -4,6 +4,7 @@ import time
 import logging
 from psycopg2.extras import RealDictCursor
 from werkzeug.security import generate_password_hash
+from contextlib import contextmanager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -12,75 +13,75 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
 
+# 全局连接池
+_pool = None
+
+def _get_pool():
+    global _pool
+    if _pool is None:
+        from psycopg2 import pool
+        _pool = pool.SimpleConnectionPool(1, 10, DATABASE_URL, connect_timeout=10, sslmode='require')
+        print("✅ Connection pool ready (max 10 connections)")
+    return _pool
+
 def get_db():
-    """Get database connection with SSL and keepalive parameters"""
+    """获取数据库连接 - 从连接池获取"""
     try:
-        conn = psycopg2.connect(
-            DATABASE_URL,
-            connect_timeout=30,
-            keepalives=1,
-            keepalives_idle=5,
-            keepalives_interval=2,
-            keepalives_count=2,
-            sslmode='require'
-        )
+        conn = _get_pool().getconn()
         conn.cursor_factory = RealDictCursor
         return conn
     except Exception as e:
         logger.error(f"Database connection error: {e}")
         raise
 
+def return_db(conn):
+    """归还连接到池子"""
+    if conn and _pool:
+        try:
+            _get_pool().putconn(conn)
+        except:
+            pass
+
 def get_db_with_retry(retries=3, delay=2):
-    """Get database connection with retry mechanism"""
     for i in range(retries):
         try:
             return get_db()
         except Exception as e:
             if i == retries - 1:
                 raise
-            logger.warning(f"Connection attempt {i+1} failed, retrying in {delay}s...")
+            logger.warning(f"Connection attempt {i+1} failed, retrying...")
             time.sleep(delay)
     return get_db()
 
 def add_missing_notification_columns():
-    """Add missing columns to notifications table if they don't exist"""
     conn = get_db_with_retry()
     cur = conn.cursor()
-    
-    # Add type column
     try:
         cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general'")
         print("✅ Added 'type' column to notifications")
     except Exception as e:
         print(f"Note: type column already exists or error: {e}")
-    
-    # Add related_id column
     try:
         cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS related_id INTEGER")
         print("✅ Added 'related_id' column to notifications")
     except Exception as e:
         print(f"Note: related_id column already exists or error: {e}")
-    
-    # Add is_read column if not exists (already in CREATE TABLE but just in case)
     try:
         cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0")
         print("✅ Added 'is_read' column to notifications")
     except Exception as e:
         print(f"Note: is_read column already exists or error: {e}")
-    
     conn.commit()
     cur.close()
-    conn.close()
+    return_db(conn)
     print("✅ Notification columns check completed")
 
 def init_db():
-    """Initialize all PostgreSQL tables"""
     conn = None
     try:
         conn = get_db_with_retry()
         cur = conn.cursor()
 
-        # Users table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -122,21 +123,19 @@ def init_db():
             )
         ''')
 
-        # Notifications table (with type, related_id, and is_read included)
         cur.execute('''
-             CREATE TABLE IF NOT EXISTS notifications (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL REFERENCES users(id),
-            message TEXT NOT NULL,
-            is_read INTEGER DEFAULT 0,
-            type TEXT DEFAULT 'general',
-            related_id INTEGER,
-            product_id INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            CREATE TABLE IF NOT EXISTS notifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                message TEXT NOT NULL,
+                is_read INTEGER DEFAULT 0,
+                type TEXT DEFAULT 'general',
+                related_id INTEGER,
+                product_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-            ''')
+        ''')
 
-        # Products table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS products (
                 id SERIAL PRIMARY KEY,
@@ -154,7 +153,6 @@ def init_db():
             )
         ''')
 
-        # Messages table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS messages (
                 id SERIAL PRIMARY KEY,
@@ -169,7 +167,6 @@ def init_db():
             )
         ''')
 
-        # Offers table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS offers (
                 id SERIAL PRIMARY KEY,
@@ -184,7 +181,6 @@ def init_db():
             )
         ''')
 
-        # Announcements table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS announcements (
                 id SERIAL PRIMARY KEY,
@@ -194,7 +190,6 @@ def init_db():
             )
         ''')
 
-        # Reviews table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS reviews (
                 id SERIAL PRIMARY KEY,
@@ -211,7 +206,6 @@ def init_db():
             )
         ''')
 
-        # Reports table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS reports (
                 id SERIAL PRIMARY KEY,
@@ -224,7 +218,6 @@ def init_db():
             )
         ''')
 
-        # Orders table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
@@ -243,20 +236,17 @@ def init_db():
             )
         ''')
 
-        # ========== 添加 product_id 列到 notifications 表 ==========
         try:
             cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS product_id INTEGER")
             print("✅ Added 'product_id' column to notifications")
         except Exception as e:
             print(f"Note: Could not add product_id column: {e}")
 
-        # ========== 添加 last_reminder_sent 列到 orders 表 ==========
         try:
             cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS last_reminder_sent TIMESTAMP")
             print("✅ Added 'last_reminder_sent' column to orders")
         except Exception as e:
             print(f"Note: Could not add last_reminder_sent column: {e}")
-
 
         # Create default admin user
         admin_email = 'admin@student.mmu.edu.my'
@@ -270,21 +260,19 @@ def init_db():
 
         conn.commit()
         cur.close()
-        conn.close()
+        return_db(conn)
         print("✅ All tables ready in PostgreSQL")
         
     except Exception as e:
         logger.error(f"init_db failed: {e}")
         if conn:
-            conn.close()
+            return_db(conn)
         raise
 
 def add_review_columns():
-    """Add rating columns to existing tables (for multi-dimensional reviews)"""
     conn = get_db_with_retry()
     cur = conn.cursor()
     
-    # Add rating columns to users table
     user_columns = [
         ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
         ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
@@ -300,7 +288,6 @@ def add_review_columns():
         except Exception as e:
             print(f"Could not add {col_name}: {e}")
     
-    # Add rating columns to reviews table
     review_columns = [
         ('rating_service', 'INTEGER DEFAULT 0'),
         ('rating_shipping', 'INTEGER DEFAULT 0'),
@@ -317,11 +304,9 @@ def add_review_columns():
     
     conn.commit()
     cur.close()
-    conn.close()
+    return_db(conn)
     print("✅ Review columns added successfully")
 
-
-# Empty functions for compatibility with existing code
 def init_products():
     pass
 
@@ -340,8 +325,6 @@ def init_orders():
 def init_reports():
     pass
 
-
-# Run column additions when this file is executed directly
 if __name__ == '__main__':
     add_review_columns()
     add_missing_notification_columns()

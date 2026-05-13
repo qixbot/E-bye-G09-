@@ -21,10 +21,10 @@ from werkzeug.utils import secure_filename
 
 from dotenv import load_dotenv
 
+from database import init_db, get_db, init_products, init_messages, init_announcements, init_reviews, return_db
+
 # Load environment variables from .env file
 load_dotenv()
-
-from database import init_db, get_db, init_products, init_messages, init_announcements, init_reviews
 
 # Initialize SQLite database (creates tables if missing)
 init_db()
@@ -37,6 +37,7 @@ app.config['MAX_FORM_MEMORY_SIZE'] = 100 * 1024 * 1024
 # Fix: allow large base64 form fields (Werkzeug >=3.0 default is only 500KB)
 app.config['MAX_FORM_PARTS'] = 1000   
 # Fix: allow many form parts
+
 
 # ============================================================
 # Helper function for emoji (was missing)
@@ -187,7 +188,7 @@ def login():
         cur.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(%s)', (email,))
         user = cur.fetchone()
         cur.close()
-        db.close()
+        return_db(db)
         #keting part here
         if user and check_password_hash(user['password'], password):
             # ========== 1. 永久封禁检查 banned forever checking ==========
@@ -217,7 +218,7 @@ def login():
                     cur_auto.execute("UPDATE users SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL WHERE id = %s", (user['id'],))
                     db_auto.commit()
                     cur_auto.close()
-                    db_auto.close()
+                    return_db(db_auto)
             #Eileen's part
             # ========== Login Succesful ==========
             session['user_id'] = user['id']
@@ -233,7 +234,7 @@ def login():
                 cur.execute('UPDATE users SET remember_token = %s WHERE id = %s', (token, user['id']))
                 db.commit()
                 cur.close()
-                db.close()
+                return_db(db)
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', token, max_age=30*24*60*60, httponly=True, secure=False)
                 flash(' Login successful!', 'success')
@@ -244,7 +245,7 @@ def login():
                 cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (user['id'],))
                 db.commit()
                 cur.close()
-                db.close()
+                return_db(db)
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', '', expires=0)
                 flash(' Login successful!', 'success')
@@ -287,7 +288,7 @@ def auto_unfreeze_expired():
         
         db.commit()
         cur.close()
-        db.close()
+        return_db(db)
 
 @app.before_request
 def check_upcoming_meetings():
@@ -319,7 +320,8 @@ def check_upcoming_meetings():
         # cur.execute('UPDATE orders SET last_reminder_sent = NOW() WHERE id = %s', (ord['id'],))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
+
 #keting's part end
 
 @app.before_request
@@ -341,7 +343,7 @@ def check_remember_me():
         cur.execute('SELECT id, username, student_id FROM users WHERE remember_token = %s', (token,))
         user = cur.fetchone()
         cur.close()
-        db.close()
+        return_db(db)
         
         if user:
             session['user_id'] = user['id']
@@ -424,7 +426,7 @@ def register():
         existing = cur.fetchone()
         if existing:
             cur.close()
-            db.close()
+            return_db(db)
             flash('Student ID or Email already registered', 'error')
             return render_template('register.html')
 
@@ -433,7 +435,7 @@ def register():
         username_exists = cur.fetchone()
         if username_exists:
             cur.close()
-            db.close()
+            return_db(db)
             flash('Username already taken. Please choose another one.', 'error')
             return render_template('register.html')
 
@@ -462,7 +464,7 @@ def register():
             )
         
         cur.close()
-        db.close()
+        return_db(db)
 
         flash('Account created successfully! Please login.', 'success')
         return redirect(url_for('login'))
@@ -489,7 +491,7 @@ def home():
     ''')
     products_data = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
 
     products = []
     import json
@@ -662,7 +664,7 @@ def search():
     cur.execute(query, params)
     products_data = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
 
     # Process products (same as before)
     import json
@@ -715,7 +717,7 @@ def search():
         """, (like, like))
         user_results = cur_u.fetchall()
         cur_u.close()
-        db_u.close()
+        return_db(db_u)
 
     return render_template('search.html', products=products, user_results=user_results)
 
@@ -734,7 +736,7 @@ def avatar_image():
     cur.execute('SELECT avatar_blob FROM users WHERE id = %s', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
 
     if user and user['avatar_blob']:
 
@@ -773,7 +775,7 @@ def update_profile_avatar():
     cur.execute('UPDATE users SET avatar_blob = %s WHERE id = %s', (image_data, session['user_id']))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True})
 
@@ -788,7 +790,7 @@ def user_avatar(user_id):
     cur.execute('SELECT avatar_blob FROM users WHERE id = %s', (user_id,))
     user = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
     
     if user and user['avatar_blob']:
         avatar_data = bytes(user['avatar_blob']) if hasattr(user['avatar_blob'], 'tobytes') else user['avatar_blob']
@@ -827,7 +829,7 @@ def cover_image():
     cur.execute('SELECT cover_blob FROM users WHERE id = %s', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
 
     if user and user['cover_blob']:
         cover_data = bytes(user['cover_blob']) if hasattr(user['cover_blob'], 'tobytes') else user['cover_blob']
@@ -865,7 +867,7 @@ def update_cover():
                 (image_data, session['user_id']))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True})
 
@@ -891,7 +893,7 @@ def save_background_preset():
     ''', (bg_type, bg_value, session['user_id']))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True})
 
@@ -928,7 +930,7 @@ def upload_background():
     ''', ('image', bg_value, session['user_id']))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({
         'success': True,
@@ -949,7 +951,7 @@ def api_user_background():
     ''', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
 
     if user:
         return jsonify({
@@ -984,7 +986,7 @@ def api_user_purchases():
     ''', (session['user_id'],))
     rows = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
     
     purchases = []
     for row in rows:
@@ -1028,7 +1030,7 @@ def api_user_listings():
     """, (session['user_id'],))
     rows = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
     
     listings = []
     
@@ -1092,7 +1094,7 @@ def api_confirm_order(order_id):
     
     if not order:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Order not found'}), 404
     
     # Update order with confirmed meeting details
@@ -1112,7 +1114,7 @@ def api_confirm_order(order_id):
     
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True})
 
@@ -1133,7 +1135,7 @@ def get_product_offers(product_id):
     product = cur.fetchone()
     if not product or product['seller_id'] != session['user_id']:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'error': 'Unauthorized'}), 403
     
     cur.execute('''
@@ -1145,7 +1147,7 @@ def get_product_offers(product_id):
     ''', (product_id,))
     offers = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
     
     # Add offer_count to product for listing display
     offer_count = len(offers)
@@ -1170,7 +1172,7 @@ def get_product_offer_count(product_id):
     row = cur.fetchone()
     count = row['count'] if row else 0
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'count': count})
 
@@ -1197,13 +1199,13 @@ def send_offer(product_id):
     
     if not product:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Product not found'}), 404
     
     # Check if buyer is not the seller
     if product['seller_id'] == session['user_id']:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'You cannot make an offer on your own product'}), 400
     
     # Check if offer already exists
@@ -1212,7 +1214,7 @@ def send_offer(product_id):
     
     if existing:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'You already have a pending offer for this product'}), 400
     
     # Create offer
@@ -1240,7 +1242,7 @@ def send_offer(product_id):
     
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True, 'message': 'Offer sent successfully', 'offer_id': new_offer_id})
 
@@ -1263,12 +1265,12 @@ def api_accept_offer(offer_id):
 
     if not offer:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
 
     if offer['seller_id'] != session['user_id']:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
     # update offer status to accepted
@@ -1299,7 +1301,7 @@ def api_accept_offer(offer_id):
 
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True, 'offer_id': offer['id'], 'offer_price': offer['offer_price'],
                     'product_price': product_price, 'product_name': offer['product_name']})
@@ -1323,12 +1325,12 @@ def api_reject_offer(offer_id):
     
     if not offer:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     if offer['seller_id'] != session['user_id']:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     cur.execute("UPDATE offers SET status = 'rejected' WHERE id = %s", (offer_id,))
@@ -1351,7 +1353,7 @@ def api_reject_offer(offer_id):
     
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True})
 
@@ -1382,13 +1384,13 @@ def counter_offer(offer_id):
     
     if not offer:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     # Verify seller
     if offer['seller_id'] != session['user_id']:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Create counter offer (insert new offer or update)
@@ -1416,7 +1418,7 @@ def counter_offer(offer_id):
     
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True})
 
@@ -1441,13 +1443,13 @@ def accept_counter_offer(offer_id):
     
     if not offer:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
     # Verify buyer
     if offer['buyer_id'] != session['user_id']:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Save counter_price BEFORE the UPDATE (it will be set to NULL after)
@@ -1480,7 +1482,7 @@ def accept_counter_offer(offer_id):
     
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True})
 
@@ -1510,7 +1512,7 @@ def api_create_order_from_offer(offer_id):
     
     if not offer:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Offer not found or not accepted'}), 404
     
     import random
@@ -1550,7 +1552,7 @@ def api_create_order_from_offer(offer_id):
     
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
 
@@ -1572,7 +1574,7 @@ def api_get_offer_product_info(offer_id):
     ''', (offer_id, session['user_id'], session['user_id']))
     offer = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
     
     if not offer:
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
@@ -1609,7 +1611,7 @@ def api_get_offer_details(offer_id):
     
     offer = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
     
     if not offer:
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
@@ -1659,7 +1661,7 @@ def api_get_offer_details_for_checkout(offer_id):
     
     offer = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
     
     if not offer:
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
@@ -1723,12 +1725,12 @@ def api_buy_now():
     
     if not product:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Product not found'}), 404
     
     if product['seller_id'] == session['user_id']:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'You cannot buy your own product'}), 400
     
     import random
@@ -1760,31 +1762,14 @@ def api_buy_now():
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (session['user_id'],
-          f"✅ Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. Meetup: {', '.join(meetup_locations)}. Waiting for seller to confirm.",
+          f" Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. Meetup: {', '.join(meetup_locations)}. Waiting for seller to confirm.",
           'order_created', order_id))
     
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
-
-def create_notification(user_id, message, notif_type, related_id=None, product_id=None):
-    """统一的创建通知函数"""
-    try:
-        db = get_db()
-        cur = db.cursor()
-        cur.execute('''
-            INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
-            VALUES (%s, %s, NOW(), %s, %s, %s, 0)
-        ''', (user_id, message, notif_type, related_id, product_id))
-        db.commit()
-        cur.close()
-        db.close()
-        return True
-    except Exception as e:
-        print(f"Create notification error: {e}")
-        return False
         
 def create_notification(user_id, message, notif_type, related_id=None, product_id=None):
     """统一的创建通知函数"""
@@ -1797,7 +1782,7 @@ def create_notification(user_id, message, notif_type, related_id=None, product_i
         ''', (user_id, message, notif_type, related_id, product_id))
         db.commit()
         cur.close()
-        db.close()
+        return_db(db)
         return True
     except Exception as e:
         print(f"Create notification error: {e}")
@@ -1828,7 +1813,7 @@ def get_unread_notifications():
     
     notifications = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify([dict(n) for n in notifications])
 
@@ -1853,7 +1838,7 @@ def get_all_notifications():
     
     notifications = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify([dict(n) for n in notifications])
 
@@ -1881,7 +1866,7 @@ def mark_notifications_read():
     
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True})
 
@@ -1906,7 +1891,7 @@ def api_get_product(product_id):
     ''', (product_id, session['user_id']))
     product = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
 
     if not product:
         return jsonify({'error': 'Product not found'}), 404
@@ -1949,7 +1934,7 @@ def api_product_image(product_id, index):
     cur.execute('SELECT images_blob, images FROM products WHERE id = %s', (product_id,))
     row = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
 
     if not row:
         return '', 404
@@ -1999,13 +1984,12 @@ def api_update_product(product_id):
     
     if not product:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Product not found'}), 404
     
-    # for sold out product cannot edit
     if product['status'] == 'sold':
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Sold products cannot be edited'}), 400
 
     data = request.get_json()
@@ -2025,38 +2009,18 @@ def api_update_product(product_id):
 
     if errors:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': ', '.join(errors)}), 400
 
-    # Update product (status becomes pending again for admin review)
     cur.execute('''
         UPDATE products
         SET name = %s, price = %s, description = %s, condition = %s, category = %s, status = 'pending'
         WHERE id = %s
     ''', (name, price, description, condition, category, product_id))
-
-    # 插入数据库后，获取新商品ID
-    cur.execute('''
-        INSERT INTO products (seller_id, name, price, description, condition, category, images, images_blob, created_at, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s) RETURNING id
-    ''', (seller_id, name, price_val, description, condition, category, images_string, images_json, 'pending'))
     
-    new_product_id = cur.fetchone()['id']  # 获取新插入的ID
-    
-    db.commit()
-    
-    # ========== 添加通知：商品上传成功 ==========
-    create_notification(
-        user_id=seller_id,
-        message=f'✅ Product "{name}" submitted. Awaiting admin approval (usually within 1 business day).',
-        notif_type='product_uploaded',
-        related_id=new_product_id,
-        product_id=new_product_id
-    )
-
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True})
 
@@ -2078,13 +2042,13 @@ def api_update_product_full(product_id):
     
     if not product:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Product not found'}), 404
     
-    # for sold product cannot edit
+    # cannot edit sold product
     if product['status'] == 'sold':
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Sold products cannot be edited'}), 400
 
     name = request.form.get('name', '').strip()
@@ -2095,11 +2059,15 @@ def api_update_product_full(product_id):
     images_blob_json = request.form.get('images_blob', '')
 
     if not name or not price or not description:
+        cur.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Name, price and description required'}), 400
 
     try:
         price = float(price)
     except:
+        cur.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Invalid price'}), 400
 
     # Server-side media count limit
@@ -2109,6 +2077,8 @@ def api_update_product_full(product_id):
         try:
             blob_check = json.loads(images_blob_json)
             if isinstance(blob_check, list) and len(blob_check) > MAX_MEDIA:
+                cur.close()
+                return_db(db)
                 return jsonify({'success': False,
                                 'error': f'Maximum {MAX_MEDIA} media files allowed.'}), 400
         except Exception:
@@ -2144,6 +2114,7 @@ def api_update_product_full(product_id):
 
     images_str = ','.join(saved_filenames)
 
+    # Update product - ONLY UPDATE, NO INSERT
     cur.execute('''
         UPDATE products
         SET name = %s, price = %s, description = %s, condition = %s, category = %s,
@@ -2154,7 +2125,7 @@ def api_update_product_full(product_id):
     
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True})
 
@@ -2174,7 +2145,7 @@ def upload_product_images(product_id):
     
     if not product:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Product not found'}), 404
     
     # Get existing images
@@ -2192,7 +2163,7 @@ def upload_product_images(product_id):
             existing.append(filename)
     
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True, 'all_images': existing})
 
@@ -2215,19 +2186,19 @@ def api_delete_product(product_id):
     
     if not product:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Product not found'}), 404
     
     # cannot delete product have been sold out
     if product['status'] == 'sold':
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Sold products cannot be deleted'}), 400
     
     cur.execute('DELETE FROM products WHERE id = %s', (product_id,))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True})
 
@@ -2282,7 +2253,7 @@ def my_profile():
     # ========================================
 
     cur.close()
-    db.close()
+    return_db(db)
 
     return render_template(
         'my_profile.html',
@@ -2333,7 +2304,7 @@ def edit_profile():
         pass
 
     cur.close()
-    db.close()
+    return_db(db)
 
     return render_template(
         'edit_profile.html',
@@ -2358,7 +2329,7 @@ def api_user_is_admin():
     cur.execute('SELECT is_admin FROM users WHERE id = %s', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
     
     if user and user['is_admin'] == 1:
         return jsonify({'is_admin': True})
@@ -2380,7 +2351,7 @@ def switch_to_admin():
     cur.execute('SELECT is_admin, email, username FROM users WHERE id = %s', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
     
     if user and user['is_admin'] == 1:
         # Set admin session
@@ -2416,7 +2387,7 @@ def update_profile():
     existing = cur.fetchone()
     if existing:
         cur.close()
-        db.close()
+        return_db(db)
         flash('Username already taken', 'error')
         return redirect(url_for('edit_profile'))
 
@@ -2430,7 +2401,7 @@ def update_profile():
 
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     session['username'] = username
     flash('Profile updated successfully!', 'success')
@@ -2456,19 +2427,19 @@ def change_password():
 
     if not user:
         cur.close()
-        db.close()
+        return_db(db)
         flash('User not found', 'error')
         return redirect(url_for('edit_profile'))
 
     if not check_password_hash(user['password'], current_password):
         cur.close()
-        db.close()
+        return_db(db)
         flash('Current password is incorrect', 'error')
         return redirect(url_for('edit_profile'))
 
     if new_password != confirm_password:
         cur.close()
-        db.close()
+        return_db(db)
         flash('New passwords do not match', 'error')
         return redirect(url_for('edit_profile'))
 
@@ -2476,7 +2447,7 @@ def change_password():
     cur.execute('UPDATE users SET password = %s WHERE id = %s', (hashed, session['user_id']))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     flash('Password changed successfully!', 'success')
     return redirect(url_for('edit_profile'))
@@ -2504,7 +2475,7 @@ def delete_account():
 
     if not check_password_hash(user['password'], password):
         cur.close()
-        db.close()
+        return_db(db)
         flash('Password is incorrect', 'error')
         return redirect(url_for('edit_profile'))
 
@@ -2514,7 +2485,7 @@ def delete_account():
     cur.execute('DELETE FROM users WHERE id = %s', (session['user_id'],))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     session.clear()
 
@@ -2543,7 +2514,7 @@ def verify_password():
     cur.execute('SELECT password FROM users WHERE id = %s', (session['user_id'],))
     user = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
 
     if user and check_password_hash(user['password'], password):
         return jsonify({'valid': True})
@@ -2574,7 +2545,7 @@ def forgot_password():
             cur.execute('SELECT id, security_q1, security_q2 FROM users WHERE email = %s', (email,))
             user = cur.fetchone()
             cur.close()
-            db.close()
+            return_db(db)
 
             if not user:
                 flash('No account found with that email.', 'error')
@@ -2605,7 +2576,7 @@ def forgot_password():
             cur.execute('SELECT id, security_a1, security_a2 FROM users WHERE email = %s', (email,))
             user = cur.fetchone()
             cur.close()
-            db.close()
+            return_db(db)
 
             if not user:
                 flash('User not found.', 'error')
@@ -2662,7 +2633,7 @@ def forgot_password():
             cur.execute('UPDATE users SET password = %s WHERE email = %s', (hashed, email))
             db.commit()
             cur.close()
-            db.close()
+            return_db(db)
 
             session.pop('fp_email', None)
             session.pop('fp_q1', None)
@@ -2690,7 +2661,7 @@ def admin_login():
         cur.execute('SELECT * FROM users WHERE email = %s AND is_admin = 1', (email,))
         user = cur.fetchone()
         cur.close()
-        db.close()
+        return_db(db)
 
         if user and check_password_hash(user['password'], password):  # 用 'password' 不是 5
             session['admin_logged_in'] = True
@@ -2705,7 +2676,7 @@ def admin_login():
                 cur.execute('UPDATE users SET remember_token = %s WHERE id = %s', (token, user['id']))
                 db.commit()
                 cur.close()
-                db.close()
+                return_db(db)
                 response = redirect(url_for('admin_dashboard'))
                 response.set_cookie('admin_remember_token', token, 
                                     max_age=30*24*60*60, httponly=True, secure=False)
@@ -2717,7 +2688,7 @@ def admin_login():
                 cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (user['id'],))
                 db.commit()
                 cur.close()
-                db.close()
+                return_db(db)
                 response = redirect(url_for('admin_dashboard'))
                 response.set_cookie('admin_remember_token', '', expires=0)
                 flash('Admin login successful!', 'success')
@@ -2748,8 +2719,8 @@ def check_admin_remember_me():
         cur.execute('SELECT id, email, username, is_admin FROM users WHERE remember_token = %s AND is_admin = 1', (token,))
         user = cur.fetchone()
         cur.close()
-        db.close()
-        
+        return_db(db)
+
         if user:
             session['admin_logged_in'] = True
             session['admin_email'] = user['email']
@@ -2771,7 +2742,7 @@ def logout():
         cur.execute('UPDATE users SET remember_token = NULL WHERE email = %s', (session.get('admin_email'),))
         db.commit()
         cur.close()
-        db.close()
+        return_db(db)
         response = redirect(url_for('login'))
         response.set_cookie('admin_remember_token', '', expires=0)
         session.clear()
@@ -2785,7 +2756,7 @@ def logout():
         cur.execute('UPDATE users SET remember_token = NULL WHERE id = %s', (session['user_id'],))
         db.commit()
         cur.close()
-        db.close()
+        return_db(db)
         response = redirect(url_for('login'))
         response.set_cookie('remember_token', '', expires=0)
     
@@ -2817,7 +2788,7 @@ def admin_dashboard():
     seller_count = cur.fetchone()['count']
 
     cur.close()
-    db.close()
+    return_db(db)
 
     return render_template("admin_dashboard.html",
                            total_users=total_users,
@@ -2855,7 +2826,6 @@ def admin_users():
             report['created_at'] = report['created_at'].strftime('%Y-%m-%d %H:%M:%S')
     
     return render_template("admin_users.html", users=users, reports=reports)
-
 
 @app.route('/admin/products')
 def admin_products():
@@ -2901,7 +2871,7 @@ def admin_products():
     rejected = convert_dates(rejected)
 
     cur.close()
-    db.close()
+    return_db(db)
 
     return render_template("admin_product.html",
                            pending_list=pending,
@@ -2942,7 +2912,7 @@ def approve_product(pid):
         )
     
     cur.close()
-    db.close()
+    return_db(db)
 
     flash("Product approved successfully, now visible on homepage", "success")
     return redirect(url_for('admin_products'))
@@ -2986,7 +2956,7 @@ def reject_product(pid):
         )
     
     cur.close()
-    db.close()
+    return_db(db)
 
     flash("Product rejected successfully", "success")
     return redirect(url_for('admin_products'))
@@ -3008,7 +2978,7 @@ def admin_get_product_info(pid):
     ''', (pid,))
     product = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
 
     if not product:
         return {"error": "not found"}, 404
@@ -3054,13 +3024,13 @@ def freeze_7day(user_id):
     
     if not user:
         cur.close()
-        db.close()
+        return_db(db)
         flash("User not found", "error")
         return redirect(url_for("admin_users"))
     
     if user['is_blocked'] == 1:
         cur.close()
-        db.close()
+        return_db(db)
         flash("User is already permanently blocked", "error")
         return redirect(url_for("admin_users"))
     
@@ -3077,7 +3047,7 @@ def freeze_7day(user_id):
               f"If you believe this is a mistake, please contact admin."))
         db.commit()
         cur.close()
-        db.close()
+        return_db(db)
         flash("User permanently blocked after 3 freezes.", "warning")
         return redirect(url_for("admin_users"))
     
@@ -3101,7 +3071,7 @@ def freeze_7day(user_id):
 
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     flash(f"User frozen (Freeze {freeze_count + 1}/3). Notification sent.", "success")
     return redirect(url_for("admin_users"))
@@ -3128,7 +3098,7 @@ def block_user(user_id):
 
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     flash("User permanently blocked. Notification sent.", "success")
     return redirect(url_for('admin_users'))
@@ -3163,7 +3133,7 @@ def unfreeze_user(user_id):
 
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     flash("User unfrozen. Freeze count reduced by 1. Notification sent.", "success")
     return redirect(url_for("admin_users"))
@@ -3187,7 +3157,7 @@ def unblock_user(user_id):
           f"Welcome back! Please follow the community guidelines."))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     flash("User unblocked. Notification sent.", "success")
     return redirect(url_for("admin_users"))
@@ -3205,7 +3175,7 @@ def handle_report(report_id, action):
     
     if not report:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False}), 404
 
     if action == 'dismiss':
@@ -3241,7 +3211,7 @@ def handle_report(report_id, action):
 
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     return jsonify({'success': True})
 
 
@@ -3271,7 +3241,7 @@ def chat_send():
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, content))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True})
 
@@ -3303,7 +3273,7 @@ def chat_send_images():
     ''', (session['user_id'], int(receiver_id), content, ','.join(filenames)))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True})
 
@@ -3333,7 +3303,7 @@ def chat_send_image():
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, '', filename))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True})
 
@@ -3357,7 +3327,7 @@ def chat_page(other_user_id, product_id=None):
     other_user = cur.fetchone()
     if not other_user:
         cur.close()
-        db.close()
+        return_db(db)
         flash("User not found", "error")
         return redirect(url_for('home'))
 
@@ -3396,7 +3366,7 @@ def chat_page(other_user_id, product_id=None):
     ''', (other_user_id, session['user_id']))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return render_template('chat_page.html',
                            other_user=other_user,
@@ -3422,7 +3392,7 @@ def chat_get_messages(other_user_id):
     ''', (session['user_id'], other_user_id, other_user_id, session['user_id'], since))
     messages = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
 
     from datetime import timezone, timedelta
     malaysia_tz = timezone(timedelta(hours=8))
@@ -3479,7 +3449,7 @@ def report_user(user_id):
     )
     
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True})
 
@@ -3495,7 +3465,7 @@ def api_user_other_listings(user_id):
     """, (user_id,))
     rows = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
     return jsonify([dict(r) for r in rows])
 
 
@@ -3557,7 +3527,7 @@ def chat_list():
     unread_announcements = cur.fetchone()['count']
     
     cur.close()
-    db.close()
+    return_db(db)
 
     return render_template('user_chatlist.html', 
                            chats=chat_list_data,
@@ -3586,7 +3556,7 @@ def update_order_meeting(order_id):
     order = cur.fetchone()
     if not order or order['seller_id'] != session['user_id']:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
     # 更新面交信息
@@ -3605,7 +3575,7 @@ def update_order_meeting(order_id):
 
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True})
 
@@ -3621,7 +3591,7 @@ def ship_order(order_id):
     order = cur.fetchone()
     if not order or order['seller_id'] != session['user_id']:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
     cur.execute('UPDATE orders SET status = %s, updated_at = NOW() WHERE id = %s', ('delivered', order_id))
@@ -3635,7 +3605,7 @@ def ship_order(order_id):
 
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
 
     return jsonify({'success': True})
 
@@ -3648,7 +3618,7 @@ def mark_ann_read():
     cur.execute("UPDATE users SET last_read_ann = NOW() WHERE id = %s", (session['user_id'],))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     return jsonify({'success': True})
 
 # 搜索用户 API
@@ -3665,7 +3635,7 @@ def search_users():
             (f'%{q}%', f'%{q}%'))
     users = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
     return jsonify([dict(u) for u in users])
 
 # 系统公告列表
@@ -3676,7 +3646,7 @@ def api_announcements():
     cur.execute("SELECT title, content, created_at FROM announcements ORDER BY created_at DESC")
     anns = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
     return jsonify([dict(a) for a in anns])
 
 
@@ -3697,7 +3667,7 @@ def add_announcement():
                     (f"📢 New announcement: {title}",))
         db.commit()
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': True, 'id': ann_id})
     return jsonify({'success': False})
 
@@ -3710,7 +3680,7 @@ def delete_announcement(ann_id):
     cur.execute("DELETE FROM announcements WHERE id = %s", (ann_id,))
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     return jsonify({'success': True})
 
 # 导航栏未读数量 API
@@ -3730,7 +3700,7 @@ def unread_count():
     notif_unread = cur.fetchone()['count']
 
     cur.close()
-    db.close()
+    return_db(db)
     return jsonify({'chat': chat_unread, 'notifications': notif_unread})
 
 # ============================================================
@@ -3839,8 +3809,8 @@ def upload_product():
         ''', (seller_id, name, price_val, description, condition, category, images_string, images_json, 'pending'))
         db.commit()
         cur.close()
-        db.close()
-
+        return_db(db)
+        
         flash("Your item has been submitted for admin approval.", "success")
         return redirect(url_for('home'))
 
@@ -3857,7 +3827,7 @@ def clear_products():
     # Reset sequence in PostgreSQL: ALTER SEQUENCE products_id_seq RESTART WITH 1
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     return "All products deleted."
 
 
@@ -3882,7 +3852,7 @@ def product_detail(product_id):
     ''', (product_id,))
     product = cur.fetchone()
     cur.close()
-    db.close()
+    return_db(db)
 
     if not product:
         flash('Product not found or not yet approved.', 'error')
@@ -3952,7 +3922,7 @@ def api_report_product(product_id):
         )
     
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True, 'message': 'Report submitted'})
 
@@ -4004,7 +3974,7 @@ def api_get_my_orders():
     seller_orders = cur.fetchall()
     
     cur.close()
-    db.close()
+    return_db(db)
     
     import json
     result_buyer = []
@@ -4058,7 +4028,7 @@ def api_update_order_status(order_id):
     
     if not order:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Order not found'}), 404
     
     is_seller = (order['seller_id'] == session['user_id'])
@@ -4066,7 +4036,7 @@ def api_update_order_status(order_id):
     
     if not (is_seller or is_buyer):
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     # Allowed transitions
@@ -4081,17 +4051,17 @@ def api_update_order_status(order_id):
     
     if new_status not in allowed.get(order['status'], {}):
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Invalid status transition'}), 400
     
     allowed_by = allowed[order['status']][new_status]
     if allowed_by == 'seller' and not is_seller:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Only seller can do this'}), 403
     if allowed_by == 'buyer' and not is_buyer:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Only buyer can do this'}), 403
     
     # Update status
@@ -4116,7 +4086,7 @@ def api_update_order_status(order_id):
     
     db.commit()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify({'success': True})
 
@@ -4136,7 +4106,7 @@ def api_notifications_all():
     ''', (session['user_id'],))
     notifications = cur.fetchall()
     cur.close()
-    db.close()
+    return_db(db)
     
     return jsonify([dict(n) for n in notifications])
 
@@ -4177,14 +4147,14 @@ def api_submit_order_review(order_id):
 
     if not order:
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Order not found'}), 404
 
     # Check if already reviewed
     cur.execute('SELECT id FROM reviews WHERE order_id = %s', (order_id,))
     if cur.fetchone():
         cur.close()
-        db.close()
+        return_db(db)
         return jsonify({'success': False, 'error': 'Already reviewed'}), 400
     
     # Insert review (with text comment)
@@ -4226,7 +4196,7 @@ def api_submit_order_review(order_id):
 
     db.commit()
     cur.close()
-    db.close()   
+    return_db(db) 
 
     return jsonify({'success': True, 'overall_rating': rating_overall})
 
@@ -4255,7 +4225,7 @@ def api_get_user_reviews(user_id):
     stats = cur.fetchone()
 
     cur.close()
-    db.close()
+    return_db(db)
 
     import base64
     result = []   
@@ -4278,6 +4248,8 @@ def api_get_user_reviews(user_id):
         'avg_overall': round(stats['avg_overall'], 1) if stats['avg_overall'] else 0,
         'total_reviews': stats['total'] or 0
     })
+
+
 
 # ============================================================
 # Xingru's Route - Meetup Location Page
