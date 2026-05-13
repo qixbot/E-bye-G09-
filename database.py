@@ -47,21 +47,18 @@ def add_missing_notification_columns():
     conn = get_db_with_retry()
     cur = conn.cursor()
     
-    # Add type column
     try:
         cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general'")
         print("✅ Added 'type' column to notifications")
     except Exception as e:
         print(f"Note: type column already exists or error: {e}")
     
-    # Add related_id column
     try:
         cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS related_id INTEGER")
         print("✅ Added 'related_id' column to notifications")
     except Exception as e:
         print(f"Note: related_id column already exists or error: {e}")
     
-    # Add is_read column if not exists (already in CREATE TABLE but just in case)
     try:
         cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0")
         print("✅ Added 'is_read' column to notifications")
@@ -122,19 +119,19 @@ def init_db():
             )
         ''')
 
-        # Notifications table (with type, related_id, and is_read included)
+        # Notifications table
         cur.execute('''
-             CREATE TABLE IF NOT EXISTS notifications (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL REFERENCES users(id),
-            message TEXT NOT NULL,
-            is_read INTEGER DEFAULT 0,
-            type TEXT DEFAULT 'general',
-            related_id INTEGER,
-            product_id INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            CREATE TABLE IF NOT EXISTS notifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                message TEXT NOT NULL,
+                is_read INTEGER DEFAULT 0,
+                type TEXT DEFAULT 'general',
+                related_id INTEGER,
+                product_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-            ''')
+        ''')
 
         # Products table
         cur.execute('''
@@ -217,6 +214,7 @@ def init_db():
                 id SERIAL PRIMARY KEY,
                 reporter_id INTEGER NOT NULL REFERENCES users(id),
                 reported_user_id INTEGER NOT NULL REFERENCES users(id),
+                product_id INTEGER,
                 reason TEXT NOT NULL,
                 details TEXT,
                 status TEXT DEFAULT 'pending',
@@ -238,25 +236,11 @@ def init_db():
                 meeting_time TEXT,
                 buyer_note TEXT,
                 status TEXT DEFAULT 'pending',
+                last_reminder_sent TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP
             )
         ''')
-
-        # ========== 添加 product_id 列到 notifications 表 ==========
-        try:
-            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS product_id INTEGER")
-            print("✅ Added 'product_id' column to notifications")
-        except Exception as e:
-            print(f"Note: Could not add product_id column: {e}")
-
-        # ========== 添加 last_reminder_sent 列到 orders 表 ==========
-        try:
-            cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS last_reminder_sent TIMESTAMP")
-            print("✅ Added 'last_reminder_sent' column to orders")
-        except Exception as e:
-            print(f"Note: Could not add last_reminder_sent column: {e}")
-
 
         # Create default admin user
         admin_email = 'admin@student.mmu.edu.my'
@@ -284,7 +268,6 @@ def add_review_columns():
     conn = get_db_with_retry()
     cur = conn.cursor()
     
-    # Add rating columns to users table
     user_columns = [
         ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
         ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
@@ -300,7 +283,6 @@ def add_review_columns():
         except Exception as e:
             print(f"Could not add {col_name}: {e}")
     
-    # Add rating columns to reviews table
     review_columns = [
         ('rating_service', 'INTEGER DEFAULT 0'),
         ('rating_shipping', 'INTEGER DEFAULT 0'),
@@ -320,8 +302,7 @@ def add_review_columns():
     conn.close()
     print("✅ Review columns added successfully")
 
-
-# Empty functions for compatibility with existing code
+# Empty functions for compatibility
 def init_products():
     pass
 
@@ -340,8 +321,6 @@ def init_orders():
 def init_reports():
     pass
 
-
-# Run column additions when this file is executed directly
 if __name__ == '__main__':
     add_review_columns()
     add_missing_notification_columns()
