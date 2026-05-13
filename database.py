@@ -9,9 +9,10 @@ from contextlib import contextmanager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if not DATABASE_URL:
-    DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
+# 临时注释环境变量读取，直接使用修改后的 URL
+# DATABASE_URL = os.environ.get('DATABASE_URL')
+# if not DATABASE_URL:
+DATABASE_URL = "postgresql://postgres.pqfxyvjtwqpadddjkpdx:NQxhRLN6fmTQwHHc@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
 
 # 全局连接池
 _pool = None
