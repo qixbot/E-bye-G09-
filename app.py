@@ -2837,18 +2837,23 @@ def admin_users():
     cur.execute("SELECT * FROM users")
     users = cur.fetchall()
     cur.execute('''
-    SELECT r.*, u.username as reported_username,
-           rp.username as reporter_username
-    FROM reports r
-    JOIN users u ON r.reported_user_id = u.id
-    JOIN users rp ON r.reporter_id = rp.id
-    WHERE r.status = 'pending'
-    ORDER BY r.created_at DESC
-                ''')
+        SELECT r.*, u.username as reported_username,
+               rp.username as reporter_username
+        FROM reports r
+        JOIN users u ON r.reported_user_id = u.id
+        JOIN users rp ON r.reporter_id = rp.id
+        WHERE r.status = 'pending'
+        ORDER BY r.created_at DESC
+    ''')
     reports = cur.fetchall()
     cur.close()
-    
     db.close()
+    
+    # 将 datetime 对象转换为字符串（修复模板切片错误）
+    for report in reports:
+        if report.get('created_at') and hasattr(report['created_at'], 'strftime'):
+            report['created_at'] = report['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+    
     return render_template("admin_users.html", users=users, reports=reports)
 
 
@@ -2881,10 +2886,19 @@ def admin_products():
     ''')
     rejected = cur.fetchall()
     
-    # Convert database rows to Python dictionaries
-    pending = [dict(row) for row in pending]
-    approved = [dict(row) for row in approved]
-    rejected = [dict(row) for row in rejected]
+    # 转换日期时间为字符串
+    def convert_dates(rows):
+        result = []
+        for row in rows:
+            item = dict(row)
+            if item.get('created_at') and hasattr(item['created_at'], 'strftime'):
+                item['created_at'] = item['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            result.append(item)
+        return result
+    
+    pending = convert_dates(pending)
+    approved = convert_dates(approved)
+    rejected = convert_dates(rejected)
 
     cur.close()
     db.close()
