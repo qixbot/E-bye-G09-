@@ -258,69 +258,69 @@ def login():
     return render_template('login.html')
 
 #keting's part
-@app.before_request
-def auto_unfreeze_expired():
-    if 'user_id' in session or 'admin_logged_in' in session:
-        db = get_db()
-        cur = db.cursor()
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+# @app.before_request
+# def auto_unfreeze_expired():
+#     if 'user_id' in session or 'admin_logged_in' in session:
+#         db = get_db()
+#         cur = db.cursor()
+#         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        cur.execute("""
-            SELECT id, username FROM users
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
-        """, (now,))
-        expired = cur.fetchall()
+#         cur.execute("""
+#             SELECT id, username FROM users
+#             WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+#         """, (now,))
+#         expired = cur.fetchall()
         
-        cur.execute("""
-            UPDATE users
-            SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
-        """, (now,))
+#         cur.execute("""
+#             UPDATE users
+#             SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
+#             WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+#         """, (now,))
         
-        for user in expired:
-            cur.execute("""
-                INSERT INTO notifications (user_id, message, created_at)
-                VALUES (%s, %s, NOW())
-            """, (user['id'],
-                  f"✅ Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
-                  f"Your freeze count remains. Please follow community guidelines.\n"
-                  f"After 3 freezes, your account will be permanently blocked."))
+#         for user in expired:
+#             cur.execute("""
+#                 INSERT INTO notifications (user_id, message, created_at)
+#                 VALUES (%s, %s, NOW())
+#             """, (user['id'],
+#                   f"✅ Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
+#                   f"Your freeze count remains. Please follow community guidelines.\n"
+#                   f"After 3 freezes, your account will be permanently blocked."))
         
-        db.commit()
-        cur.close()
-        return_db(db)
+#         db.commit()
+#         cur.close()
+#         return_db(db)
 
-@app.before_request
-def check_upcoming_meetings():
-    if 'user_id' not in session:
-        return
-    user_id = session['user_id']
-    db = get_db()
-    cur = db.cursor()
-    # 查找今天或明天的面交订单，向用户发送提醒（每天只提醒一次，通过额外表控制频率，这里简化为每次请求最多提醒一次，也可以接受）
-    cur.execute('''
-        SELECT id, order_number, meeting_point, meeting_time
-        FROM orders
-        WHERE (buyer_id = %s OR seller_id = %s)
-          AND status IN ('confirmed', 'delivered')
-          AND DATE(meeting_time) <= CURRENT_DATE + INTERVAL '1 day'
-          AND DATE(meeting_time) >= CURRENT_DATE
-          AND (last_reminder_sent IS NULL OR last_reminder_sent < CURRENT_DATE)
-        LIMIT 1
-    ''', (user_id, user_id))
-    orders_to_remind = cur.fetchall()
-    for ord in orders_to_remind:
-        cur.execute('''
-            INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-            VALUES (%s, %s, NOW(), 'order', %s, 0)
-        ''', (user_id,
-              f"📅 Reminder: Order #{ord['order_number']} has a meetup scheduled for {ord['meeting_time']} at {ord['meeting_point']}. Please be on time!",
-              ord['id']))
-        # 简单记录已提醒（需要 orders 表增加字段 last_reminder_sent，以下为可选）
-        # cur.execute('UPDATE orders SET last_reminder_sent = NOW() WHERE id = %s', (ord['id'],))
-    db.commit()
-    cur.close()
-    return_db(db)
+# @app.before_request
+# def check_upcoming_meetings():
+#     if 'user_id' not in session:
+#         return
+#     user_id = session['user_id']
+#     db = get_db()
+#     cur = db.cursor()
+#     # 查找今天或明天的面交订单，向用户发送提醒（每天只提醒一次，通过额外表控制频率，这里简化为每次请求最多提醒一次，也可以接受）
+#     cur.execute('''
+#         SELECT id, order_number, meeting_point, meeting_time
+#         FROM orders
+#         WHERE (buyer_id = %s OR seller_id = %s)
+#           AND status IN ('confirmed', 'delivered')
+#           AND DATE(meeting_time) <= CURRENT_DATE + INTERVAL '1 day'
+#           AND DATE(meeting_time) >= CURRENT_DATE
+#           AND (last_reminder_sent IS NULL OR last_reminder_sent < CURRENT_DATE)
+#         LIMIT 1
+#     ''', (user_id, user_id))
+#     orders_to_remind = cur.fetchall()
+#     for ord in orders_to_remind:
+#         cur.execute('''
+#             INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+#             VALUES (%s, %s, NOW(), 'order', %s, 0)
+#         ''', (user_id,
+#               f"📅 Reminder: Order #{ord['order_number']} has a meetup scheduled for {ord['meeting_time']} at {ord['meeting_point']}. Please be on time!",
+#               ord['id']))
+#         # 简单记录已提醒（需要 orders 表增加字段 last_reminder_sent，以下为可选）
+#         # cur.execute('UPDATE orders SET last_reminder_sent = NOW() WHERE id = %s', (ord['id'],))
+#     db.commit()
+#     cur.close()
+#     return_db(db)
 
 #keting's part end
 
