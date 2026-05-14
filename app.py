@@ -3258,13 +3258,38 @@ def upload_product():
         except ValueError:
             errors.append("Please enter a valid price.")
 
+        # 支持的文件类型
         MIME_MAP = {
+            # 图片格式
             'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
             'gif': 'image/gif', 'webp': 'image/webp', 'bmp': 'image/bmp',
-            'mp4': 'video/mp4', 'webm': 'video/webm', 'mov': 'video/mp4',
+            'jfif': 'image/jpeg',
+            # 视频格式
+            'mp4': 'video/mp4',
+            'webm': 'video/webm',
+            'mov': 'video/quicktime',
+            'avi': 'video/x-msvideo',
+            'mkv': 'video/x-matroska',
+            'm4v': 'video/x-m4v',
         }
 
         files = request.files.getlist('product_images')
+        
+        # 过滤掉空文件
+        files = [f for f in files if f and f.filename]
+        
+        if not files:
+            errors.append("Please upload at least one photo or video.")
+        
+        # 检查文件数量（最多 12 个）
+        if len(files) > 12:
+            errors.append("Maximum 12 images/videos allowed.")
+
+        if errors:
+            for err in errors:
+                flash(err, "error")
+            return render_template('upload.html')
+
         images_base64 = []
         image_filenames = []
 
@@ -3272,17 +3297,38 @@ def upload_product():
             if not file or not file.filename:
                 continue
 
-            file_data = file.read()
-
-            if not file_data or len(file_data) > 50 * 1024 * 1024:
-                continue
-
+            # 获取文件扩展名
             ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
-            mime_type = MIME_MAP.get(ext, 'image/jpeg')
+            
+            # 检查文件类型是否支持
+            if ext not in MIME_MAP:
+                flash(f"Unsupported file type: .{ext}. Supported: jpg, jpeg, png, gif, webp, mp4, webm, mov", "error")
+                return render_template('upload.html')
+            
+            # 读取文件数据
+            file_data = file.read()
+            
+            # 检查文件大小
+            is_video = ext in ['mp4', 'webm', 'mov', 'avi', 'mkv', 'm4v']
+            max_size = 200 * 1024 * 1024 if is_video else 50 * 1024 * 1024  # 视频200MB，图片50MB
+            
+            if not file_data or len(file_data) > max_size:
+                max_mb = max_size // (1024 * 1024)
+                flash(f"{file.filename} is too large (max {max_mb}MB)", "error")
+                return render_template('upload.html')
+            
+            # 获取 MIME 类型
+            mime_type = MIME_MAP.get(ext, 'application/octet-stream')
+            
+            # 特殊处理 MOV 文件
+            if ext == 'mov':
+                mime_type = 'video/quicktime'
 
+            # 构建 base64 数据 URI
             base64_str = base64.b64encode(file_data).decode('utf-8')
             images_base64.append(f"data:{mime_type};base64,{base64_str}")
 
+            # 保存到磁盘（备份）
             filename = secure_filename(file.filename)
             if not filename or filename.strip() == '':
                 filename = f"media_{uuid.uuid4().hex}.{ext}"
@@ -3291,11 +3337,11 @@ def upload_product():
             with open(save_path, 'wb') as f:
                 f.write(file_data)
             image_filenames.append(unique_filename)
-        
-        if not images_base64:
-            errors.append("Please upload at least one photo or video.")
+            
+            print(f" Uploaded: {filename} ({len(file_data)} bytes, type: {mime_type})")
 
-        if errors:
+        if not images_base64:
+            errors.append("Failed to process files. Please try again.")
             for err in errors:
                 flash(err, "error")
             return render_template('upload.html')
@@ -3309,9 +3355,23 @@ def upload_product():
             INSERT INTO products (seller_id, name, price, description, condition, category, images, images_blob, created_at, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s)
         ''', (seller_id, name, price_val, description, condition, category, images_string, images_json, 'pending'))
+        
+        # 获取新商品 ID
+        cur.execute("SELECT LASTVAL() as id")
+        new_product_id = cur.fetchone()['id']
+        
         db.commit()
         cur.close()
         db.close()
+
+        # 发送通知
+        create_notification(
+            user_id=seller_id,
+            message=f' Product "{name}" submitted. Awaiting admin approval.',
+            notif_type='product_uploaded',
+            related_id=new_product_id,
+            product_id=new_product_id
+        )
 
         flash("Your item has been submitted for admin approval.", "success")
         return redirect(url_for('home'))
