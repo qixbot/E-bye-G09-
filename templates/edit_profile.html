@@ -161,9 +161,9 @@
 
             <div class="ep-panel">
                 <div class="ep-main-tabs">
-                    <button class="ep-main-tab" data-main-tab="purchases" onclick="switchMainTab('purchases')">🛍️ My Purchases</button>
-                    <button class="ep-main-tab" data-main-tab="listings" onclick="switchMainTab('listings')">📦 My Listings</button>
                     <button class="ep-main-tab active" data-main-tab="edit" onclick="switchMainTab('edit')">✏️ Edit Profile</button>
+                    <button class="ep-main-tab" data-main-tab="listings" onclick="switchMainTab('listings')">📦 My Listings</button>
+                    <button class="ep-main-tab" data-main-tab="purchases" onclick="switchMainTab('purchases')">🛍️ My Purchases</button>
                     <button id="adminSwitchBtn" class="ep-main-tab admin-tab" style="display: none;" onclick="switchToAdmin()">👑 Admin Panel</button>
                 </div>
 
@@ -1469,17 +1469,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadEditProfileRating() {
-    var userId = {{ user.id }};
+    var userId = {{ user.id|default(0) }};
+    if (!userId || userId === 0) {
+        console.log('User ID not available');
+        return;
+    }
     fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             var container = document.getElementById('editProfileRating');
-            if (data.total_reviews > 0 && container) {
+            if (container && data.total_reviews > 0) {
                 container.style.display = 'block';
-                document.getElementById('editReviewCount').textContent = data.total_reviews;
-                document.getElementById('editRatingStars').innerHTML = generateStarsHtml(data.avg_overall);
-                document.getElementById('editRatingScore').innerHTML = data.avg_overall + '★ (' + data.total_reviews + ' reviews)';
+                var countEl = document.getElementById('editReviewCount');
+                var starsEl = document.getElementById('editRatingStars');
+                var scoreEl = document.getElementById('editRatingScore');
+                if (countEl) countEl.textContent = data.total_reviews;
+                if (starsEl) starsEl.innerHTML = generateStarsHtml(data.avg_overall);
+                if (scoreEl) scoreEl.innerHTML = data.avg_overall + '★ (' + data.total_reviews + ' reviews)';
             }
+        })
+        .catch(function(err) {
+            console.log('Failed to load reviews:', err);
         });
 }
 
