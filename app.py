@@ -1400,7 +1400,8 @@ def api_get_offer_product_info(offer_id):
     cur.execute('''
         SELECT o.id, o.status, o.offer_price, o.counter_price,
                p.id as product_id, p.name as product_name, p.price as product_price,
-               p.condition as product_condition, p.status as product_status
+               p.condition as product_condition, p.status as product_status,
+               p.images_blob, p.images
         FROM offers o
         JOIN products p ON o.product_id = p.id
         WHERE o.id = %s AND (o.buyer_id = %s OR p.seller_id = %s)
@@ -1412,6 +1413,22 @@ def api_get_offer_product_info(offer_id):
     if not offer:
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
+    product_image = None
+    if offer.get('images_blob'):
+        try:
+            blob_list = json.loads(offer['images_blob']) if isinstance(offer['images_blob'], str) else offer['images_blob']
+            if blob_list and len(blob_list) > 0:
+                product_image = blob_list[0]
+        except:
+            pass
+    
+    if not product_image and offer.get('images'):
+        img_str = offer['images']
+        if img_str:
+            img_list = [x.strip() for x in img_str.split(',') if x.strip()]
+            if img_list:
+                product_image = '/static/uploads/' + img_list[0]
+    
     return jsonify({
         'success': True,
         'offer_id': offer['id'],
@@ -1422,7 +1439,8 @@ def api_get_offer_product_info(offer_id):
         'product_name': offer['product_name'],
         'product_price': offer['product_price'],
         'product_condition': offer['product_condition'],
-        'product_status': offer['product_status']
+        'product_status': offer['product_status'],
+        'product_image': product_image  
     })
 
 @app.route('/api/buy-now', methods=['POST'])
@@ -3747,7 +3765,43 @@ def api_get_user_reviews(user_id):
         'avg_overall': round(stats['avg_overall'], 1) if stats['avg_overall'] else 0,
         'total_reviews': stats['total'] or 0
     })
+@app.route('/api/user/<int:user_id>/can-review', methods=['GET'])
+def api_can_review_user(user_id):
+    """Check whether user can comment and review seller or not(check either have completed order but not review order or not)"""
+    if 'user_id' not in session:
+        return jsonify({'can_review': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
 
+    # check either have completed order but no review order
+    cur.execute('''
+        SELECT o.id, o.order_number, p.name as product_name
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.buyer_id = %s 
+          AND o.seller_id = %s 
+          AND o.status = 'completed'
+          AND NOT EXISTS (
+              SELECT 1 FROM reviews r 
+              WHERE r.order_id = o.id AND r.reviewer_id = %s
+          )
+        LIMIT 1
+    ''', (session['user_id'], user_id, session['user_id']))
+
+    order = cur.fetchone()
+    cur.close()
+    db.close()
+
+    if order:
+        return jsonify({
+            'can_review': True,
+            'order_id': order['id'],
+            'product_name': order['product_name']
+        })
+    else:
+        return jsonify({'can_review': False})
+    
 @app.route('/meetup-locations')
 def meetup_locations():
     return render_template('meetup.html')
