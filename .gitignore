@@ -2,4 +2,9 @@ ebyte.db
 *db
 __pycache__/
 venv/
-.env
+.env"static/uploads/*.jpg" 
+"static/uploads/*.jfif" 
+"static/uploads/*.png" 
+"static/uploads/*.mp4" 
+"static/uploads/*.webm" 
+"static/uploads/*.mov" 
