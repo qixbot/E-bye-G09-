@@ -90,18 +90,21 @@
                     <span><span class="pf-detail-label">Member since</span>&nbsp;{{ user.created_at|time_since or 'New' }}</span>
                 </div>
             </div>
-
+            
             <!-- Seller Rating Button - Only shown for sellers with reviews -->
             <div id="sellerRatingContainer" class="pf-rating-container" style="display: none;">
                 <div class="pf-rating-header">
-                    <span class="rating-label">⭐ Seller Rating</span>
+                    <span class="rating-label"> Seller Rating</span>
                     <button class="view-reviews-btn" id="viewReviewsBtn" onclick="openReviewsModal()">📖 View all reviews (<span id="reviewCount">0</span>)</button>
                 </div>
                 <div class="pf-rating-stars" id="userRatingStars"></div>
                 <div class="pf-rating-score" id="userRatingScore"></div>
+                <!-- write review button -->
+                <div id="writeReviewBtnContainer" style="margin-top: 12px; display: none;">
+                <button class="write-review-btn" onclick="openWriteReviewModal()">✍️ Write a Review</button>
             </div>
         </div>
-
+        </div>
         <div class="pf-panel">
     <div class="pf-tabs">
         <button class="pf-tab on" id="tab-listings" onclick="switchTab('listings')">
@@ -240,10 +243,10 @@
 
 <script>
 // ============================================================
-// CONSTANTS
+// various global constants and variables
 // ============================================================
 var MAX_MEDIA_FILES = 12;
-
+var CURRENT_USER_ID = {{ user.id }};
 // ============================================================
 // LOAD BACKGROUND FROM SERVER
 // ============================================================
@@ -1285,23 +1288,45 @@ function deleteListing(id, name) {
 // ============================================================
 
 function loadSellerRating() {
-    var userId = {{ user.id }};
+    var userId = CURRENT_USER_ID;
+    if (!userId || userId === 0) {
+        console.log('No user ID available');
+        return;
+    }
+    var container = document.getElementById('sellerRatingContainer');
+    if (!container) return;
 
     fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        var container = document.getElementById('sellerRatingContainer');
-        if (!container) return;
         
-        if (data.total_reviews > 0) {
-            container.style.display = 'block';
-            document.getElementById('reviewCount').textContent = data.total_reviews;
+        container.style.display = 'block';  
 
+        if (data.total_reviews > 0) {
+            document.getElementById('reviewCount').textContent = data.total_reviews;
             var starsHtml = generateStarsHtml(data.avg_overall);
             document.getElementById('userRatingStars').innerHTML = starsHtml;
             document.getElementById('userRatingScore').innerHTML = data.avg_overall + '★ (' + data.total_reviews + ' reviews)';
         } else {
-            container.style.display = 'none';
+    
+            document.getElementById('reviewCount').textContent = '0';
+            document.getElementById('userRatingStars').innerHTML = '☆☆☆☆☆';
+            document.getElementById('userRatingScore').innerHTML = 'No reviews yet';
+        }
+
+        return fetch('/api/user/' + userId + '/can-review', { credentials: 'same-origin' });
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var reviewBtnContainer = document.getElementById('writeReviewBtnContainer');
+        if (reviewBtnContainer) {
+            if (data.can_review) {
+                reviewBtnContainer.style.display = 'block';
+                window.pendingReviewOrderId = data.order_id;
+                window.pendingReviewProductName = data.product_name;
+            } else {
+                reviewBtnContainer.style.display = 'none';
+            }
         }
     })
     .catch(function(err) {
@@ -1309,30 +1334,12 @@ function loadSellerRating() {
     });
 }
 
-function generateStarsHtml(rating) {
-    var fullStars = Math.floor(rating);
-    var halfStar = (rating - fullStars) >= 0.5;
-    var emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-    
-    var html = '';
-    for (var i = 0; i < fullStars; i++) {
-        html += '<span class="star full">★</span>';
-    }
-    if (halfStar) {
-        html += '<span class="star half">½</span>';
-    }
-    for (var j = 0; j < emptyStars; j++) {
-        html += '<span class="star empty">☆</span>';
-    }
-    return html;
-}
-
 // ============================================================
 // Open reviews modal - show all buyer reviews with comments
 // ============================================================
 
 function openReviewsModal() {
-    var userId = {{ user.id }};
+    var userId = {{ user.id }}; 
 
     fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
@@ -1395,6 +1402,7 @@ function closeReviewsModal() {
     document.getElementById('reviewsModal').style.display = 'none';
 }
 
+
 function formatReviewDate(dateStr) {
     if (!dateStr) return 'Recently';
     var d = new Date(dateStr);
@@ -1417,6 +1425,147 @@ if (tabParam && (tabParam === 'orders' || tabParam === 'listings' || tabParam ==
 if (tabParam === 'received-reviews') {
     openReviewsModal();
 }
+
+// ============================================================
+// Open reviews modal - show all buyer reviews with comments
+// ============================================================
+function openWriteReviewModal() {
+    var orderId = window.pendingReviewOrderId;
+    var productName = window.pendingReviewProductName;
+    
+    if (!orderId) {
+        showToastMessage('No eligible order found for review', 'error');
+        return;
+    }
+
+    var modalHtml = `
+        <div id="writeReviewModal" class="custom-modal">
+            <div class="modal-card" style="max-width:500px;">
+                 <div class="modal-icon">⭐</div>
+                <div class="modal-title">Review "${escapeHtml(productName)}"</div>
+                <div class="modal-message">How was your experience with this seller?</div>
+                <div style="margin: 16px 0;">
+                  <label style="font-weight:600; display:block; margin-bottom:8px;">😊 Service Rating</label>
+                    <div class="rating-stars" data-rating-type="service">
+                        <span class="rating-star" data-value="1">☆</span>
+                        <span class="rating-star" data-value="2">☆</span>
+                        <span class="rating-star" data-value="3">☆</span>
+                        <span class="rating-star" data-value="4">☆</span>
+                        <span class="rating-star" data-value="5">☆</span>
+                    </div>
+                </div>
+                
+                <div style="margin: 16px 0;">
+                  <label style="font-weight:600; display:block; margin-bottom:8px;">📦 Delivery Rating</label>
+                    <div class="rating-stars" data-rating-type="shipping">
+                        <span class="rating-star" data-value="1">☆</span>
+                        <span class="rating-star" data-value="2">☆</span>
+                        <span class="rating-star" data-value="3">☆</span>
+                        <span class="rating-star" data-value="4">☆</span>
+                        <span class="rating-star" data-value="5">☆</span>
+                    </div>
+                </div>
+            
+                <div style="margin: 16px 0;">
+                    <label style="font-weight:600; display:block; margin-bottom:8px;">✨ Quality Rating</label>
+                    <div class="rating-stars" data-rating-type="quality">
+                        <span class="rating-star" data-value="1">☆</span>
+                        <span class="rating-star" data-value="2">☆</span>
+                        <span class="rating-star" data-value="3">☆</span>
+                        <span class="rating-star" data-value="4">☆</span>
+                        <span class="rating-star" data-value="5">☆</span>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0;">
+                    <label style="font-weight:600; display:block; margin-bottom:8px;">Your Comment</label>
+                    <textarea id="reviewCommentInput" rows="3" style="width:100%; padding:10px; border-radius:12px; border:1px solid #ddd;" placeholder="Share your experience with this seller..."></textarea>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button class="modal-cancel" onclick="closeWriteReviewModal()">Cancel</button>
+                    <button class="modal-confirm" onclick="submitSellerReview()">Submit Review</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+     var existingModal = document.getElementById('writeReviewModal');
+    if (existingModal) existingModal.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    document.querySelectorAll('.rating-stars').forEach(function(container) {
+        var stars = container.querySelectorAll('.rating-star');
+        stars.forEach(function(star) {
+            star.onclick = function() {
+                var value = parseInt(this.dataset.value);
+                stars.forEach(function(s, idx) {
+                    if (idx < value) {
+                        s.innerHTML = '★';
+                        s.classList.add('filled');
+                    } else {
+                        s.innerHTML = '☆';
+                        s.classList.remove('filled');
+                    }
+                });
+                container.dataset.rating = value;
+            };
+        });
+    });
+}
+
+function closeWriteReviewModal() {
+    var modal = document.getElementById('writeReviewModal');
+    if (modal) modal.remove();
+}
+
+function submitSellerReview() {
+    var orderId = window.pendingReviewOrderId;
+    if (!orderId) {
+        showToastMessage('Order not found', 'error');
+        return;
+    }
+    
+    var serviceRating = parseInt(document.querySelector('.rating-stars[data-rating-type="service"]')?.dataset.rating || 0);
+    var shippingRating = parseInt(document.querySelector('.rating-stars[data-rating-type="shipping"]')?.dataset.rating || 0);
+    var qualityRating = parseInt(document.querySelector('.rating-stars[data-rating-type="quality"]')?.dataset.rating || 0);
+    var comment = document.getElementById('reviewCommentInput')?.value || '';
+    
+    if (serviceRating === 0 || shippingRating === 0 || qualityRating === 0) {
+        showToastMessage('Please provide all ratings', 'error');
+        return;
+    }
+    
+    showToastMessage('Submitting review...', 'info');
+    
+    fetch('/api/order/' + orderId + '/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            rating_service: serviceRating,
+            rating_shipping: shippingRating,
+            rating_quality: qualityRating,
+            comment: comment
+        }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Review submitted! Thank you!', 'success');
+            closeWriteReviewModal();
+            loadSellerRating();
+            window.pendingReviewOrderId = null;
+            window.pendingReviewProductName = null;
+        } else {
+            throw new Error(data.error || 'Failed to submit review');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
 
 // ============================================================
 // PAGE INITIALIZATION
