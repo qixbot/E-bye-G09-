@@ -208,6 +208,17 @@
                                     </select>
                                 </div>
                             </div>
+                            <div class="ep-grid-2">
+                            <div class="ep-fg">
+                                <label>Campus</label>
+                                <select name="campus" required style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e8ece8; background: white;">
+                                <option value="" disabled {% if not user.campus %}selected{% endif %}>-- Select your campus --</option>
+                                    <option value="Melaka Campus" {% if user.campus == 'Melaka Campus' %}selected{% endif %}>Melaka Campus</option>
+                                    <option value="Cyberjaya Campus" {% if user.campus == 'Cyberjaya Campus' %}selected{% endif %}>Cyberjaya Campus</option>
+                                </select>
+                                <div class="ep-hint">📍 Please select your campus (required for meetup coordination)</div>
+                            </div>
+
                             <div class="ep-fg">
                                 <label>Active Hours</label>
                                 <select name="active_hours">
