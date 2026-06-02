@@ -545,12 +545,14 @@ def search():
     params.extend(statuses)
 
     if keyword:
+        # Make the keyword space‑flexible for all fields
+        flexible_keyword = keyword.replace(' ', '%')
+        like_flex = f"%{flexible_keyword}%"
         query += """ AND (p.name ILIKE %s 
                         OR p.description ILIKE %s
                         OR u.username ILIKE %s
                         OR u.full_name ILIKE %s)"""
-        like = f"%{keyword}%"
-        params.extend([like, like, like, like])
+        params.extend([like_flex, like_flex, like_flex, like_flex])
 
     if categories:
         placeholders = ','.join(['%s'] * len(categories))
