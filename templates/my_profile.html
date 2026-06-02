@@ -473,12 +473,16 @@ function loadListings() {
 // ============================================================
 // LOAD MY PURCHASES - WITH PRODUCT IMAGES
 // ============================================================
+// ============================================================
+// LOAD MY PURCHASES - 同时显示订单和待处理的 offers
+// ============================================================
 function loadPurchases() {
     var container = document.getElementById('purchases-list');
     var countSpan = document.getElementById('cnt-purchases');
     container.innerHTML = '<div class="loading-state">🛍️ Loading your purchases...</div>';
     
-    fetch('/api/user/purchases', { credentials: 'same-origin' })
+    // 获取买家的所有 offers
+    fetch('/api/user/offers', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (!data || data.length === 0) {
@@ -491,52 +495,235 @@ function loadPurchases() {
             var html = '';
             for (var i = 0; i < data.length; i++) {
                 var item = data[i];
-                // gain picture of the product for better display in purchases list
+                
+                // 处理 status 显示和按钮
+                var statusBadge = '';
+                var actionButtons = '';
+                var isCountered = (item.status === 'countered');
+                var isAccepted = (item.status === 'accepted');
+                var isPending = (item.status === 'pending');
+                var isRejected = (item.status === 'rejected');
+                var isOrdered = (item.status === 'ordered');
+                
+                if (isCountered) {
+                    statusBadge = '<span class="offer-status countered">🔄 Counter Offer Received</span>';
+                    var counterPrice = parseFloat(item.counter_price || item.offer_price).toFixed(2);
+                    actionButtons = `
+                        <button class="offer-action-btn accept-counter-btn" onclick="acceptCounterOffer(${item.id})">✅ Accept (RM ${counterPrice})</button>
+                        <button class="offer-action-btn reject-counter-btn" onclick="rejectCounterOffer(${item.id})">❌ Decline</button>
+                        <a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>
+                    `;
+                } else if (isAccepted) {
+                    statusBadge = '<span class="offer-status accepted">✅ Offer Accepted</span>';
+                    actionButtons = `
+                        <button class="offer-action-btn checkout-btn" onclick="createOrderFromOffer(${item.id})">🛒 Proceed to Checkout</button>
+                        <a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>
+                    `;
+                } else if (isPending) {
+                    statusBadge = '<span class="offer-status pending">⏳ Offer Pending</span>';
+                    actionButtons = `<a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>`;
+                } else if (isRejected) {
+                    statusBadge = '<span class="offer-status rejected">❌ Offer Declined</span>';
+                    actionButtons = `<a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>`;
+                } else if (isOrdered) {
+                    statusBadge = '<span class="offer-status ordered">📦 Order Created</span>';
+                    actionButtons = `<a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>`;
+                }
+                
+                // 获取产品图片
                 var productImage = item.product_image || null;
                 var imageHtml = '';
                 if (productImage) {
-                        if (productImage.startsWith('data:')) {
-                            imageHtml = '<img src="' + escapeHtml(productImage) + '" class="purchase-product-img" alt="' + escapeHtml(item.name) + '">';
-                        } else {
-                               imageHtml = '<div class="purchase-image-wrapper"><img src="' + escapeHtml(productImage) + '" class="purchase-product-img" alt="' + escapeHtml(item.name) + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div class=\\\'purchase-img-placeholder\\\'>📦</div>\'"><div class="purchase-img-placeholder" style="display:none">📦</div></div>';
-                        }
-                        } else {
-                               imageHtml = '<div class="purchase-img-placeholder">📦</div>';
-                        }
+                    if (productImage.startsWith('data:')) {
+                        imageHtml = '<img src="' + escapeHtml(productImage) + '" class="purchase-product-img" alt="' + escapeHtml(item.product_name) + '">';
+                    } else {
+                        imageHtml = '<div class="purchase-image-wrapper"><img src="' + escapeHtml(productImage) + '" class="purchase-product-img" alt="' + escapeHtml(item.product_name) + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div class=\\\'purchase-img-placeholder\\\'>📦</div>\'"><div class="purchase-img-placeholder" style="display:none">📦</div></div>';
+                    }
+                } else {
+                    imageHtml = '<div class="purchase-img-placeholder">📦</div>';
+                }
                 
                 html += `
-                    <div class="purchase-card">
-                        <a href="/product/${item.product_id}" class="purchase-link" target="_blank">
-                            <div class="purchase-header">
-                                <div class="purchase-image">
-                                    ${imageHtml}
-                                </div>
-                                <div class="purchase-title-section">
-                                    <div class="purchase-name">${escapeHtml(item.name)}</div>
-                                    <div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
-                                </div>
-                                <div class="purchase-status-badge ${item.status || 'pending'}">
-                                    ${item.status === 'completed' ? '✅ Completed' : (item.status === 'pending' ? '⏳ Pending' : (item.status || 'Pending'))}
-                                </div>
+                    <div class="purchase-card offer-card-item">
+                        <div class="purchase-header">
+                            <div class="purchase-image">
+                                ${imageHtml}
                             </div>
-                            <div class="purchase-details">
-                                <div class="purchase-price-info">
-                                    <span class="purchase-price">RM ${parseFloat(item.price).toFixed(2)}</span>
-                                </div>
-                                <div class="purchase-meta-info">
-                                    <span class="meta-item">📍 MMU Campus</span>
-                                    <span class="meta-item">📅 ${item.created_at ? escapeHtml(item.created_at.split(' ')[0]) : 'Recently'}</span>
-                                </div>
+                            <div class="purchase-title-section">
+                                <div class="purchase-name">${escapeHtml(item.product_name)}</div>
+                                <div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
+                                ${statusBadge}
                             </div>
-                        </a>
+                        </div>
+                        <div class="purchase-details">
+                            <div class="purchase-price-info">
+                                <span class="offer-label">Offer Price:</span>
+                                <span class="purchase-price">RM ${parseFloat(item.offer_price).toFixed(2)}</span>
+                                ${item.original_price ? '<span class="original-price">(Original: RM ' + parseFloat(item.original_price).toFixed(2) + ')</span>' : ''}
+                            </div>
+                            ${isCountered && item.counter_price ? `
+                            <div class="counter-offer-info">
+                                <span class="counter-label">💰 Seller Countered:</span>
+                                <span class="counter-price">RM ${parseFloat(item.counter_price).toFixed(2)}</span>
+                            </div>
+                            ` : ''}
+                            ${item.message ? '<div class="offer-message">💬 "' + escapeHtml(item.message) + '"</div>' : ''}
+                            <div class="purchase-meta-info">
+                                <span class="meta-item">📅 ${item.created_at ? escapeHtml(item.created_at.split(' ')[0]) : 'Recently'}</span>
+                            </div>
+                        </div>
+                        <div class="offer-actions-row">
+                            ${actionButtons}
+                        </div>
                     </div>
                 `;
             }
             container.innerHTML = html;
         })
-        .catch(function() {
+        .catch(function(err) {
+            console.error('Load offers error:', err);
             container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load purchases</div></div>';
         });
+}
+
+// ============================================================
+// 买家接受 counter offer
+// ============================================================
+function acceptCounterOffer(offerId) {
+    showToastMessage('Accepting counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/accept-counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer accepted! You can now checkout.', 'success');
+            loadPurchases();
+        } else {
+            throw new Error(data.error || 'Failed to accept');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ============================================================
+// 买家拒绝 counter offer
+// ============================================================
+function rejectCounterOffer(offerId) {
+    showToastMessage('Declining counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/reject-counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer declined.', 'success');
+            loadPurchases();
+        } else {
+            throw new Error(data.error || 'Failed to decline');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ============================================================
+// 从接受的 offer 创建订单
+// ============================================================
+function createOrderFromOffer(offerId) {
+    // 先获取 offer 详情，然后显示 meetup 选择界面
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) {
+                throw new Error(data.error);
+            }
+            
+            // 显示 meetup 选择弹窗
+            var meetupHtml = `
+                <div id="checkoutMeetupModal" class="custom-modal">
+                    <div class="modal-card" style="max-width: 500px;">
+                        <div class="modal-icon">📍</div>
+                        <div class="modal-title">Checkout: ${escapeHtml(data.product_name)}</div>
+                        <div class="modal-message">Price: RM ${data.offer_price.toFixed(2)}</div>
+                        
+                        <div style="margin: 16px 0;">
+                            <label style="font-weight:600; display:block; margin-bottom:8px;">Select Meetup Location(s):</label>
+                            <div class="meetup-options">
+                                <label class="checkbox-option"><input type="checkbox" value="FOM (Faculty of Management)"> FOM (Faculty of Management)</label>
+                                <label class="checkbox-option"><input type="checkbox" value="FOE (Faculty of Engineering)"> FOE (Faculty of Engineering)</label>
+                                <label class="checkbox-option"><input type="checkbox" value="FCI (Faculty of Computing)"> FCI (Faculty of Computing)</label>
+                                <label class="checkbox-option"><input type="checkbox" value="Library"> Library</label>
+                                <label class="checkbox-option"><input type="checkbox" value="Cafeteria"> Cafeteria</label>
+                                <label class="checkbox-option"><input type="checkbox" value="Student Hub"> Student Hub</label>
+                                <label class="checkbox-option"><input type="checkbox" value="Others (specify in chat)"> Others (specify in chat)</label>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-buttons">
+                            <button class="modal-cancel" onclick="closeCheckoutModal()">Cancel</button>
+                            <button class="modal-confirm" onclick="submitOrderFromOffer(${offerId})">Confirm Order</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            var existing = document.getElementById('checkoutMeetupModal');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', meetupHtml);
+            
+            window.currentCheckoutOfferId = offerId;
+        })
+        .catch(function(err) {
+            showToastMessage('Error: ' + err.message, 'error');
+        });
+}
+
+function closeCheckoutModal() {
+    var modal = document.getElementById('checkoutMeetupModal');
+    if (modal) modal.remove();
+}
+
+function submitOrderFromOffer(offerId) {
+    var checkboxes = document.querySelectorAll('#checkoutMeetupModal input[type="checkbox"]:checked');
+    var selectedLocations = [];
+    checkboxes.forEach(function(cb) {
+        selectedLocations.push(cb.value);
+    });
+    
+    if (selectedLocations.length === 0) {
+        showToastMessage('Please select at least one meetup location', 'error');
+        return;
+    }
+    
+    showToastMessage('Creating order...', 'info');
+    fetch('/api/offer/' + offerId + '/create-order', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meetup_locations: selectedLocations })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Order created successfully! Check "My Orders" tab.', 'success');
+            closeCheckoutModal();
+            loadPurchases();
+            loadOrders();
+        } else {
+            throw new Error(data.error || 'Failed to create order');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
 }
 
 // ============================================================
