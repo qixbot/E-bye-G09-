@@ -334,20 +334,44 @@ function closeOfferManageModal() {
 // #Eileen do this part
 
 // ========== OFFER MANAGE MODAL ==========
+// ========== OFFER MANAGE MODAL ==========
 function openOfferManageModal(offerId) {
     manageOfferId = offerId;
     document.getElementById('offerManageModal').classList.add('show');
     
-    // 直接显示 Accept 和 Reject 按钮，不依赖 API 状态
-    var html = '<div class="offer-detail">' +
-        '<strong>Counter Offer</strong><br>' +
-        'Offer ID: ' + offerId +
-        '</div>' +
-        '<div style="display:flex;gap:8px;margin-top:16px;">' +
-        '<button class="notif-btn primary" onclick="acceptOfferSimple(' + offerId + ')">✅ Accept</button>' +
-        '<button class="notif-btn danger" onclick="rejectOfferSimple(' + offerId + ')">❌ Reject</button>' +
-        '</div>';
-    document.getElementById('offerManageContent').innerHTML = html;
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (!data.success) {
+            document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ ' + (data.error || 'Failed to load') + '</div>';
+            return;
+        }
+        
+        var html = '<div class="offer-detail">' +
+            '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
+            '💰 Offer Price: RM ' + parseFloat(data.offer_price).toFixed(2) +
+            (data.counter_price ? '<br>🔄 Counter Offer: RM ' + parseFloat(data.counter_price).toFixed(2) : '') +
+            '</div>' +
+            '<div style="display:flex;gap:8px;margin-top:16px;">';
+        
+        // 根据状态显示不同的按钮
+        if (data.status === 'countered') {
+            html += '<button class="notif-btn primary" onclick="acceptCounter(' + offerId + ')">✅ Accept Counter Offer</button>';
+            html += '<button class="notif-btn danger" onclick="rejectCounter(' + offerId + ')">❌ Reject Counter Offer</button>';
+        } else if (data.status === 'pending') {
+            html += '<button class="notif-btn primary" onclick="acceptOffer(' + offerId + ')">✅ Accept Offer</button>';
+            html += '<button class="notif-btn danger" onclick="rejectOffer(' + offerId + ')">❌ Reject Offer</button>';
+        } else if (data.status === 'accepted') {
+            html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Checkout</button>';
+        }
+        
+        html += '</div>';
+        document.getElementById('offerManageContent').innerHTML = html;
+    })
+    .catch(function(err) {
+        console.error('Error:', err);
+        document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ Failed to load offer details</div>';
+    });
 }
 
 // 简单的 Accept 函数 - 直接调用后端

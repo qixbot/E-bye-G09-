@@ -1,7 +1,9 @@
 import os
-import psycopg2
 import time
 import logging
+from contextlib import contextmanager
+from typing import Optional, Dict, Any, List
+import psycopg2
 from psycopg2.extras import RealDictCursor
 from werkzeug.security import generate_password_hash
 
@@ -9,17 +11,24 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ============================================================
-# 使用 Neon 数据库（免费、稳定、连接池友好）
+# Database Configuration
 # ============================================================
+
+# Your new Neon database connection string
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if not DATABASE_URL:
-    # ⚠️ 请确认这是你正确的 Neon 连接串
-    DATABASE_URL = "postgresql://neondb_owner:npg_ISWgRYPej6w5@ep-floral-hat-aogdtytg.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+    # Updated Neon connection string
+    DATABASE_URL = "postgresql://neondb_owner:npg_mIbexS1E0npq@ep-morning-queen-aoeg1sed.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+    logger.info("Using default DATABASE_URL (Neon PostgreSQL)")
 
+
+# ============================================================
+# Backward compatible functions for app.py
+# ============================================================
 
 def get_db():
-    """获取数据库连接"""
+    """Get database connection - returns a connection object (not context manager)"""
     try:
         conn = psycopg2.connect(
             DATABASE_URL,
@@ -29,6 +38,7 @@ def get_db():
             keepalives_interval=2,
             keepalives_count=2
         )
+        # Set cursor factory for RealDictCursor by default
         conn.cursor_factory = RealDictCursor
         return conn
     except Exception as e:
@@ -49,33 +59,83 @@ def get_db_with_retry(retries=3, delay=2):
     return get_db()
 
 
+def execute_query(sql: str, params: tuple = None, fetch_one: bool = False, fetch_all: bool = False):
+    """Helper to execute queries with auto cleanup"""
+    conn = None
+    cur = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(sql, params or ())
+        
+        if fetch_one:
+            result = cur.fetchone()
+            return result
+        elif fetch_all:
+            result = cur.fetchall()
+            return result
+        else:
+            conn.commit()
+            return cur.rowcount
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Query execution error: {e}")
+        raise
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+def add_column_if_not_exists(table: str, column: str, column_def: str) -> bool:
+    """Safely add a column to a table if it doesn't exist"""
+    try:
+        execute_query(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {column_def}")
+        logger.info(f"✅ Added column '{column}' to {table}")
+        return True
+    except Exception as e:
+        logger.warning(f"Could not add column '{column}' to {table}: {e}")
+        return False
+
+
 def add_missing_notification_columns():
     """添加缺失的通知表列"""
-    conn = get_db_with_retry()
-    cur = conn.cursor()
-    
+    conn = None
+    cur = None
     try:
-        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general'")
-        print("✅ Added 'type' column to notifications")
+        conn = get_db_with_retry()
+        cur = conn.cursor()
+        
+        try:
+            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general'")
+            print("✅ Added 'type' column to notifications")
+        except Exception as e:
+            print(f"Note: type column already exists or error: {e}")
+        
+        try:
+            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS related_id INTEGER")
+            print("✅ Added 'related_id' column to notifications")
+        except Exception as e:
+            print(f"Note: related_id column already exists or error: {e}")
+        
+        try:
+            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0")
+            print("✅ Added 'is_read' column to notifications")
+        except Exception as e:
+            print(f"Note: is_read column already exists or error: {e}")
+        
+        conn.commit()
+        print("✅ Notification columns check completed")
     except Exception as e:
-        print(f"Note: type column already exists or error: {e}")
-    
-    try:
-        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS related_id INTEGER")
-        print("✅ Added 'related_id' column to notifications")
-    except Exception as e:
-        print(f"Note: related_id column already exists or error: {e}")
-    
-    try:
-        cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0")
-        print("✅ Added 'is_read' column to notifications")
-    except Exception as e:
-        print(f"Note: is_read column already exists or error: {e}")
-    
-    conn.commit()
-    cur.close()
-    conn.close()
-    print("✅ Notification columns check completed")
+        logger.error(f"add_missing_notification_columns failed: {e}")
+        raise
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 
 def init_db():
@@ -275,56 +335,91 @@ def init_db():
 
 def add_review_columns():
     """添加评分相关列"""
-    conn = get_db_with_retry()
-    cur = conn.cursor()
-    
-    user_columns = [
-        ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
-        ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
-        ('avg_quality_rating', 'DECIMAL(3,2) DEFAULT 0'),
-        ('avg_overall_rating', 'DECIMAL(3,2) DEFAULT 0'),
-        ('total_reviews', 'INTEGER DEFAULT 0'),
-    ]
-    
-    for col_name, col_def in user_columns:
-        try:
-            cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-            print(f"✅ Added column {col_name} to users")
-        except Exception as e:
-            print(f"Could not add {col_name}: {e}")
-    
-    review_columns = [
-        ('rating_service', 'INTEGER DEFAULT 0'),
-        ('rating_shipping', 'INTEGER DEFAULT 0'),
-        ('rating_quality', 'INTEGER DEFAULT 0'),
-        ('rating_overall', 'INTEGER DEFAULT 0'),
-    ]
-    
-    for col_name, col_def in review_columns:
-        try:
-            cur.execute(f"ALTER TABLE reviews ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-            print(f"✅ Added column {col_name} to reviews")
-        except Exception as e:
-            print(f"Could not add {col_name}: {e}")
-    
-    conn.commit()
-    cur.close()
-    conn.close()
-    print("✅ Review columns added successfully")
+    conn = None
+    cur = None
+    try:
+        conn = get_db_with_retry()
+        cur = conn.cursor()
+        
+        user_columns = [
+            ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
+            ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
+            ('avg_quality_rating', 'DECIMAL(3,2) DEFAULT 0'),
+            ('avg_overall_rating', 'DECIMAL(3,2) DEFAULT 0'),
+            ('total_reviews', 'INTEGER DEFAULT 0'),
+        ]
+        
+        for col_name, col_def in user_columns:
+            try:
+                cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
+                print(f"✅ Added column {col_name} to users")
+            except Exception as e:
+                print(f"Could not add {col_name}: {e}")
+        
+        review_columns = [
+            ('rating_service', 'INTEGER DEFAULT 0'),
+            ('rating_shipping', 'INTEGER DEFAULT 0'),
+            ('rating_quality', 'INTEGER DEFAULT 0'),
+            ('rating_overall', 'INTEGER DEFAULT 0'),
+        ]
+        
+        for col_name, col_def in review_columns:
+            try:
+                cur.execute(f"ALTER TABLE reviews ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
+                print(f"✅ Added column {col_name} to reviews")
+            except Exception as e:
+                print(f"Could not add {col_name}: {e}")
+        
+        conn.commit()
+        print("✅ Review columns added successfully")
+    except Exception as e:
+        logger.error(f"add_review_columns failed: {e}")
+        raise
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
 
 def add_campus_column():
     """添加 campus 字段到 users 表"""
-    conn = get_db_with_retry()
-    cur = conn.cursor()
+    conn = None
+    cur = None
     try:
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS campus TEXT DEFAULT NULL")
-        print("✅ Added 'campus' column to users table")
+        conn = get_db_with_retry()
+        cur = conn.cursor()
+        try:
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS campus TEXT DEFAULT NULL")
+            print("✅ Added 'campus' column to users table")
+        except Exception as e:
+            print(f"Note: campus column already exists or error: {e}")
+        conn.commit()
+        print("✅ Campus column check completed")
     except Exception as e:
-        print(f"Note: campus column already exists or error: {e}")
-    conn.commit()
-    cur.close()
-    conn.close()
-    print("✅ Campus column check completed")
+        logger.error(f"add_campus_column failed: {e}")
+        raise
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+def test_connection():
+    """Test database connection"""
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT version()")
+        version = cur.fetchone()
+        cur.close()
+        conn.close()
+        print(f"✅ Database connected: {version[0][:50]}...")
+        return True
+    except Exception as e:
+        print(f"❌ Database connection failed: {e}")
+        return False
 
 
 # 兼容性空函数
@@ -348,6 +443,13 @@ def init_reports():
 
 
 if __name__ == '__main__':
-    add_review_columns()
-    add_missing_notification_columns()
-    add_campus_column()
+    print("Testing database connection...")
+    if test_connection():
+        print("\nInitializing database...")
+        init_db()
+        add_review_columns()
+        add_missing_notification_columns()
+        add_campus_column()
+        print("\n✅ All done! Database is ready.")
+    else:
+        print("\n❌ Cannot initialize database. Please check your connection string.")

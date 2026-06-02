@@ -10,3 +10,4 @@ venv/
 "static/uploads/*.mov" 
 "static/uploads/" 
 git
+"static/uploads/" 

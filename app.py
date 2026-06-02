@@ -1463,13 +1463,11 @@ def api_create_order_from_offer(offer_id):
 
 @app.route('/api/offer/<int:offer_id>/details', methods=['GET'])
 def api_offer_details(offer_id):
-    """Get offer details for checkout modal - used by notifications.html"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     db = get_db()
     cur = db.cursor()
-    # 修改：移除权限检查，只根据 offer_id 查询
     cur.execute('''
         SELECT o.id, o.offer_price, o.status, o.counter_price,
                p.id as product_id, p.name as product_name, p.price as product_price,
@@ -3625,7 +3623,7 @@ def api_update_order_status(order_id):
     data = request.get_json()
     new_status = data.get('status')
     
-    valid_statuses = ['pending', 'confirmed', 'shipped', 'delivered', 'completed', 'cancelled']
+    valid_statuses = ['pending', 'confirmed', 'delivered', 'completed', 'cancelled']
     if new_status not in valid_statuses:
         return jsonify({'success': False, 'error': 'Invalid status'}), 400
     
@@ -3653,10 +3651,10 @@ def api_update_order_status(order_id):
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
+    # 允许的状态转换
     allowed = {
         'pending': {'confirmed': 'seller', 'cancelled': 'both'},
-        'confirmed': {'shipped': 'seller', 'cancelled': 'both'},
-        'shipped': {'delivered': 'seller'},
+        'confirmed': {'delivered': 'seller', 'cancelled': 'both'},
         'delivered': {'completed': 'buyer'},
         'completed': {},
         'cancelled': {}
@@ -3682,9 +3680,8 @@ def api_update_order_status(order_id):
     notify_user_id = order['buyer_id'] if is_seller else order['seller_id']
     
     messages = {
-        'confirmed': f" Order #{order['order_number']} has been CONFIRMED by seller!",
-        'shipped': f"📦 Order #{order['order_number']} has been SHIPPED! Track your order.",
-        'delivered': f"🚚 Order #{order['order_number']} has been DELIVERED! Please confirm completion.",
+        'confirmed': f"✅ Order #{order['order_number']} has been CONFIRMED by seller!",
+        'delivered': f"🚚 Order #{order['order_number']} has been MARKED AS DELIVERED! Please confirm receipt to complete the order.",
         'completed': f"🎉 Order #{order['order_number']} is COMPLETED! Please leave a review.",
         'cancelled': f"❌ Order #{order['order_number']} has been CANCELLED."
     }
@@ -3692,8 +3689,8 @@ def api_update_order_status(order_id):
     if new_status in messages:
         cur.execute('''
             INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-            VALUES (%s, %s, NOW(), %s, %s, 0)
-        ''', (notify_user_id, messages[new_status], 'order', order_id))
+            VALUES (%s, %s, NOW(), 'order', %s, 0)
+        ''', (notify_user_id, messages[new_status], order_id))
     
     db.commit()
     cur.close()

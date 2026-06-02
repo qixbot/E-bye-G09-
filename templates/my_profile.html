@@ -254,6 +254,29 @@
     </div>
 </div>
 
+<!-- Confirm Received Modal - -->
+<div id="confirmReceivedModal" class="modal" style="display: none;">
+    <div class="modal-content confirm-modal">
+        <div class="modal-header">
+            <h2>📦 Confirm Receipt</h2>
+            <button class="modal-close" onclick="closeConfirmReceivedModal()">&times;</button>
+        </div>
+        <div class="confirm-modal-body">
+            <div class="confirm-icon">🎉</div>
+            <div class="confirm-title">Have you received your item?</div>
+            <div class="confirm-message" id="confirmProductInfo"></div>
+            <div class="confirm-warning">
+                ⚠️ Please only confirm if you have actually received the item.<br>
+                This action cannot be undone.
+            </div>
+            <div class="confirm-buttons">
+                <button class="confirm-btn cancel" onclick="closeConfirmReceivedModal()">Cancel</button>
+                <button class="confirm-btn confirm" id="confirmReceivedBtn" onclick="onConfirmReceived()">✅ Yes, Confirm Receipt</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // ============================================================
 // various global constants and variables
@@ -592,19 +615,21 @@ function renderOrderCard(order, role) {
             actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
         }
     } else if (role === 'buyer') {
-        // Buyer can only confirm receipt or leave review based on order status
-        if (status === 'delivered') {
-            actionButtons = '<button class="order-action-btn complete-btn" onclick="confirmOrderCompletion(' + order.id + ')">✅ Confirm Received</button>';
-        } else if (status === 'completed') {
-            actionButtons = '<button class="order-action-btn review-btn" onclick="openReviewModal(' + order.id + ', \'' + escapeHtml(order.product_name) + '\')">⭐ Leave Review</button>';
-        } else if (status === 'pending') {
-            actionButtons = '<span class="order-status-badge waiting">⏳ Awaiting seller confirmation</span>';
-        } else if (status === 'cancelled') {
-            actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
-        } else {
-            actionButtons = '<span class="order-status-badge ' + status + '">' + statusText + '</span>';
-        }
+    // Buyer can only confirm receipt or leave review based on order status
+    if (status === 'delivered') {
+        actionButtons = '<button class="order-action-btn complete-btn" onclick="openConfirmReceivedModal(' + order.id + ', \'' + escapeHtml(order.product_name) + '\', \'' + escapeHtml(order.order_number) + '\')">✅ Confirm Received</button>';
+    } else if (status === 'completed') {
+        // 已完成订单不显示评价按钮（确认收货时已弹出）
+        actionButtons = '<span class="order-status-badge completed">✅ Completed</span>';
+    } else if (status === 'pending') {
+        actionButtons = '<span class="order-status-badge waiting">⏳ Awaiting seller confirmation</span>';
+    } else if (status === 'cancelled') {
+        actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
+    } else {
+        actionButtons = '<span class="order-status-badge ' + status + '">' + statusText + '</span>';
     }
+}
+
     
     // FIXED: Added backticks for template literal and fixed return statement
     return `<div class="order-card">
@@ -649,8 +674,7 @@ function getStatusClass(status) {
     }
 }
 
-// FIXED: Changed API endpoint and method to match backend
-function updateOrderStatus(orderId, newStatus) {
+function updateOrderStatus(orderId, newStatus, callback) {
     showToastMessage('Updating order status...', 'info');
     fetch('/api/order/' + orderId + '/status', {
         method: 'PUT',
@@ -663,7 +687,11 @@ function updateOrderStatus(orderId, newStatus) {
         if (data.success) {
             showToastMessage('Order status updated to ' + newStatus + '!', 'success');
             loadOrders();
-            loadListings(); // Refresh listings to update any status badges if needed
+            loadListings();
+            // 如果有回调函数，执行它
+            if (callback && typeof callback === 'function') {
+                callback();
+            }
         } else {
             throw new Error(data.error || 'Failed to update status');
         }
@@ -674,8 +702,88 @@ function updateOrderStatus(orderId, newStatus) {
 }
 
 function confirmOrderCompletion(orderId) {
-    if (!confirm('Have you received the item? Confirming will complete the order.')) return;
     updateOrderStatus(orderId, 'completed');
+}
+
+// ============================================================
+// CONFIRM RECEIVED MODAL - 
+// ============================================================
+
+var pendingConfirmOrderId = null;
+
+function openConfirmReceivedModal(orderId, productName, orderNumber) {
+    pendingConfirmOrderId = orderId;
+    var modal = document.getElementById('confirmReceivedModal');
+    var productInfo = document.getElementById('confirmProductInfo');
+    
+    productInfo.innerHTML = `
+        <div class="product-detail">
+            <span class="product-name">📦 ${escapeHtml(productName)}</span>
+            <span class="order-ref">Order #${escapeHtml(orderNumber)}</span>
+        </div>
+    `;
+    modal.style.display = 'flex';
+}
+
+function closeConfirmReceivedModal() {
+    var modal = document.getElementById('confirmReceivedModal');
+    modal.style.display = 'none';
+    pendingConfirmOrderId = null;
+}
+
+// 确认收货按钮事件
+document.addEventListener('DOMContentLoaded', function() {
+    var confirmBtn = document.getElementById('confirmReceivedBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            if (pendingConfirmOrderId) {
+                closeConfirmReceivedModal();
+                updateOrderStatus(pendingConfirmOrderId, 'completed');
+                pendingConfirmOrderId = null;
+            }
+        });
+    }
+});
+
+
+function onConfirmReceived() {
+    if (pendingConfirmOrderId) {
+        var orderId = pendingConfirmOrderId;
+        
+        // 先获取订单信息（产品名称）
+        fetch('/api/orders/my', { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var order = null;
+                // 在 as_buyer 中查找这个订单
+                if (data.as_buyer) {
+                    for (var i = 0; i < data.as_buyer.length; i++) {
+                        if (data.as_buyer[i].id == orderId) {
+                            order = data.as_buyer[i];
+                            break;
+                        }
+                    }
+                }
+                
+                var productName = order ? order.product_name : 'this item';
+                
+                // 关闭确认弹框
+                closeConfirmReceivedModal();
+                
+                // 先更新订单状态为 completed
+                updateOrderStatus(orderId, 'completed', function() {
+                    // 订单完成后，打开评价弹框
+                    openReviewModal(orderId, productName);
+                });
+            })
+            .catch(function(err) {
+                console.error('Error fetching order:', err);
+                closeConfirmReceivedModal();
+                updateOrderStatus(orderId, 'completed');
+            });
+        
+        pendingConfirmOrderId = null;
+    }
 }
 
 function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocations, meetingTimes) {
@@ -1436,6 +1544,7 @@ if (tabParam === 'received-reviews') {
     openReviewsModal();
 }
 
+
 // ============================================================
 // Open review writing modal - from orders tab
 // ============================================================
@@ -1625,6 +1734,9 @@ function closeAvatarModal() {
 
 // 点击模态框外部关闭
 window.onclick = function(event) {
+    var confirmModal = document.getElementById('confirmReceivedModal');
+    if (event.target === confirmModal) closeConfirmReceivedModal();
+    
     var avatarModal = document.getElementById('avatarModal');
     if (event.target === avatarModal) closeAvatarModal();
     
