@@ -1061,10 +1061,7 @@
 .modal-header h2 {
     font-size: 18px;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--ink), #2d5a3b);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--ink);
     margin: 0;
 }
 
