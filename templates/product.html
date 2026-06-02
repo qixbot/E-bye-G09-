@@ -84,7 +84,7 @@
             {% if product.seller_campus %}
                 <div class="campus-badge 
                     {% if 'Cyberjaya' in product.seller_campus %}cyber{% else %}mlk{% endif %}">
-                    {% if product.seller_campus == 'Cyberjaya' %}Cyberjaya Campus{% else %}{{ product.seller_campus }}{% endif %}
+                    {{ product.seller_campus | replace(' Campus', '') }}
                 </div>
             {% endif %}
             <h1 class="product-name">{{ product.name }}</h1>
@@ -202,7 +202,7 @@
                     <span class="campus-badge 
                         {% if 'Cyberjaya' in product.seller_campus %}cyber{% else %}mlk{% endif %}"
                         style="display: inline-block; margin-left: 8px;">
-                        {% if product.seller_campus == 'Cyberjaya' %}Cyberjaya Campus{% else %}{{ product.seller_campus }}{% endif %}
+                        {{ product.seller_campus | replace(' Campus', '') }}
                     </span>
                     {% endif %}
                 </p>
@@ -253,7 +253,7 @@
                     <span class="campus-badge 
                         {% if 'Cyberjaya' in product.seller_campus %}cyber{% else %}mlk{% endif %}"
                         style="display: inline-block; margin-left: 8px;">
-                        {% if product.seller_campus == 'Cyberjaya' %}Cyberjaya Campus{% else %}{{ product.seller_campus }}{% endif %}
+                        {{ product.seller_campus | replace(' Campus', '') }}
                     </span>
                     {% endif %}
                 </p>
