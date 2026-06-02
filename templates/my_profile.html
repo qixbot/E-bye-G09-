@@ -34,7 +34,7 @@
     <div class="pf-wrap">
         <div class="pf-card">
             <div class="pf-card-top">
-                <div class="pf-avatar">
+                <div class="pf-avatar" onclick="openAvatarModal()" style="cursor: pointer;">
                     <img src="{{ url_for('avatar_image') }}?t={{ range(1, 10000) | random }}" alt="Avatar"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div class="pf-avatar-init" style="display: none;">{{ user.username[0].upper() if user.username else 'U' }}</div>
@@ -82,8 +82,8 @@
                     <span><span class="pf-detail-label">Active</span>&nbsp;{{ user.active_hours or 'Not set' }}</span>
                 </div>
                 <div class="pf-detail-row">
-                <span class="pf-detail-icon">📍</span>
-                <span><span class="pf-detail-label">Campus</span>&nbsp;{{ user.campus or 'Not selected' }}</span>
+                    <span class="pf-detail-icon">📍</span>
+                    <span><span class="pf-detail-label">Campus</span>&nbsp;{{ user.campus or 'Not selected' }}</span>
                 </div>
                 <div class="pf-detail-row">
                     <span class="pf-detail-icon">⭐</span>
@@ -95,155 +95,164 @@
                 </div>
             </div>
             
-            <!-- Seller Rating Button - Only shown for sellers with reviews -->
-            <div id="sellerRatingContainer" class="pf-rating-container" style="display: none;">
-                <div class="pf-rating-header">
-                    <span class="rating-label"> Seller Rating</span>
-                    <button class="view-reviews-btn" id="viewReviewsBtn" onclick="openReviewsModal()">📖 View all reviews (<span id="reviewCount">0</span>)</button>
-                </div>
-                <div class="pf-rating-stars" id="userRatingStars"></div>
-                <div class="pf-rating-score" id="userRatingScore"></div>
-                <!-- write review button -->
-                <div id="writeReviewBtnContainer" style="margin-top: 12px; display: none;">
-                <button class="write-review-btn" onclick="openWriteReviewModal()">✍️ Write a Review</button>
+            <!-- Simplified rating area - only the "View all comments" button -->
+            <div id="sellerRatingContainer" class="pf-simple-rating" style="display: none;">
+                <button class="view-reviews-simple-btn" id="viewReviewsBtn" onclick="openReviewsModal()">
+                    📖 View all comments (<span id="reviewCount">0</span>)
+                </button>
             </div>
-        </div>
-        </div>
+        </div> <!-- End of pf-card -->
+        
         <div class="pf-panel">
-    <div class="pf-tabs">
-        <button class="pf-tab on" id="tab-listings" onclick="switchTab('listings')">
-            📦 My Listings <span class="pf-tab-count" id="cnt-listings">0</span>
-        </button>
-        <button class="pf-tab" id="tab-purchases" onclick="switchTab('purchases')">
-            🛍️ My Purchases <span class="pf-tab-count" id="cnt-purchases">0</span>
-        </button>
-        <!-- FIXED: Added missing closing </button> tag -->
-        <button class="pf-tab" id="tab-orders" onclick="switchTab('orders')">
-            📋 My Orders <span class="pf-tab-count" id="cnt-orders">0</span>
-        </button>
-    </div>
-
-    <div class="pf-pane on" id="pane-listings">
-        <div id="listings-grid">
-            <div class="loading-state">📦 Loading your listings...</div>
-        </div>
-    </div>
-
-    <div class="pf-pane" id="pane-purchases">
-        <div class="pf-list" id="purchases-list">
-            <div class="loading-state">🛍️ Loading your purchases...</div>
-        </div>
-    </div>
-
-    <div class="pf-pane" id="pane-orders">
-        <div class="pf-list" id="orders-list">
-            <div class="loading-state">📋 Loading your orders...</div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Product Modal - Supports Images & Videos (Max 12 files) -->
-<div id="editProductModal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>✏️ Edit Product</h2>
-            <button class="modal-close" onclick="closeEditModal()">&times;</button>
-        </div>
-        <form id="editProductForm" onsubmit="saveProductChanges(event)">
-            <input type="hidden" id="edit_product_id">
-            
-            <div class="form-group">
-                <label>Product Name *</label>
-                <input type="text" id="edit_name" required>
+            <div class="pf-tabs">
+                <button class="pf-tab on" id="tab-listings" onclick="switchTab('listings')">
+                    📦 My Listings <span class="pf-tab-count" id="cnt-listings">0</span>
+                </button>
+                <button class="pf-tab" id="tab-purchases" onclick="switchTab('purchases')">
+                    🛍️ My Purchases <span class="pf-tab-count" id="cnt-purchases">0</span>
+                </button>
+                <button class="pf-tab" id="tab-orders" onclick="switchTab('orders')">
+                    📋 My Orders <span class="pf-tab-count" id="cnt-orders">0</span>
+                </button>
             </div>
-            
-            <div class="form-group">
-                <label>Price (RM) *</label>
-                <input type="number" id="edit_price" step="0.01" min="0" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Description *</label>
-                <textarea id="edit_description" rows="4" required></textarea>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Condition</label>
-                    <select id="edit_condition">
-                        <option value="new">New</option>
-                        <option value="like_new">Like New</option>
-                        <option value="good">Good</option>
-                        <option value="fair">Fair</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Category</label>
-                    <select id="edit_category">
-                        <option value="books">📚 Books</option>
-                        <option value="gadgets">💻 Gadgets</option>
-                        <option value="dorm">🛏️ Dorm Items</option>
-                        <option value="fashion">👕 Fashion</option>
-                        <option value="beauty">💄 Beauty</option>
-                        <option value="sports">⚽ Sports</option>
-                        <option value="groceries">🛒 Groceries</option>
-                        <option value="stationery">✏️ Stationery</option>
-                        <option value="music">🎸 Music</option>
-                        <option value="others">📦 Others</option>
-                    </select>
+
+            <div class="pf-pane on" id="pane-listings">
+                <div id="listings-grid">
+                    <div class="loading-state">📦 Loading your listings...</div>
                 </div>
             </div>
-            
-            <div class="form-group">
-                <label>Media Files (Images & Videos) - Max 12 files</label>
-                <div id="existing_media_container" class="existing-media"></div>
-                <div class="media-upload-area">
-                    <label class="upload-btn" id="uploadBtn">
-                        📷 Add Photos/Videos
-                        <input type="file" id="edit_new_media" accept="image/*,video/*" multiple style="display:none" onchange="previewNewMedia(this)">
-                    </label>
-                    <small class="upload-hint">Supported: Images (JPG, PNG, GIF) and Videos (MP4, WebM, MOV). Max 10MB each. Max 12 files total.</small>
+
+            <div class="pf-pane" id="pane-purchases">
+                <div class="pf-list" id="purchases-list">
+                    <div class="loading-state">🛍️ Loading your purchases...</div>
                 </div>
-                <div id="new_media_preview" class="new-media-preview"></div>
-                <div id="mediaLimitWarning" class="media-limit-warning" style="display: none;">⚠️ Maximum 12 media files allowed</div>
             </div>
-            
-            <div class="modal-buttons">
-                <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
-                <button type="submit" class="btn-save">Save Changes</button>
+
+            <div class="pf-pane" id="pane-orders">
+                <div class="pf-list" id="orders-list">
+                    <div class="loading-state">📋 Loading your orders...</div>
+                </div>
             </div>
-        </form>
-    </div>
-</div>
+        </div> <!-- End of pf-panel -->
 
-<!-- Offer Management Modal -->
-<div id="offerModal" class="modal" style="display: none;">
-    <div class="modal-content">
+        <!-- Edit Product Modal -->
+        <div id="editProductModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>✏️ Edit Product</h2>
+                    <button class="modal-close" onclick="closeEditModal()">&times;</button>
+                </div>
+                <form id="editProductForm" onsubmit="saveProductChanges(event)">
+                    <input type="hidden" id="edit_product_id">
+                    
+                    <div class="form-group">
+                        <label>Product Name *</label>
+                        <input type="text" id="edit_name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Price (RM) *</label>
+                        <input type="number" id="edit_price" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Description *</label>
+                        <textarea id="edit_description" rows="4" required></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Condition</label>
+                            <select id="edit_condition">
+                                <option value="new">New</option>
+                                <option value="like_new">Like New</option>
+                                <option value="good">Good</option>
+                                <option value="fair">Fair</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="edit_category">
+                                <option value="books">📚 Books</option>
+                                <option value="gadgets">💻 Gadgets</option>
+                                <option value="dorm">🛏️ Dorm Items</option>
+                                <option value="fashion">👕 Fashion</option>
+                                <option value="beauty">💄 Beauty</option>
+                                <option value="sports">⚽ Sports</option>
+                                <option value="groceries">🛒 Groceries</option>
+                                <option value="stationery">✏️ Stationery</option>
+                                <option value="music">🎸 Music</option>
+                                <option value="others">📦 Others</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Media Files (Images & Videos) - Max 12 files</label>
+                        <div id="existing_media_container" class="existing-media"></div>
+                        <div class="media-upload-area">
+                            <label class="upload-btn" id="uploadBtn">
+                                📷 Add Photos/Videos
+                                <input type="file" id="edit_new_media" accept="image/*,video/*" multiple style="display:none" onchange="previewNewMedia(this)">
+                            </label>
+                            <small class="upload-hint">Supported: Images (JPG, PNG, GIF) and Videos (MP4, WebM, MOV). Max 10MB each. Max 12 files total.</small>
+                        </div>
+                        <div id="new_media_preview" class="new-media-preview"></div>
+                        <div id="mediaLimitWarning" class="media-limit-warning" style="display: none;">⚠️ Maximum 12 media files allowed</div>
+                    </div>
+                    
+                    <div class="modal-buttons">
+                        <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+                        <button type="submit" class="btn-save">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Offer Management Modal -->
+        <div id="offerModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>💰 Offers for <span id="offerProductName"></span></h2>
+                    <button class="modal-close" onclick="closeOfferModal()">&times;</button>
+                </div>
+                <div id="offersList" class="offers-list">
+                    <div class="loading-state">Loading offers...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reviews Modal -->
+        <div id="reviewsModal" class="modal" style="display:none;">
+            <div class="modal-content reviews-modal">
+                <div class="modal-header">
+                    <h2>⭐ Seller Reviews</h2>
+                    <button class="modal-close" onclick="closeReviewsModal()">&times;</button>
+                </div>
+                <div id="reviewsStats" class="reviews-stats">
+                    <div class="loading-state">Loading reviews...</div>
+                </div>
+                <div id="reviewsList" class="reviews-list"></div>
+            </div>
+        </div>
+
+        <div class="pf-toast" id="pfToast"></div>
+    </div> <!-- End of pf-wrap -->
+</div> <!-- End of pf-page -->
+
+<!-- Avatar View Modal - Pure view mode, placed outside pf-wrap -->
+<div id="avatarModal" class="modal" style="display: none;">
+    <div class="modal-content avatar-modal">
         <div class="modal-header">
-            <h2>💰 Offers for <span id="offerProductName"></span></h2>
-            <button class="modal-close" onclick="closeOfferModal()">&times;</button>
+            <h2>📸 Profile Picture</h2>
+            <button class="modal-close" onclick="closeAvatarModal()">&times;</button>
         </div>
-        <div id="offersList" class="offers-list">
-            <div class="loading-state">Loading offers...</div>
+        <div class="avatar-modal-body">
+            <img id="avatarLargeImg" src="" alt="Avatar" class="avatar-large">
+            <div id="avatarLargePlaceholder" class="avatar-large-placeholder" style="display: none;"></div>
         </div>
     </div>
 </div>
-
-<!-- Public comment Modal - check all the buyer comment -->
-<div id="reviewsModal" class="modal" style="display:none;">
-    <div class="modal-content reviews-modal">
-        <div class="modal-header">
-            <h2>⭐ Seller Reviews</h2>
-            <button class="modal-close" onclick="closeReviewsModal()">&times;</button>
-        </div>
-        <div id="reviewsStats" class="reviews-stats">
-            <div class="loading-state">Loading reviews...</div>
-        </div>
-        <div id="reviewsList" class="reviews-list"></div>
-    </div>
-</div>
-
-<div class="pf-toast" id="pfToast"></div>
 
 <script>
 // ============================================================
@@ -1305,33 +1314,15 @@ function loadSellerRating() {
     .then(function(data) {
         
         container.style.display = 'block';  
+        document.getElementById('reviewCount').textContent = data.total_reviews || 0;
 
-        if (data.total_reviews > 0) {
-            document.getElementById('reviewCount').textContent = data.total_reviews;
-            var starsHtml = generateStarsHtml(data.avg_overall);
-            document.getElementById('userRatingStars').innerHTML = starsHtml;
-            document.getElementById('userRatingScore').innerHTML = data.avg_overall + '★ (' + data.total_reviews + ' reviews)';
-        } else {
-    
-            document.getElementById('reviewCount').textContent = '0';
-            document.getElementById('userRatingStars').innerHTML = '☆☆☆☆☆';
-            document.getElementById('userRatingScore').innerHTML = 'No reviews yet';
-        }
-
+        // Check if user can write a review
         return fetch('/api/user/' + userId + '/can-review', { credentials: 'same-origin' });
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        var reviewBtnContainer = document.getElementById('writeReviewBtnContainer');
-        if (reviewBtnContainer) {
-            if (data.can_review) {
-                reviewBtnContainer.style.display = 'block';
-                window.pendingReviewOrderId = data.order_id;
-                window.pendingReviewProductName = data.product_name;
-            } else {
-                reviewBtnContainer.style.display = 'none';
-            }
-        }
+        // We don't need to show write review button on the simplified view
+        // The write review button is only available in the orders tab
     })
     .catch(function(err) {
         console.log('Load seller rating error:', err);
@@ -1431,16 +1422,11 @@ if (tabParam === 'received-reviews') {
 }
 
 // ============================================================
-// Open reviews modal - show all buyer reviews with comments
+// Open review writing modal - from orders tab
 // ============================================================
-function openWriteReviewModal() {
-    var orderId = window.pendingReviewOrderId;
-    var productName = window.pendingReviewProductName;
-    
-    if (!orderId) {
-        showToastMessage('No eligible order found for review', 'error');
-        return;
-    }
+function openReviewModal(orderId, productName) {
+    window.pendingReviewOrderId = orderId;
+    window.pendingReviewProductName = productName;
 
     var modalHtml = `
         <div id="writeReviewModal" class="custom-modal">
@@ -1558,7 +1544,8 @@ function submitSellerReview() {
         if (data.success) {
             showToastMessage('Review submitted! Thank you!', 'success');
             closeWriteReviewModal();
-            loadSellerRating();
+            loadSellerRating(); // Refresh the review count
+            loadOrders(); // Refresh orders to remove the review button
             window.pendingReviewOrderId = null;
             window.pendingReviewProductName = null;
         } else {
@@ -1587,6 +1574,48 @@ function generateStarsHtml(rating) {
     }
     return html;
 }
+
+// ============================================================
+// AVATAR MODAL - 纯查看头像
+// ============================================================
+
+function openAvatarModal() {
+    var modal = document.getElementById('avatarModal');
+    var largeImg = document.getElementById('avatarLargeImg');
+    var placeholder = document.getElementById('avatarLargePlaceholder');
+    
+    // 获取当前头像信息
+    var avatarImg = document.querySelector('.pf-avatar img');
+    var avatarInit = document.querySelector('.pf-avatar-init');
+    
+    if (avatarImg && avatarImg.style.display !== 'none' && avatarImg.src) {
+        // 有头像图片
+        largeImg.src = avatarImg.src;
+        largeImg.style.display = 'block';
+        placeholder.style.display = 'none';
+    } else {
+        // 没有头像，显示首字母
+        largeImg.style.display = 'none';
+        placeholder.textContent = avatarInit ? avatarInit.textContent : 'U';
+        placeholder.style.display = 'flex';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeAvatarModal() {
+    var modal = document.getElementById('avatarModal');
+    modal.style.display = 'none';
+}
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    var avatarModal = document.getElementById('avatarModal');
+    if (event.target === avatarModal) closeAvatarModal();
+    
+    var reviewsModal = document.getElementById('reviewsModal');
+    if (event.target === reviewsModal) closeReviewsModal();
+};
 
 // ============================================================
 // PAGE INITIALIZATION
