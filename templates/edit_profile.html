@@ -118,6 +118,7 @@
 
     <div class="ep-wrap">
         <div class="ep-grid">
+            <!-- 左侧：个人信息卡片 -->
             <div class="ep-identity">
                 <div class="ep-avatar-card">
                     <div class="ep-avatar-wrap">
@@ -128,37 +129,56 @@
                         </div>
                     </div>
                     <input type="file" id="avatarFileInput" accept="image/*" style="display:none">
+                    
                     <div class="ep-avatar-body">
                         <div class="ep-name">{{ user.full_name or user.username }}</div>
                         <div class="ep-handle">@{{ user.username }}</div>
+                        
                         <div class="ep-account-status">
-                            <div class="ep-status-header"><span>⭐ Account Status</span><span class="ep-status-badge verified">✓ Verified</span></div>
-                            <div class="ep-status-metrics">
-                                <div><span class="ep-metric-value">{{ trust_score|default(0)|int }}%</span><span class="ep-metric-label">Trust</span></div>
-                                <div><span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span><span class="ep-metric-label">Member</span></div>
-                                <div><span class="ep-metric-value">{{ response_rate|default(98) }}%</span><span class="ep-metric-label">Response</span></div>
+                            <div class="ep-status-header">
+                                <span>⭐ Account Status</span>
+                                <span class="ep-status-badge verified">✓ Verified</span>
                             </div>
-                            <div class="ep-status-progress"><div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div></div>
+                            <div class="ep-status-metrics">
+                                <div>
+                                    <span class="ep-metric-value">{{ trust_score|default(0)|int }}%</span>
+                                    <span class="ep-metric-label">Trust</span>
+                                </div>
+                                <div>
+                                    <span class="ep-metric-value">{{ user.created_at|time_since or 'New' }}</span>
+                                    <span class="ep-metric-label">Member</span>
+                                </div>
+                                <div>
+                                    <span class="ep-metric-value">{{ response_rate|default(98) }}%</span>
+                                    <span class="ep-metric-label">Response</span>
+                                </div>
+                            </div>
+                            <div class="ep-status-progress">
+                                <div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div>
+                            </div>
                         </div>
+
                         <div class="ep-stats">
-                            <div class="ep-stat"><div class="ep-stat-n">{{ listing_count or 0 }}</div><div class="ep-stat-l">Listings</div></div>
-                            <div class="ep-stat"><div class="ep-stat-n">{{ user.rating or '—' }}</div><div class="ep-stat-l">Rating</div></div>
+                            <a href="{{ url_for('my_profile') }}?tab=listings" class="ep-stat-link">
+                                <div class="ep-stat">
+                                    <div class="ep-stat-n">{{ listing_count or 0 }}</div>
+                                    <div class="ep-stat-l">Listings</div>
+                                </div>
+                            </a>
+                            <a href="{{ url_for('my_profile') }}?tab=orders" class="ep-stat-link">
+                                <div class="ep-stat">
+                                    <div class="ep-stat-n">{{ sold_count or 0 }}</div>
+                                    <div class="ep-stat-l">Sold</div>
+                                </div>
+                            </a>
                         </div>
+
                         <div class="ep-verified">✓ MMU Verified</div>
                     </div>
-                    <!-- Edit profile rating -->
-                    <div id="editProfileRating" class="ep-rating-container" style="display: none;">
-                         <div class="ep-rating-header">
-                         <span>⭐ Seller Rating</span>
-                         <button class="view-reviews-btn" onclick="openEditProfileReviews()">📖 View all reviews (<span id="editReviewCount">0</span>)</button>
-                    </div>
-                    <div class="ep-rating-stars" id="editRatingStars"></div>
-                    <div class="ep-rating-score" id="editRatingScore"></div>
-                </div>
-
                 </div>
             </div>
 
+            <!-- 右侧：编辑面板 -->
             <div class="ep-panel">
                 <div class="ep-main-tabs">
                     <button class="ep-main-tab active" data-main-tab="edit" onclick="switchMainTab('edit')">✏️ Edit Profile</button>
@@ -186,9 +206,11 @@
                         <form method="POST" action="{{ url_for('update_profile') }}" enctype="multipart/form-data" id="edit-form">
                             <div class="ep-grid-2">
                                 <div class="ep-fg"><label>Display Name</label>
-                                    <input type="text" name="full_name" value="{{ user.full_name or '' }}" placeholder="Your full name"></div>
+                                    <input type="text" name="full_name" value="{{ user.full_name or '' }}" placeholder="Your full name">
+                                </div>
                                 <div class="ep-fg"><label>Username</label>
-                                    <input type="text" name="username" value="{{ user.username or '' }}" placeholder="@username"></div>
+                                    <input type="text" name="username" value="{{ user.username or '' }}" placeholder="@username">
+                                </div>
                             </div>
                             <div class="ep-fg">
                                 <label>Bio</label>
@@ -209,26 +231,26 @@
                                 </div>
                             </div>
                             <div class="ep-grid-2">
-                            <div class="ep-fg">
-                                <label>Campus</label>
-                                <select name="campus" required style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e8ece8; background: white;">
-                                <option value="" disabled {% if not user.campus %}selected{% endif %}>-- Select your campus --</option>
-                                    <option value="Melaka Campus" {% if user.campus == 'Melaka Campus' %}selected{% endif %}>Melaka Campus</option>
-                                    <option value="Cyberjaya Campus" {% if user.campus == 'Cyberjaya Campus' %}selected{% endif %}>Cyberjaya Campus</option>
-                                </select>
-                                <div class="ep-hint">📍 Please select your campus (required for meetup coordination)</div>
-                            </div>
-
-                            <div class="ep-fg">
-                                <label>Active Hours</label>
-                                <select name="active_hours">
-                                    <option value="" {% if not user.active_hours %}selected{% endif %}>⏰ Not set</option>
-                                    <option value="Morning (9am-12pm)" {% if user.active_hours == 'Morning (9am-12pm)' %}selected{% endif %}>🌅 Morning (9am–12pm)</option>
-                                    <option value="Afternoon (2pm-5pm)" {% if user.active_hours == 'Afternoon (2pm-5pm)' %}selected{% endif %}>☀️ Afternoon (2pm–5pm)</option>
-                                    <option value="Evening (8pm-11pm)" {% if user.active_hours == 'Evening (8pm-11pm)' %}selected{% endif %}>🌙 Evening (8pm–11pm)</option>
-                                    <option value="Flexible" {% if user.active_hours == 'Flexible' %}selected{% endif %}>🔄 Flexible</option>
-                                </select>
-                                <div class="ep-hint">💬 Buyers will see when you're usually available to respond</div>
+                                <div class="ep-fg">
+                                    <label>Campus <span style="color: #d63c2c;">*</span></label>
+                                    <select name="campus" required style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e8ece8; background: white;">
+                                        <option value="" disabled {% if not user.campus %}selected{% endif %}>-- Select your campus --</option>
+                                        <option value="Melaka" {% if user.campus == 'Melaka' %}selected{% endif %}> Melaka Campus</option>
+                                        <option value="Cyberjaya" {% if user.campus == 'Cyberjaya' %}selected{% endif %}> Cyberjaya Campus</option>
+                                    </select>
+                                    <div class="ep-hint">📍 Required for meetup coordination</div>
+                                </div>
+                                <div class="ep-fg">
+                                    <label>Active Hours</label>
+                                    <select name="active_hours">
+                                        <option value="" {% if not user.active_hours %}selected{% endif %}>⏰ Not set</option>
+                                        <option value="Morning (9am-12pm)" {% if user.active_hours == 'Morning (9am-12pm)' %}selected{% endif %}>🌅 Morning (9am–12pm)</option>
+                                        <option value="Afternoon (2pm-5pm)" {% if user.active_hours == 'Afternoon (2pm-5pm)' %}selected{% endif %}>☀️ Afternoon (2pm–5pm)</option>
+                                        <option value="Evening (8pm-11pm)" {% if user.active_hours == 'Evening (8pm-11pm)' %}selected{% endif %}>🌙 Evening (8pm–11pm)</option>
+                                        <option value="Flexible" {% if user.active_hours == 'Flexible' %}selected{% endif %}>🔄 Flexible</option>
+                                    </select>
+                                    <div class="ep-hint">💬 Buyers see your availability</div>
+                                </div>
                             </div>
                             <div class="ep-divider"></div>
                             <div class="ep-actions">
@@ -880,58 +902,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check admin status - show admin button if user is admin
     checkAdminStatus();
 });
-
-function loadEditProfileRating() {
-    var userId = {{ user.id|default(0) }};
-    if (!userId || userId === 0) {
-        console.log('User ID not available');
-        return;
-    }
-    fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            var container = document.getElementById('editProfileRating');
-            if (container && data.total_reviews > 0) {
-                container.style.display = 'block';
-                var countEl = document.getElementById('editReviewCount');
-                var starsEl = document.getElementById('editRatingStars');
-                var scoreEl = document.getElementById('editRatingScore');
-                if (countEl) countEl.textContent = data.total_reviews;
-                if (starsEl) starsEl.innerHTML = generateStarsHtml(data.avg_overall);
-                if (scoreEl) scoreEl.innerHTML = data.avg_overall + '★ (' + data.total_reviews + ' reviews)';
-            }
-        })
-        .catch(function(err) {
-            console.log('Failed to load reviews:', err);
-        });
-}
-
-function generateStarsHtml(rating) {
-    var fullStars = Math.floor(rating);
-    var halfStar = (rating - fullStars) >= 0.5;
-    var starsHtml = '';
-    for (var i = 0; i < fullStars; i++) {
-        starsHtml += '★';
-    }
-    if (halfStar) {
-        starsHtml += '½';
-    }
-    for (var j = starsHtml.length; j < 5; j++) {
-        starsHtml += '☆';
-    }
-    return starsHtml;
-}
-
-function openEditProfileReviews() {
-    var userId = {{ user.id }};
-    if (typeof openSellerReviewsModal === 'function') {
-        openSellerReviewsModal(userId);
-    } else {
-        window.location.href = '/view-reviews/' + userId;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', loadEditProfileRating);
 
 </script>
 {% endblock %}

@@ -9,3 +9,4 @@ venv/
 "static/uploads/*.webm" 
 "static/uploads/*.mov" 
 "static/uploads/" 
+git
