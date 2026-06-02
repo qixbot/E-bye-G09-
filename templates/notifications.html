@@ -327,46 +327,71 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
     });
 });
 
-// ========== OFFER MANAGE MODAL ==========
-function openOfferManageModal(offerId) {
-    manageOfferId = offerId;
-    document.getElementById('offerManageModal').classList.add('show');
-    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        var html = '<div class="offer-detail"><strong>' + escapeHtml(data.product_name) + '</strong><br>' +
-            'Offer: RM ' + parseFloat(data.offer_price).toFixed(2) + '</div>' +
-            '<div style="display:flex;gap:8px;">';
-        if (data.status === 'countered') {
-            html += '<button class="notif-btn primary" onclick="acceptCounter(' + offerId + ')">✅ Accept</button>';
-            html += '<button class="notif-btn danger" onclick="rejectOffer(' + offerId + ')">❌ Reject</button>';
-        } else if (data.status === 'accepted') {
-            html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Checkout</button>';
-        }
-        html += '</div>';
-        document.getElementById('offerManageContent').innerHTML = html;
-    });
-}
-
 function closeOfferManageModal() {
     document.getElementById('offerManageModal').classList.remove('show');
 }
 
-function acceptCounter(offerId) {
-    fetch('/api/offer/' + offerId + '/accept-counter', { method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'} })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.success) { alert('Accepted!'); closeOfferManageModal(); loadNotifications(); }
+// #Eileen do this part
+
+// ========== OFFER MANAGE MODAL ==========
+function openOfferManageModal(offerId) {
+    manageOfferId = offerId;
+    document.getElementById('offerManageModal').classList.add('show');
+    
+    // 直接显示 Accept 和 Reject 按钮，不依赖 API 状态
+    var html = '<div class="offer-detail">' +
+        '<strong>Counter Offer</strong><br>' +
+        'Offer ID: ' + offerId +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:16px;">' +
+        '<button class="notif-btn primary" onclick="acceptOfferSimple(' + offerId + ')">✅ Accept</button>' +
+        '<button class="notif-btn danger" onclick="rejectOfferSimple(' + offerId + ')">❌ Reject</button>' +
+        '</div>';
+    document.getElementById('offerManageContent').innerHTML = html;
+}
+
+// 简单的 Accept 函数 - 直接调用后端
+function acceptOfferSimple(offerId) {
+    fetch('/api/offer/' + offerId + '/accept', { 
+        method: 'POST', 
+        credentials: 'same-origin',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert('Accepted!');
+            location.reload();
+        } else {
+            alert('Error: ' + (d.error || 'Unknown'));
+        }
+    })
+    .catch(err => {
+        alert('Request failed: ' + err.message);
     });
 }
 
-function rejectOffer(offerId) {
-    fetch('/api/offer/' + offerId + '/reject', { method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'} })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.success) { alert('Rejected'); closeOfferManageModal(); loadNotifications(); }
+// 简单的 Reject 函数
+function rejectOfferSimple(offerId) {
+    fetch('/api/offer/' + offerId + '/reject', { 
+        method: 'POST', 
+        credentials: 'same-origin',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert('Rejected!');
+            location.reload();
+        } else {
+            alert('Error: ' + (d.error || 'Unknown'));
+        }
+    })
+    .catch(err => {
+        alert('Request failed: ' + err.message);
     });
 }
+
 
 // ========== INIT ==========
 loadNotifications();

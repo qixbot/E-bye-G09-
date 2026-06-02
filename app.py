@@ -1359,6 +1359,45 @@ def accept_counter_offer(offer_id):
     
     return jsonify({'success': True, 'offer_id': offer_id, 'accepted_price': agreed_price})
 
+@app.route('/api/offer/<int:offer_id>/reject-counter', methods=['POST'])
+def reject_counter_offer(offer_id):
+    """Buyer rejects seller's counter offer"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    cur.execute('''
+        SELECT o.*, p.name as product_name, p.seller_id
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s AND o.buyer_id = %s AND o.status = 'countered'
+    ''', (offer_id, session['user_id']))
+    offer = cur.fetchone()
+    
+    if not offer:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Offer not found or not countered'}), 404
+    
+    # 将状态改回 pending，清除 counter_price
+    cur.execute("UPDATE offers SET status = 'pending', counter_price = NULL WHERE id = %s", (offer_id,))
+    
+    # 通知卖家
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'offer_rejected', %s, 0)
+    ''', (offer['seller_id'],
+          f"❌ Buyer rejected your counter offer of RM {offer['counter_price']:.2f} for \"{offer['product_name']}\". The original offer is still pending.",
+          offer_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
+
 @app.route('/api/offer/<int:offer_id>/create-order', methods=['POST'])
 def api_create_order_from_offer(offer_id):
     if 'user_id' not in session:
@@ -1430,15 +1469,16 @@ def api_offer_details(offer_id):
     
     db = get_db()
     cur = db.cursor()
+    # 修改：移除权限检查，只根据 offer_id 查询
     cur.execute('''
         SELECT o.id, o.offer_price, o.status, o.counter_price,
                p.id as product_id, p.name as product_name, p.price as product_price,
                p.condition as product_condition, p.status as product_status,
-               p.images_blob, p.images, p.seller_id
+               p.images_blob, p.images, p.seller_id, o.buyer_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s AND o.buyer_id = %s
-    ''', (offer_id, session['user_id']))
+        WHERE o.id = %s
+    ''', (offer_id,))
     offer = cur.fetchone()
     cur.close()
     db.close()
@@ -1474,7 +1514,8 @@ def api_offer_details(offer_id):
         'product_condition': offer['product_condition'],
         'product_status': offer['product_status'],
         'product_image': product_image,
-        'seller_id': offer['seller_id']
+        'seller_id': offer['seller_id'],
+        'buyer_id': offer['buyer_id']
     })
 
 @app.route('/api/buy-now', methods=['POST'])
