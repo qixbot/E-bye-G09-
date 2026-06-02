@@ -2024,6 +2024,11 @@ def update_profile():
     contact = request.form.get('contact')
     gender = request.form.get('gender')
     active_hours = request.form.get('active_hours')
+    campus = request.form.get('campus')
+    
+    if not campus:
+        flash('📍 Please select your campus (Melaka or Cyberjaya)', 'error')
+        return redirect(url_for('edit_profile'))
 
     db = get_db()
     cur = db.cursor()
@@ -2039,9 +2044,9 @@ def update_profile():
     cur.execute("""
         UPDATE users
         SET username = %s, full_name = %s, bio = %s,
-            contact = %s, gender = %s, active_hours = %s
+            contact = %s, gender = %s, active_hours = %s, campus = %s
         WHERE id = %s
-    """, (username, full_name, bio, contact, gender, active_hours, session['user_id']))
+    """, (username, full_name, bio, contact, gender, active_hours, campus, session['user_id']))
 
     db.commit()
     cur.close()

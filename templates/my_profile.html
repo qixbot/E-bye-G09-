@@ -82,6 +82,10 @@
                     <span><span class="pf-detail-label">Active</span>&nbsp;{{ user.active_hours or 'Not set' }}</span>
                 </div>
                 <div class="pf-detail-row">
+                <span class="pf-detail-icon">📍</span>
+                <span><span class="pf-detail-label">Campus</span>&nbsp;{{ user.campus or 'Not selected' }}</span>
+                </div>
+                <div class="pf-detail-row">
                     <span class="pf-detail-icon">⭐</span>
                     <span><span class="pf-detail-label">Status</span>&nbsp;<span class="pf-verified-badge">✓ MMU Verified</span></span>
                 </div>
@@ -1566,6 +1570,23 @@ function submitSellerReview() {
     });
 }
 
+function generateStarsHtml(rating) {
+    var fullStars = Math.floor(rating);
+    var halfStar = (rating - fullStars) >= 0.5;
+    var emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    
+    var html = '';
+    for (var i = 0; i < fullStars; i++) {
+        html += '<span class="star full">★</span>';
+    }
+    if (halfStar) {
+        html += '<span class="star half">½</span>';
+    }
+    for (var j = 0; j < emptyStars; j++) {
+        html += '<span class="star empty">☆</span>';
+    }
+    return html;
+}
 
 // ============================================================
 // PAGE INITIALIZATION

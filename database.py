@@ -123,6 +123,7 @@ def init_db():
                 avg_quality_rating DECIMAL(3,2) DEFAULT 0,
                 avg_overall_rating DECIMAL(3,2) DEFAULT 0,
                 total_reviews INTEGER DEFAULT 0,
+                campus TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -311,6 +312,20 @@ def add_review_columns():
     conn.close()
     print("✅ Review columns added successfully")
 
+def add_campus_column():
+    """添加 campus 字段到 users 表"""
+    conn = get_db_with_retry()
+    cur = conn.cursor()
+    try:
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS campus TEXT DEFAULT NULL")
+        print("✅ Added 'campus' column to users table")
+    except Exception as e:
+        print(f"Note: campus column already exists or error: {e}")
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("✅ Campus column check completed")
+
 
 # 兼容性空函数
 def init_products():
@@ -335,3 +350,4 @@ def init_reports():
 if __name__ == '__main__':
     add_review_columns()
     add_missing_notification_columns()
+    add_campus_column()
