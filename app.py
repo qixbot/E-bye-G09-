@@ -31,7 +31,6 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024      # 100MB max upload siz
 app.config['MAX_FORM_MEMORY_SIZE'] = 100 * 1024 * 1024  
 app.config['MAX_FORM_PARTS'] = 1000   
 
-# 在文件开头添加缓存变量（在 Helper functions 之前）
 _unread_cache = {}
 _unread_cache_time = {}
 
@@ -252,7 +251,7 @@ def login():
         db.close()
         
         if user and check_password_hash(user['password'], password):
-            # ========== 严格的冻结检查 ==========
+            # ========== 冻结检查 ==========
             if user['is_blocked'] == 1:
                 flash('❌ This account is permanently blocked. Contact admin for appeal.', 'danger')
                 return redirect(url_for('login'))
@@ -340,34 +339,43 @@ def login():
 @app.before_request
 def auto_unfreeze_expired():
     if 'user_id' in session or 'admin_logged_in' in session:
-        db = get_db()
-        cur = db.cursor()
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        cur.execute("""
-            SELECT id, username FROM users
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
-        """, (now,))
-        expired = cur.fetchall()
-        
-        cur.execute("""
-            UPDATE users
-            SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
-        """, (now,))
-        
-        for user in expired:
+        try:
+            db = get_db()
+            cur = db.cursor()
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 查找过期的冻结用户
             cur.execute("""
-                INSERT INTO notifications (user_id, message, created_at)
-                VALUES (%s, %s, NOW())
-            """, (user['id'],
-                  f"✅ Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
-                  f"Your freeze count remains. Please follow community guidelines.\n"
-                  f"After 3 freezes, your account will be permanently blocked."))
-        
-        db.commit()
-        cur.close()
-        db.close()
+                SELECT id, username, frozen_until FROM users
+                WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+            """, (now,))
+            expired = cur.fetchall()
+            
+            # 解冻
+            cur.execute("""
+                UPDATE users
+                SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
+                WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+            """, (now,))
+            
+            # 发送通知
+            for user in expired:
+                cur.execute("""
+                    INSERT INTO notifications (user_id, message, created_at, type, is_read)
+                    VALUES (%s, %s, NOW(), 'system', 0)
+                """, (user['id'],
+                      f"✅ Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
+                      f"Your freeze count remains. Please follow community guidelines.\n"
+                      f"After 3 freezes, your account will be permanently blocked."))
+            
+            db.commit()
+            cur.close()
+            db.close()
+            
+            if len(expired) > 0:
+                print(f"Auto-unfrozen {len(expired)} accounts")
+        except Exception as e:
+            print(f"auto_unfreeze_expired error: {e}")
 
 @app.before_request
 def check_upcoming_meetings():
@@ -377,7 +385,7 @@ def check_upcoming_meetings():
     db = get_db()
     cur = db.cursor()
     
-    # 修复：将 meeting_time 字符串转换为时间戳比较
+    # 获取需要提醒的订单（在 Python 中处理时间比较）
     cur.execute('''
         SELECT id, order_number, meeting_point, meeting_time, last_reminder_sent
         FROM orders
@@ -390,8 +398,8 @@ def check_upcoming_meetings():
     ''', (user_id, user_id))
     
     orders = cur.fetchall()
-    reminded_orders = []
     now = datetime.now()
+    reminded_orders = []
     
     for order in orders:
         meeting_time_str = order['meeting_time']
@@ -399,7 +407,6 @@ def check_upcoming_meetings():
             continue
         
         try:
-            # 解析 meeting_time
             if isinstance(meeting_time_str, str):
                 if 'T' in meeting_time_str:
                     meeting_time = datetime.fromisoformat(meeting_time_str.replace('Z', '+00:00'))
@@ -411,7 +418,6 @@ def check_upcoming_meetings():
             if hasattr(meeting_time, 'tzinfo') and meeting_time.tzinfo:
                 meeting_time = meeting_time.replace(tzinfo=None)
             
-            # 检查是否在1小时内
             time_diff = (meeting_time - now).total_seconds()
             if 0 < time_diff <= 3600:
                 reminded_orders.append(order)
@@ -3417,7 +3423,7 @@ def search_users():
 def api_announcements():
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT title, content, created_at FROM announcements ORDER BY created_at DESC")
+    cur.execute("SELECT id, title, content, created_at FROM announcements ORDER BY created_at DESC")
     anns = cur.fetchall()
     cur.close()
     db.close()
@@ -3442,18 +3448,28 @@ def add_announcement():
         return jsonify({'success': True, 'id': ann_id})
     return jsonify({'success': False})
 
+# ========== 添加这个删除公告的路由 ==========
 @app.route('/admin/announcement/delete/<int:ann_id>', methods=['POST'])
 def delete_announcement(ann_id):
+    """删除公告"""
     if not session.get('admin_logged_in'):
-        return jsonify({'success': False}), 403
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("DELETE FROM announcements WHERE id = %s", (ann_id,))
-    db.commit()
-    cur.close()
-    db.close()
-    return jsonify({'success': True})
-
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    try:
+        db = get_db()
+        cur = db.cursor()
+        
+        # 删除公告
+        cur.execute("DELETE FROM announcements WHERE id = %s", (ann_id,))
+        db.commit()
+        
+        cur.close()
+        db.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Delete announcement error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_product():
@@ -4172,6 +4188,7 @@ def api_user_other_listings(user_id):
 # 启动应用
 # ============================================================
 
+# 启动时检查并解冻过期账户
 def check_and_unfreeze_expired():
     """启动时检查并解冻所有过期账户"""
     try:

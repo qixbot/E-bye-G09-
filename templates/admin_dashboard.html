@@ -88,21 +88,29 @@ function closeAnnModal() { document.getElementById('annModal').style.display = '
 
 function loadAnnouncements() {
     fetch('/api/announcements')
-    .then(function(r){ return r.json(); })
-    .then(function(data){
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
         var html = '';
-        if (data.length === 0) html = '<p style="color:#999;text-align:center;">No announcements yet.</p>';
-        data.forEach(function(a){
-            html += '<div style="display:flex;justify-content:space-between;align-items:start;padding:14px;border:1px solid #eee;border-radius:12px;margin-bottom:8px;">' +
-                '<div style="flex:1;">' +
-                    '<div style="font-weight:600;margin-bottom:4px;">' + a.title + '</div>' +
-                    '<div style="font-size:13px;color:#555;">' + a.content + '</div>' +
-                    '<div style="font-size:10px;color:#aaa;margin-top:4px;">' + (a.created_at || '') + '</div>' +
-                '</div>' +
-                '<button onclick="deleteAnnouncement(' + a.id + ')" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:18px;flex-shrink:0;">🗑️</button>' +
+        if (data.length === 0) {
+            html = '<p style="color:#999;text-align:center;">No announcements yet.</p>';
+        } else {
+            data.forEach(function(a) {
+                var date = a.created_at ? new Date(a.created_at).toLocaleString() : '';
+                html += '<div style="display:flex;justify-content:space-between;align-items:start;padding:14px;border:1px solid #eee;border-radius:12px;margin-bottom:8px;">' +
+                    '<div style="flex:1;">' +
+                        '<div style="font-weight:600;margin-bottom:4px;">' + escapeHtml(a.title) + '</div>' +
+                        '<div style="font-size:13px;color:#555;">' + escapeHtml(a.content) + '</div>' +
+                        '<div style="font-size:10px;color:#aaa;margin-top:4px;">📅 ' + date + '</div>' +
+                    '</div>' +
+                    '<button onclick="deleteAnnouncement(' + a.id + ')" style="background:#e74c3c;color:white;border:none;border-radius:20px;padding:6px 12px;cursor:pointer;font-size:12px;">🗑️ Delete</button>' +
                 '</div>';
-        });
+            });
+        }
         document.getElementById('annList').innerHTML = html;
+    })
+    .catch(function(err) {
+        console.error('Load announcements error:', err);
+        document.getElementById('annList').innerHTML = '<p style="color:#e74c3c;text-align:center;">Failed to load announcements</p>';
     });
 }
 
@@ -124,10 +132,38 @@ function postAnnouncement() {
 }
 
 function deleteAnnouncement(id) {
-    if (!confirm('Delete this announcement? It will also be removed for all users.')) return;
-    fetch('/admin/announcement/delete/' + id, { method: 'POST' })
-    .then(function(r){ return r.json(); })
-    .then(function(d){ if (d.success) loadAnnouncements(); });
+    if (!confirm('⚠️ Delete this announcement?\n\nThis will also remove it for all users.')) {
+        return;
+    }
+    
+    fetch('/admin/announcement/delete/' + id, { 
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { 
+        if (d.success) {
+            alert('Announcement deleted!');
+            loadAnnouncements(); // 刷新列表
+        } else {
+            alert('Failed: ' + (d.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) { 
+        alert('Error: ' + err.message);
+    });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 </script>
 
