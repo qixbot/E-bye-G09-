@@ -176,6 +176,16 @@ def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
         print(f"FFmpeg error for {video_path}: {e.stderr}")
         return False
 
+@app.template_filter('campus_abbr')
+def campus_abbr(campus):
+    if not campus:
+        return ''
+    if 'Cyberjaya' in campus:
+        return 'CYBER'
+    if 'Melaka' in campus:
+        return 'MLK'
+    return ''
+
 # Setup folder for uploaded product images
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -468,7 +478,7 @@ def home():
     db = get_db()
     cur = db.cursor()
     cur.execute('''
-        SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
+        SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id, u.campus as seller_campus
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status IN ('approved') AND u.is_blocked = 0
@@ -526,6 +536,12 @@ def search():
 
     keyword = request.args.get('q', '').strip()
     
+    campus_raw = request.args.get('campus', '')
+    if campus_raw:
+        campuses = [c.strip() for c in campus_raw.split(',') if c.strip() and c != 'all']
+    else:
+        campuses = []
+
     categories_raw = request.args.get('category', '')
     if categories_raw:
         categories = [c.strip() for c in categories_raw.split(',') if c.strip()]
@@ -551,7 +567,7 @@ def search():
     max_price = request.args.get('max_price', type=float)
 
     query = """
-        SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id
+        SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id, u.campus as seller_campus
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status IN ({})
@@ -570,6 +586,13 @@ def search():
                         OR u.username ILIKE %s
                         OR u.full_name ILIKE %s)"""
         params.extend([like_flex, like_flex, like_flex, like_flex])
+
+    if campuses:
+        campus_conditions = []
+        for c in campuses:
+            campus_conditions.append("u.campus ILIKE %s")
+            params.append(f"%{c}%")
+        query += " AND (" + " OR ".join(campus_conditions) + ")"
 
     if categories:
         placeholders = ','.join(['%s'] * len(categories))
@@ -3501,7 +3524,7 @@ def product_detail(product_id):
     cur.execute('''
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name,
             u.avatar_blob as seller_avatar, u.id as seller_id, u.created_at as user_joined,
-            u.is_blocked as seller_blocked
+            u.is_blocked as seller_blocked, u.campus as seller_campus
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.id = %s AND p.status IN ('approved', 'sold', 'reserved')
@@ -3986,8 +4009,9 @@ def api_user_other_listings(user_id):
     cur = db.cursor()
     cur.execute("""
         SELECT p.id, p.name, p.price, p.status, p.created_at,
-               p.images, p.images_blob, p.condition
+               p.images, p.images_blob, p.condition, u.campus as seller_campus
         FROM products p
+        JOIN users u ON p.seller_id = u.id
         WHERE p.seller_id = %s AND p.status = 'approved'
         ORDER BY p.created_at DESC
     """, (user_id,))
