@@ -1138,6 +1138,8 @@ def api_user_listings():
     
     return jsonify(listings)
 
+# app.py - 修改 /api/order/<int:order_id>/confirm 路由
+
 @app.route('/api/order/<int:order_id>/confirm', methods=['POST'])
 def api_confirm_order(order_id):
     if 'user_id' not in session:
@@ -1150,6 +1152,7 @@ def api_confirm_order(order_id):
     db = get_db()
     cur = db.cursor()
     
+    # 获取订单信息，包括产品ID
     cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s', 
                 (order_id, session['user_id']))
     order = cur.fetchone()
@@ -1159,17 +1162,22 @@ def api_confirm_order(order_id):
         db.close()
         return jsonify({'success': False, 'error': 'Order not found'}), 404
     
+    # 更新订单状态为 confirmed
     cur.execute('''
         UPDATE orders 
         SET meeting_point = %s, meeting_time = %s, status = 'confirmed', updated_at = NOW()
         WHERE id = %s
     ''', (meeting_point, meeting_time, order_id))
     
+    # 当卖家确认订单后，将产品状态改为 'reserved'（已预留）
+    cur.execute('UPDATE products SET status = %s WHERE id = %s', ('reserved', order['product_id']))
+    
+    # 通知买家订单已确认
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), 'order', %s, 0)
     ''', (order['buyer_id'], 
-          f" Order #{order['order_number']} has been CONFIRMED by seller! Meeting at: {meeting_point} on {meeting_time}",
+          f"✅ Order #{order['order_number']} has been CONFIRMED by seller! Meeting at: {meeting_point} on {meeting_time}",
           order_id))
     
     db.commit()
@@ -1253,7 +1261,8 @@ def send_offer(product_id):
         db.close()
         return jsonify({'success': False, 'error': 'You cannot make an offer on your own product'}), 400
     
-    cur.execute("SELECT id FROM offers WHERE product_id = %s AND buyer_id = %s AND status = 'pending'", (product_id, session['user_id']))
+    cur.execute("SELECT id FROM offers WHERE product_id = %s AND buyer_id = %s AND status = 'pending'", 
+                (product_id, session['user_id']))
     existing = cur.fetchone()
     
     if existing:
@@ -1261,25 +1270,25 @@ def send_offer(product_id):
         db.close()
         return jsonify({'success': False, 'error': 'You already have a pending offer for this product'}), 400
     
-    
     cur.execute('''
-        INSERT INTO offers (product_id, buyer_id, seller_id, offer_price, original_price, message, status)
-        VALUES (%s, %s, %s, %s, %s, %s, 'pending') RETURNING id
-        ''', (product_id, session['user_id'], product['seller_id'], float(offer_price), product['price'], message))
+        INSERT INTO offers (product_id, buyer_id, offer_price, original_price, message, status)
+        VALUES (%s, %s, %s, %s, %s, 'pending') RETURNING id
+    ''', (product_id, session['user_id'], float(offer_price), product['price'], message))
+    new_offer_id = cur.fetchone()['id']
     
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
+        VALUES (%s, %s, NOW(), 'new_offer', %s, 0)
     ''', (product['seller_id'],
           f"💰 New offer of RM {float(offer_price):.2f} on your listing \"{product['name']}\". Go to My Listings → Offers to accept or decline.",
-          'new_offer', new_offer_id))
+          new_offer_id))
     
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
+        VALUES (%s, %s, NOW(), 'offer_sent', %s, 0)
     ''', (session['user_id'],
           f"Your offer of RM {float(offer_price):.2f} for \"{product['name']}\" has been sent to the seller. You'll be notified when they respond.",
-          'offer_sent', new_offer_id))
+          new_offer_id))
     
     db.commit()
     cur.close()
@@ -1700,6 +1709,8 @@ def api_offer_details(offer_id):
         'buyer_id': offer['buyer_id']
     })
 
+# app.py - 修改 /api/buy-now 路由
+
 @app.route('/api/buy-now', methods=['POST'])
 def api_buy_now():
     if 'user_id' not in session:
@@ -1723,7 +1734,7 @@ def api_buy_now():
     if not product:
         cur.close()
         db.close()
-        return jsonify({'success': False, 'error': 'Product not found'}), 404
+        return jsonify({'success': False, 'error': 'Product not found or already sold/reserved'}), 404
     
     if product['seller_id'] == session['user_id']:
         cur.close()
@@ -1732,6 +1743,7 @@ def api_buy_now():
     
     order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
     
+    # 创建订单，状态为 'pending' - 等待卖家确认
     cur.execute('''
         INSERT INTO orders (order_number, product_id, buyer_id, seller_id, offer_price,
                             meeting_point, meeting_time, status, created_at, updated_at)
@@ -1742,21 +1754,31 @@ def api_buy_now():
     
     order_id = cur.fetchone()['id']
     
-    cur.execute("UPDATE products SET status = 'reserved' WHERE id = %s", (product_id,))
+    # 重要：不要改变产品状态！保持 'approved'
+    # 只有当卖家确认订单后，产品才应该变为 'reserved' 或 'sold'
+    # cur.execute("UPDATE products SET status = 'reserved' WHERE id = %s", (product_id,))  # ← 删除这行！
     
+    # 通知卖家有新的订单
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
+        VALUES (%s, %s, NOW(), 'order', %s, 0)
     ''', (product['seller_id'],
-          f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Go to My Orders to confirm.",
-          'order_created', order_id))
+          f"🛒 NEW ORDER #{order_number}! {session['username']} wants to buy \"{product['name']}\" for RM {product['price']:.2f}. " +
+          f"Preferred locations: {', '.join(meetup_locations)}. " +
+          (f"Preferred times: {meeting_dates_str}" if meeting_dates else "") +
+          f" Go to My Orders to confirm or decline.",
+          order_id))
     
+    # 通知买家订单已创建
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
+        VALUES (%s, %s, NOW(), 'order', %s, 0)
     ''', (session['user_id'],
-          f"✅ Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. Meetup: {', '.join(meetup_locations)}. Waiting for seller to confirm.",
-          'order_created', order_id))
+          f"📋 Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. " +
+          f"Meetup: {', '.join(meetup_locations)}. " +
+          (f"Times: {meeting_dates_str}" if meeting_dates else "") +
+          f" Waiting for seller to confirm.",
+          order_id))
     
     db.commit()
     cur.close()

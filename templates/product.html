@@ -362,47 +362,53 @@
 
     // Send offer to seller via API
     function sendOffer() {
-        const offerInput = document.getElementById('offerAmount');
-        const offerAmount = parseFloat(offerInput.value);
-        const productId = {{ product.id }};
-        
-        if (!offerAmount || offerAmount <= 0) {
-            showGlobalToast("Please enter a valid offer amount.", "error");
-            return;
-        }
-        
-        const sendBtn = document.querySelector('#offerModal .modal-send');
-        const originalText = sendBtn.textContent;
-        sendBtn.textContent = 'Sending...';
-        sendBtn.disabled = true;
-        
-        fetch('/api/product/' + productId + '/offers/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                offer_price: offerAmount,
-                message: "Offer of RM " + offerAmount.toFixed(2)
-            }),
-            credentials: 'same-origin'
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                showGlobalToast("✓ Offer sent to seller!", "success");
-                offerInput.value = '';
-                closeOfferModal();
-            } else {
-                throw new Error(data.error || 'Failed to send offer');
-            }
-        })
-        .catch(function(err) {
-            showGlobalToast("❌ Error: " + err.message, "error");
-        })
-        .finally(function() {
-            sendBtn.textContent = originalText;
-            sendBtn.disabled = false;
-        });
+    const offerInput = document.getElementById('offerAmount');
+    const offerAmount = parseFloat(offerInput.value);
+    const productId = {{ product.id }};
+    
+    if (!offerAmount || offerAmount <= 0) {
+        showGlobalToast("Please enter a valid offer amount.", "error");
+        return;
     }
+    
+    const sendBtn = document.querySelector('#offerModal .modal-send');
+    const originalText = sendBtn.textContent;
+    sendBtn.textContent = 'Sending...';
+    sendBtn.disabled = true;
+    
+    fetch('/api/product/' + productId + '/offers/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            offer_price: offerAmount,
+            message: "Offer of RM " + offerAmount.toFixed(2)
+        }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { 
+        if (!r.ok) {
+            throw new Error('HTTP ' + r.status);
+        }
+        return r.json(); 
+    })
+    .then(function(data) {
+        if (data.success) {
+            showGlobalToast("✓ Offer sent to seller!", "success");
+            offerInput.value = '';
+            closeOfferModal();
+        } else {
+            throw new Error(data.error || 'Failed to send offer');
+        }
+    })
+    .catch(function(err) {
+        console.error('Offer error:', err);
+        showGlobalToast("❌ Error: " + err.message, "error");
+    })
+    .finally(function() {
+        sendBtn.textContent = originalText;
+        sendBtn.disabled = false;
+    });
+}
 
     // Go back to previous page
     function goBack() {
