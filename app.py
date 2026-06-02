@@ -1579,6 +1579,8 @@ def api_create_order_from_offer(offer_id):
     
     data = request.get_json()
     meetup_locations = data.get('meetup_locations', [])
+    meeting_dates = data.get('meeting_dates', [])  # 添加时间支持
+    meeting_dates_str = ','.join(meeting_dates) if meeting_dates else ''
     
     if not meetup_locations:
         return jsonify({'success': False, 'error': 'Please select meetup locations'}), 400
@@ -1602,12 +1604,13 @@ def api_create_order_from_offer(offer_id):
     
     order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
     
+    # 修改：添加 meeting_time 字段
     cur.execute('''
         INSERT INTO orders (order_number, product_id, buyer_id, seller_id, offer_price,
-                           meeting_point, status, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW()) RETURNING id
+                           meeting_point, meeting_time, status, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW()) RETURNING id
     ''', (order_number, offer['product_id'], offer['buyer_id'], offer['seller_id'],
-          offer['offer_price'], ','.join(meetup_locations)))
+          offer['offer_price'], ','.join(meetup_locations), meeting_dates_str))
     
     order_id = cur.fetchone()['id']
     
@@ -1615,18 +1618,25 @@ def api_create_order_from_offer(offer_id):
     
     cur.execute("UPDATE products SET status = 'sold' WHERE id = %s", (offer['product_id'],))
     
+    # 通知卖家（包含时间信息）
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (offer['seller_id'],
-          f"🛒 NEW ORDER #{order_number}! {session['username']} has placed an order for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}. Go to My Orders to confirm.",
+          f"🛒 NEW ORDER #{order_number}! {session['username']} has placed an order for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}. " +
+          f"Preferred locations: {', '.join(meetup_locations)}. " +
+          (f"Preferred times: {meeting_dates_str}" if meeting_dates else ""),
           'order_created', order_id))
     
+    # 通知买家
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (session['user_id'],
-          f"📋 Order #{order_number} created successfully for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}. Meetup: {', '.join(meetup_locations)}. Waiting for seller to confirm.",
+          f"📋 Order #{order_number} created successfully for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}. " +
+          f"Meetup locations: {', '.join(meetup_locations)}. " +
+          (f"Preferred times: {meeting_dates_str}" if meeting_dates else "") +
+          " Waiting for seller to confirm.",
           'order_created', order_id))
     
     db.commit()

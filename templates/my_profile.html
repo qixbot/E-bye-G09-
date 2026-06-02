@@ -727,24 +727,39 @@ function openConfirmReceivedModal(orderId, productName, orderNumber) {
 
 function closeConfirmReceivedModal() {
     var modal = document.getElementById('confirmReceivedModal');
-    modal.style.display = 'none';
+    if (modal) modal.style.display = 'none';
     pendingConfirmOrderId = null;
+    pendingConfirmProductName = null;
+    pendingConfirmOrderNumber = null;
 }
 
 // 确认收货按钮事件
 document.addEventListener('DOMContentLoaded', function() {
     var confirmBtn = document.getElementById('confirmReceivedBtn');
     if (confirmBtn) {
-        confirmBtn.addEventListener('click', function() {
+        // 移除原有事件避免重复绑定
+        var newBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+        
+        newBtn.addEventListener('click', function() {
             if (pendingConfirmOrderId) {
+                var orderId = pendingConfirmOrderId;
+                var productName = pendingConfirmProductName || 'this item';
+                
+                // 关闭弹窗
                 closeConfirmReceivedModal();
-                updateOrderStatus(pendingConfirmOrderId, 'completed');
-                pendingConfirmOrderId = null;
+                
+                // 更新订单状态为 completed
+                updateOrderStatus(orderId, 'completed', function() {
+                    // 订单完成后，打开评价弹框
+                    setTimeout(function() {
+                        openReviewModal(orderId, productName);
+                    }, 500);
+                });
             }
         });
     }
 });
-
 
 function onConfirmReceived() {
     if (pendingConfirmOrderId) {
@@ -867,8 +882,12 @@ function submitOrderConfirmation(orderId) {
     var selectedLocation = document.querySelector('input[name="selected_location"]:checked');
     var selectedTime = document.querySelector('input[name="selected_time"]:checked');
     
-    if (!selectedLocation || !selectedTime) {
-        showToastMessage('Please select a location and time', 'error');
+    if (!selectedLocation) {
+        showToastMessage('Please select a meetup location', 'error');
+        return;
+    }
+    if (!selectedTime) {
+        showToastMessage('Please select a meetup time', 'error');
         return;
     }
     
@@ -888,10 +907,10 @@ function submitOrderConfirmation(orderId) {
         if (data.success) {
             showToastMessage('Order confirmed!', 'success');
             closeConfirmOrderModal();
-            loadOrders();
-            loadListings();
+            loadOrders();  // 刷新订单列表
+            loadListings(); // 刷新商品列表
         } else {
-            throw new Error(data.error);
+            throw new Error(data.error || 'Failed to confirm order');
         }
     })
     .catch(function(err) {

@@ -523,6 +523,8 @@ function getSelectedDates() {
 function openPurchaseModal(offerId) {
     purchaseOfferId = offerId;
     selectedLocations = [];
+    selectedDates = [];
+    
     document.getElementById('purchaseModal').classList.add('show');
     
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
@@ -540,11 +542,55 @@ function openPurchaseModal(offerId) {
             '</div>';
         buildLocationGrid('purchaseLocationGrid');
         
+        // 重置日期选择器
         var container = document.getElementById('dateTimeInputs');
         container.innerHTML = '<div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
         updateRemoveButtons();
     });
 }
+
+// 确认购买按钮点击事件
+document.getElementById('confirmPurchaseBtn')?.addEventListener('click', function() {
+    if (selectedLocations.length === 0) {
+        showToastMessage('Please select at least one location', 'error');
+        return;
+    }
+    
+    var selectedDatesList = getSelectedDates();
+    if (selectedDatesList.length === 0) {
+        showToastMessage('Please select at least one date and time', 'error');
+        return;
+    }
+    
+    var confirmBtn = document.getElementById('confirmPurchaseBtn');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Processing...';
+    
+    fetch('/api/offer/' + purchaseOfferId + '/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            meetup_locations: selectedLocations,
+            meeting_dates: selectedDatesList   // 传递时间数组
+        }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success) {
+            showToastMessage('✅ Order created!', 'success');
+            closePurchaseModal();
+            loadNotifications();
+            setTimeout(function() {
+                window.location.href = '/my-profile?tab=orders';
+            }, 1500);
+        } else {
+            showToastMessage(d.error || 'Failed', 'error');
+        }
+    })
+    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); })
+    .finally(function() { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Purchase'; });
+});
 
 function closePurchaseModal() {
     document.getElementById('purchaseModal').classList.remove('show');
