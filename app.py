@@ -881,7 +881,7 @@ def api_user_purchases():
     cur.execute('''
         SELECT o.id, o.product_id, o.offer_price as price,
                o.status, o.meeting_point as meetup_location, o.created_at,
-               p.name,
+               p.name, p.images, p.images_blob,
                u.username as seller_name
         FROM orders o
         JOIN products p ON o.product_id = p.id
@@ -897,6 +897,31 @@ def api_user_purchases():
     for row in rows:
         item = dict(row)
         item['emoji'] = get_emoji_by_category(item['name'])
+        
+        # gain product picture
+        product_image = None
+        images_blob = item.get('images_blob')
+        if images_blob:
+            try:
+                blob_list = json.loads(images_blob) if isinstance(images_blob, str) else images_blob
+                if isinstance(blob_list, list) and len(blob_list) > 0:
+                    first_blob = blob_list[0]
+                    if isinstance(first_blob, str) and first_blob.startswith('data:'):
+                        product_image = first_blob
+            except Exception as e:
+                print(f"Error parsing images_blob for purchase: {e}")
+        
+        if not product_image and item.get('images'):
+            img_str = item['images']
+            if img_str:
+                img_list = [x.strip() for x in img_str.split(',') if x.strip()]
+                if img_list:
+                    product_image = '/static/uploads/' + img_list[0]
+        
+        item['product_image'] = product_image
+        # 移除大字段
+        item.pop('images_blob', None)
+        item.pop('images', None)
         purchases.append(item)
     
     return jsonify(purchases)
@@ -1276,21 +1301,22 @@ def counter_offer(offer_id):
     db.close()
     
     return jsonify({'success': True})
-
 @app.route('/api/offer/<int:offer_id>/accept-counter', methods=['POST'])
 def accept_counter_offer(offer_id):
+    """Buyer accepts seller's counter offer"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
+    data = request.get_json() or {}
     db = get_db()
     cur = db.cursor()
     
     cur.execute('''
-        SELECT o.*, p.name as product_name, p.seller_id
+        SELECT o.*, p.name as product_name, p.seller_id, p.price as product_price
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s
-    ''', (offer_id,))
+        WHERE o.id = %s AND o.buyer_id = %s
+    ''', (offer_id, session['user_id']))
     offer = cur.fetchone()
     
     if not offer:
@@ -1298,10 +1324,10 @@ def accept_counter_offer(offer_id):
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found'}), 404
     
-    if offer['buyer_id'] != session['user_id']:
+    if offer['status'] != 'countered':
         cur.close()
         db.close()
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+        return jsonify({'success': False, 'error': 'No counter offer available'}), 400
     
     agreed_price = float(offer['counter_price'])
     
@@ -1311,25 +1337,27 @@ def accept_counter_offer(offer_id):
         WHERE id = %s
     ''', (agreed_price, offer_id))
     
+    # Notify seller
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
+        VALUES (%s, %s, NOW(), 'offer_accepted', %s, 0)
     ''', (offer['seller_id'],
-          f"🎉 Buyer accepted your counter offer of RM {agreed_price:.2f} for \"{offer['product_name']}\". Waiting for buyer to confirm checkout.",
-          'offer_accept_confirm', offer_id))
+          f"🎉 Buyer accepted your counter offer of RM {agreed_price:.2f} for \"{offer['product_name']}\". Waiting for checkout.",
+          offer_id))
     
+    # Notify buyer
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
-    ''', (offer['buyer_id'],
-          f" Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' below to confirm your order.",
-          'offer_accepted', offer_id))
+        VALUES (%s, %s, NOW(), 'offer_accepted', %s, 0)
+    ''', (session['user_id'],
+          f" Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' to confirm your order.",
+          offer_id))
     
     db.commit()
     cur.close()
     db.close()
     
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'offer_id': offer_id, 'accepted_price': agreed_price})
 
 @app.route('/api/offer/<int:offer_id>/create-order', methods=['POST'])
 def api_create_order_from_offer(offer_id):
@@ -1394,22 +1422,23 @@ def api_create_order_from_offer(offer_id):
     
     return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
 
-@app.route('/api/offer/<int:offer_id>/product-info', methods=['GET'])
-def api_get_offer_product_info(offer_id):
+@app.route('/api/offer/<int:offer_id>/details', methods=['GET'])
+def api_offer_details(offer_id):
+    """Get offer details for checkout modal - used by notifications.html"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     db = get_db()
     cur = db.cursor()
     cur.execute('''
-        SELECT o.id, o.status, o.offer_price, o.counter_price,
+        SELECT o.id, o.offer_price, o.status, o.counter_price,
                p.id as product_id, p.name as product_name, p.price as product_price,
                p.condition as product_condition, p.status as product_status,
-               p.images_blob, p.images
+               p.images_blob, p.images, p.seller_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s AND (o.buyer_id = %s OR p.seller_id = %s)
-    ''', (offer_id, session['user_id'], session['user_id']))
+        WHERE o.id = %s AND o.buyer_id = %s
+    ''', (offer_id, session['user_id']))
     offer = cur.fetchone()
     cur.close()
     db.close()
@@ -1436,15 +1465,16 @@ def api_get_offer_product_info(offer_id):
     return jsonify({
         'success': True,
         'offer_id': offer['id'],
-        'offer_status': offer['status'],
-        'offer_price': offer['offer_price'],
-        'counter_price': offer['counter_price'],
+        'offer_price': float(offer['offer_price']),
+        'status': offer['status'],
+        'counter_price': float(offer['counter_price']) if offer['counter_price'] else None,
         'product_id': offer['product_id'],
         'product_name': offer['product_name'],
-        'product_price': offer['product_price'],
+        'product_price': float(offer['product_price']),
         'product_condition': offer['product_condition'],
         'product_status': offer['product_status'],
-        'product_image': product_image  
+        'product_image': product_image,
+        'seller_id': offer['seller_id']
     })
 
 @app.route('/api/buy-now', methods=['POST'])

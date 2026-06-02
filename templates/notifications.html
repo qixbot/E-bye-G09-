@@ -259,6 +259,10 @@ function openPurchaseModal(offerId) {
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
+        if (!data.success) {
+            document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Error loading product details</div>';
+            return;
+        }
         document.getElementById('purchaseProductInfo').innerHTML = 
             '<div class="offer-detail">' +
             '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
@@ -266,6 +270,9 @@ function openPurchaseModal(offerId) {
             (data.product_image ? '<br><img src="' + data.product_image + '" style="width:80px;border-radius:8px;margin-top:8px;">' : '') +
             '</div>';
         buildLocationGrid('purchaseLocationGrid');
+    })
+    .catch(function() {
+        document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Failed to load product details</div>';
     });
 }
 

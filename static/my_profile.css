@@ -577,10 +577,7 @@
 .product-price {
     font-size: 14px;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--ev), #1a6b3c);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--ev);
     margin: 4px 0;
 }
 
@@ -797,10 +794,7 @@
 .purchase-price {
     font-weight: 700;
     font-size: 15px;
-    background: linear-gradient(135deg, var(--ev), #1a6b3c);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--ev);
 }
 
 .purchase-meta-info {
@@ -887,10 +881,7 @@
 .offer-price {
     font-weight: 800;
     font-size: 18px;
-    background: linear-gradient(135deg, var(--ev), #1a6b3c);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--ev);
     margin-left: 8px;
 }
 
@@ -1676,10 +1667,7 @@
 .order-price {
     font-size: 15px;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--ev), #1a6b3c);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--ev);
 }
 
 .order-meta{
@@ -2023,10 +2011,7 @@
 .reviewer-name {
     font-weight: 600;
     flex: 1;
-    background: linear-gradient(135deg, #1a1a1a, #2d5a3b);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: #1a1a1a;
 }
 
 .review-overall {
@@ -2144,9 +2129,7 @@
     transform: scale(1.15);
 }
 
-/* ============================================================
-   AVATAR MODAL - 纯查看模式
-   ============================================================ */
+/*AVATAR MODAL - check buyer avatar in order details */
 
 .avatar-modal {
     max-width: 480px;
@@ -2196,5 +2179,60 @@
         width: 180px;
         height: 180px;
         font-size: 72px;
+    }
+}
+
+/* PURCHASE PRODUCT IMAGE STYLES*/
+
+.purchase-image {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--bone), #e0dbd2);
+}
+
+.purchase-product-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.purchase-img-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    background: linear-gradient(135deg, var(--bone), #e0dbd2);
+}
+
+@media (max-width: 600px) {
+    .purchase-image {
+        width: 50px;
+        height: 50px;
+        min-width: 50px;
+    }
+    
+    .purchase-img-placeholder {
+        font-size: 24px;
+    }
+}
+
+.purchase-image-wrapper {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    position: relative;
+}
+
+@media (max-width: 600px) {
+    .purchase-image-wrapper {
+        width: 50px;
+        height: 50px;
+        min-width: 50px;
     }
 }

@@ -447,9 +447,8 @@ function loadListings() {
             container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings.<br><small>' + (err.message || 'Unknown error') + '</small><br><small>Check console for details (F12)</small></div>';
         });
 }
-
 // ============================================================
-// LOAD MY PURCHASES
+// LOAD MY PURCHASES - WITH PRODUCT IMAGES
 // ============================================================
 function loadPurchases() {
     var container = document.getElementById('purchases-list');
@@ -469,11 +468,26 @@ function loadPurchases() {
             var html = '';
             for (var i = 0; i < data.length; i++) {
                 var item = data[i];
+                // gain picture of the product for better display in purchases list
+                var productImage = item.product_image || null;
+                var imageHtml = '';
+                if (productImage) {
+                        if (productImage.startsWith('data:')) {
+                            imageHtml = '<img src="' + escapeHtml(productImage) + '" class="purchase-product-img" alt="' + escapeHtml(item.name) + '">';
+                        } else {
+                               imageHtml = '<div class="purchase-image-wrapper"><img src="' + escapeHtml(productImage) + '" class="purchase-product-img" alt="' + escapeHtml(item.name) + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div class=\\\'purchase-img-placeholder\\\'>📦</div>\'"><div class="purchase-img-placeholder" style="display:none">📦</div></div>';
+                        }
+                        } else {
+                               imageHtml = '<div class="purchase-img-placeholder">📦</div>';
+                        }
+                
                 html += `
                     <div class="purchase-card">
                         <a href="/product/${item.product_id}" class="purchase-link" target="_blank">
                             <div class="purchase-header">
-                                <div class="purchase-thumb">${escapeHtml(item.emoji || '📦')}</div>
+                                <div class="purchase-image">
+                                    ${imageHtml}
+                                </div>
                                 <div class="purchase-title-section">
                                     <div class="purchase-name">${escapeHtml(item.name)}</div>
                                     <div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
@@ -501,6 +515,7 @@ function loadPurchases() {
             container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load purchases</div></div>';
         });
 }
+
 // ============================================================
 // LOAD MY Orders
 // ============================================================
