@@ -201,49 +201,128 @@
     padding: 0 6px;
 }
 
-/* 通知面板 */
+/* 通知面板 - 优化样式 */
 .notification-panel { 
     display: none; 
     margin-top: 15px; 
     background: #fff; 
-    border-radius: 16px; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+    border-radius: 20px; 
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12); 
+    border: 1px solid #eef2ee;
+    overflow: hidden;
 }
 
+/* 面板头部 */
+.notification-header {
+    padding: 16px 18px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fafbfa;
+}
+
+.notification-header h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #2c3e2c;
+}
+
+.mark-read-btn {
+    background: none;
+    border: none;
+    color: #205c30;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 20px;
+    transition: all 0.2s;
+}
+
+.mark-read-btn:hover {
+    background: #eaf4ed;
+}
+
+/* 通知列表容器 */
+.notification-list {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+/* 通知项 */
 .notification-item { 
-    padding: 14px 16px; 
-    border-bottom: 1px solid #f0f0f0; 
+    padding: 14px 18px; 
+    border-bottom: 1px solid #f5f5f5; 
     transition: background 0.2s; 
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    cursor: pointer;
 }
 
 .notification-item:hover { 
-    background: #fafafa; 
+    background: #fafbfa; 
+}
+
+/* 未读通知绿色标记 */
+.notification-unread-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #27ae60;
+    flex-shrink: 0;
+    margin-top: 5px;
+    box-shadow: 0 0 0 2px rgba(39,174,96,0.2);
+}
+
+.notification-content {
+    flex: 1;
 }
 
 .notification-message { 
     font-size: 13px; 
-    line-height: 1.4; 
-    color: #333; 
+    line-height: 1.45; 
+    color: #5a6e5a; 
+}
+
+.notification-message.unread {
+    font-weight: 600;
+    color: #1a2e1a;
 }
 
 .notification-time { 
     font-size: 10px; 
-    color: #aaa; 
-    margin-top: 4px; 
+    color: #bbb; 
+    margin-top: 5px; 
 }
 
-.notification-actions { 
-    margin-top: 10px; 
+/* 查看全部按钮 - 底部居中 */
+.view-all-footer {
+    padding: 14px 18px;
+    text-align: center;
+    border-top: 1px solid #f0f0f0;
+    background: #fff;
 }
 
-.notification-action-btn { 
-    background: #205c30; 
-    color: white; 
-    border: none; 
-    padding: 6px 14px; 
-    border-radius: 20px; 
-    font-size: 12px; 
-    cursor: pointer; 
+.view-all-btn {
+    display: inline-block;
+    background: #205c30;
+    color: white;
+    text-decoration: none;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+}
+
+.view-all-btn:hover {
+    background: #0e3a1a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(32,92,48,0.3);
 }
 
 /* 空状态样式 */
@@ -365,7 +444,7 @@
 
     <!-- 顶部按钮 -->
     <div class="top-btns">
-        <button id="btnNotifications" class="top-btn" onclick="toggleNotificationsPreview()">
+        <button id="btnNotifications" class="top-btn" onclick="handleNotificationClick(event)">
             🔔 Notifications
             <span class="badge" id="badgeNotif" style="display: none;">0</span>
         </button>
@@ -379,14 +458,17 @@
         </button>
     </div>
 
-    <!-- 通知预览面板 -->
+    <!-- 通知预览面板 - 优化版 -->
     <div id="notificationsPanel" class="notification-panel">
-        <div style="padding:12px 16px; border-bottom:1px solid #eee; display:flex; justify-content:space-between;">
-            <span style="font-weight:600;">🔔 Recent Notifications</span>
-            <button onclick="markAllNotificationsRead()" style="background:none; border:none; color:#205c30; font-size:12px; cursor:pointer;">Mark all as read</button>
+        <div class="notification-header">
+            <h4>🔔 Notifications</h4>
+            <button class="mark-read-btn" onclick="markAllNotificationsReadFromPreview()">✓ Mark all read</button>
         </div>
-        <div id="notificationsList" style="max-height:400px; overflow-y:auto;">
+        <div id="notificationsList" class="notification-list">
             <div class="loading-state">Loading...</div>
+        </div>
+        <div class="view-all-footer">
+            <button class="view-all-btn" onclick="goToNotificationsPage()">📋 View all notifications →</button>
         </div>
     </div>
 
@@ -448,12 +530,66 @@
 // 全局变量
 // ============================================================
 let notificationClickTimer = null;
+let notificationClickCount = 0;
+let isNotificationPanelOpen = false;
 let unreadNotificationsCount = {{ unread_notifications|default(0) }};
 let unreadAnnouncementsCount = {{ unread_announcements|default(0) }};
 let userStatusCache = {};
+let notificationDataCache = [];
 
 // ============================================================
-// 时间格式化 - 与 chat_page 保持一致
+// 通知按钮处理（支持单击预览/双击跳转）
+// ============================================================
+function handleNotificationClick(event) {
+    event.stopPropagation();
+    
+    notificationClickCount++;
+    
+    if (notificationClickTimer) {
+        clearTimeout(notificationClickTimer);
+        notificationClickTimer = null;
+    }
+    
+    notificationClickTimer = setTimeout(function() {
+        if (notificationClickCount === 1) {
+            // 单击：打开/关闭预览面板
+            toggleNotificationsPreview();
+        } else if (notificationClickCount >= 2) {
+            // 双击：直接跳转到通知中心页面
+            goToNotificationsPage();
+        }
+        notificationClickCount = 0;
+        notificationClickTimer = null;
+    }, 250);
+}
+
+function toggleNotificationsPreview() {
+    var panel = document.getElementById('notificationsPanel');
+    
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+        isNotificationPanelOpen = false;
+    } else {
+        panel.style.display = 'block';
+        isNotificationPanelOpen = true;
+        loadNotificationsPreview();
+        
+        // 5秒后自动关闭面板
+        setTimeout(function() {
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+                isNotificationPanelOpen = false;
+            }
+        }, 8000);
+    }
+}
+
+function goToNotificationsPage() {
+    window.location.href = '/notifications';
+}
+
+// ============================================================
+// 时间格式化
 // ============================================================
 function formatChatListTime(dateStr) {
     if (!dateStr) return '';
@@ -463,24 +599,20 @@ function formatChatListTime(dateStr) {
     
     if (isNaN(d.getTime())) return '';
     
-    // 今天的消息显示时间 (如 "14:30")
     if (d.toDateString() === now.toDateString()) {
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
     
-    // 昨天的消息显示 "昨天"
     var yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     if (d.toDateString() === yesterday.toDateString()) {
         return 'Yesterday';
     }
     
-    // 今年的消息显示月/日
     if (d.getFullYear() === now.getFullYear()) {
         return (d.getMonth() + 1) + '/' + d.getDate();
     }
     
-    // 更早的消息显示年/月/日
     return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
 }
 
@@ -500,7 +632,6 @@ function formatTimeAgo(dateStr) {
     return d.toLocaleDateString();
 }
 
-// 格式化最后在线时间（用于 tooltip 或详细信息）
 function formatLastSeen(dateStr) {
     if (!dateStr) return 'Recently';
     var d = new Date(dateStr);
@@ -521,7 +652,6 @@ function formatLastSeen(dateStr) {
 // 更新所有未读徽章
 // ============================================================
 function updateAllBadges() {
-    // 通知徽章
     var notifBadge = document.getElementById('badgeNotif');
     if (notifBadge) {
         if (unreadNotificationsCount > 0) {
@@ -532,7 +662,6 @@ function updateAllBadges() {
         }
     }
     
-    // 公告徽章 - 从后端获取最新数量
     fetch('/api/unread-announcements', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -554,10 +683,137 @@ function updateAllBadges() {
 }
 
 // ============================================================
-// 获取并显示用户在线状态
+// 加载通知预览
+// ============================================================
+function loadNotificationsPreview() {
+    var container = document.getElementById('notificationsList');
+    container.innerHTML = '<div class="loading-state">Loading...</div>';
+    
+    fetch('/api/notifications/unread', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(notifications) {
+        notificationDataCache = notifications || [];
+        
+        if (!notifications || notifications.length === 0) {
+            container.innerHTML = '<div class="empty-state">✨ No new notifications</div>';
+            return;
+        }
+        
+        var html = '';
+        var maxShow = Math.min(notifications.length, 8);
+        
+        for (var i = 0; i < maxShow; i++) {
+            var n = notifications[i];
+            var shortMsg = n.message.length > 100 ? n.message.substring(0, 100) + '...' : n.message;
+            var isUnread = !n.is_read;
+            
+            // 根据通知类型生成跳转链接
+            var targetUrl = getNotificationTargetUrl(n);
+            
+            html += '<div class="notification-item" data-notif-id="' + n.id + '" data-target-url="' + targetUrl + '" onclick="handleNotificationItemClick(this, ' + n.id + ')">' +
+                '<div class="notification-unread-indicator" style="' + (isUnread ? 'opacity: 1;' : 'opacity: 0;') + '"></div>' +
+                '<div class="notification-content">' +
+                '<div class="notification-message' + (isUnread ? ' unread' : '') + '">' + escapeHtml(shortMsg) + '</div>' +
+                '<div class="notification-time">' + formatTimeAgo(n.created_at) + '</div>' +
+                '</div>' +
+                '</div>';
+        }
+        
+        container.innerHTML = html;
+        unreadNotificationsCount = notifications.length;
+        updateAllBadges();
+    })
+    .catch(function(err) {
+        console.error('Load preview error:', err);
+        container.innerHTML = '<div class="empty-state">Failed to load notifications</div>';
+    });
+}
+
+// 根据通知类型生成跳转目标
+function getNotificationTargetUrl(notification) {
+    var type = notification.type || 'general';
+    var relatedId = notification.related_id;
+    var productId = notification.product_id;
+    
+    switch(type) {
+        case 'order':
+        case 'order_created':
+            if (relatedId) return '/my-profile?tab=orders';
+            break;
+        case 'offer_accepted':
+        case 'offer_rejected':
+        case 'offer_countered':
+        case 'counter_sent':
+            if (relatedId) return '/my-profile?tab=purchases';
+            break;
+        case 'product_approved':
+        case 'product_rejected':
+        case 'product_uploaded':
+            if (productId) return '/my-profile?tab=listings';
+            if (relatedId) return '/my-profile?tab=listings';
+            break;
+        case 'review':
+            if (relatedId) return '/my-profile?tab=received-reviews';
+            break;
+        case 'report_dismissed':
+        case 'report_resolved':
+        case 'report_submitted':
+        case 'report_warning':
+            return '/my-profile';
+        case 'welcome':
+        case 'system':
+            return '/my-profile';
+        default:
+            return '/notifications';
+    }
+    return '/notifications';
+}
+
+// 处理通知项点击（先标记已读，然后跳转）
+function handleNotificationItemClick(element, notificationId) {
+    // 阻止事件冒泡
+    if (event) event.stopPropagation();
+    
+    var targetUrl = element.dataset.targetUrl || '/notifications';
+    
+    // 先发送已读请求（不等待结果直接跳转）
+    fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification_ids: [notificationId] }),
+        credentials: 'same-origin'
+    })
+    .catch(function(err) { console.log('Mark read error:', err); });
+    
+    // 延迟一点点跳转，确保请求发出
+    setTimeout(function() {
+        window.location.href = targetUrl;
+    }, 50);
+}
+
+// 标记所有为已读
+function markAllNotificationsReadFromPreview() {
+    fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            unreadNotificationsCount = 0;
+            updateAllBadges();
+            loadNotificationsPreview();
+            showToastMessage('All notifications marked as read', 'success');
+        }
+    });
+}
+
+// ============================================================
+// 用户在线状态
 // ============================================================
 function fetchUserStatus(userId, element) {
-    // 检查缓存（缓存10秒）
     var cached = userStatusCache[userId];
     var now = Date.now();
     if (cached && (now - cached.time) < 10000) {
@@ -594,7 +850,6 @@ function updateStatusDisplay(element, isOnline, lastSeen) {
     }
 }
 
-// 加载所有聊天的用户状态
 function loadAllUserStatuses() {
     var statusElements = document.querySelectorAll('.status-dot');
     statusElements.forEach(function(el) {
@@ -620,76 +875,6 @@ function formatAllChatTimes() {
 }
 
 // ============================================================
-// 通知预览面板
-// ============================================================
-function toggleNotificationsPreview() {
-    var panel = document.getElementById('notificationsPanel');
-    if (panel.style.display === 'block') {
-        panel.style.display = 'none';
-    } else {
-        panel.style.display = 'block';
-        loadNotificationsPreview();
-    }
-}
-
-function loadNotificationsPreview() {
-    var container = document.getElementById('notificationsList');
-    container.innerHTML = '<div class="loading-state">Loading...</div>';
-    
-    fetch('/api/notifications/unread', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
-    .then(function(notifications) {
-        if (!notifications || notifications.length === 0) {
-            container.innerHTML = '<div class="empty-state">✨ No new notifications</div>';
-            return;
-        }
-        
-        var html = '';
-        var maxShow = Math.min(notifications.length, 5);
-        
-        for (var i = 0; i < maxShow; i++) {
-            var n = notifications[i];
-            var shortMsg = n.message.length > 80 ? n.message.substring(0, 80) + '...' : n.message;
-            html += '<div class="notification-item">' +
-                '<div class="notification-message">' + escapeHtml(shortMsg) + '</div>' +
-                '<div class="notification-time">' + formatTimeAgo(n.created_at) + '</div>' +
-                '</div>';
-        }
-        
-        if (notifications.length > 5) {
-            html += '<div style="padding:12px; text-align:center; border-top:1px solid #eee;">' +
-                '<button onclick="window.location.href=\'/notifications\'" style="background:#205c30; color:white; border:none; padding:8px 20px; border-radius:25px; cursor:pointer;">📋 View all (' + notifications.length + ')</button>' +
-                '</div>';
-        }
-        
-        container.innerHTML = html;
-        unreadNotificationsCount = notifications.length;
-        updateAllBadges();
-    })
-    .catch(function(err) {
-        console.error('Load preview error:', err);
-        container.innerHTML = '<div class="empty-state">Failed to load</div>';
-    });
-}
-
-function markAllNotificationsRead() {
-    fetch('/api/notifications/mark-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-        credentials: 'same-origin'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            unreadNotificationsCount = 0;
-            updateAllBadges();
-            loadNotificationsPreview();
-        }
-    });
-}
-
-// ============================================================
 // 公告功能
 // ============================================================
 function openAnnouncements() {
@@ -705,7 +890,6 @@ function openAnnouncements() {
         if (data.success) {
             unreadAnnouncementsCount = 0;
             updateAllBadges();
-            localStorage.setItem('lastReadAnn', Date.now().toString());
         }
     })
     .catch(function(err) {
@@ -811,14 +995,13 @@ function updateUnreadChatCount() {
 }
 
 // ============================================================
-// 定期刷新用户状态（每30秒）
+// 定期刷新用户状态
 // ============================================================
 function refreshAllUserStatuses() {
     var statusElements = document.querySelectorAll('.status-dot');
     statusElements.forEach(function(el) {
         var userId = el.dataset.userId;
         if (userId) {
-            // 清除缓存，强制刷新
             delete userStatusCache[userId];
             fetchUserStatus(userId, el);
         }
@@ -834,12 +1017,13 @@ document.addEventListener('click', function(e) {
     if (panel && panel.style.display === 'block') {
         if (!panel.contains(e.target) && btn && !btn.contains(e.target)) {
             panel.style.display = 'none';
+            isNotificationPanelOpen = false;
         }
     }
 });
 
 // ============================================================
-// 聊天项点击后标记为已读（页面跳转前）
+// 聊天项点击后标记为已读
 // ============================================================
 document.querySelectorAll('.chat-item').forEach(function(item) {
     item.addEventListener('click', function(e) {
@@ -873,8 +1057,8 @@ function init() {
     formatAllChatTimes();
     loadAllUserStatuses();
     
-    // 每30秒刷新用户状态
     setInterval(refreshAllUserStatuses, 30000);
+    setInterval(updateUnreadChatCount, 60000);
 }
 
 init();
