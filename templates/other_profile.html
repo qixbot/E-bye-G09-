@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='other_profile.css') }}">
+
+<div class="pf-page">
+    <div class="pf-bg-layer" id="pfBgLayer"></div>
+
+    <div class="pf-cover">
+        <div class="pf-cover-img" id="pfCoverImage" style="background-color: #00381f;"></div>
+    </div>
+
+    <div class="pf-wrap">
+        <a href="javascript:history.back()" class="profile-back-btn">← Back</a>
+
+        <div class="pf-card">
+            <div class="pf-card-top">
+                <div class="pf-avatar">
+                    <img src="{{ url_for('user_avatar', user_id=user.id) }}?t={{ range(1,10000)|random }}" alt="Avatar"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="pf-avatar-init" style="display: none;">{{ user.username[0].upper() }}</div>
+                </div>
+                <div class="pf-identity">
+                    <div class="pf-name">{{ user.full_name or user.username }}</div>
+                    <div class="pf-handle">@{{ user.username }}</div>
+                    <div class="pf-email">📧&nbsp;{{ user.email }}</div>
+                </div>
+                <a href="{{ url_for('chat_page', other_user_id=user.id) }}" class="pf-chat-round-btn" title="Chat with {{ user.username }}">💬</a>
+            </div>
+
+            <div class="pf-bio">{{ user.bio or '✨ No bio yet.' }}</div>
+
+            <div class="pf-stats-row">
+                <div class="pf-stat"><span class="pf-stat-n">{{ listing_count }}</span><span class="pf-stat-l">Listings</span></div>
+                <div class="pf-stat"><span class="pf-stat-n">{{ sold_count }}</span><span class="pf-stat-l">Sold</span></div>
+                <div class="pf-stat"><span class="pf-stat-n">{{ trust_score }}%</span><span class="pf-stat-l">Trust Score</span></div>
+                <div class="pf-stat"><span class="pf-stat-n">{{ response_rate|default(85) }}%</span><span class="pf-stat-l">Response</span></div>
+            </div>
+
+            <div class="pf-details">
+                <div class="pf-detail-row"><span class="pf-detail-icon">📞</span><span><span class="pf-detail-label">Phone</span> {{ user.contact or 'Not set' }}</span></div>
+                <div class="pf-detail-row"><span class="pf-detail-icon">⚥</span><span><span class="pf-detail-label">Gender</span> {{ user.gender or 'Prefer not to say' }}</span></div>
+                <div class="pf-detail-row"><span class="pf-detail-icon">🕐</span><span><span class="pf-detail-label">Active</span> {{ user.active_hours or 'Not set' }}</span></div>
+                <div class="pf-detail-row"><span class="pf-detail-icon">⭐</span><span><span class="pf-detail-label">Status</span> <span class="pf-verified-badge">✓ MMU Verified</span></span></div>
+                <div class="pf-detail-row"><span class="pf-detail-icon">📅</span><span><span class="pf-detail-label">Member since</span> {{ user.created_at|time_since or 'New' }}</span></div>
+            </div>
+
+            <!-- Seller Rating – always shown -->
+            <div class="pf-rating-container" id="sellerRatingContainer">
+                <div class="pf-rating-header">
+                    <span class="rating-label"> Seller Rating</span>
+                    <button class="view-reviews-btn" onclick="openReviewsModal()">📖 View all reviews (<span id="reviewCount">0</span>)</button>
+                </div>
+                <div class="pf-rating-stars" id="userRatingStars">☆☆☆☆☆</div>
+                <div class="pf-rating-score" id="userRatingScore">No reviews yet</div>
+            </div>
+        </div>
+
+        <div class="pf-panel">
+            <div class="pf-tabs"><button class="pf-tab on">📦 Seller's Products</button></div>
+            <div class="pf-pane on">
+                <div id="listingsGrid" class="products-grid"><div class="loading-state">📦 Loading listings...</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reviews Modal -->
+<div id="reviewsModal" class="modal">
+    <div class="modal-content reviews-modal">
+        <div class="modal-header">
+            <h2>⭐ Seller Reviews</h2>
+            <button class="modal-close" onclick="closeReviewsModal()">&times;</button>
+        </div>
+        <div id="reviewsStats" class="reviews-stats"><div class="loading-state">Loading reviews...</div></div>
+        <div id="reviewsList" class="reviews-list"></div>
+    </div>
+</div>
+
+<script>
+const OTHER_USER_ID = {{ user.id }};
+
+function restoreBackground() {
+    fetch(`/api/user/${OTHER_USER_ID}/background`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.background_value) {
+                document.getElementById('pfBgLayer').style.background = data.background_value;
+            }
+        })
+        .catch(() => {});
+}
+
+function loadCover() {
+    const cover = document.getElementById('pfCoverImage');
+    const img = new Image();
+    img.onload = () => cover.style.background = `url(/api/user/${OTHER_USER_ID}/cover?t=${Date.now()}) center/cover no-repeat`;
+    img.onerror = () => cover.style.background = 'linear-gradient(135deg,#00c896 0%,#00381f 55%,#001a0e 100%)';
+    img.src = `/api/user/${OTHER_USER_ID}/cover?t=${Date.now()}`;
+}
+
+function loadListings() {
+    const container = document.getElementById('listingsGrid');
+    container.innerHTML = '<div class="loading-state">📦 Loading listings...</div>';
+    
+    fetch(`/api/user/${OTHER_USER_ID}/listings`, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><div class="empty-title">No active listings yet</div><div class="empty-sub">This seller hasn’t posted any approved items.</div></div>';
+                return;
+            }
+            
+            let html = '<div class="products-grid">';
+            for (let i = 0; i < data.length; i++) {
+                const item = data[i];
+                let firstImage = item.first_image || null;
+                const isVideo = item.first_image_is_video || false;
+                let condLabel = (item.condition || 'good').replace('_', ' ');
+                condLabel = condLabel.charAt(0).toUpperCase() + condLabel.slice(1);
+                
+                html += '<div class="product-card">';
+                html += '<a href="/product/' + item.id + '" class="product-card-link">';
+                html += '<div class="product-image-container">';
+                html += '<span class="condition-badge">' + escapeHtml(condLabel) + '</span>';
+                
+                if (firstImage) {
+                    if (isVideo) {
+                        html += '<video class="product-thumb-img" src="' + escapeHtml(firstImage) + '" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>';
+                        html += '<span class="video-overlay-badge">🎬</span>';
+                    } else {
+                        // Fix image path: if it's not a data URL and not an absolute path, prepend static folder
+                        let imgSrc = firstImage;
+                        if (imgSrc && !imgSrc.startsWith('data:') && !imgSrc.startsWith('/')) {
+                            imgSrc = '/static/uploads/' + imgSrc;
+                        }
+                        html += '<img src="' + escapeHtml(imgSrc) + '" class="product-thumb-img" alt="' + escapeHtml(item.name) + '" onerror="this.src=\'/static/uploads/placeholder.jpg\'">';
+                    }
+                } else {
+                    html += '<div class="carousel-placeholder">📦</div>';
+                }
+                
+                html += '</div>';
+                html += '<div class="product-info">';
+                html += '<div class="product-name">' + escapeHtml(item.name) + '</div>';
+                html += '<div class="product-price">RM ' + parseFloat(item.price).toFixed(2) + '</div>';
+                html += '</div>';
+                html += '</a></div>';
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        })
+        .catch(err => {
+            console.error('Load listings error:', err);
+            container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings.</div>';
+        });
+}
+
+function loadSellerRating() {
+    fetch(`/api/user/${OTHER_USER_ID}/reviews`, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            const reviewCount = data.total_reviews || 0;
+            document.getElementById('reviewCount').textContent = reviewCount;
+            
+            if (reviewCount > 0) {
+                const avgOverall = data.avg_overall || 0;
+                const starsHtml = generateStarsHtml(avgOverall);
+                document.getElementById('userRatingStars').innerHTML = starsHtml;
+                document.getElementById('userRatingScore').innerHTML = avgOverall + '★ (' + reviewCount + ' reviews)';
+            } else {
+                document.getElementById('userRatingStars').innerHTML = '☆☆☆☆☆';
+                document.getElementById('userRatingScore').innerHTML = 'No reviews yet';
+            }
+        })
+        .catch(err => console.log('Load rating error:', err));
+}
+
+function generateStarsHtml(rating) {
+    const fullStars = Math.floor(rating);
+    const halfStar = (rating - fullStars) >= 0.5;
+    let starsHtml = '';
+    for (let i = 0; i < fullStars; i++) starsHtml += '★';
+    if (halfStar) starsHtml += '½';
+    for (let j = starsHtml.length; j < 5; j++) starsHtml += '☆';
+    return starsHtml;
+}
+
+function openReviewsModal() {
+    fetch(`/api/user/${OTHER_USER_ID}/reviews`, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            const avgOverall = data.avg_overall || 0;
+            const starsHtml = generateStarsHtml(avgOverall);
+            const statsHtml = `
+                <div class="overall-score">${avgOverall}</div>
+                <div class="overall-stars">${starsHtml}</div>
+                <div>Based on ${data.total_reviews || 0} review(s)</div>
+                <div class="stats-detail">
+                    <span>😊 Service: ${data.avg_service || 0}★</span>
+                    <span>📦 Delivery: ${data.avg_shipping || 0}★</span>
+                    <span>✨ Quality: ${data.avg_quality || 0}★</span>
+                </div>
+            `;
+            document.getElementById('reviewsStats').innerHTML = statsHtml;
+            
+            if (!data.reviews || data.reviews.length === 0) {
+                document.getElementById('reviewsList').innerHTML = '<div class="empty-state">No reviews yet</div>';
+            } else {
+                let listHtml = '';
+                for (let i = 0; i < data.reviews.length; i++) {
+                    const r = data.reviews[i];
+                    const avatarHtml = r.reviewer_avatar_base64 ?
+                        `<img src="${r.reviewer_avatar_base64}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">` :
+                        `<div class="reviewer-avatar">${(r.reviewer_name ? r.reviewer_name[0].toUpperCase() : 'U')}</div>`;
+                    
+                    const reviewStars = generateStarsHtml(r.rating_overall);
+                    const commentText = r.comment ? r.comment : 'No comment provided';
+                    
+                    listHtml += `
+                        <div class="review-card">
+                            <div class="review-header">
+                                ${avatarHtml}
+                                <div class="reviewer-name">👤 ${escapeHtml(r.reviewer_full_name || r.reviewer_name)}</div>
+                                <div class="review-overall">${reviewStars} (${r.rating_overall})</div>
+                            </div>
+                            <div class="review-detail-ratings">
+                                <span>😊 Service: ${r.rating_service}★</span>
+                                <span>📦 Delivery: ${r.rating_shipping}★</span>
+                                <span>✨ Quality: ${r.rating_quality}★</span>
+                            </div>
+                            <div class="review-product">📦 ${escapeHtml(r.product_name)}</div>
+                            <div class="review-comment">"${escapeHtml(commentText)}"</div>
+                            <div class="review-date">${formatReviewDate(r.created_at)}</div>
+                        </div>
+                    `;
+                }
+                document.getElementById('reviewsList').innerHTML = listHtml;
+            }
+            document.getElementById('reviewsModal').style.display = 'flex';
+        })
+        .catch(err => {
+            console.error('Load reviews error:', err);
+            showToastMessage('Failed to load reviews', 'error');
+        });
+}
+
+function closeReviewsModal() {
+    document.getElementById('reviewsModal').style.display = 'none';
+}
+
+function formatReviewDate(dateStr) {
+    if (!dateStr) return 'Recently';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString();
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+}
+
+function showToastMessage(message, type) {
+    const existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    const container = document.createElement('div');
+    container.className = 'toast-container';
+    const toastDiv = document.createElement('div');
+    toastDiv.className = 'toast toast-' + type;
+    toastDiv.innerHTML = '<span>' + message + '</span>';
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    setTimeout(() => container.remove(), 3000);
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('reviewsModal');
+    if (event.target === modal) closeReviewsModal();
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    restoreBackground();
+    loadCover();
+    loadListings();
+    loadSellerRating();
+});
+</script>
+{% endblock %}

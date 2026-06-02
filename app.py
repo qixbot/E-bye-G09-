@@ -3005,21 +3005,6 @@ def report_user(user_id):
     
     return jsonify({'success': True})
 
-@app.route('/api/user/<int:user_id>/listings')
-def api_user_other_listings(user_id):
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("""
-        SELECT id, name, price, status, images, images_blob
-        FROM products
-        WHERE seller_id = %s AND status = 'approved'
-        ORDER BY created_at DESC
-    """, (user_id,))
-    rows = cur.fetchall()
-    cur.close()
-    db.close()
-    return jsonify([dict(r) for r in rows])
-
 @app.route('/chatlist')
 def chat_list():
     if 'user_id' not in session:
@@ -3499,14 +3484,6 @@ def api_report_product(product_id):
     
     return jsonify({'success': True, 'message': 'Report submitted'})
 
-@app.route('/user/<int:user_id>')
-def user_profile(user_id):
-    if 'user_id' not in session:
-        flash('Please login to view profiles.', 'error')
-        return redirect(url_for('login'))
-    flash('Profile page is under construction.', 'info')
-    return redirect(url_for('home'))
-
 @app.route('/api/orders/my', methods=['GET'])
 def api_get_my_orders():
     if 'user_id' not in session:
@@ -3813,6 +3790,158 @@ def api_can_review_user(user_id):
 @app.route('/meetup-locations')
 def meetup_locations():
     return render_template('meetup.html')
+
+# ============================================================
+# Other User Profile - Xingru
+# ============================================================
+
+@app.route('/user/<int:user_id>')
+def other_profile(user_id):
+    if 'user_id' not in session:
+        flash('Please login to view profiles.', 'error')
+        return redirect(url_for('login'))
+
+    # If viewing own profile, redirect to my_profile
+    if user_id == session['user_id']:
+        return redirect(url_for('my_profile'))
+
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
+    if not user:
+        cur.close()
+        db.close()
+        flash('User not found.', 'error')
+        return redirect(url_for('home'))
+
+    # Get listing count (approved products only)
+    cur.execute("SELECT COUNT(*) AS count FROM products WHERE seller_id = %s AND status = 'approved'", (user_id,))
+    listing_count = cur.fetchone()['count']
+
+    # Get sold count (completed orders as seller)
+    cur.execute("SELECT COUNT(*) AS count FROM orders WHERE seller_id = %s AND status = 'completed'", (user_id,))
+    sold_count = cur.fetchone()['count']
+
+    # Calculate trust score and response rate (same as my_profile)
+    trust_score = calculate_trust_score(user, listing_count)
+    response_rate = 50
+    if listing_count > 0:
+        response_rate += 15
+    if user['bio'] and user['contact']:
+        response_rate += 10
+    if user['active_hours'] and user['active_hours'] != 'Not set':
+        response_rate += 10
+    if user['avatar_blob']:
+        response_rate += 5
+    response_rate = min(response_rate, 98)
+    response_rate = max(response_rate, 40)
+
+    cur.close()
+    db.close()
+
+    return render_template('other_profile.html',
+                           user=user,
+                           listing_count=listing_count,
+                           sold_count=sold_count,
+                           trust_score=trust_score,
+                           response_rate=response_rate)
+
+@app.route('/api/user/<int:user_id>/background')
+def api_other_user_background(user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT background_type, background_value FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user:
+        return jsonify({
+            'success': True,
+            'background_type': user['background_type'],
+            'background_value': user['background_value']
+        })
+    return jsonify({'success': False, 'error': 'User not found'}), 404
+
+@app.route('/api/user/<int:user_id>/cover')
+def api_other_user_cover(user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT cover_blob FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user and user['cover_blob']:
+        cover_data = bytes(user['cover_blob']) if hasattr(user['cover_blob'], 'tobytes') else user['cover_blob']
+        response = make_response(cover_data)
+        response.headers.set('Content-Type', 'image/jpeg')
+        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+        return response
+    return jsonify({'success': False, 'error': 'User not found'}), 404
+
+@app.route('/api/user/<int:user_id>/listings')
+def api_user_other_listings(user_id):
+    if 'user_id' not in session:
+        return jsonify([])
+
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""
+        SELECT p.id, p.name, p.price, p.status, p.created_at,
+               p.images, p.images_blob, p.condition
+        FROM products p
+        WHERE p.seller_id = %s AND p.status = 'approved'
+        ORDER BY p.created_at DESC
+    """, (user_id,))
+    rows = cur.fetchall()
+    cur.close()
+    db.close()
+
+    listings = []
+    for row in rows:
+        item = dict(row)
+        first_image = None
+        is_video = False
+
+        # 1. Try to get first image from images_blob (base64)
+        images_blob = item.get('images_blob')
+        if images_blob:
+            try:
+                blob_list = json.loads(images_blob) if isinstance(images_blob, str) else images_blob
+                if isinstance(blob_list, list) and len(blob_list) > 0:
+                    first_blob = blob_list[0]
+                    if isinstance(first_blob, str) and first_blob.startswith('data:'):
+                        first_image = first_blob
+                        is_video = first_blob.startswith('data:video/')
+            except Exception as e:
+                print(f"Error parsing images_blob for other user: {e}")
+
+        # 2. Fallback to static file paths (images column)
+        if not first_image and item.get('images'):
+            img_str = item['images']
+            if img_str:
+                img_list = [x.strip() for x in img_str.split(',') if x.strip()]
+                if img_list:
+                    first_image = '/static/uploads/' + img_list[0]
+                    ext = img_list[0].split('.')[-1].lower()
+                    is_video = ext in ['mp4', 'webm', 'mov', 'avi', 'mkv']
+
+        # Remove raw blob to avoid sending huge JSON
+        item.pop('images_blob', None)
+        item.pop('images', None)
+        item['first_image'] = first_image
+        item['first_image_is_video'] = is_video
+        listings.append(item)
+
+    return jsonify(listings)
 
 if __name__ == '__main__':
     app.run(debug=True)
