@@ -8,11 +8,10 @@
 
     <div class="pf-cover">
         <div class="pf-cover-img" id="pfCoverImage" style="background-color: #00381f;"></div>
+        <a href="javascript:history.back()" class="profile-back-btn-overlay">← Back</a>
     </div>
 
     <div class="pf-wrap">
-        <a href="javascript:history.back()" class="profile-back-btn">← Back</a>
-
         <div class="pf-card">
             <div class="pf-card-top">
                 <div class="pf-avatar">
@@ -57,7 +56,9 @@
         </div>
 
         <div class="pf-panel">
-            <div class="pf-tabs"><button class="pf-tab on">📦 Seller's Products</button></div>
+            <div class="pf-tabs">
+                <span class="pf-panel-title">📦 Seller's Products</span>
+            </div>
             <div class="pf-pane on">
                 <div id="listingsGrid" class="products-grid"><div class="loading-state">📦 Loading listings...</div></div>
             </div>
@@ -65,7 +66,7 @@
     </div>
 </div>
 
-<!-- Reviews Modal -->
+<!-- Reviews Modal (unchanged) -->
 <div id="reviewsModal" class="modal">
     <div class="modal-content reviews-modal">
         <div class="modal-header">
@@ -129,7 +130,6 @@ function loadListings() {
                         html += '<video class="product-thumb-img" src="' + escapeHtml(firstImage) + '" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>';
                         html += '<span class="video-overlay-badge">🎬</span>';
                     } else {
-                        // Fix image path: if it's not a data URL and not an absolute path, prepend static folder
                         let imgSrc = firstImage;
                         if (imgSrc && !imgSrc.startsWith('data:') && !imgSrc.startsWith('/')) {
                             imgSrc = '/static/uploads/' + imgSrc;

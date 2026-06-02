@@ -81,21 +81,16 @@
     background: radial-gradient(ellipse at 30% 60%, rgba(255, 255, 255, 0.07) 0%, transparent 60%);
 }
 
-/* ============================================================
-   WRAP
-   ============================================================ */
-.pf-wrap {
-    max-width: 860px;
-    margin: 0 auto;
-    padding: 0 24px;
-}
-
-/* Back button (product-page style) */
-.profile-back-btn {
+/* Floating back button over the cover (does not affect layout flow) */
+.profile-back-btn-overlay {
+    position: absolute;
+    top: 20px;
+    left: 20px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: #f0f0f0;
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(8px);
     border: none;
     padding: 8px 20px;
     border-radius: 40px;
@@ -104,12 +99,20 @@
     cursor: pointer;
     transition: 0.2s;
     text-decoration: none;
-    color: #333;
-    margin-bottom: 20px;
+    color: white;
+    z-index: 20;
 }
-.profile-back-btn:hover {
-    background: #e0e0e0;
-    color: #00381f;
+.profile-back-btn-overlay:hover {
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+}
+/* ============================================================
+   WRAP
+   ============================================================ */
+.pf-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px;
 }
 
 /* ============================================================
@@ -411,6 +414,45 @@
 }
 
 /* ============================================================
+   PANEL (TABS)
+   ============================================================ */
+.pf-panel {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    margin-top: 18px;
+    overflow: hidden;
+    animation: slideUp .4s .12s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.pf-tabs {
+    display: flex;
+    justify-content: center; /* Dead-centers the title horizontally */
+    align-items: center;     /* Centers the title vertically */
+    border-bottom: 1.5px solid var(--parch);
+    background: var(--bone);
+    padding: 14px 20px;      /* Added vertical padding since the button height is gone */
+}
+
+.pf-panel-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ev);        /* Matches your project's primary dark green theme */
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    user-select: none;       /* Makes it feel like an app UI header instead of selectable text */
+}
+
+.pf-pane { display: none; }
+.pf-pane.on { display: block; padding: 0; animation: fadeUp .22s ease; }
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
    PRODUCTS LIST - HORIZONTAL ROW LAYOUT
    ============================================================ */
 .products-grid {
@@ -524,50 +566,6 @@
     font-weight: 800;
     color: var(--ev);
     margin: 4px 0;
-}
-
-/* ============================================================
-   PANEL (TABS)
-   ============================================================ */
-.pf-panel {
-    background: var(--white);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-md);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    margin-top: 18px;
-    overflow: hidden;
-    animation: slideUp .4s .12s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.pf-tabs {
-    display: flex;
-    border-bottom: 1.5px solid var(--parch);
-    background: var(--bone);
-    padding: 0 20px;
-}
-.pf-tab {
-    padding: 12px 16px;
-    background: none;
-    border: none;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--ink3);
-    cursor: pointer;
-    border-bottom: 2.5px solid transparent;
-    margin-bottom: -1.5px;
-    transition: .15s;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-.pf-tab:hover { color: var(--ink); }
-.pf-tab.on { color: var(--ev); border-bottom-color: var(--ev); }
-
-.pf-pane { display: none; }
-.pf-pane.on { display: block; animation: fadeUp .22s ease; }
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 /* ============================================================
