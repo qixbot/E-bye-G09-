@@ -37,11 +37,12 @@
             </div>
 
             <div class="pf-details">
-                <div class="pf-detail-row"><span class="pf-detail-icon">📞</span><span><span class="pf-detail-label">Phone</span> {{ user.contact or 'Not set' }}</span></div>
-                <div class="pf-detail-row"><span class="pf-detail-icon">⚥</span><span><span class="pf-detail-label">Gender</span> {{ user.gender or 'Prefer not to say' }}</span></div>
-                <div class="pf-detail-row"><span class="pf-detail-icon">🕐</span><span><span class="pf-detail-label">Active</span> {{ user.active_hours or 'Not set' }}</span></div>
-                <div class="pf-detail-row"><span class="pf-detail-icon">⭐</span><span><span class="pf-detail-label">Status</span> <span class="pf-verified-badge">✓ MMU Verified</span></span></div>
-                <div class="pf-detail-row"><span class="pf-detail-icon">📅</span><span><span class="pf-detail-label">Member since</span> {{ user.created_at|time_since or 'New' }}</span></div>
+                <div class="pf-detail-row"><span class="pf-detail-icon">📞</span><span><span class="pf-detail-label">Phone</span>&nbsp;{{ user.contact or 'Not set' }}</span></div>
+                <div class="pf-detail-row"><span class="pf-detail-icon">⚥</span><span><span class="pf-detail-label">Gender</span>&nbsp;{{ user.gender or 'Prefer not to say' }}</span></div>
+                <div class="pf-detail-row"><span class="pf-detail-icon">🕐</span><span><span class="pf-detail-label">Active</span>&nbsp;{{ user.active_hours or 'Not set' }}</span></div>
+                <div class="pf-detail-row"><span class="pf-detail-icon">📍</span><span><span class="pf-detail-label">Campus</span>&nbsp;{{ user.campus or 'Not selected' }}</span></div>
+                <div class="pf-detail-row"><span class="pf-detail-icon">⭐</span><span><span class="pf-detail-label">Status</span>&nbsp;<span class="pf-verified-badge">✓ MMU Verified</span></span></div>
+                <div class="pf-detail-row"><span class="pf-detail-icon">📅</span><span><span class="pf-detail-label">Member since</span>&nbsp;{{ user.created_at|time_since or 'New' }}</span></div>
             </div>
 
             <!-- Seller Rating – always shown -->
