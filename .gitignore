@@ -11,3 +11,4 @@ venv/
 "static/uploads/" 
 git
 "static/uploads/" 
+.env
