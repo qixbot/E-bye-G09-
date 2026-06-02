@@ -69,6 +69,7 @@ def calculate_trust_score(user, listing_count):
     if user['full_name']:
         trust_score += 7
 
+    # 修复：正确计算用户加入天数
     if user['created_at']:
         try:
             ca = user['created_at']
@@ -76,7 +77,15 @@ def calculate_trust_score(user, listing_count):
                 created_date = datetime.strptime(ca[:19], '%Y-%m-%d %H:%M:%S')
             else:
                 created_date = ca
-            days_since_join = (datetime.now() - created_date.replace(tzinfo=None)).days
+            
+            # 确保时区处理正确
+            if hasattr(created_date, 'tzinfo') and created_date.tzinfo is not None:
+                created_date = created_date.replace(tzinfo=None)
+            
+            now = datetime.now()
+            days_since_join = (now - created_date).days
+            
+            # 根据天数加分
             if days_since_join >= 365:
                 trust_score += 20
             elif days_since_join >= 180:
@@ -85,8 +94,11 @@ def calculate_trust_score(user, listing_count):
                 trust_score += 10
             elif days_since_join >= 7:
                 trust_score += 5
-        except:
-            pass
+            # 新用户不加分，也不减分
+                
+        except Exception as e:
+            print(f"Error calculating days since join: {e}")
+            # 出错时默认不加分
 
     trust_score += min(25, (listing_count // 2) * 2)
 
@@ -120,26 +132,31 @@ def create_notification(user_id, message, notif_type='general', related_id=None,
 @app.template_filter('time_since')
 def time_since(date):
     if not date:
-        return 'New'
+        return 'Just joined'
     now = datetime.now()
     if isinstance(date, str):
         try:
             date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
         except:
-            return 'New'
+            return 'Just joined'
+    
+    # 确保没有时区问题
+    if hasattr(date, 'tzinfo') and date.tzinfo is not None:
+        date = date.replace(tzinfo=None)
+    
     diff = now - date
+    
     if diff.days > 365:
-        return f"{diff.days//365}y"
+        return f"{diff.days//365} year{'s' if diff.days//365 > 1 else ''}"
     elif diff.days > 30:
-        return f"{diff.days//30}m"
+        return f"{diff.days//30} month{'s' if diff.days//30 > 1 else ''}"
     elif diff.days > 0:
-        return f"{diff.days}d"
-    elif diff.seconds > 3600:
-        return f"{diff.seconds//3600}h"
-    elif diff.seconds > 60:
-        return f"{diff.seconds//60}m"
-    return 'Just now'
-
+        return f"{diff.days} day{'s' if diff.days > 1 else ''}"
+    elif diff.days == 0:
+        return 'Just joined'
+    else:
+        return 'Just joined'
+    
 def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
     """Extract a frame from video at given time offset and save as JPEG."""
     cmd = [
