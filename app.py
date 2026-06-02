@@ -1862,6 +1862,24 @@ def mark_notifications_read():
     
     return jsonify({'success': True})
 
+@app.route('/api/chat/mark-read/<int:other_user_id>', methods=['POST'])
+def mark_chat_read(other_user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        UPDATE messages 
+        SET is_read = 1 
+        WHERE sender_id = %s AND receiver_id = %s AND is_read = 0
+    ''', (other_user_id, session['user_id']))
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
+
 @app.route('/api/product/<int:product_id>')
 def api_get_product(product_id):
     if 'user_id' not in session:
@@ -3332,6 +3350,7 @@ def chat_list():
     user_id = session['user_id']
     cur = db.cursor()
 
+    # 获取聊天列表
     cur.execute('''
         SELECT u.id, u.username, u.full_name, u.avatar_blob,
                m.content as last_message, m.image as last_image,
@@ -3350,6 +3369,7 @@ def chat_list():
         JOIN messages m ON m.id = latest.max_id
         ORDER BY m.created_at DESC
     ''', (user_id, user_id, user_id, user_id))
+    
     chats = cur.fetchall()
     
     chat_list_data = []
@@ -3366,11 +3386,22 @@ def chat_list():
             chat['last_time'] = lt.replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
         chat_list_data.append(chat)
 
+    # 获取未读通知数量
     cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
     unread_notifications = cur.fetchone()['count']
     unread_reviews = 0
     
-    cur.execute("SELECT COUNT(*) AS count FROM announcements")
+    # ========== 修复：正确计算未读公告数量 ==========
+    # 获取用户上次阅读公告的时间
+    cur.execute("SELECT last_read_ann FROM users WHERE id = %s", (user_id,))
+    user = cur.fetchone()
+    last_read = user['last_read_ann'] if user and user['last_read_ann'] else None
+    
+    # 统计未读公告数量
+    if last_read:
+        cur.execute("SELECT COUNT(*) AS count FROM announcements WHERE created_at > %s", (last_read,))
+    else:
+        cur.execute("SELECT COUNT(*) AS count FROM announcements")
     unread_announcements = cur.fetchone()['count']
     
     cur.close()
@@ -3476,17 +3507,6 @@ def ship_order(order_id):
 
     return jsonify({'success': True})
 
-@app.route('/api/mark-ann-read', methods=['POST'])
-def mark_ann_read():
-    if 'user_id' not in session:
-        return jsonify({'success': False}), 401
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("UPDATE users SET last_read_ann = NOW() WHERE id = %s", (session['user_id'],))
-    db.commit()
-    cur.close()
-    db.close()
-    return jsonify({'success': True})
 
 @app.route('/api/search-users')
 def search_users():
@@ -3536,6 +3556,45 @@ def add_announcement():
         db.close()
         return jsonify({'success': True, 'id': ann_id})
     return jsonify({'success': False})
+
+@app.route('/api/unread-announcements')
+def unread_announcements():
+    if 'user_id' not in session:
+        return jsonify({'count': 0})
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    # 获取用户上次阅读公告的时间
+    cur.execute("SELECT last_read_ann FROM users WHERE id = %s", (session['user_id'],))
+    user = cur.fetchone()
+    last_read = user['last_read_ann'] if user and user['last_read_ann'] else None
+    
+    # 统计未读公告数量
+    if last_read:
+        cur.execute("SELECT COUNT(*) as count FROM announcements WHERE created_at > %s", (last_read,))
+    else:
+        cur.execute("SELECT COUNT(*) as count FROM announcements")
+    
+    count = cur.fetchone()['count']
+    cur.close()
+    db.close()
+    
+    return jsonify({'count': count})
+
+@app.route('/api/mark-ann-read', methods=['POST'])
+def mark_ann_read():
+    if 'user_id' not in session:
+        return jsonify({'success': False}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("UPDATE users SET last_read_ann = NOW() WHERE id = %s", (session['user_id'],))
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
 
 # ========== 添加这个删除公告的路由 ==========
 @app.route('/admin/announcement/delete/<int:ann_id>', methods=['POST'])
