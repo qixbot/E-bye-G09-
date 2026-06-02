@@ -2636,20 +2636,30 @@ def admin_users():
 
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM users")
+    
+    # 获取所有用户
+    cur.execute("SELECT * FROM users ORDER BY id")
     users = cur.fetchall()
-    cur.execute('''
-        SELECT r.*, u.username as reported_username,
-               rp.username as reporter_username
-        FROM reports r
-        JOIN users u ON r.reported_user_id = u.id
-        JOIN users rp ON r.reporter_id = rp.id
-        WHERE r.status = 'pending'
-        ORDER BY r.created_at DESC
-    ''')
-    reports = cur.fetchall()
+    
+    # 获取待处理的举报（添加错误处理）
+    try:
+        cur.execute('''
+            SELECT r.*, u.username as reported_username,
+                   rp.username as reporter_username
+            FROM reports r
+            LEFT JOIN users u ON r.reported_user_id = u.id
+            LEFT JOIN users rp ON r.reporter_id = rp.id
+            WHERE r.status = 'pending'
+            ORDER BY r.created_at DESC
+        ''')
+        reports = cur.fetchall()
+    except Exception as e:
+        print(f"Error loading reports: {e}")
+        reports = []
+    
     cur.close()
     db.close()
+    
     return render_template("admin_users.html", users=users, reports=reports)
 
 @app.route('/admin/products')
@@ -2708,11 +2718,9 @@ def approve_product(pid):
     cur.execute('''
         UPDATE products
         SET status = 'approved', 
-            reject_reason = '',
-            approved_at = NOW(),
-            approved_by = %s
+            reject_reason = ''
         WHERE id = %s
-    ''', (session.get('user_id'), pid))
+    ''', (pid,))
 
     db.commit()
     
@@ -2729,7 +2737,12 @@ def approve_product(pid):
     db.close()
 
     flash("Product approved successfully, now visible on homepage", "success")
-    return redirect(url_for('admin_products'))
+    # 直接重定向到 /admin/products 页面
+    return redirect('/admin/products')
+
+
+
+
 
 @app.route('/admin/product/reject/<int:pid>', methods=['POST'])
 def reject_product(pid):
@@ -2808,6 +2821,23 @@ def admin_get_product_info(pid):
 
     product_dict['images_list'] = images_list
     return product_dict
+
+@app.route('/api/user/<int:user_id>')
+def api_get_user_info(user_id):
+    """获取用户基本信息（用于显示审批人）"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT id, username, full_name FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user:
+        return jsonify(dict(user))
+    return jsonify({'error': 'User not found'}), 404
 
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
 def freeze_7day(user_id):

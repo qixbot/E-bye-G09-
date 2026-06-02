@@ -2,7 +2,6 @@
 
 {% block content %}
 <style>
-    /* Admin Users Page Styles */
     .admin-wrapper {
         max-width: 1400px;
         margin: 0 auto;
@@ -38,7 +37,7 @@
         transform: translateY(-1px);
     }
     
-    .admin-section {
+    .user-section {
         background: white;
         border-radius: 16px;
         padding: 24px;
@@ -46,58 +45,59 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
     
-    .admin-section-title {
-        font-size: 18px;
-        font-weight: 600;
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
         margin-bottom: 20px;
         padding-bottom: 12px;
         border-bottom: 2px solid #205c30;
-        display: inline-block;
     }
     
-    .admin-search {
-        position: relative;
-        max-width: 400px;
-        margin-bottom: 20px;
+    .section-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
     }
     
-    .admin-search-icon {
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 16px;
-        color: #888;
+    .badge-count {
+        background: #205c30;
+        color: white;
+        border-radius: 20px;
+        padding: 2px 10px;
+        font-size: 12px;
+        font-weight: 500;
     }
     
-    .admin-search-input {
-        width: 100%;
-        padding: 12px 16px 12px 40px;
-        border: 1px solid #ddd;
-        border-radius: 30px;
-        font-size: 14px;
-        outline: none;
-    }
-    
-    .admin-search-input:focus {
-        border-color: #205c30;
-        box-shadow: 0 0 0 2px rgba(32,92,48,0.1);
-    }
-    
-    .admin-filters {
+    .search-filter-bar {
         display: flex;
         gap: 12px;
         margin-bottom: 20px;
         flex-wrap: wrap;
     }
     
-    .admin-filter-select {
+    .search-input {
+        flex: 1;
+        min-width: 250px;
         padding: 10px 16px;
         border-radius: 30px;
         border: 1px solid #ddd;
         font-size: 14px;
+        outline: none;
+    }
+    
+    .search-input:focus {
+        border-color: #205c30;
+        box-shadow: 0 0 0 2px rgba(32,92,48,0.1);
+    }
+    
+    .filter-select {
+        padding: 10px 16px;
+        border-radius: 30px;
+        border: 1px solid #ddd;
         background: white;
         cursor: pointer;
+        font-size: 14px;
     }
     
     .admin-table-container {
@@ -110,6 +110,7 @@
         background: white;
         border-radius: 16px;
         overflow: hidden;
+        table-layout: fixed;
     }
     
     .admin-table thead tr {
@@ -118,25 +119,100 @@
     }
     
     .admin-table th {
-        padding: 16px 20px;
+        padding: 14px 12px;
         font-weight: 600;
-        font-size: 14px;
+        font-size: 13px;
         color: #2c3a2c;
         text-align: left;
     }
     
     .admin-table td {
-        padding: 14px 20px;
-        font-size: 14px;
+        padding: 12px 12px;
+        font-size: 13px;
         color: #3a4a3a;
         border-bottom: 1px solid #eee;
         vertical-align: middle;
+        word-break: break-word;
     }
     
+    /* 用户表格列宽 - 精确控制 */
     .admin-table th:nth-child(1),
     .admin-table td:nth-child(1) {
-        width: 60px;
+        width: 45px;
         text-align: center;
+    }
+    
+    .admin-table th:nth-child(2),
+    .admin-table td:nth-child(2) {
+        width: 11%;
+    }
+    
+    .admin-table th:nth-child(3),
+    .admin-table td:nth-child(3) {
+        width: 22%;
+    }
+    
+    .admin-table th:nth-child(4),
+    .admin-table td:nth-child(4) {
+        width: 12%;
+    }
+    
+    .admin-table th:nth-child(5),
+    .admin-table td:nth-child(5) {
+        width: 11%;
+    }
+    
+    .admin-table th:nth-child(6),
+    .admin-table td:nth-child(6) {
+        width: 8%;
+        text-align: center;
+    }
+    
+    .admin-table th:nth-child(7),
+    .admin-table td:nth-child(7) {
+        width: 11%;
+    }
+    
+    .admin-table th:nth-child(8),
+    .admin-table td:nth-child(8) {
+        width: 20%;
+    }
+    
+    /* 举报表格列宽 */
+    .report-table th:nth-child(1),
+    .report-table td:nth-child(1) {
+        width: 45px;
+        text-align: center;
+    }
+    
+    .report-table th:nth-child(2),
+    .report-table td:nth-child(2) {
+        width: 15%;
+    }
+    
+    .report-table th:nth-child(3),
+    .report-table td:nth-child(3) {
+        width: 15%;
+    }
+    
+    .report-table th:nth-child(4),
+    .report-table td:nth-child(4) {
+        width: 15%;
+    }
+    
+    .report-table th:nth-child(5),
+    .report-table td:nth-child(5) {
+        width: 18%;
+    }
+    
+    .report-table th:nth-child(6),
+    .report-table td:nth-child(6) {
+        width: 10%;
+    }
+    
+    .report-table th:nth-child(7),
+    .report-table td:nth-child(7) {
+        width: 17%;
     }
     
     .admin-table td:first-child {
@@ -145,9 +221,9 @@
     
     .status-badge {
         display: inline-block;
-        padding: 4px 12px;
+        padding: 4px 10px;
         border-radius: 20px;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 600;
     }
     
@@ -168,18 +244,21 @@
     
     .action-buttons {
         display: flex;
-        gap: 8px;
+        gap: 6px;
         flex-wrap: wrap;
     }
     
     .action-btn {
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: 18px;
+        font-size: 11px;
         font-weight: 500;
         border: none;
         cursor: pointer;
         transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+        white-space: nowrap;
     }
     
     .action-btn-warning {
@@ -254,14 +333,46 @@
         margin-top: 16px;
     }
     
-    .report-card {
-        background: #fff5f5;
-        border-left: 4px solid #e74c3c;
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: #fafafa;
+        border-radius: 16px;
     }
     
-    .report-card.resolved {
-        background: #f0faf0;
-        border-left-color: #27ae60;
+    .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        display: block;
+    }
+    
+    .empty-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #555;
+    }
+    
+    .empty-sub {
+        font-size: 13px;
+        color: #888;
+    }
+    
+    @media (max-width: 768px) {
+        .admin-wrapper {
+            padding: 0 16px 40px;
+        }
+        
+        .admin-table th,
+        .admin-table td {
+            padding: 8px 8px;
+            font-size: 11px;
+        }
+        
+        .action-btn {
+            padding: 3px 6px;
+            font-size: 9px;
+        }
     }
 </style>
 
@@ -278,121 +389,219 @@
     <h2>Manage All Users</h2>
     <p style="color:#555; margin-bottom: 20px;">7-day temporary freeze, auto unfreeze when expired</p>
 
-    <!-- 搜索栏 -->
-    <div class="admin-search">
-        <span class="admin-search-icon">🔍</span>
-        <input type="text" id="searchInput" class="admin-search-input" placeholder="Search username / email / student ID">
-    </div>
-
-    <!-- 筛选器 -->
-    <div class="admin-filters">
-        <select id="statusFilter" class="admin-filter-select" onchange="filterUsers()">
+    <!-- 搜索 + 筛选 -->
+    <div class="search-filter-bar">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search username / email / student ID...">
+        <select id="statusFilter" class="filter-select" onchange="filterUsers()">
             <option value="all">📋 All Users</option>
-            <option value="active">✅ Active</option>
-            <option value="frozen">⏸️ Frozen</option>
-            <option value="blocked">❌ Blocked</option>
+            <option value="reported">🚨 Reported Users</option>
+            <option value="active">✅ Active Users</option>
+            <option value="frozen">⏸️ Frozen Users</option>
+            <option value="blocked">❌ Blocked Users</option>
         </select>
     </div>
 
     <!-- 🚨 被举报用户 -->
-    <div class="admin-section">
-        <h3 class="admin-section-title">🚨 Reported Users</h3>
+    <div class="user-section" id="reportedSection">
+        <div class="section-header">
+            <h3>🚨 Reported Users</h3>
+            <span class="badge-count">{{ reports|length }}</span>
+        </div>
         <div class="admin-table-container">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Reported User</th>
-                        <th>Reported By</th>
-                        <th>Reason</th>
-                        <th>Details</th>
-                        <th>Date</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="reportsTableBody">
-                    {% if reports and reports|length > 0 %}
+            {% if reports and reports|length > 0 %}
+                <table class="admin-table report-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:center;">#</th>
+                            <th>Reported User</th>
+                            <th>Reported By</th>
+                            <th>Reason</th>
+                            <th>Details</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         {% for r in reports %}
-                        <tr class="report-card">
-                            <td>{{ loop.index }}</td>
-                            <td>{{ r.reported_username }}</td>
-                            <td>{{ r.reporter_username }}</td>
+                        <tr>
+                            <td style="text-align:center;">{{ loop.index }}</td>
+                            <td><strong>{{ r.reported_username or 'Deleted User' }}</strong></td>
+                            <td>{{ r.reporter_username or 'Unknown' }}</td>
                             <td>{{ r.reason }}</td>
                             <td>{{ r.details or '-' }}</td>
-                            <td>{{ r.created_at[:10] if r.created_at else '' }}</td>
+                            <td>{{ r.created_at.strftime('%Y-%m-%d') if r.created_at else '' }}</td>
                             <td>
                                 <div class="action-buttons">
                                     <button onclick="handleReport({{ r.id }}, 'dismiss')" class="action-btn action-btn-secondary">Dismiss</button>
-                                    <button onclick="handleReport({{ r.id }}, 'block')" class="action-btn action-btn-danger">Block User</button>
+                                    <button onclick="handleReport({{ r.id }}, 'block')" class="action-btn action-btn-danger">Block</button>
                                 </div>
                             </td>
                         </tr>
                         {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center" style="text-align:center; padding:40px;">No pending reports</td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <span class="empty-icon">✅</span>
+                    <div class="empty-title">No pending reports</div>
+                    <div class="empty-sub">All clear! No user reports to review.</div>
+                </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- 所有用户表格 -->
-    <div class="admin-section">
-        <h3 class="admin-section-title">👥 All Users</h3>
+    <!-- ✅ Active Users -->
+    <div class="user-section" id="activeSection">
+        <div class="section-header">
+            <h3>✅ Active Users</h3>
+            <span class="badge-count">{{ users|selectattr('is_blocked', '==', 0)|selectattr('is_frozen', '==', 0)|list|length }}</span>
+        </div>
         <div class="admin-table-container">
-            <table class="admin-table" id="usersTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Student ID</th>
-                        <th>Email</th>
-                        <th>Username</th>
-                        <th>Registered Date</th>
-                        <th>Freezes</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in users %}
-                    <tr data-status="{% if u.is_blocked %}blocked{% elif u.is_frozen %}frozen{% else %}active{% endif %}">
-                        <td>{{ u.id }}</td>
-                        <td>{{ u.student_id }}</td>
-                        <td class="user-email">{{ u.email }}</td>
-                        <td class="user-username">{{ u.username }}</td>
-                        <td>{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else 'Unknown' }}</td>
-                        <td>{{ u.freeze_count if u.freeze_count else 0 }}/3</td>
-                        <td>
-                            {% if u.is_blocked %}
-                                <span class="status-badge blocked">❌ Blocked</span>
-                            {% elif u.is_frozen %}
-                                <span class="status-badge frozen">⏸️ Frozen</span>
-                            {% else %}
-                                <span class="status-badge active">✅ Active</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                {% if not u.is_blocked %}
-                                    {% if u.is_frozen %}
-                                        <button onclick="openUnfreezeModal({{ u.id }}, '{{ u.username }}')" class="action-btn action-btn-secondary">Unfreeze</button>
-                                    {% else %}
-                                        <button onclick='openModal({{ u.id }}, "freeze")' class="action-btn action-btn-warning">Freeze 7 Days</button>
-                                    {% endif %}
+            {% set active_users = users|selectattr('is_blocked', '==', 0)|selectattr('is_frozen', '==', 0)|list %}
+            {% if active_users|length > 0 %}
+                <table class="admin-table user-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:center;">#</th>
+                            <th>Student ID</th>
+                            <th>Email</th>
+                            <th>Username</th>
+                            <th>Registered</th>
+                            <th style="text-align:center;">Freezes</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in active_users %}
+                        <tr>
+                            <td style="text-align:center;">{{ loop.index }}</td>
+                            <td>{{ u.student_id }}</td>
+                            <td class="user-email">{{ u.email }}</td>
+                            <td class="user-username"><strong>{{ u.username }}</strong></td>
+                            <td>{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else 'Unknown' }}</td>
+                            <td style="text-align:center;">{{ u.freeze_count if u.freeze_count else 0 }}/3</td>
+                            <td><span class="status-badge active">✅ Active</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button onclick='openModal({{ u.id }}, "freeze")' class="action-btn action-btn-warning">Freeze 7d</button>
                                     <button onclick='openModal({{ u.id }},"block")' class="action-btn action-btn-danger">Block</button>
-                                {% else %}
-                                    <form method="post" action="{{ url_for('unblock_user', user_id=u.id) }}" onsubmit="return confirm('Unblock this user?')">
-                                        <button type="submit" class="action-btn action-btn-secondary">Unblock</button>
-                                    </form>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <span class="empty-icon">👥</span>
+                    <div class="empty-title">No active users</div>
+                    <div class="empty-sub">All users are either frozen or blocked.</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ⏸️ Frozen Users -->
+    <div class="user-section" id="frozenSection">
+        <div class="section-header">
+            <h3>⏸️ Frozen Users</h3>
+            <span class="badge-count">{{ users|selectattr('is_frozen', '==', 1)|selectattr('is_blocked', '==', 0)|list|length }}</span>
+        </div>
+        <div class="admin-table-container">
+            {% set frozen_users = users|selectattr('is_frozen', '==', 1)|selectattr('is_blocked', '==', 0)|list %}
+            {% if frozen_users|length > 0 %}
+                <table class="admin-table user-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:center;">#</th>
+                            <th>Student ID</th>
+                            <th>Email</th>
+                            <th>Username</th>
+                            <th>Registered</th>
+                            <th style="text-align:center;">Freezes</th>
+                            <th>Unfreeze Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in frozen_users %}
+                        <tr>
+                            <td style="text-align:center;">{{ loop.index }}</td>
+                            <td>{{ u.student_id }}</td>
+                            <td class="user-email">{{ u.email }}</td>
+                            <td class="user-username"><strong>{{ u.username }}</strong></td>
+                            <td>{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else 'Unknown' }}</td>
+                            <td style="text-align:center;">{{ u.freeze_count if u.freeze_count else 0 }}/3</td>
+                            <td>{% if u.frozen_until %}{{ u.frozen_until.strftime('%Y-%m-%d') if u.frozen_until is not string else u.frozen_until[:10] }}{% else %}N/A{% endif %}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button onclick="openUnfreezeModal({{ u.id }}, '{{ u.username }}')" class="action-btn action-btn-secondary">Unfreeze</button>
+                                    <button onclick='openModal({{ u.id }},"block")' class="action-btn action-btn-danger">Block</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <span class="empty-icon">⏸️</span>
+                    <div class="empty-title">No frozen users</div>
+                    <div class="empty-sub">All users are currently active.</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ❌ Blocked Users -->
+    <div class="user-section" id="blockedSection">
+        <div class="section-header">
+            <h3>❌ Blocked Users</h3>
+            <span class="badge-count">{{ users|selectattr('is_blocked', '==', 1)|list|length }}</span>
+        </div>
+        <div class="admin-table-container">
+            {% set blocked_users = users|selectattr('is_blocked', '==', 1)|list %}
+            {% if blocked_users|length > 0 %}
+                <table class="admin-table user-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:center;">#</th>
+                            <th>Student ID</th>
+                            <th>Email</th>
+                            <th>Username</th>
+                            <th>Registered</th>
+                            <th style="text-align:center;">Freezes</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in blocked_users %}
+                        <tr>
+                            <td style="text-align:center;">{{ loop.index }}</td>
+                            <td>{{ u.student_id }}</td>
+                            <td class="user-email">{{ u.email }}</td>
+                            <td class="user-username"><strong>{{ u.username }}</strong></td>
+                            <td>{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else 'Unknown' }}</td>
+                            <td style="text-align:center;">{{ u.freeze_count if u.freeze_count else 0 }}/3</td>
+                            <td><span class="status-badge blocked">❌ Blocked</span></td>
+                            <td>
+                                <form method="post" action="{{ url_for('unblock_user', user_id=u.id) }}" onsubmit="return confirm('Unblock this user?')">
+                                    <button type="submit" class="action-btn action-btn-secondary">Unblock</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <span class="empty-icon">✅</span>
+                    <div class="empty-title">No blocked users</div>
+                    <div class="empty-sub">All users are currently active.</div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -435,29 +644,50 @@ let actType = null;
 // 搜索过滤
 document.getElementById('searchInput').addEventListener('input', function(){
     const val = this.value.toLowerCase();
-    const rows = document.querySelectorAll('#usersTable tbody tr');
-    rows.forEach(row => {
-        const email = row.querySelector('.user-email')?.innerText.toLowerCase() || '';
-        const username = row.querySelector('.user-username')?.innerText.toLowerCase() || '';
-        const studentId = row.cells[1]?.innerText.toLowerCase() || '';
-        row.style.display = (email.includes(val) || username.includes(val) || studentId.includes(val)) ? '' : 'none';
+    // 在所有表格中搜索
+    const tables = ['#activeSection .user-table tbody tr', '#frozenSection .user-table tbody tr', '#blockedSection .user-table tbody tr', '#reportedSection .report-table tbody tr'];
+    
+    tables.forEach(selector => {
+        const rows = document.querySelectorAll(selector);
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(val) ? '' : 'none';
+        });
     });
 });
 
 // 状态筛选
 function filterUsers() {
     const status = document.getElementById('statusFilter').value;
-    const rows = document.querySelectorAll('#usersTable tbody tr');
-    rows.forEach(row => {
-        if (status === 'all') {
-            row.style.display = '';
-        } else {
-            row.style.display = row.dataset.status === status ? '' : 'none';
-        }
-    });
+    
+    const reportedSection = document.getElementById('reportedSection');
+    const activeSection = document.getElementById('activeSection');
+    const frozenSection = document.getElementById('frozenSection');
+    const blockedSection = document.getElementById('blockedSection');
+    
+    // 隐藏所有区块
+    reportedSection.style.display = 'none';
+    activeSection.style.display = 'none';
+    frozenSection.style.display = 'none';
+    blockedSection.style.display = 'none';
+    
+    // 根据选择显示对应区块
+    if (status === 'all') {
+        reportedSection.style.display = 'block';
+        activeSection.style.display = 'block';
+        frozenSection.style.display = 'block';
+        blockedSection.style.display = 'block';
+    } else if (status === 'reported') {
+        reportedSection.style.display = 'block';
+    } else if (status === 'active') {
+        activeSection.style.display = 'block';
+    } else if (status === 'frozen') {
+        frozenSection.style.display = 'block';
+    } else if (status === 'blocked') {
+        blockedSection.style.display = 'block';
+    }
 }
 
-// 处理弹窗
 function openModal(id, type) {
     targetId = id;
     actType = type;
@@ -489,7 +719,6 @@ function submitAction() {
     closeModal();
 }
 
-// 解冻弹窗
 let unfreezeUserId = null;
 
 function openUnfreezeModal(uid, username) {
@@ -521,7 +750,6 @@ function confirmUnfreeze() {
     closeUnfreezeModal();
 }
 
-// 处理举报
 function handleReport(reportId, action) {
     if (!confirm('Are you sure?')) return;
     fetch('/admin/report/' + reportId + '/' + action, { method: 'POST' })
@@ -533,7 +761,19 @@ function handleReport(reportId, action) {
     .catch(err => alert('Error: ' + err.message));
 }
 
-// Toast 提示
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const filter = urlParams.get('filter');
+    
+    if (filter === 'sellers') {
+        const filterSelect = document.getElementById('statusFilter');
+        if (filterSelect) {
+            filterSelect.value = 'active';
+            filterUsers();
+        }
+    }
+});
+
 setTimeout(() => {
     const toast = document.getElementById('globalToast');
     if (toast) {
@@ -545,7 +785,7 @@ setTimeout(() => {
 
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% for category, message in messages %}
-<div id="globalToast" style="position:fixed;top:25px;left:50%;transform:translateX(-50%);background:#205c30;color:white;padding:12px 35px;border-radius:30px;z-index:9999;">
+<div id="globalToast" style="position:fixed;top:25px;left:50%;transform:translateX(-50%);background:#205c30;color:white;padding:12px 35px;border-radius:30px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
     {{ message }}
 </div>
 {% endfor %}
