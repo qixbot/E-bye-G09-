@@ -1415,6 +1415,89 @@ def reject_counter_offer(offer_id):
     
     return jsonify({'success': True})
 
+@app.route('/api/user/offers')
+def api_user_offers():
+    if 'user_id' not in session:
+        return jsonify([])
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        SELECT o.*, p.name as product_name, p.price as original_price, p.images_blob,
+               u.username as seller_name, u.id as seller_id
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        JOIN users u ON p.seller_id = u.id
+        WHERE o.buyer_id = %s
+        ORDER BY o.created_at DESC
+    ''', (session['user_id'],))
+    rows = cur.fetchall()
+    cur.close()
+    db.close()
+    
+    result = []
+    for row in rows:
+        item = dict(row)
+        product_image = None
+        if item.get('images_blob'):
+            try:
+                blob_list = json.loads(item['images_blob']) if isinstance(item['images_blob'], str) else item['images_blob']
+                if blob_list and len(blob_list) > 0:
+                    product_image = blob_list[0]
+            except:
+                pass
+        item['product_image'] = product_image
+        item.pop('images_blob', None)
+        result.append(item)
+    
+    return jsonify(result)
+
+# 添加在 app.py 的 API ENDPOINTS 部分
+
+@app.route('/api/current-user-id')
+def api_current_user_id():
+    if 'user_id' not in session:
+        return jsonify({'user_id': None})
+    return jsonify({'user_id': session['user_id']})
+
+@app.route('/api/offer/<int:offer_id>/cancel', methods=['POST'])
+def cancel_offer(offer_id):
+    """买家取消自己的 pending offer"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    cur.execute('SELECT * FROM offers WHERE id = %s AND buyer_id = %s AND status = "pending"', 
+                (offer_id, session['user_id']))
+    offer = cur.fetchone()
+    
+    if not offer:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Offer not found or cannot be cancelled'}), 404
+    
+    cur.execute('UPDATE offers SET status = "cancelled" WHERE id = %s', (offer_id,))
+    
+    # 获取产品信息以发送通知给卖家
+    cur.execute('SELECT seller_id, name FROM products WHERE id = %s', (offer['product_id'],))
+    product = cur.fetchone()
+    
+    if product:
+        cur.execute('''
+            INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+            VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
+        ''', (product['seller_id'],
+              f"Buyer cancelled their offer of RM {offer['offer_price']:.2f} for \"{product['name']}\".",
+              offer_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
+
 @app.route('/api/offer/<int:offer_id>/create-order', methods=['POST'])
 def api_create_order_from_offer(offer_id):
     if 'user_id' not in session:

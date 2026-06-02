@@ -74,6 +74,29 @@
         display: block;
         height: 70px;
     }
+
+    /* Toast 消息样式 */
+    .toast-container {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10000;
+        pointer-events: none;
+    }
+    .toast {
+        background: #333;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 30px;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        pointer-events: auto;
+    }
+    .toast-success { background: #27ae60; }
+    .toast-error { background: #e74c3c; }
+    .toast-info { background: #3498db; }
 </style>
 
 <div class="notif-page">
@@ -126,12 +149,30 @@
     </div>
 </div>
 
+<!-- Counter Offer 弹窗 -->
+<div class="modal-overlay" id="counterOfferModal">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeCounterOfferModal()">✕</button>
+        <h3>💰 Make Counter Offer</h3>
+        <div id="counterOfferContent"></div>
+        <div style="margin: 16px 0;">
+            <label style="font-weight:600; display:block; margin-bottom:8px;">Your Counter Price (RM):</label>
+            <input type="number" id="counterPriceInput" step="0.01" min="0.01" style="width:100%; padding:10px; border-radius:12px; border:1px solid #ddd;">
+        </div>
+        <div class="modal-buttons" style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+            <button class="notif-btn secondary" onclick="closeCounterOfferModal()">Cancel</button>
+            <button class="notif-btn primary" id="sendCounterOfferBtn">Send Counter Offer</button>
+        </div>
+    </div>
+</div>
+
 <script>
 var allNotifications = [];
 var currentFilter = 'all';
 var purchaseOfferId = null;
 var selectedLocations = [];
 var manageOfferId = null;
+var pendingCounterOfferId = null;
 
 const meetupLocations = [
     { name: "Library", image: "/static/uploads/library.jpg" },
@@ -151,6 +192,22 @@ const meetupLocations = [
     { name: "Tekun Mart", image: "/static/uploads/tekun_mart.jpg" },
     { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
 ];
+
+// ========== TOAST MESSAGE ==========
+function showToastMessage(message, type) {
+    var existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    
+    var container = document.createElement('div');
+    container.className = 'toast-container';
+    var toastDiv = document.createElement('div');
+    toastDiv.className = 'toast toast-' + type;
+    toastDiv.innerHTML = '<span>' + message + '</span>';
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    
+    setTimeout(function() { container.remove(); }, 3000);
+}
 
 // ========== LOAD NOTIFICATIONS ==========
 function loadNotifications() {
@@ -322,22 +379,20 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
-        if (d.success) { alert('Order created!'); closePurchaseModal(); loadNotifications(); }
-        else { alert(d.error); }
+        if (d.success) { 
+            showToastMessage('Order created successfully!', 'success');
+            closePurchaseModal(); 
+            loadNotifications(); 
+        }
+        else { showToastMessage(d.error || 'Failed', 'error'); }
     });
 });
 
-function closeOfferManageModal() {
-    document.getElementById('offerManageModal').classList.remove('show');
-}
-
-// #Eileen do this part
-
-// ========== OFFER MANAGE MODAL ==========
 // ========== OFFER MANAGE MODAL ==========
 function openOfferManageModal(offerId) {
     manageOfferId = offerId;
     document.getElementById('offerManageModal').classList.add('show');
+    document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail">Loading...</div>';
     
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
@@ -347,26 +402,78 @@ function openOfferManageModal(offerId) {
             return;
         }
         
-        var html = '<div class="offer-detail">' +
-            '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
-            '💰 Offer Price: RM ' + parseFloat(data.offer_price).toFixed(2) +
-            (data.counter_price ? '<br>🔄 Counter Offer: RM ' + parseFloat(data.counter_price).toFixed(2) : '') +
-            '</div>' +
-            '<div style="display:flex;gap:8px;margin-top:16px;">';
-        
-        // 根据状态显示不同的按钮
-        if (data.status === 'countered') {
-            html += '<button class="notif-btn primary" onclick="acceptCounter(' + offerId + ')">✅ Accept Counter Offer</button>';
-            html += '<button class="notif-btn danger" onclick="rejectCounter(' + offerId + ')">❌ Reject Counter Offer</button>';
-        } else if (data.status === 'pending') {
-            html += '<button class="notif-btn primary" onclick="acceptOffer(' + offerId + ')">✅ Accept Offer</button>';
-            html += '<button class="notif-btn danger" onclick="rejectOffer(' + offerId + ')">❌ Reject Offer</button>';
-        } else if (data.status === 'accepted') {
-            html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Checkout</button>';
-        }
-        
-        html += '</div>';
-        document.getElementById('offerManageContent').innerHTML = html;
+        // 获取当前用户ID（从 cookie 或 session 获取）
+        return fetch('/api/current-user-id', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(userData) {
+            var currentUserId = userData.user_id;
+            var isSeller = (data.seller_id === currentUserId);
+            var isBuyer = (data.buyer_id === currentUserId);
+            
+            var html = '<div class="offer-detail">' +
+                '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
+                '💰 Offer Price: RM ' + parseFloat(data.offer_price).toFixed(2);
+            
+            if (data.counter_price) {
+                html += '<br>🔄 Counter Offer: RM ' + parseFloat(data.counter_price).toFixed(2);
+            }
+            
+            html += '</div>';
+            
+            // 根据角色和状态显示不同的按钮
+            if (isSeller) {
+                // ========== 卖家看到的按钮 ==========
+                if (data.status === 'pending') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="acceptOffer(' + offerId + ')">✅ Accept Offer</button>';
+                    html += '<button class="notif-btn danger" onclick="rejectOffer(' + offerId + ')">❌ Reject Offer</button>';
+                    html += '<button class="notif-btn warning" onclick="openCounterOfferModal(' + offerId + ')">💰 Counter Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'countered') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="acceptCounterOffer(' + offerId + ')">✅ Accept Counter Offer</button>';
+                    html += '<button class="notif-btn danger" onclick="rejectCounterOffer(' + offerId + ')">❌ Reject Counter Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'accepted') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
+                    html += '</div>';
+                } else if (data.status === 'rejected') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;">';
+                    html += '<span class="notif-btn secondary" style="background:#f0f0f0;">❌ Offer was rejected</span>';
+                    html += '</div>';
+                }
+            } else if (isBuyer) {
+                // ========== 买家看到的按钮 ==========
+                if (data.status === 'pending') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<span class="notif-btn secondary" style="background:#f0f0f0;">⏳ Waiting for seller response...</span>';
+                    html += '<button class="notif-btn danger" onclick="cancelMyOffer(' + offerId + ')">🗑️ Cancel My Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'countered') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="acceptCounterOffer(' + offerId + ')">✅ Accept Counter Offer (RM ' + parseFloat(data.counter_price).toFixed(2) + ')</button>';
+                    html += '<button class="notif-btn danger" onclick="rejectCounterOffer(' + offerId + ')">❌ Reject Counter Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'accepted') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
+                    html += '</div>';
+                } else if (data.status === 'rejected') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;">';
+                    html += '<span class="notif-btn secondary" style="background:#f0f0f0;">❌ Your offer was rejected by seller</span>';
+                    html += '</div>';
+                } else if (data.status === 'cancelled') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;">';
+                    html += '<span class="notif-btn secondary" style="background:#f0f0f0;">🗑️ Offer cancelled</span>';
+                    html += '</div>';
+                }
+            } else {
+                html += '<div class="offer-detail error">You are not involved in this offer</div>';
+            }
+            
+            document.getElementById('offerManageContent').innerHTML = html;
+        });
     })
     .catch(function(err) {
         console.error('Error:', err);
@@ -374,48 +481,234 @@ function openOfferManageModal(offerId) {
     });
 }
 
-// 简单的 Accept 函数 - 直接调用后端
+// ========== 买家取消自己的 offer ==========
+function cancelMyOffer(offerId) {
+    if (!confirm('Cancel your offer? This cannot be undone.')) return;
+    
+    showToastMessage('Cancelling offer...', 'info');
+    fetch('/api/offer/' + offerId + '/cancel', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Your offer has been cancelled.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to cancel');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+function closeOfferManageModal() {
+    document.getElementById('offerManageModal').classList.remove('show');
+    manageOfferId = null;
+}
+
+// ========== 买家接受 Counter Offer ==========
+function acceptCounterOffer(offerId) {
+    if (!confirm('Accept this counter offer?')) return;
+    
+    showToastMessage('Accepting counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/accept-counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer accepted! You can now checkout.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to accept');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 买家拒绝 Counter Offer ==========
+function rejectCounterOffer(offerId) {
+    if (!confirm('Reject this counter offer?')) return;
+    
+    showToastMessage('Declining counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/reject-counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer declined.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to decline');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 卖家接受普通 Offer ==========
+function acceptOffer(offerId) {
+    if (!confirm('Accept this offer?')) return;
+    
+    showToastMessage('Accepting offer...', 'info');
+    fetch('/api/offer/' + offerId + '/accept', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer accepted! You can now checkout.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to accept');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 卖家拒绝普通 Offer ==========
+function rejectOffer(offerId) {
+    if (!confirm('Reject this offer?')) return;
+    
+    showToastMessage('Rejecting offer...', 'info');
+    fetch('/api/offer/' + offerId + '/reject', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer rejected.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to reject');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 卖家打开 Counter Offer 弹窗 ==========
+function openCounterOfferModal(offerId) {
+    pendingCounterOfferId = offerId;
+    document.getElementById('counterOfferModal').classList.add('show');
+    document.getElementById('counterPriceInput').value = '';
+    
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            document.getElementById('counterOfferContent').innerHTML = 
+                '<div class="offer-detail">' +
+                '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
+                '💰 Current Offer: RM ' + parseFloat(data.offer_price).toFixed(2) +
+                '</div>';
+        }
+    });
+}
+
+function closeCounterOfferModal() {
+    document.getElementById('counterOfferModal').classList.remove('show');
+    pendingCounterOfferId = null;
+}
+
+document.getElementById('sendCounterOfferBtn')?.addEventListener('click', function() {
+    var newPrice = document.getElementById('counterPriceInput').value;
+    if (!newPrice || parseFloat(newPrice) <= 0) {
+        showToastMessage('Please enter a valid price', 'error');
+        return;
+    }
+    
+    showToastMessage('Sending counter offer...', 'info');
+    fetch('/api/offer/' + pendingCounterOfferId + '/counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ counter_price: parseFloat(newPrice) })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer sent!', 'success');
+            closeCounterOfferModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to send counter offer');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+});
+
+// ========== 卖家接受普通 Offer（从通知中心） ==========
 function acceptOfferSimple(offerId) {
+    if (!confirm('Accept this offer?')) return;
+    
     fetch('/api/offer/' + offerId + '/accept', { 
         method: 'POST', 
         credentials: 'same-origin',
         headers: {'Content-Type': 'application/json'}
     })
-    .then(r => r.json())
-    .then(d => {
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
         if (d.success) {
-            alert('Accepted!');
+            showToastMessage('Offer accepted!', 'success');
             location.reload();
         } else {
-            alert('Error: ' + (d.error || 'Unknown'));
+            showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
         }
     })
-    .catch(err => {
-        alert('Request failed: ' + err.message);
+    .catch(function(err) {
+        showToastMessage('Request failed: ' + err.message, 'error');
     });
 }
 
-// 简单的 Reject 函数
+// ========== 卖家拒绝普通 Offer ==========
 function rejectOfferSimple(offerId) {
+    if (!confirm('Reject this offer?')) return;
+    
     fetch('/api/offer/' + offerId + '/reject', { 
         method: 'POST', 
         credentials: 'same-origin',
         headers: {'Content-Type': 'application/json'}
     })
-    .then(r => r.json())
-    .then(d => {
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
         if (d.success) {
-            alert('Rejected!');
+            showToastMessage('Offer rejected', 'success');
             location.reload();
         } else {
-            alert('Error: ' + (d.error || 'Unknown'));
+            showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
         }
     })
-    .catch(err => {
-        alert('Request failed: ' + err.message);
+    .catch(function(err) {
+        showToastMessage('Request failed: ' + err.message, 'error');
     });
 }
-
 
 // ========== INIT ==========
 loadNotifications();
