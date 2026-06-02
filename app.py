@@ -545,10 +545,10 @@ def search():
     params.extend(statuses)
 
     if keyword:
-        query += """ AND (p.name LIKE %s 
-                         OR p.description LIKE %s
-                         OR u.username LIKE %s
-                         OR u.full_name LIKE %s)"""
+        query += """ AND (p.name ILIKE %s 
+                        OR p.description ILIKE %s
+                        OR u.username ILIKE %s
+                        OR u.full_name ILIKE %s)"""
         like = f"%{keyword}%"
         params.extend([like, like, like, like])
 
@@ -651,14 +651,16 @@ def search():
     if keyword:
         db_u = get_db()
         cur_u = db_u.cursor()
-        like = f"%{keyword}%"
+        # transform the keyword for user search: replace spaces with %
+        user_like = f"%{keyword.replace(' ', '%')}%"
+
         cur_u.execute("""
             SELECT id, username, full_name FROM users
             WHERE is_blocked = 0
-              AND (username LIKE %s OR full_name LIKE %s)
+            AND (username ILIKE %s OR full_name ILIKE %s)
             ORDER BY username ASC
             LIMIT 50
-        """, (like, like))
+        """, (user_like, user_like))
         user_results = cur_u.fetchall()
         cur_u.close()
         db_u.close()
@@ -3169,8 +3171,12 @@ def search_users():
         return jsonify([])
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT id, username, student_id FROM users WHERE username LIKE %s OR student_id LIKE %s LIMIT 10",
-            (f'%{q}%', f'%{q}%'))
+    # make search term space‑flexible and case‑insensitive
+    search_term = f"%{q.replace(' ', '%')}%"
+    cur.execute(
+        "SELECT id, username, student_id FROM users WHERE username ILIKE %s OR student_id ILIKE %s LIMIT 10",
+        (search_term, search_term)
+    )
     users = cur.fetchall()
     cur.close()
     db.close()
