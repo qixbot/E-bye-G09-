@@ -173,56 +173,111 @@ function renderNotifications() {
             var t = n.type || '';
             if (currentFilter === 'offer') return t.includes('offer');
             if (currentFilter === 'order') return t.includes('order');
-            if (currentFilter === 'system') return ['freeze', 'block', 'unblock', 'unfreeze', 'report'].some(function(k) { return t.includes(k); });
-            if (currentFilter === 'announcement') return t === 'announcement';
+            if (currentFilter === 'system') return ['freeze', 'block', 'unblock', 'unfreeze', 'report', 'welcome'].some(function(k) { return t.includes(k); });
             if (currentFilter === 'review') return t === 'review';
             return true;
         });
     }
-
+    
+    // 按日期分组
+    var grouped = {};
+    filtered.forEach(function(n) {
+        var date = new Date(n.created_at).toLocaleDateString();
+        if (!grouped[date]) grouped[date] = [];
+        grouped[date].push(n);
+    });
+    
     var html = '';
+    for (var date in grouped) {
+        html += '<div class="date-divider"><span>' + date + '</span></div>';
+        grouped[date].forEach(function(n) {
+            html += renderNotificationCard(n);
+        });
+    }
+    
     if (filtered.length === 0) {
         html = '<div class="notif-empty">📭 No notifications</div>';
     }
-    for (var i = 0; i < filtered.length; i++) {
-        var n = filtered[i];
-        var icon = '🔔';
-        var iconClass = 'system';
-        var actions = '';
-
-        var t = n.type || '';
-        if (t.includes('offer_accepted')) {
-            icon = '💰'; iconClass = 'offer';
-            actions = '<button class="notif-btn primary" onclick="openPurchaseModal(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
-        } else if (t.includes('offer_rejected')) {
-            icon = '❌'; iconClass = 'offer';
-        } else if (t.includes('new_offer')) {
-            icon = '💰'; iconClass = 'offer';
-            actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=listings\'">View Offers</button>';
-        } else if (t.includes('offer_countered')) {
-            icon = '🔄'; iconClass = 'offer';
-            actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
-        } else if (t.includes('order')) {
-            icon = '📦'; iconClass = 'order';
-            actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">View Order</button>';
-        } else if (t.includes('review')) {
-            icon = '⭐'; iconClass = 'review';
-        } else if (t.includes('announcement')) {
-            icon = '📢'; iconClass = 'announcement';
-        } else if (t.includes('freeze') || t.includes('block')) {
-            icon = '⚠️'; iconClass = 'system';
-        }
-
-        html += '<div class="notif-card ' + (!n.is_read ? 'unread' : '') + '" data-id="' + n.id + '">' +
-            '<div class="notif-icon ' + iconClass + '">' + icon + '</div>' +
-            '<div class="notif-body">' +
-                '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
-                '<div class="notif-time">' + formatDate(n.created_at) + '</div>' +
-                '<div class="notif-actions">' + actions + '</div>' +
-            '</div>' +
-            '</div>';
-    }
     document.getElementById('notifList').innerHTML = html;
+}
+
+function renderNotificationCard(n) {
+    var icon = '🔔';
+    var iconClass = 'system';
+    var actions = '';
+
+    var t = n.type || '';
+    if (t.includes('offer_accepted')) {
+        icon = '💰'; iconClass = 'offer';
+        actions = '<button class="notif-btn primary" onclick="openPurchaseModal(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
+    } else if (t.includes('offer_rejected')) {
+        icon = '❌'; iconClass = 'offer';
+    } else if (t.includes('new_offer')) {
+        icon = '💰'; iconClass = 'offer';
+        actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=listings\'">View Offers</button>';
+    } else if (t.includes('offer_countered')) {
+        icon = '🔄'; iconClass = 'offer';
+        actions = '<button class="notif-btn warning" onclick="openCounterOfferModal(' + n.related_id + ')">View Counter Offer</button>';
+    } else if (t.includes('order')) {
+        icon = '📦'; iconClass = 'order';
+        actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">View Order</button>';
+    } else if (t.includes('review')) {
+        icon = '⭐'; iconClass = 'review';
+    } else if (t.includes('welcome')) {
+        icon = '🎉'; iconClass = 'system';
+        actions = '<button class="notif-btn primary" onclick="window.location.href=\'/edit_profile\'">Complete Profile</button>';
+    } else if (t.includes('freeze') || t.includes('block')) {
+        icon = '⚠️'; iconClass = 'system';
+    }
+
+    var unreadClass = !n.is_read ? 'unread' : '';
+    var unreadAttr = !n.is_read ? 'data-unread="true"' : '';
+    
+    return '<div class="notif-card ' + unreadClass + '" data-id="' + n.id + '" ' + unreadAttr + ' onclick="markSingleNotificationRead(' + n.id + ', this)">' +
+        '<div class="notif-icon ' + iconClass + '">' + icon + '</div>' +
+        '<div class="notif-body">' +
+            '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
+            '<div class="notif-time">' + formatDate(n.created_at) + '</div>' +
+            '<div class="notif-actions">' + actions + '</div>' +
+        '</div>' +
+        '</div>';
+}
+
+// 单条通知点击标记为已读
+function markSingleNotificationRead(notifId, element) {
+    fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification_ids: [notifId] }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            element.classList.remove('unread');
+            element.style.borderLeft = '';
+            element.removeAttribute('data-unread');
+            updateUnreadCount();
+        }
+    });
+}
+
+// 更新未读计数
+function updateUnreadCount() {
+    fetch('/api/notifications/unread', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var badge = document.getElementById('badgeNotif');
+        if (badge) {
+            var count = data.length || 0;
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    });
 }
 
 // ========== FILTER ==========
@@ -273,6 +328,79 @@ function openPurchaseModal(offerId) {
     })
     .catch(function() {
         document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Failed to load product details</div>';
+    });
+}
+
+function openCounterOfferModal(offerId) {
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (!data.success) {
+            showToastMessage('Failed to load offer details', 'error');
+            return;
+        }
+        
+        var modalHtml = `
+        <div id="counterModal" class="modal-overlay show">
+            <div class="modal-content" style="max-width: 450px;">
+                <div class="modal-header">
+                    <h3>🔄 Counter Offer</h3>
+                    <button class="modal-close" onclick="closeCounterModal()">&times;</button>
+                </div>
+                <div class="offer-detail" style="margin-bottom: 16px;">
+                    <strong>${escapeHtml(data.product_name)}</strong><br>
+                    Seller's counter offer: <strong>RM ${parseFloat(data.counter_price).toFixed(2)}</strong>
+                </div>
+                <div class="modal-buttons" style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="notif-btn secondary" onclick="closeCounterModal()">Cancel</button>
+                    <button class="notif-btn primary" onclick="acceptCounterOffer(${offerId})">✅ Accept</button>
+                    <button class="notif-btn danger" onclick="rejectCounterOffer(${offerId})">❌ Reject</button>
+                </div>
+            </div>
+        </div>`;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    });
+}
+
+function closeCounterModal() {
+    var modal = document.getElementById('counterModal');
+    if (modal) modal.remove();
+}
+
+function acceptCounterOffer(offerId) {
+    fetch('/api/offer/' + offerId + '/accept-counter', { 
+        method: 'POST', 
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            showToastMessage('Counter offer accepted!', 'success');
+            closeCounterModal();
+            loadNotifications();
+        } else {
+            showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
+        }
+    });
+}
+
+function rejectCounterOffer(offerId) {
+    fetch('/api/offer/' + offerId + '/reject-counter', { 
+        method: 'POST', 
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            showToastMessage('Counter offer rejected', 'info');
+            closeCounterModal();
+            loadNotifications();
+        } else {
+            showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
+        }
     });
 }
 

@@ -2,112 +2,470 @@
 
 {% block content %}
 <style>
-    .chatlist-container { max-width: 700px; margin: 0 auto; padding: 0 16px; }
-    
-    .top-btns { display: flex; gap: 10px; padding: 14px 0; position: sticky; top: 0; background: #fff; z-index: 10; border-bottom: 1px solid #eee; }
-    .top-btn { 
-        flex: 1; text-align: center; padding: 12px 8px; border-radius: 14px; 
-        background: #f9f9f9; text-decoration: none; color: #444; 
-        font-size: 13px; font-weight: 500; position: relative; 
-        transition: all 0.2s ease; border: 1px solid #eee;
-    }
-    .top-btn:hover { 
-        background: #eaf4ed; color: #205c30; 
-        border-color: #205c30; transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(32,92,48,0.1);
-    }
-    .top-btn .badge { 
-        position: absolute; top: -6px; right: -6px; 
-        background: #e74c3c; color: white; border-radius: 50%; 
-        width: 20px; height: 20px; font-size: 11px; 
-        display: flex; align-items: center; justify-content: center; 
-        box-shadow: 0 2px 6px rgba(231,76,60,0.3);
-    }
-    
-    .section-title { font-size: 14px; color: #888; padding: 16px 0 8px; font-weight: 600; }
-    
-    .chat-item { display: flex; align-items: center; padding: 14px; background: #fff; border-radius: 14px; margin-bottom: 8px; text-decoration: none; color: #333; box-shadow: 0 1px 3px rgba(0,0,0,0.04); gap: 12px; transition: all 0.2s; }
-    .chat-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
-    .chat-avatar { width: 46px; height: 46px; border-radius: 50%; background: #205c30; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; flex-shrink: 0; position: relative; overflow: hidden; }
-    .chat-avatar-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
-    .chat-info { flex: 1; min-width: 0; }
-    .chat-name { font-weight: 600; font-size: 15px; }
-    .chat-last { font-size: 13px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .chat-meta { text-align: right; flex-shrink: 0; }
-    .chat-time { font-size: 11px; color: #aaa; }
-    .unread-dot { display: inline-block; background: #e74c3c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; text-align: center; line-height: 22px; margin-top: 4px; }
+/* Chatlist 页面样式 - 优化版，减少空白 */
+.chatlist-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 12px;
+}
 
-    /* Notification Panel */
-    .notification-panel { display: none; margin-top: 15px; background: #fff; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .notification-item { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
-    .notification-item:hover { background: #fafafa; }
-    .notification-message { font-size: 13px; line-height: 1.4; color: #333; }
-    .notification-time { font-size: 10px; color: #aaa; margin-top: 4px; }
-    .notification-actions { margin-top: 10px; }
-    .notification-action-btn { background: #205c30; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; }
-    .notification-action-btn.secondary { background: #e0e0e0; color: #333; }
-    .notification-action-btn.counter { background: #e67e22; color: white; }
+/* 响应式：在桌面端适当加宽但不过分 */
+@media (min-width: 768px) {
+    .chatlist-container {
+        max-width: 100%;
+        padding: 0 24px;
+    }
+}
 
-    /* Offer Card Styles */
-    .offer-card {
-        background: #fff;
-        border-radius: 16px;
-        padding: 16px;
-        margin-bottom: 12px;
-        border: 1px solid #eee;
+@media (min-width: 1024px) {
+    .chatlist-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 24px;
     }
-    .offer-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
+}
+
+/* 顶部按钮栏 */
+.top-btns { 
+    display: flex; 
+    gap: 10px; 
+    padding: 14px 0; 
+    position: sticky; 
+    top: 0; 
+    background: #fff; 
+    z-index: 10; 
+    border-bottom: 1px solid #eee; 
+}
+
+.top-btn { 
+    flex: 1; 
+    text-align: center; 
+    padding: 12px 8px; 
+    border-radius: 14px; 
+    background: #f9f9f9; 
+    text-decoration: none; 
+    color: #444; 
+    font-size: 13px; 
+    font-weight: 500; 
+    position: relative; 
+    transition: all 0.2s ease; 
+    border: 1px solid #eee; 
+    cursor: pointer;
+}
+
+.top-btn:hover { 
+    background: #eaf4ed; 
+    color: #205c30; 
+    border-color: #205c30; 
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(32,92,48,0.1);
+}
+
+.top-btn .badge { 
+    position: absolute; 
+    top: -6px; 
+    right: -6px; 
+    background: #e74c3c; 
+    color: white; 
+    border-radius: 50%; 
+    min-width: 20px; 
+    height: 20px; 
+    font-size: 11px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 0 4px;
+    box-shadow: 0 2px 6px rgba(231,76,60,0.3);
+}
+
+/* 分区标题 */
+.section-title { 
+    font-size: 14px; 
+    color: #888; 
+    padding: 16px 0 8px; 
+    font-weight: 600; 
+}
+
+/* 聊天列表项 */
+.chat-item { 
+    display: flex; 
+    align-items: center; 
+    padding: 14px; 
+    background: #fff; 
+    border-radius: 14px; 
+    margin-bottom: 8px; 
+    text-decoration: none; 
+    color: #333; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); 
+    gap: 12px; 
+    transition: all 0.2s; 
+}
+
+.chat-item:hover { 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+    transform: translateY(-1px); 
+}
+
+/* 头像 */
+.chat-avatar { 
+    width: 46px; 
+    height: 46px; 
+    border-radius: 50%; 
+    background: #205c30; 
+    color: white; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 18px; 
+    font-weight: bold; 
+    flex-shrink: 0; 
+    position: relative; 
+    overflow: hidden; 
+}
+
+.chat-avatar-img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+}
+
+/* 聊天信息区域 */
+.chat-info { 
+    flex: 1; 
+    min-width: 0; 
+}
+
+.chat-name { 
+    font-weight: 600; 
+    font-size: 15px; 
+    margin-bottom: 4px;
+}
+
+.chat-last { 
+    font-size: 13px; 
+    color: #888; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+
+/* 右侧时间和未读 */
+.chat-meta { 
+    text-align: right; 
+    flex-shrink: 0; 
+}
+
+.chat-time { 
+    font-size: 11px; 
+    color: #aaa; 
+    margin-bottom: 4px;
+}
+
+/* 未读红点 - 改进版 */
+.unread-dot { 
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e74c3c; 
+    color: white; 
+    border-radius: 50%; 
+    min-width: 20px; 
+    height: 20px; 
+    font-size: 11px; 
+    font-weight: bold;
+    padding: 0 5px;
+}
+
+/* 通知面板 */
+.notification-panel { 
+    display: none; 
+    margin-top: 15px; 
+    background: #fff; 
+    border-radius: 16px; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+}
+
+.notification-item { 
+    padding: 14px 16px; 
+    border-bottom: 1px solid #f0f0f0; 
+    transition: background 0.2s; 
+}
+
+.notification-item:hover { 
+    background: #fafafa; 
+}
+
+.notification-message { 
+    font-size: 13px; 
+    line-height: 1.4; 
+    color: #333; 
+}
+
+.notification-time { 
+    font-size: 10px; 
+    color: #aaa; 
+    margin-top: 4px; 
+}
+
+.notification-actions { 
+    margin-top: 10px; 
+}
+
+.notification-action-btn { 
+    background: #205c30; 
+    color: white; 
+    border: none; 
+    padding: 6px 14px; 
+    border-radius: 20px; 
+    font-size: 12px; 
+    cursor: pointer; 
+}
+
+.notification-action-btn.secondary { 
+    background: #e0e0e0; 
+    color: #333; 
+}
+
+.notification-action-btn.counter { 
+    background: #e67e22; 
+    color: white; 
+}
+
+/* 弹窗样式 */
+.modal { 
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0,0,0,0.75); 
+    backdrop-filter: blur(8px); 
+    z-index: 10000; 
+    align-items: center; 
+    justify-content: center; 
+}
+
+.modal-content { 
+    background: white; 
+    border-radius: 24px; 
+    width: 90%; 
+    max-width: 800px; 
+    max-height: 90vh; 
+    overflow-y: auto; 
+}
+
+.modal-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 20px 24px; 
+    border-bottom: 1px solid #eee; 
+    background: white; 
+    position: sticky; 
+    top: 0; 
+}
+
+.modal-close { 
+    background: none; 
+    border: none; 
+    font-size: 24px; 
+    cursor: pointer; 
+}
+
+.buy-modal-two-columns { 
+    display: flex; 
+    gap: 24px; 
+    padding: 24px; 
+    flex-wrap: wrap;
+}
+
+.buy-modal-left { 
+    flex: 1; 
+    text-align: center; 
+    min-width: 150px;
+}
+
+.buy-modal-right { 
+    flex: 1; 
+    min-width: 200px;
+}
+
+.product-image-preview { 
+    width: 150px; 
+    height: 150px; 
+    margin: 0 auto 15px; 
+    background: #f5f5f5; 
+    border-radius: 12px; 
+    overflow: hidden; 
+}
+
+.product-image-preview img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+}
+
+.offer-price-info { 
+    margin-top: 10px; 
+    padding: 8px; 
+    background: #e8f5e8; 
+    border-radius: 8px; 
+}
+
+.location-grid { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 10px; 
+    max-height: 300px; 
+    overflow-y: auto; 
+    margin-top: 15px; 
+}
+
+.location-btn { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    padding: 10px; 
+    border: 1px solid #ddd; 
+    border-radius: 12px; 
+    background: white; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+}
+
+.location-btn.selected { 
+    background: #205c3033; 
+    border-color: #205c30; 
+}
+
+.location-btn-img { 
+    width: 40px; 
+    height: 40px; 
+    border-radius: 8px; 
+    object-fit: cover; 
+    margin-bottom: 5px; 
+}
+
+.location-btn-label { 
+    font-size: 12px; 
+    font-weight: 500; 
+}
+
+.modal-buttons { 
+    display: flex; 
+    gap: 12px; 
+    justify-content: flex-end; 
+    padding: 20px 24px; 
+    border-top: 1px solid #eee; 
+}
+
+.modal-cancel { 
+    padding: 10px 24px; 
+    background: #f0f0f0; 
+    border: none; 
+    border-radius: 40px; 
+    cursor: pointer; 
+}
+
+.modal-send { 
+    padding: 10px 28px; 
+    background: #205c30; 
+    color: white; 
+    border: none; 
+    border-radius: 40px; 
+    cursor: pointer; 
+}
+
+/* 响应式：移动端小屏幕 */
+@media (max-width: 480px) {
+    .top-btn {
+        font-size: 11px;
+        padding: 10px 4px;
     }
-    .offer-status {
-        padding: 4px 12px;
-        border-radius: 20px;
+    
+    .chat-item {
+        padding: 10px;
+    }
+    
+    .chat-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+    }
+    
+    .chat-name {
+        font-size: 14px;
+    }
+    
+    .chat-last {
         font-size: 12px;
-        font-weight: 600;
     }
-    .offer-status.pending { background: #fff3cd; color: #856404; }
-    .offer-status.accepted { background: #d4edda; color: #155724; }
-    .offer-status.rejected { background: #f8d7da; color: #721c24; }
-    .offer-status.countered { background: #fff3e0; color: #e67e22; }
-    .offer-status.ordered { background: #cce5ff; color: #004085; }
-    .offer-amount { margin-bottom: 8px; }
-    .offer-label { font-size: 12px; color: #888; }
-    .offer-price { font-size: 1.1rem; font-weight: 700; color: #205c30; }
-    .accept-offer-btn, .reject-offer-btn, .counter-offer-btn, .contact-buyer-btn {
-        padding: 8px 16px;
-        border-radius: 24px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
+    
+    .buy-modal-two-columns {
+        flex-direction: column;
+        gap: 16px;
     }
-    .accept-offer-btn { background: #205c30; color: white; }
-    .reject-offer-btn { background: #e74c3c; color: white; }
-    .counter-offer-btn { background: #f39c12; color: white; }
-    .contact-buyer-btn { background: #3498db; color: white; }
+    
+    .location-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 
-    /* Confirm Purchase Modal */
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; }
-    .modal-content { background: white; border-radius: 24px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #eee; background: white; position: sticky; top: 0; }
-    .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; }
-    .buy-modal-two-columns { display: flex; gap: 24px; padding: 24px; }
-    .buy-modal-left { flex: 1; text-align: center; }
-    .buy-modal-right { flex: 1; }
-    .product-image-preview { width: 150px; height: 150px; margin: 0 auto 15px; background: #f5f5f5; border-radius: 12px; overflow: hidden; }
-    .product-image-preview img { width: 100%; height: 100%; object-fit: cover; }
-    .offer-price-info { margin-top: 10px; padding: 8px; background: #e8f5e8; border-radius: 8px; }
-    .location-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 300px; overflow-y: auto; margin-top: 15px; }
-    .location-btn { display: flex; flex-direction: column; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 12px; background: white; cursor: pointer; transition: all 0.2s; }
-    .location-btn.selected { background: #205c3033; border-color: #205c30; }
-    .location-btn-img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-bottom: 5px; }
-    .location-btn-label { font-size: 12px; font-weight: 500; }
-    .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; padding: 20px 24px; border-top: 1px solid #eee; }
-    .modal-cancel { padding: 10px 24px; background: #f0f0f0; border: none; border-radius: 40px; cursor: pointer; }
-    .modal-send { padding: 10px 28px; background: #205c30; color: white; border: none; border-radius: 40px; cursor: pointer; }
+/* 空状态样式 */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.empty-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.empty-sub {
+    font-size: 14px;
+    color: #999;
+}
+
+/* 加载状态 */
+.loading-state {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+}
+
+/* 搜索框样式 */
+.search-container {
+    margin: 12px 0;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 30px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.search-input:focus {
+    border-color: #205c30;
+    box-shadow: 0 0 0 2px rgba(32,92,48,0.1);
+}
 </style>
 
 <div class="chatlist-container">

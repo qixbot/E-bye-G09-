@@ -265,6 +265,52 @@
 var otherId = {{ other_user.id }};
 var selectedFiles = [];
 
+function formatChatTime(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    var now = new Date();
+    var diff = Math.floor((now - d) / 1000);
+    
+    // 今天的消息显示时间
+    if (d.toDateString() === now.toDateString()) {
+        return d.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+    }
+    // 昨天的消息显示 "Yesterday HH:MM"
+    var yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday ' + d.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+    }
+    // 更早的消息显示日期 + 时间
+    return d.toLocaleDateString('en-MY') + ' ' + d.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+}
+
+// 修改消息显示部分
+function renderMessages(messages) {
+    var container = document.getElementById('chatMessages');
+    var html = '';
+    var lastDate = '';
+    
+    messages.forEach(function(msg) {
+        var msgDate = new Date(msg.created_at).toLocaleDateString();
+        if (msgDate !== lastDate) {
+            html += '<div class="date-divider"><span>' + msgDate + '</span></div>';
+            lastDate = msgDate;
+        }
+        
+        html += '<div class="msg-row ' + (msg.sender_id === currentUserId ? 'right' : 'left') + '">' +
+            '<div class="msg-bubble ' + (msg.sender_id === currentUserId ? 'sent' : 'received') + '">' +
+            (msg.image ? '<img src="' + msg.image + '" onclick="previewImage(this.src)">' : '') +
+            escapeHtml(msg.content) +
+            '</div>' +
+            '<div class="msg-meta">' + formatChatTime(msg.created_at) + '</div>' +
+            '</div>';
+    });
+    
+    container.innerHTML = html;
+    container.scrollTop = container.scrollHeight;
+}
+
 function sendMsg() {
     var input = document.getElementById('msgInput');
     var text = input.value.trim();
@@ -379,24 +425,25 @@ function submitReport() {
     });
 }
 
-function updateStatus() {
-    fetch('/api/user/' + otherId + '/status').then(function(r){ return r.json(); }).then(function(d){
-        var el = document.getElementById('userStatus');
-        if (d.online) { el.textContent = '🟢 Online'; el.className = 'header-status online'; }
-        else { el.textContent = 'Last seen: ' + (d.last_seen || 'Unknown'); el.className = 'header-status offline'; }
+function updateUserStatus() {
+    fetch('/api/user/' + otherId + '/status')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var statusEl = document.getElementById('userStatus');
+        if (data.online) {
+            statusEl.innerHTML = '🟢 Online';
+            statusEl.className = 'header-status online';
+        } else {
+            var lastSeen = data.last_seen ? new Date(data.last_seen).toLocaleString() : 'Unknown';
+            statusEl.innerHTML = 'Last seen: ' + lastSeen;
+            statusEl.className = 'header-status offline';
+        }
     });
 }
-updateStatus();
-setInterval(updateStatus, 30000);
 
-document.getElementById('msgInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); sendMsg(); } });
-
-window.addEventListener('load', function() { var d = document.getElementById('chatMessages'); if (d) d.scrollTop = d.scrollHeight; });
-
-setInterval(function() {
-    fetch('/api/chat/messages/' + otherId + '?since=' + ({{ messages[-1].id if messages and messages|length > 0 else 0 }}))
-    .then(function(r){ return r.json(); }).then(function(msgs) { if (msgs && msgs.length > 0) location.reload(); });
-}, 3000);
+// 每30秒更新一次
+updateUserStatus();
+setInterval(updateUserStatus, 30000);
 </script>
 
 </body>

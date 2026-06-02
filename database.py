@@ -1,8 +1,6 @@
 import os
 import time
 import logging
-from contextlib import contextmanager
-from typing import Optional, Dict, Any, List
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from werkzeug.security import generate_password_hash
@@ -10,35 +8,24 @@ from werkzeug.security import generate_password_hash
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ============================================================
-# Database Configuration
-# ============================================================
-
-# Your new Neon database connection string
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if not DATABASE_URL:
-    # Updated Neon connection string
     DATABASE_URL = "postgresql://neondb_owner:npg_mIbexS1E0npq@ep-morning-queen-aoeg1sed.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
     logger.info("Using default DATABASE_URL (Neon PostgreSQL)")
 
 
-# ============================================================
-# Backward compatible functions for app.py
-# ============================================================
-
 def get_db():
-    """Get database connection - returns a connection object (not context manager)"""
+    """快速获取数据库连接"""
     try:
         conn = psycopg2.connect(
             DATABASE_URL,
-            connect_timeout=30,
+            connect_timeout=3,
             keepalives=1,
-            keepalives_idle=5,
-            keepalives_interval=2,
+            keepalives_idle=2,
+            keepalives_interval=1,
             keepalives_count=2
         )
-        # Set cursor factory for RealDictCursor by default
         conn.cursor_factory = RealDictCursor
         return conn
     except Exception as e:
@@ -46,21 +33,12 @@ def get_db():
         raise
 
 
-def get_db_with_retry(retries=3, delay=2):
-    """带重试的连接获取"""
-    for i in range(retries):
-        try:
-            return get_db()
-        except Exception as e:
-            if i == retries - 1:
-                raise
-            logger.warning(f"Connection attempt {i+1} failed, retrying in {delay}s: {e}")
-            time.sleep(delay)
+def get_db_with_retry(retries=1, delay=0):
+    """快速连接，不重试"""
     return get_db()
 
 
 def execute_query(sql: str, params: tuple = None, fetch_one: bool = False, fetch_all: bool = False):
-    """Helper to execute queries with auto cleanup"""
     conn = None
     cur = None
     try:
@@ -69,19 +47,12 @@ def execute_query(sql: str, params: tuple = None, fetch_one: bool = False, fetch
         cur.execute(sql, params or ())
         
         if fetch_one:
-            result = cur.fetchone()
-            return result
+            return cur.fetchone()
         elif fetch_all:
-            result = cur.fetchall()
-            return result
+            return cur.fetchall()
         else:
             conn.commit()
             return cur.rowcount
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        logger.error(f"Query execution error: {e}")
-        raise
     finally:
         if cur:
             cur.close()
@@ -90,7 +61,6 @@ def execute_query(sql: str, params: tuple = None, fetch_one: bool = False, fetch
 
 
 def add_column_if_not_exists(table: str, column: str, column_def: str) -> bool:
-    """Safely add a column to a table if it doesn't exist"""
     try:
         execute_query(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {column_def}")
         logger.info(f"✅ Added column '{column}' to {table}")
@@ -101,11 +71,10 @@ def add_column_if_not_exists(table: str, column: str, column_def: str) -> bool:
 
 
 def add_missing_notification_columns():
-    """添加缺失的通知表列"""
     conn = None
     cur = None
     try:
-        conn = get_db_with_retry()
+        conn = get_db()
         cur = conn.cursor()
         
         try:
@@ -139,12 +108,31 @@ def add_missing_notification_columns():
 
 
 def init_db():
-    """初始化所有 PostgreSQL 表"""
+    """初始化数据库（快速检查）"""
     conn = None
     try:
-        conn = get_db_with_retry()
+        print("🔄 Checking database...")
+        conn = get_db()
         cur = conn.cursor()
-
+        
+        # 快速检查 users 表是否存在
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' AND table_name = 'users'
+            ) as exists_flag
+        """)
+        result = cur.fetchone()
+        table_exists = result['exists_flag'] if result else False
+        
+        if table_exists:
+            print("✅ Database already initialized, skipping...")
+            cur.close()
+            conn.close()
+            return
+        
+        print("📦 Creating database tables...")
+        
         # Users table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS users (
@@ -187,7 +175,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
+        
         # Notifications table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS notifications (
@@ -201,7 +189,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
+        
         # Products table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS products (
@@ -216,10 +204,12 @@ def init_db():
                 images_blob TEXT,
                 status TEXT DEFAULT 'pending',
                 reject_reason TEXT DEFAULT '',
+                approved_at TIMESTAMP,
+                approved_by INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
+        
         # Messages table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS messages (
@@ -234,7 +224,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
+        
         # Offers table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS offers (
@@ -249,7 +239,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
+        
         # Announcements table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS announcements (
@@ -259,7 +249,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
+        
         # Reviews table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS reviews (
@@ -276,7 +266,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
+        
         # Reports table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS reports (
@@ -290,7 +280,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
+        
         # Orders table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS orders (
@@ -310,8 +300,15 @@ def init_db():
                 updated_at TIMESTAMP
             )
         ''')
-
-        # Create default admin user
+        
+        # 索引
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_products_status ON products(status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_products_seller_id ON products(seller_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_seller_id ON orders(seller_id)")
+        
+        # 管理员
         admin_email = 'admin@student.mmu.edu.my'
         admin_password = generate_password_hash('Admin123!')
         cur.execute("SELECT id FROM users WHERE email = %s", (admin_email,))
@@ -320,7 +317,7 @@ def init_db():
                 INSERT INTO users (student_id, email, username, password, is_admin)
                 VALUES (%s, %s, %s, %s, %s)
             ''', ('ADMIN001', admin_email, 'Administrator', admin_password, 1))
-
+        
         conn.commit()
         cur.close()
         conn.close()
@@ -334,11 +331,10 @@ def init_db():
 
 
 def add_review_columns():
-    """添加评分相关列"""
     conn = None
     cur = None
     try:
-        conn = get_db_with_retry()
+        conn = get_db()
         cur = conn.cursor()
         
         user_columns = [
@@ -383,11 +379,10 @@ def add_review_columns():
 
 
 def add_campus_column():
-    """添加 campus 字段到 users 表"""
     conn = None
     cur = None
     try:
-        conn = get_db_with_retry()
+        conn = get_db()
         cur = conn.cursor()
         try:
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS campus TEXT DEFAULT NULL")
@@ -407,39 +402,26 @@ def add_campus_column():
 
 
 def test_connection():
-    """Test database connection"""
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT version()")
-        version = cur.fetchone()
+        cur.execute("SELECT 1")
         cur.close()
         conn.close()
-        print(f"✅ Database connected: {version[0][:50]}...")
+        print("✅ Database connected")
         return True
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
         return False
 
 
-# 兼容性空函数
-def init_products():
-    pass
-
-def init_messages():
-    pass
-
-def init_announcements():
-    pass
-
-def init_reviews():
-    pass
-
-def init_orders():
-    pass
-
-def init_reports():
-    pass
+# 兼容性函数
+def init_products(): pass
+def init_messages(): pass
+def init_announcements(): pass
+def init_reviews(): pass
+def init_orders(): pass
+def init_reports(): pass
 
 
 if __name__ == '__main__':
@@ -452,4 +434,4 @@ if __name__ == '__main__':
         add_campus_column()
         print("\n✅ All done! Database is ready.")
     else:
-        print("\n❌ Cannot initialize database. Please check your connection string.")
+        print("\n❌ Cannot initialize database.")

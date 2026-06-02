@@ -7,6 +7,7 @@ import base64
 import json
 import secrets
 import random
+import time
 
 from flask import (
     Flask, render_template, request, redirect,
@@ -29,6 +30,48 @@ app.secret_key = 'e-bye-secret-key-2026-new'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024      # 100MB max upload size
 app.config['MAX_FORM_MEMORY_SIZE'] = 100 * 1024 * 1024  
 app.config['MAX_FORM_PARTS'] = 1000   
+
+# 在文件开头添加缓存变量（在 Helper functions 之前）
+_unread_cache = {}
+_unread_cache_time = {}
+
+@app.route('/api/unread-count')
+def unread_count():
+    if 'user_id' not in session:
+        return jsonify({'chat': 0, 'notifications': 0})
+    
+    user_id = session['user_id']
+    now = time.time()
+    
+    # 缓存5秒，避免频繁查数据库
+    if user_id in _unread_cache and (now - _unread_cache_time.get(user_id, 0)) < 5:
+        return jsonify(_unread_cache[user_id])
+    
+    try:
+        db = get_db()
+        cur = db.cursor()
+        
+        cur.execute("SELECT COUNT(*) AS count FROM messages WHERE receiver_id = %s AND is_read = 0", (user_id,))
+        chat_unread = cur.fetchone()['count']
+        
+        cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
+        notif_unread = cur.fetchone()['count']
+        
+        cur.close()
+        db.close()
+        
+        result = {'chat': chat_unread, 'notifications': notif_unread}
+        
+        # 更新缓存
+        _unread_cache[user_id] = result
+        _unread_cache_time[user_id] = now
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"Unread count error: {e}")
+        return jsonify({'chat': 0, 'notifications': 0})
+
+
 
 # ============================================================
 # Helper functions
@@ -209,33 +252,58 @@ def login():
         db.close()
         
         if user and check_password_hash(user['password'], password):
+            # ========== 严格的冻结检查 ==========
             if user['is_blocked'] == 1:
                 flash('❌ This account is permanently blocked. Contact admin for appeal.', 'danger')
                 return redirect(url_for('login'))
 
-            if user['is_frozen'] == 1 and user['frozen_until']:
-                now = datetime.now()
-                expire_time = None
-                try:
-                    expire_time = datetime.strptime(user['frozen_until'], '%Y-%m-%d %H:%M:%S')
-                except:
-                    pass
-
-                if expire_time and now < expire_time:
-                    diff = expire_time - now
-                    days = diff.days
-                    hours = diff.seconds // 3600
-                    reason = user['freeze_reason'] or 'No reason provided'
-                    flash(f'⚠️ ACCOUNT FROZEN\nReason: {reason}\nUnlocks in: {days}d {hours}h', 'warning')
-                    return redirect(url_for('login'))
+            # 检查冻结状态
+            if user['is_frozen'] == 1:
+                frozen_until = user.get('frozen_until')
+                
+                if frozen_until:
+                    now = datetime.now()
+                    
+                    # 统一转换为 datetime 对象
+                    if isinstance(frozen_until, str):
+                        try:
+                            frozen_until = datetime.strptime(frozen_until, '%Y-%m-%d %H:%M:%S')
+                        except:
+                            frozen_until = None
+                    
+                    # 移除时区信息
+                    if frozen_until and hasattr(frozen_until, 'tzinfo') and frozen_until.tzinfo:
+                        frozen_until = frozen_until.replace(tzinfo=None)
+                    
+                    if frozen_until and now < frozen_until:
+                        days_left = (frozen_until - now).days
+                        hours_left = (frozen_until - now).seconds // 3600
+                        reason = user.get('freeze_reason') or 'No reason provided'
+                        flash(f'⚠️ ACCOUNT FROZEN!\nReason: {reason}\nUnlocks in: {days_left}d {hours_left}h', 'warning')
+                        return redirect(url_for('login'))
+                    else:
+                        # 冻结已过期，自动解冻
+                        db_auto = get_db()
+                        cur_auto = db_auto.cursor()
+                        cur_auto.execute("""
+                            UPDATE users 
+                            SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL 
+                            WHERE id = %s
+                        """, (user['id'],))
+                        db_auto.commit()
+                        cur_auto.close()
+                        db_auto.close()
+                        flash('Your account has been automatically unfrozen. Welcome back!', 'success')
                 else:
-                    db_auto = get_db()
-                    cur_auto = db_auto.cursor()
-                    cur_auto.execute("UPDATE users SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL WHERE id = %s", (user['id'],))
-                    db_auto.commit()
-                    cur_auto.close()
-                    db_auto.close()
+                    # 数据异常，修复
+                    db_fix = get_db()
+                    cur_fix = db_fix.cursor()
+                    cur_fix.execute("UPDATE users SET is_frozen = 0 WHERE id = %s", (user['id'],))
+                    db_fix.commit()
+                    cur_fix.close()
+                    db_fix.close()
             
+            # ========== 正常登录流程 ==========
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['student_id'] = user['student_id']
@@ -308,27 +376,82 @@ def check_upcoming_meetings():
     user_id = session['user_id']
     db = get_db()
     cur = db.cursor()
+    
+    # 修复：将 meeting_time 字符串转换为时间戳比较
     cur.execute('''
-        SELECT id, order_number, meeting_point, meeting_time
+        SELECT id, order_number, meeting_point, meeting_time, last_reminder_sent
         FROM orders
         WHERE (buyer_id = %s OR seller_id = %s)
           AND status IN ('confirmed', 'delivered')
-          AND DATE(meeting_time) <= CURRENT_DATE + INTERVAL '1 day'
-          AND DATE(meeting_time) >= CURRENT_DATE
+          AND meeting_time IS NOT NULL
+          AND meeting_time != ''
           AND (last_reminder_sent IS NULL OR last_reminder_sent < CURRENT_DATE)
-        LIMIT 1
+        LIMIT 20
     ''', (user_id, user_id))
-    orders_to_remind = cur.fetchall()
-    for ord in orders_to_remind:
+    
+    orders = cur.fetchall()
+    reminded_orders = []
+    now = datetime.now()
+    
+    for order in orders:
+        meeting_time_str = order['meeting_time']
+        if not meeting_time_str:
+            continue
+        
+        try:
+            # 解析 meeting_time
+            if isinstance(meeting_time_str, str):
+                if 'T' in meeting_time_str:
+                    meeting_time = datetime.fromisoformat(meeting_time_str.replace('Z', '+00:00'))
+                else:
+                    meeting_time = datetime.strptime(meeting_time_str, '%Y-%m-%d %H:%M:%S')
+            else:
+                meeting_time = meeting_time_str
+            
+            if hasattr(meeting_time, 'tzinfo') and meeting_time.tzinfo:
+                meeting_time = meeting_time.replace(tzinfo=None)
+            
+            # 检查是否在1小时内
+            time_diff = (meeting_time - now).total_seconds()
+            if 0 < time_diff <= 3600:
+                reminded_orders.append(order)
+        except Exception as e:
+            print(f"Error parsing meeting_time: {e}")
+            continue
+    
+    for order in reminded_orders:
+        meeting_time = order['meeting_time']
+        if isinstance(meeting_time, str):
+            meeting_time = meeting_time[:16]
+        else:
+            meeting_time = meeting_time.strftime('%Y-%m-%d %H:%M')
+        
         cur.execute('''
             INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
             VALUES (%s, %s, NOW(), 'order', %s, 0)
         ''', (user_id,
-              f"📅 Reminder: Order #{ord['order_number']} has a meetup scheduled for {ord['meeting_time']} at {ord['meeting_point']}. Please be on time!",
-              ord['id']))
+              f"⏰ Reminder: Order #{order['order_number']} meetup at {meeting_time} at {order['meeting_point']}. Please be on time!",
+              order['id']))
+        
+        cur.execute("UPDATE orders SET last_reminder_sent = NOW() WHERE id = %s", (order['id'],))
+    
     db.commit()
     cur.close()
     db.close()
+
+# 在 check_upcoming_meetings 之后添加 update_last_seen
+@app.before_request
+def update_last_seen():
+    if 'user_id' in session:
+        try:
+            db = get_db()
+            cur = db.cursor()
+            cur.execute("UPDATE users SET last_seen = NOW() WHERE id = %s", (session['user_id'],))
+            db.commit()
+            cur.close()
+            db.close()
+        except Exception as e:
+            print(f"Update last_seen error: {e}")
 
 @app.before_request
 def check_remember_me():
@@ -445,12 +568,13 @@ def register():
         cur.execute('SELECT id FROM users WHERE email = %s', (email,))
         new_user = cur.fetchone()
         
+        # 在 register() 函数的成功注册后，修改 create_notification
         if new_user:
             create_notification(
                 user_id=new_user['id'],
-                message='🎉 Welcome to E-bye! Complete your profile to increase your trust score.',
+                message='🎉 Welcome to E-bye! Please complete your profile — especially your campus (Cyberjaya/Melaka) to help buyers find you.',
                 notif_type='welcome'
-            )
+                )
         
         cur.close()
         db.close()
@@ -2577,9 +2701,12 @@ def approve_product(pid):
     
     cur.execute('''
         UPDATE products
-        SET status = 'approved', reject_reason = ''
+        SET status = 'approved', 
+            reject_reason = '',
+            approved_at = NOW(),
+            approved_by = %s
         WHERE id = %s
-    ''', (pid,))
+    ''', (session.get('user_id'), pid))
 
     db.commit()
     
@@ -2744,6 +2871,7 @@ def freeze_7day(user_id):
     
     flash(f"User frozen (Freeze {freeze_count + 1}/3). Notification sent.", "success")
     return redirect(url_for("admin_users"))
+
 
 @app.route('/admin/user/<int:user_id>/block', methods=['POST'])
 def block_user(user_id):
@@ -3159,6 +3287,31 @@ def chat_list():
                            unread_reviews=unread_reviews,
                            unread_announcements=unread_announcements)
 
+@app.route('/api/user/<int:user_id>/status')
+def get_user_status(user_id):
+    db = get_db()
+    cur = db.cursor()
+    
+    # 检查5分钟内是否有活动
+    cur.execute('''
+        SELECT last_seen, 
+               CASE WHEN last_seen > NOW() - INTERVAL '5 minutes' THEN true ELSE false END as is_online
+        FROM users WHERE id = %s
+    ''', (user_id,))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user:
+        last_seen_str = user['last_seen'].strftime('%Y-%m-%d %H:%M:%S') if user['last_seen'] else None
+        return jsonify({
+            'online': user['is_online'] if user['is_online'] else False,
+            'last_seen': last_seen_str
+        })
+    return jsonify({'online': False, 'last_seen': None})
+
+
+
 @app.route('/api/order/<int:order_id>/update-meeting', methods=['POST'])
 def update_order_meeting(order_id):
     if 'user_id' not in session:
@@ -3301,24 +3454,6 @@ def delete_announcement(ann_id):
     db.close()
     return jsonify({'success': True})
 
-@app.route('/api/unread-count')
-def unread_count():
-    if 'user_id' not in session:
-        return jsonify({'chat': 0, 'notifications': 0})
-
-    user_id = session['user_id']
-    db = get_db()
-    cur = db.cursor()
-
-    cur.execute("SELECT COUNT(*) AS count FROM messages WHERE receiver_id = %s AND is_read = 0", (user_id,))
-    chat_unread = cur.fetchone()['count']
-
-    cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
-    notif_unread = cur.fetchone()['count']
-
-    cur.close()
-    db.close()
-    return jsonify({'chat': chat_unread, 'notifications': notif_unread})
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_product():
@@ -4033,5 +4168,55 @@ def api_user_other_listings(user_id):
 
     return jsonify(listings)
 
+# ============================================================
+# 启动应用
+# ============================================================
+
+def check_and_unfreeze_expired():
+    """启动时检查并解冻所有过期账户"""
+    try:
+        db = get_db()
+        cur = db.cursor()
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        cur.execute("""
+            SELECT id FROM users
+            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+        """, (now,))
+        expired = cur.fetchall()
+        
+        for user in expired:
+            cur.execute("""
+                UPDATE users 
+                SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL 
+                WHERE id = %s
+            """, (user['id'],))
+            
+            create_notification(
+                user_id=user['id'],
+                message='✅ Your 7-day freeze has ended. Your account is now ACTIVE.',
+                notif_type='system'
+            )
+        
+        db.commit()
+        cur.close()
+        db.close()
+        if len(expired) > 0:
+            print(f"Unfrozen {len(expired)} expired accounts")
+    except Exception as e:
+        print(f"Unfreeze check error: {e}")
+
+# 在后台线程中执行解冻检查，避免阻塞启动
+import threading
+def run_unfreeze_check():
+    try:
+        check_and_unfreeze_expired()
+    except Exception as e:
+        print(f"Unfreeze check failed: {e}")
+
+unfreeze_thread = threading.Thread(target=run_unfreeze_check)
+unfreeze_thread.daemon = True
+unfreeze_thread.start()
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='127.0.0.1', port=5000, threaded=True)
