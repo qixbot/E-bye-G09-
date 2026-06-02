@@ -26,6 +26,13 @@
         {% set filters = [] %}
         {% if request.args.get('q') %}{% set _ = filters.append('Keyword: ' + request.args.get('q')) %}{% endif %}
         
+        {# Campus filter #}
+        {% set campus_param = request.args.get('campus', '').strip(',') %}
+        {% if campus_param %}
+            {% set campus_vals = campus_param.split(',') %}
+            {% set _ = filters.append('Campus: ' + campus_vals|join(', ')) %}
+        {% endif %}
+
         {# Status filter – only if explicitly selected (non-empty status param) #}
         {% set status_param = request.args.get('status', '') %}
         {% if status_param %}
@@ -127,6 +134,17 @@
                 <input type="hidden" name="q" value="{{ request.args.get('q', '') }}">
                 <!-- Hidden input to store selected categories (comma-separated) -->
                 <input type="hidden" name="category" id="selectedCategories" value="">
+
+                <!-- Campus Filter -->
+                <div class="filter-group">
+                    <label>📍 Campus</label>
+                    <div class="campus-pills" id="campusPills">
+                        <button type="button" class="pill" data-campus="all">All Campuses</button>
+                        <button type="button" class="pill" data-campus="Cyberjaya">Cyberjaya</button>
+                        <button type="button" class="pill" data-campus="Melaka">Melaka</button>
+                    </div>
+                    <input type="hidden" name="campus" id="selectedCampuses" value="">
+                </div>
 
                 <!-- Status Filter -->
                 <div class="filter-group">
@@ -480,6 +498,48 @@
             updateConditionPills();
         });
     });
+
+    // Campus pills handling (multi‑select with "All Campuses")
+    const campusPills = document.querySelectorAll('#campusPills .pill');
+    const campusesInput = document.getElementById('selectedCampuses');
+    let selectedCampuses = [];
+
+    function updateCampusPills() {
+        campusPills.forEach(pill => {
+            const val = pill.getAttribute('data-campus');
+            if (val === 'all') {
+                if (selectedCampuses.length === 0) pill.classList.add('active');
+                else pill.classList.remove('active');
+            } else {
+                if (selectedCampuses.includes(val)) pill.classList.add('active');
+                else pill.classList.remove('active');
+            }
+        });
+        campusesInput.value = selectedCampuses.join(',');
+    }
+
+    campusPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            const val = pill.getAttribute('data-campus');
+            if (val === 'all') {
+                selectedCampuses = [];
+            } else {
+                if (selectedCampuses.includes(val)) {
+                    selectedCampuses = selectedCampuses.filter(c => c !== val);
+                } else {
+                    selectedCampuses.push(val);
+                }
+            }
+            updateCampusPills();
+        });
+    });
+
+    // Initialize from URL parameter (if any)
+    const urlCampus = '{{ request.args.get("campus", "") }}';
+    if (urlCampus) {
+        selectedCampuses = urlCampus.split(',');
+    }
+    updateCampusPills();
 
     // Initialize from URL (parse comma-separated condition parameter)
     const urlCondition = '{{ request.args.get('condition', '') }}';

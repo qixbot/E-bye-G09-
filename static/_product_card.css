@@ -187,8 +187,13 @@
 .product-seller {
     display: flex;
     align-items: center;
-    gap: 5px;
+    justify-content: space-between;
     margin-top: 4px;
+}
+.seller-left {
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 .seller-profile-link {
     display: inline-flex;
@@ -234,6 +239,19 @@
 .seller-name-link:hover {
     color: #00381f;
     text-decoration: underline;
+}
+.product-campus {
+    font-size: 0.85rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.product-campus.cyber {
+    color: #3A6B8F;
+}
+
+.product-campus.mlk {
+    color: #9B5A5A;
 }
 @media (max-width: 768px) {
     .product-grid {
