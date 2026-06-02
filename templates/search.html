@@ -499,7 +499,7 @@
         });
     });
 
-    // Campus pills handling (multi‑select with "All Campuses")
+    // Campus pills handling (single‑select: only one campus active at a time)
     const campusPills = document.querySelectorAll('#campusPills .pill');
     const campusesInput = document.getElementById('selectedCampuses');
     let selectedCampuses = [];
@@ -508,11 +508,19 @@
         campusPills.forEach(pill => {
             const val = pill.getAttribute('data-campus');
             if (val === 'all') {
-                if (selectedCampuses.length === 0) pill.classList.add('active');
-                else pill.classList.remove('active');
+                // "All Campuses" is active when selectedCampuses is empty
+                if (selectedCampuses.length === 0) {
+                    pill.classList.add('active');
+                } else {
+                    pill.classList.remove('active');
+                }
             } else {
-                if (selectedCampuses.includes(val)) pill.classList.add('active');
-                else pill.classList.remove('active');
+                // For individual campuses, active only if exactly that campus is selected
+                if (selectedCampuses.length === 1 && selectedCampuses[0] === val) {
+                    pill.classList.add('active');
+                } else {
+                    pill.classList.remove('active');
+                }
             }
         });
         campusesInput.value = selectedCampuses.join(',');
@@ -521,13 +529,16 @@
     campusPills.forEach(pill => {
         pill.addEventListener('click', () => {
             const val = pill.getAttribute('data-campus');
+            
             if (val === 'all') {
+                // Clear selection
                 selectedCampuses = [];
             } else {
-                if (selectedCampuses.includes(val)) {
-                    selectedCampuses = selectedCampuses.filter(c => c !== val);
+                // Single‑select: if already selected, deselect; otherwise, set only this one
+                if (selectedCampuses.length === 1 && selectedCampuses[0] === val) {
+                    selectedCampuses = [];  // deselect
                 } else {
-                    selectedCampuses.push(val);
+                    selectedCampuses = [val];  // set only this campus
                 }
             }
             updateCampusPills();
@@ -537,7 +548,9 @@
     // Initialize from URL parameter (if any)
     const urlCampus = '{{ request.args.get("campus", "") }}';
     if (urlCampus) {
-        selectedCampuses = urlCampus.split(',');
+        // The URL may still contain two values (old multi‑select), we take only the first
+        const campuses = urlCampus.split(',');
+        selectedCampuses = campuses.length > 0 ? [campuses[0]] : [];
     }
     updateCampusPills();
 
