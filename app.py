@@ -3135,9 +3135,10 @@ def chat_send():
 
     db = get_db()
     cur = db.cursor()
+    # 修改：统一使用 UTC 时间存储，不要用 AT TIME ZONE
     cur.execute('''
         INSERT INTO messages (sender_id, receiver_id, product_id, content, created_at)
-        VALUES (%s, %s, %s, %s, NOW() AT TIME ZONE 'Asia/Kuala_Lumpur')
+        VALUES (%s, %s, %s, %s, NOW() AT TIME ZONE 'UTC')
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, content))
     db.commit()
     cur.close()
@@ -3166,9 +3167,10 @@ def chat_send_images():
 
     db = get_db()
     cur = db.cursor()
+    # 修改：统一使用 UTC 时间
     cur.execute('''
         INSERT INTO messages (sender_id, receiver_id, content, image, created_at)
-        VALUES (%s, %s, %s, %s, NOW() AT TIME ZONE 'Asia/Kuala_Lumpur')
+        VALUES (%s, %s, %s, %s, NOW() AT TIME ZONE 'UTC')
     ''', (session['user_id'], int(receiver_id), content, ','.join(filenames)))
     db.commit()
     cur.close()
@@ -3176,33 +3178,6 @@ def chat_send_images():
 
     return jsonify({'success': True})
 
-@app.route('/chat/send-image', methods=['POST'])
-def chat_send_image():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    receiver_id = request.form.get('receiver_id')
-    product_id = request.form.get('product_id', 0)
-    file = request.files.get('image')
-
-    if not receiver_id or not file:
-        return jsonify({'success': False, 'error': 'Missing data'}), 400
-
-    filename = secure_filename("chat_" + str(session['user_id']) + "_" + uuid.uuid4().hex + ".jpg")
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
-
-    db = get_db()
-    cur = db.cursor()
-    cur.execute('''
-        INSERT INTO messages (sender_id, receiver_id, product_id, content, image, created_at)
-        VALUES (%s, %s, %s, %s, %s, NOW() AT TIME ZONE 'Asia/Kuala_Lumpur')
-    ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, '', filename))
-    db.commit()
-    cur.close()
-    db.close()
-
-    return jsonify({'success': True})
 
 @app.route('/chat/<int:other_user_id>')
 @app.route('/chat/<int:other_user_id>/<int:product_id>')
@@ -3239,14 +3214,15 @@ def chat_page(other_user_id, product_id=None):
     ''', (session['user_id'], other_user_id, other_user_id, session['user_id']))
     messages = cur.fetchall()
     
+    # 修改：不要在后端做时区转换，直接输出原始 ISO 格式
     for msg in messages:
         if msg['created_at']:
-            from datetime import timezone, timedelta
-            malaysia_tz = timezone(timedelta(hours=8))
-            ca = msg['created_at']
-            if isinstance(ca, str):
-                ca = datetime.strptime(ca[:19], '%Y-%m-%d %H:%M:%S')
-            msg['created_at'] = ca.replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
+            # 确保输出 ISO 格式带时区信息
+            if isinstance(msg['created_at'], datetime):
+                msg['created_at'] = msg['created_at'].isoformat()
+            elif isinstance(msg['created_at'], str):
+                # 已经是字符串，保持原样但确保格式统一
+                pass
 
     cur.execute('''
         UPDATE messages SET is_read = 1
@@ -3281,18 +3257,17 @@ def chat_get_messages(other_user_id):
     cur.close()
     db.close()
 
-    from datetime import timezone, timedelta
-    malaysia_tz = timezone(timedelta(hours=8))
-    
     result = []
     for msg in messages:
-        msg = dict(msg)
-        if msg['created_at']:
-            ca = msg['created_at']
-            if isinstance(ca, str):
-                ca = datetime.strptime(ca[:19], '%Y-%m-%d %H:%M:%S')
-            msg['created_at'] = ca.replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
-        result.append(msg)
+        msg_dict = dict(msg)
+        if msg_dict['created_at']:
+            # 直接输出 ISO 格式，不做时区转换
+            if isinstance(msg_dict['created_at'], datetime):
+                msg_dict['created_at'] = msg_dict['created_at'].isoformat()
+            elif isinstance(msg_dict['created_at'], str):
+                # 如果已经是字符串，确保是标准格式
+                pass
+        result.append(msg_dict)
 
     return jsonify(result)
 
@@ -3418,7 +3393,6 @@ def get_user_status(user_id):
     db = get_db()
     cur = db.cursor()
     
-    # 检查5分钟内是否有活动
     cur.execute('''
         SELECT last_seen, 
                CASE WHEN last_seen > NOW() - INTERVAL '5 minutes' THEN true ELSE false END as is_online
@@ -3429,13 +3403,13 @@ def get_user_status(user_id):
     db.close()
     
     if user:
-        last_seen_str = user['last_seen'].strftime('%Y-%m-%d %H:%M:%S') if user['last_seen'] else None
+        # 确保输出 ISO 格式
+        last_seen_str = user['last_seen'].isoformat() if user['last_seen'] else None
         return jsonify({
             'online': user['is_online'] if user['is_online'] else False,
             'last_seen': last_seen_str
         })
     return jsonify({'online': False, 'last_seen': None})
-
 
 
 @app.route('/api/order/<int:order_id>/update-meeting', methods=['POST'])

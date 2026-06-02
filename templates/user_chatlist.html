@@ -141,6 +141,29 @@
     font-weight: 600; 
     font-size: 15px; 
     margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* 在线状态小点 */
+.online-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #27ae60;
+    margin-left: 6px;
+}
+
+.offline-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #bdc3c7;
+    margin-left: 6px;
 }
 
 .chat-last { 
@@ -370,35 +393,40 @@
     <!-- 消息列表 -->
     <div class="section-title">💬 Messages</div>
     
-    {% if chats and chats|length > 0 %}
-        {% for chat in chats %}
-        <a href="{{ url_for('chat_page', other_user_id=chat.id) }}" class="chat-item" data-chat-id="{{ chat.id }}">
-            <div class="chat-avatar">
-                <img class="chat-avatar-img" src="{{ url_for('user_avatar', user_id=chat.id) }}" 
-                     onerror="this.style.display='none'; this.parentElement.innerHTML='{{ chat.username[0].upper() }}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center';">
-            </div>
-            <div class="chat-info">
-                <div class="chat-name">{{ chat.full_name or chat.username }}</div>
-                <div class="chat-last">
-                    {% if chat.sender_id == session['user_id'] %}You: {% endif %}
-                    {{ chat.last_message if chat.last_message else '(Image)' }}
+    <div id="chatListContainer">
+        {% if chats and chats|length > 0 %}
+            {% for chat in chats %}
+            <a href="{{ url_for('chat_page', other_user_id=chat.id) }}" class="chat-item" data-chat-id="{{ chat.id }}" data-user-id="{{ chat.id }}">
+                <div class="chat-avatar">
+                    <img class="chat-avatar-img" src="{{ url_for('user_avatar', user_id=chat.id) }}" 
+                         onerror="this.style.display='none'; this.parentElement.innerHTML='{{ chat.username[0].upper() }}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center';">
                 </div>
+                <div class="chat-info">
+                    <div class="chat-name">
+                        {{ chat.full_name or chat.username }}
+                        <span class="status-dot" data-user-id="{{ chat.id }}" style="display: inline-block;"></span>
+                    </div>
+                    <div class="chat-last">
+                        {% if chat.sender_id == session['user_id'] %}You: {% endif %}
+                        {{ chat.last_message if chat.last_message else '(Image)' }}
+                    </div>
+                </div>
+                <div class="chat-meta">
+                    <div class="chat-time" data-time="{{ chat.last_time }}">{{ chat.last_time if chat.last_time else '' }}</div>
+                    {% if chat.unread_count > 0 and chat.sender_id != session['user_id'] %}
+                    <span class="unread-dot">{{ chat.unread_count }}</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <span class="empty-icon">💬</span>
+                <div class="empty-title">No conversations yet</div>
+                <div class="empty-sub">Start chatting with sellers or buyers!</div>
             </div>
-            <div class="chat-meta">
-                <div class="chat-time">{{ chat.last_time if chat.last_time else '' }}</div>
-                {% if chat.unread_count > 0 and chat.sender_id != session['user_id'] %}
-                <span class="unread-dot">{{ chat.unread_count }}</span>
-                {% endif %}
-            </div>
-        </a>
-        {% endfor %}
-    {% else %}
-        <div class="empty-state">
-            <span class="empty-icon">💬</span>
-            <div class="empty-title">No conversations yet</div>
-            <div class="empty-sub">Start chatting with sellers or buyers!</div>
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 
 </div>
 
@@ -422,6 +450,72 @@
 let notificationClickTimer = null;
 let unreadNotificationsCount = {{ unread_notifications|default(0) }};
 let unreadAnnouncementsCount = {{ unread_announcements|default(0) }};
+let userStatusCache = {};
+
+// ============================================================
+// 时间格式化 - 与 chat_page 保持一致
+// ============================================================
+function formatChatListTime(dateStr) {
+    if (!dateStr) return '';
+    
+    var d = new Date(dateStr);
+    var now = new Date();
+    
+    if (isNaN(d.getTime())) return '';
+    
+    // 今天的消息显示时间 (如 "14:30")
+    if (d.toDateString() === now.toDateString()) {
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // 昨天的消息显示 "昨天"
+    var yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+    }
+    
+    // 今年的消息显示月/日
+    if (d.getFullYear() === now.getFullYear()) {
+        return (d.getMonth() + 1) + '/' + d.getDate();
+    }
+    
+    // 更早的消息显示年/月/日
+    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+}
+
+function formatTimeAgo(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    var now = new Date();
+    var diffSeconds = Math.floor((now - d) / 1000);
+    
+    if (isNaN(d.getTime())) return '';
+    
+    if (diffSeconds < 60) return 'just now';
+    if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + ' min ago';
+    if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + ' hours ago';
+    if (diffSeconds < 604800) return Math.floor(diffSeconds / 86400) + ' days ago';
+    
+    return d.toLocaleDateString();
+}
+
+// 格式化最后在线时间（用于 tooltip 或详细信息）
+function formatLastSeen(dateStr) {
+    if (!dateStr) return 'Recently';
+    var d = new Date(dateStr);
+    var now = new Date();
+    var diffSeconds = Math.floor((now - d) / 1000);
+    
+    if (isNaN(d.getTime())) return 'Recently';
+    
+    if (diffSeconds < 60) return 'Online now';
+    if (diffSeconds < 3600) return 'Last seen ' + Math.floor(diffSeconds / 60) + ' min ago';
+    if (diffSeconds < 86400) return 'Last seen ' + Math.floor(diffSeconds / 3600) + ' hours ago';
+    if (diffSeconds < 604800) return 'Last seen ' + Math.floor(diffSeconds / 86400) + ' days ago';
+    
+    return 'Last seen ' + d.toLocaleDateString();
+}
 
 // ============================================================
 // 更新所有未读徽章
@@ -456,6 +550,72 @@ function updateAllBadges() {
     .catch(function() {
         var annBadge = document.getElementById('badgeAnn');
         if (annBadge) annBadge.style.display = 'none';
+    });
+}
+
+// ============================================================
+// 获取并显示用户在线状态
+// ============================================================
+function fetchUserStatus(userId, element) {
+    // 检查缓存（缓存10秒）
+    var cached = userStatusCache[userId];
+    var now = Date.now();
+    if (cached && (now - cached.time) < 10000) {
+        updateStatusDisplay(element, cached.online, cached.lastSeen);
+        return;
+    }
+    
+    fetch('/api/user/' + userId + '/status', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        userStatusCache[userId] = {
+            online: data.online,
+            lastSeen: data.last_seen,
+            time: now
+        };
+        updateStatusDisplay(element, data.online, data.last_seen);
+    })
+    .catch(function(err) {
+        console.log('Status fetch error for user ' + userId, err);
+        updateStatusDisplay(element, false, null);
+    });
+}
+
+function updateStatusDisplay(element, isOnline, lastSeen) {
+    if (!element) return;
+    
+    if (isOnline) {
+        element.innerHTML = '<span class="online-dot" title="Online"></span>';
+        element.style.display = 'inline-flex';
+    } else {
+        var title = lastSeen ? formatLastSeen(lastSeen) : 'Offline';
+        element.innerHTML = '<span class="offline-dot" title="' + title + '"></span>';
+        element.style.display = 'inline-flex';
+    }
+}
+
+// 加载所有聊天的用户状态
+function loadAllUserStatuses() {
+    var statusElements = document.querySelectorAll('.status-dot');
+    statusElements.forEach(function(el) {
+        var userId = el.dataset.userId;
+        if (userId) {
+            fetchUserStatus(userId, el);
+        }
+    });
+}
+
+// ============================================================
+// 格式化聊天列表中的所有时间
+// ============================================================
+function formatAllChatTimes() {
+    var timeElements = document.querySelectorAll('.chat-time');
+    timeElements.forEach(function(el) {
+        var rawTime = el.getAttribute('data-time') || el.textContent;
+        if (rawTime && rawTime.trim()) {
+            var formattedTime = formatChatListTime(rawTime);
+            el.textContent = formattedTime;
+        }
     });
 }
 
@@ -536,7 +696,6 @@ function openAnnouncements() {
     var modal = document.getElementById('announcementModal');
     modal.classList.add('show');
     
-    // 标记公告为已读并更新红点
     fetch('/api/mark-ann-read', { 
         method: 'POST', 
         credentials: 'same-origin' 
@@ -544,11 +703,8 @@ function openAnnouncements() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            // 更新公告未读数为0
             unreadAnnouncementsCount = 0;
             updateAllBadges();
-            
-            // 同时更新 local 存储，防止刷新后恢复
             localStorage.setItem('lastReadAnn', Date.now().toString());
         }
     })
@@ -556,7 +712,6 @@ function openAnnouncements() {
         console.error('Mark ann read error:', err);
     });
     
-    // 加载公告列表
     fetch('/api/announcements')
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -581,7 +736,6 @@ function closeAnnouncements() {
     var modal = document.getElementById('announcementModal');
     modal.classList.remove('show');
     
-    // 关闭后重新获取公告未读数（确保已读状态）
     fetch('/api/unread-announcements', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -619,37 +773,6 @@ function searchUsers() {
     });
 }
 
-// ============================================================
-// 时间格式化（优化版）
-// ============================================================
-function formatTimeAgo(dateStr) {
-    if (!dateStr) return '';
-    var d = new Date(dateStr);
-    var now = new Date();
-    var diffSeconds = Math.floor((now - d) / 1000);
-    
-    if (diffSeconds < 60) return 'just now';
-    if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + ' min ago';
-    if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + ' hours ago';
-    if (diffSeconds < 604800) return Math.floor(diffSeconds / 86400) + ' days ago';
-    
-    return d.toLocaleDateString();
-}
-
-function formatChatTime(dateStr) {
-    if (!dateStr) return '';
-    var d = new Date(dateStr);
-    var now = new Date();
-    var diff = Math.floor((now - d) / 1000);
-    
-    if (diff < 60) return 'just now';
-    if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
-    if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
-    if (diff < 604800) return Math.floor(diff / 86400) + ' days ago';
-    
-    return d.toLocaleDateString();
-}
-
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, function(m) {
@@ -682,30 +805,23 @@ function updateUnreadChatCount() {
     fetch('/api/unread-count', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        // 更新通知徽章
         unreadNotificationsCount = data.notifications || 0;
         updateAllBadges();
-        
-        // 更新聊天列表中的未读数量（通过刷新页面或更新DOM）
-        var chatItems = document.querySelectorAll('.chat-item');
-        // 可以在这里更新每个聊天的未读数，但刷新页面更简单
     });
 }
 
-// 每30秒更新一次未读数量
-setInterval(updateUnreadChatCount, 30000);
-updateUnreadChatCount();
-
-// 初始化公告徽章（页面加载时调用）
-function initAnnouncementBadge() {
-    fetch('/api/unread-announcements', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        unreadAnnouncementsCount = data.count || 0;
-        updateAllBadges();
-    })
-    .catch(function(err) {
-        console.error('Init announcement badge error:', err);
+// ============================================================
+// 定期刷新用户状态（每30秒）
+// ============================================================
+function refreshAllUserStatuses() {
+    var statusElements = document.querySelectorAll('.status-dot');
+    statusElements.forEach(function(el) {
+        var userId = el.dataset.userId;
+        if (userId) {
+            // 清除缓存，强制刷新
+            delete userStatusCache[userId];
+            fetchUserStatus(userId, el);
+        }
     });
 }
 
@@ -729,7 +845,6 @@ document.querySelectorAll('.chat-item').forEach(function(item) {
     item.addEventListener('click', function(e) {
         var unreadDot = this.querySelector('.unread-dot');
         if (unreadDot) {
-            // 可以先发送已读请求，但不等待结果就跳转
             var chatId = this.dataset.chatId;
             if (chatId) {
                 fetch('/api/chat/mark-read/' + chatId, { method: 'POST', credentials: 'same-origin' })
@@ -750,6 +865,19 @@ document.querySelectorAll('.chat-item').forEach(function(item) {
         }, 500);
     }
 })();
+
+// ============================================================
+// 初始化
+// ============================================================
+function init() {
+    formatAllChatTimes();
+    loadAllUserStatuses();
+    
+    // 每30秒刷新用户状态
+    setInterval(refreshAllUserStatuses, 30000);
+}
+
+init();
 </script>
 
 {% endblock %}
