@@ -787,8 +787,47 @@ function onConfirmReceived() {
 }
 
 function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocations, meetingTimes) {
+    // 解析地点（逗号分隔的字符串转数组）
     var locations = meetupLocations ? meetupLocations.split(',') : [];
-    var times = meetingTimes ? meetingTimes.split(',') : [];
+    
+    // 解析时间（逗号分隔的字符串转数组，格式如 "2026-06-10T15:00,2026-06-11T10:00"）
+    var times = [];
+    if (meetingTimes && meetingTimes.trim() !== '') {
+        times = meetingTimes.split(',');
+    }
+    
+    // 生成地点选项 HTML
+    var locationsHtml = '';
+    if (locations.length === 0) {
+        locationsHtml = '<p class="no-data">No location specified</p>';
+    } else {
+        locationsHtml = '<div class="location-options">' +
+            locations.map(function(loc, idx) {
+                return '<label class="radio-option">' +
+                    '<input type="radio" name="selected_location" value="' + escapeHtml(loc) + '"> ' + escapeHtml(loc) +
+                    '</label>';
+            }).join('') +
+            '</div>';
+    }
+    
+    // 生成时间选项 HTML
+    var timesHtml = '';
+    if (times.length === 0) {
+        timesHtml = '<p class="no-data">No time specified by buyer</p>';
+    } else {
+        timesHtml = '<div class="time-options">' +
+            times.map(function(t, idx) {
+                // 格式化显示时间：将 "2026-06-10T15:00" 显示为 "2026-06-10 15:00"
+                var displayTime = t;
+                if (t && t.includes('T')) {
+                    displayTime = t.replace('T', ' ').substring(0, 16);
+                }
+                return '<label class="radio-option">' +
+                    '<input type="radio" name="selected_time" value="' + escapeHtml(t) + '"> ' + escapeHtml(displayTime) +
+                    '</label>';
+            }).join('') +
+            '</div>';
+    }
     
     var modalHtml = `<div id="confirmOrderModal" class="custom-modal">
         <div class="modal-card" style="max-width: 500px;">
@@ -798,26 +837,12 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
             
             <div style="margin: 16px 0;">
                 <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Location (select one):</label>
-                <div class="location-options">
-                    ${locations.map(function(loc, idx) {
-                        return `<label class="radio-option">
-                            <input type="radio" name="selected_location" value="${escapeHtml(loc)}"> ${escapeHtml(loc)}
-                        </label>`;
-                    }).join('')}
-                    ${locations.length === 0 ? '<p class="no-data">No location specified</p>' : ''}
-                </div>
+                ${locationsHtml}
             </div>
             
             <div style="margin: 16px 0;">
                 <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Time (select one):</label>
-                <div class="time-options">
-                    ${times.map(function(t, idx) {
-                        return `<label class="radio-option">
-                            <input type="radio" name="selected_time" value="${escapeHtml(t)}"> ${escapeHtml(t)}
-                        </label>`;
-                    }).join('')}
-                    ${times.length === 0 ? '<p class="no-data">No time specified</p>' : ''}
-                </div>
+                ${timesHtml}
             </div>
             
             <div class="modal-buttons">
@@ -827,10 +852,9 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
         </div>
     </div>`;
     
+    // 移除已有弹窗并添加
     var existingModal = document.getElementById('confirmOrderModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
+    if (existingModal) existingModal.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
