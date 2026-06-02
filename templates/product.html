@@ -81,6 +81,12 @@
         <!-- Right: Details -->
         <div>
             <div class="condition-badge">{{ product.condition | replace('_', ' ') | title }}</div>
+            {% if product.seller_campus %}
+                <div class="campus-badge 
+                    {% if 'Cyberjaya' in product.seller_campus %}cyber{% else %}mlk{% endif %}">
+                    {{ product.seller_campus }}
+                </div>
+            {% endif %}
             <h1 class="product-name">{{ product.name }}</h1>
             
             <div class="price">RM {{ "%.2f"|format(product.price) }}</div>
@@ -190,7 +196,16 @@
                 </div>
                 <h3 class="modal-product-name">{{ product.name }}</h3>
                 <p class="modal-product-price">RM {{ "%.2f"|format(product.price) }}</p>
-                <p><span class="condition-badge" style="background-color:#00381f; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; display:inline-block;">{{ product.condition | replace('_', ' ') | title }}</span></p>
+                <p>
+                    <span class="condition-badge" style="background-color:#00381f; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; display:inline-block;">{{ product.condition | replace('_', ' ') | title }}</span>
+                    {% if product.seller_campus %}
+                    <span class="campus-badge 
+                        {% if 'Cyberjaya' in product.seller_campus %}cyber{% else %}mlk{% endif %}"
+                        style="display: inline-block; margin-left: 8px;">
+                        {{ product.seller_campus }}
+                    </span>
+                    {% endif %}
+                </p>
             </div>
 
             <!-- VERTICAL DIVIDER -->
@@ -232,7 +247,16 @@
                 </div>
                 <h3 class="modal-product-name">{{ product.name }}</h3>
                 <p class="modal-product-price">RM {{ "%.2f"|format(product.price) }}</p>
-                <p><span class="condition-badge" style="background-color:#00381f; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; display:inline-block;">{{ product.condition | replace('_', ' ') | title }}</span></p>
+                <p>
+                    <span class="condition-badge" style="background-color:#00381f; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; display:inline-block;">{{ product.condition | replace('_', ' ') | title }}</span>
+                    {% if product.seller_campus %}
+                    <span class="campus-badge 
+                        {% if 'Cyberjaya' in product.seller_campus %}cyber{% else %}mlk{% endif %}"
+                        style="display: inline-block; margin-left: 8px;">
+                        {{ product.seller_campus }}
+                    </span>
+                    {% endif %}
+                </p>
             </div>
 
             <!-- VERTICAL DIVIDER -->
@@ -241,7 +265,17 @@
             <!-- RIGHT COLUMN – location selection (scrollable) -->
             <div class="buy-modal-right">
                 <div class="location-header">
-                    <p class="location-instruction">Preferred meetup location(s) – seller will contact you for further confirmation</p>
+                    <p class="location-instruction">
+                        Preferred meetup location(s) on 
+                        {% if product.seller_campus and 'Cyberjaya' in product.seller_campus %}
+                            Cyberjaya Campus
+                        {% elif product.seller_campus and 'Melaka' in product.seller_campus %}
+                            Melaka Campus
+                        {% else %}
+                            Seller's Campus
+                        {% endif %}
+                        – seller will contact you for further confirmation
+                    </p>
                     <div id="selectedLocationsInfo" class="selected-locations-info"></div>
                 </div>
                 <div class="location-grid" id="locationGrid">
@@ -258,6 +292,7 @@
 </div>
 
 <script>
+    const sellerCampus = "{{ product.seller_campus }}";  // e.g., "Cyberjaya Campus" or "Melaka Campus"
     // Copy product link to clipboard
     document.getElementById('copyLinkBtn').addEventListener('click', function() {
         const url = window.location.href;
@@ -513,7 +548,7 @@
     }
 
     // List of meetup locations
-    const meetupLocations = [
+    const cyberjayaLocations = [
         { name: "Library", image: "/static/uploads/library.jpg" },
         { name: "DTC", image: "/static/uploads/dtc.jpg" },
         { name: "Starbees", image: "/static/uploads/starbees.jpg" },
@@ -532,6 +567,33 @@
         { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
     ];
 
+    const melakaLocations = [
+        { name: "Library (Melaka)", image: "/static/uploads/library.jpg" },
+        { name: "Dewan Tun Canselor", image: "/static/uploads/dtc.jpg" },
+        { name: "Cafeteria", image: "/static/uploads/starbees.jpg" },
+        { name: "Block A", image: "/static/uploads/clc.jpg" },
+        { name: "Block B", image: "/static/uploads/fci.jpg" },
+        { name: "Block C", image: "/static/uploads/fom.jpg" },
+        { name: "Block D", image: "/static/uploads/faie.jpg" },
+        { name: "Block E", image: "/static/uploads/fcm.jpg" },
+        { name: "Sports Complex", image: "/static/uploads/stc.jpg" },
+        { name: "Hostel 1", image: "/static/uploads/hb1.jpg" },
+        { name: "Hostel 2", image: "/static/uploads/hb2.jpg" },
+        { name: "Hostel 3", image: "/static/uploads/hb3.jpg" },
+        { name: "Hostel 4", image: "/static/uploads/hb4.jpg" },
+        { name: "Surau", image: "/static/uploads/masjid.jpg" },
+        { name: "Mini Mart", image: "/static/uploads/tekun_mart.jpg" },
+        { name: "Admin Building", image: "/static/uploads/chancellery.jpg" }
+    ];
+
+    function getMeetupLocations() {
+        if (sellerCampus && sellerCampus.includes('Cyberjaya')) {
+            return cyberjayaLocations;
+        } else {
+            return melakaLocations;  // default to Melaka
+        }
+    }
+
     let selectedLocations = [];   // stores names of chosen locations
 
     // Generate location buttons dynamically
@@ -539,7 +601,8 @@
         const grid = document.getElementById('locationGrid');
         if (!grid) return;
         grid.innerHTML = '';
-        meetupLocations.forEach(loc => {
+        const locations = getMeetupLocations();
+        locations.forEach(loc => {
             const btn = document.createElement('button');
             btn.className = 'location-btn';
             btn.setAttribute('data-location', loc.name);
