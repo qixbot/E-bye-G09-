@@ -112,7 +112,7 @@ function loadListings() {
                 return;
             }
             
-            let html = '<div class="products-grid">';
+            let html = ''; // Start clean without creating an extra wrapper div
             for (let i = 0; i < data.length; i++) {
                 const item = data[i];
                 let firstImage = item.first_image || null;
@@ -147,7 +147,7 @@ function loadListings() {
                 html += '</div>';
                 html += '</a></div>';
             }
-            html += '</div>';
+            // Removed the extra closing </div> string here
             container.innerHTML = html;
         })
         .catch(err => {
