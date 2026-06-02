@@ -84,7 +84,7 @@
             {% if product.seller_campus %}
                 <div class="campus-badge 
                     {% if 'Cyberjaya' in product.seller_campus %}cyber{% else %}mlk{% endif %}">
-                    {{ product.seller_campus }}
+                    {% if product.seller_campus == 'Cyberjaya' %}Cyberjaya Campus{% else %}{{ product.seller_campus }}{% endif %}
                 </div>
             {% endif %}
             <h1 class="product-name">{{ product.name }}</h1>
@@ -202,7 +202,7 @@
                     <span class="campus-badge 
                         {% if 'Cyberjaya' in product.seller_campus %}cyber{% else %}mlk{% endif %}"
                         style="display: inline-block; margin-left: 8px;">
-                        {{ product.seller_campus }}
+                        {% if product.seller_campus == 'Cyberjaya' %}Cyberjaya Campus{% else %}{{ product.seller_campus }}{% endif %}
                     </span>
                     {% endif %}
                 </p>
@@ -253,7 +253,7 @@
                     <span class="campus-badge 
                         {% if 'Cyberjaya' in product.seller_campus %}cyber{% else %}mlk{% endif %}"
                         style="display: inline-block; margin-left: 8px;">
-                        {{ product.seller_campus }}
+                        {% if product.seller_campus == 'Cyberjaya' %}Cyberjaya Campus{% else %}{{ product.seller_campus }}{% endif %}
                     </span>
                     {% endif %}
                 </p>
@@ -292,7 +292,7 @@
 </div>
 
 <script>
-    const sellerCampus = "{{ product.seller_campus }}";  // e.g., "Cyberjaya Campus" or "Melaka Campus"
+    const sellerCampus = "{% if product.seller_campus == 'Cyberjaya' %}Cyberjaya Campus{% else %}{{ product.seller_campus }}{% endif %}";  // e.g., "Cyberjaya Campus" or "Melaka Campus"
     // Copy product link to clipboard
     document.getElementById('copyLinkBtn').addEventListener('click', function() {
         const url = window.location.href;

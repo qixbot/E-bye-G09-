@@ -519,6 +519,12 @@ def search():
 
     keyword = request.args.get('q', '').strip()
     
+    campus_raw = request.args.get('campus', '')
+    if campus_raw:
+        campuses = [c.strip() for c in campus_raw.split(',') if c.strip() and c != 'all']
+    else:
+        campuses = []
+
     categories_raw = request.args.get('category', '')
     if categories_raw:
         categories = [c.strip() for c in categories_raw.split(',') if c.strip()]
@@ -563,6 +569,13 @@ def search():
                         OR u.username ILIKE %s
                         OR u.full_name ILIKE %s)"""
         params.extend([like_flex, like_flex, like_flex, like_flex])
+
+    if campuses:
+        campus_conditions = []
+        for c in campuses:
+            campus_conditions.append("u.campus ILIKE %s")
+            params.append(f"%{c}%")
+        query += " AND (" + " OR ".join(campus_conditions) + ")"
 
     if categories:
         placeholders = ','.join(['%s'] * len(categories))
