@@ -81,6 +81,7 @@
 
 <script>
 const OTHER_USER_ID = {{ user.id }};
+const CURRENT_USER_ID = {{ session.get('user_id', 0) }}; 
 
 function restoreBackground() {
     fetch(`/api/user/${OTHER_USER_ID}/background`)
@@ -211,9 +212,21 @@ function openReviewsModal() {
                 let listHtml = '';
                 for (let i = 0; i < data.reviews.length; i++) {
                     const r = data.reviews[i];
+                    const reviewerId = r.reviewer_id;
+                    
+                    // ✅ 判断是否是当前登录用户
+                    const isCurrentUser = (reviewerId === CURRENT_USER_ID);
+                    // 如果是当前用户，跳转到 my_profile；否则跳转到 other_profile
+                    const profileLink = isCurrentUser ? '/my-profile' : `/user/${reviewerId}`;
+                    const targetAttr = isCurrentUser ? '' : 'target="_blank" rel="noopener noreferrer"';
+                    
                     const avatarHtml = r.reviewer_avatar_base64 ?
-                        `<img src="${r.reviewer_avatar_base64}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">` :
-                        `<div class="reviewer-avatar">${(r.reviewer_name ? r.reviewer_name[0].toUpperCase() : 'U')}</div>`;
+                        `<a href="${profileLink}" class="reviewer-avatar-link" ${targetAttr}>
+                            <img src="${r.reviewer_avatar_base64}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                        </a>` :
+                        `<a href="${profileLink}" class="reviewer-avatar-link" ${targetAttr}>
+                            <div class="reviewer-avatar">${(r.reviewer_name ? r.reviewer_name[0].toUpperCase() : 'U')}</div>
+                        </a>`;
                     
                     const reviewStars = generateStarsHtml(r.rating_overall);
                     const commentText = r.comment ? r.comment : 'No comment provided';
@@ -222,7 +235,9 @@ function openReviewsModal() {
                         <div class="review-card">
                             <div class="review-header">
                                 ${avatarHtml}
-                                <div class="reviewer-name">👤 ${escapeHtml(r.reviewer_full_name || r.reviewer_name)}</div>
+                                <a href="${profileLink}" class="reviewer-name-link" ${targetAttr}>
+                                    👤 ${escapeHtml(r.reviewer_full_name || r.reviewer_name)}
+                                </a>
                                 <div class="review-overall">${reviewStars} (${r.rating_overall})</div>
                             </div>
                             <div class="review-detail-ratings">
