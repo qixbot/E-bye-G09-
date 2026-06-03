@@ -480,7 +480,6 @@ function openOfferManageModal(offerId) {
         document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ Failed to load offer details</div>';
     });
 }
-
 // ========== 买家取消自己的 offer ==========
 function cancelMyOffer(offerId) {
     if (!confirm('Cancel your offer? This cannot be undone.')) return;
@@ -497,6 +496,8 @@ function cancelMyOffer(offerId) {
             showToastMessage('Your offer has been cancelled.', 'success');
             closeOfferManageModal();
             loadNotifications();
+            // 刷新页面相关数据
+            if (typeof loadPurchases === 'function') loadPurchases();
         } else {
             throw new Error(data.error || 'Failed to cancel');
         }
@@ -527,11 +528,14 @@ function acceptCounterOffer(offerId) {
             showToastMessage('Counter offer accepted! You can now checkout.', 'success');
             closeOfferManageModal();
             loadNotifications();
+            // 刷新 purchases 页面
+            if (typeof loadPurchases === 'function') loadPurchases();
         } else {
-            throw new Error(data.error || 'Failed to accept');
+            showToastMessage('Error: ' + (data.error || 'Failed to accept counter offer'), 'error');
         }
     })
     .catch(function(err) {
+        console.error('Accept counter offer error:', err);
         showToastMessage('Error: ' + err.message, 'error');
     });
 }
@@ -552,37 +556,49 @@ function rejectCounterOffer(offerId) {
             showToastMessage('Counter offer declined.', 'success');
             closeOfferManageModal();
             loadNotifications();
+            if (typeof loadPurchases === 'function') loadPurchases();
         } else {
-            throw new Error(data.error || 'Failed to decline');
+            showToastMessage('Error: ' + (data.error || 'Failed to decline'), 'error');
         }
     })
     .catch(function(err) {
+        console.error('Reject counter offer error:', err);
         showToastMessage('Error: ' + err.message, 'error');
     });
 }
 
 // ========== 卖家接受普通 Offer ==========
 function acceptOffer(offerId) {
-    if (!confirm('Accept this offer?')) return;
+    console.log('🔍 acceptOffer called with offerId:', offerId);
+    if (!confirm('Accept this offer? This will notify the buyer.')) return;
     
     showToastMessage('Accepting offer...', 'info');
-    fetch('/api/offer/' + offerId + '/accept', {
-        method: 'POST',
+    
+    fetch('/api/offer/' + offerId + '/accept', { 
+        method: 'POST', 
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
+        headers: {'Content-Type': 'application/json'}
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { 
+        console.log('Response status:', r.status);
+        return r.json(); 
+    })
     .then(function(data) {
+        console.log('Response data:', data);
         if (data.success) {
-            showToastMessage('Offer accepted! You can now checkout.', 'success');
+            showToastMessage('✅ Offer accepted! Buyer can now checkout.', 'success');
             closeOfferManageModal();
             loadNotifications();
+            // 刷新 listings 页面显示
+            if (typeof loadListings === 'function') loadListings();
+            if (typeof loadOrders === 'function') loadOrders();
         } else {
-            throw new Error(data.error || 'Failed to accept');
+            showToastMessage('Error: ' + (data.error || 'Unknown error'), 'error');
         }
     })
     .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
+        console.error('Fetch error:', err);
+        showToastMessage('Request failed: ' + err.message, 'error');
     });
 }
 
@@ -602,11 +618,13 @@ function rejectOffer(offerId) {
             showToastMessage('Offer rejected.', 'success');
             closeOfferManageModal();
             loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
         } else {
-            throw new Error(data.error || 'Failed to reject');
+            showToastMessage('Error: ' + (data.error || 'Failed to reject'), 'error');
         }
     })
     .catch(function(err) {
+        console.error('Reject offer error:', err);
         showToastMessage('Error: ' + err.message, 'error');
     });
 }
@@ -626,7 +644,15 @@ function openCounterOfferModal(offerId) {
                 '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
                 '💰 Current Offer: RM ' + parseFloat(data.offer_price).toFixed(2) +
                 '</div>';
+        } else {
+            document.getElementById('counterOfferContent').innerHTML = 
+                '<div class="offer-detail error">Failed to load offer details</div>';
         }
+    })
+    .catch(function(err) {
+        console.error('Load offer details error:', err);
+        document.getElementById('counterOfferContent').innerHTML = 
+            '<div class="offer-detail error">Error loading details</div>';
     });
 }
 
@@ -655,11 +681,13 @@ document.getElementById('sendCounterOfferBtn')?.addEventListener('click', functi
             showToastMessage('Counter offer sent!', 'success');
             closeCounterOfferModal();
             loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
         } else {
-            throw new Error(data.error || 'Failed to send counter offer');
+            showToastMessage('Error: ' + (data.error || 'Failed to send counter offer'), 'error');
         }
     })
     .catch(function(err) {
+        console.error('Send counter offer error:', err);
         showToastMessage('Error: ' + err.message, 'error');
     });
 });
@@ -677,12 +705,15 @@ function acceptOfferSimple(offerId) {
     .then(function(d) {
         if (d.success) {
             showToastMessage('Offer accepted!', 'success');
-            location.reload();
+            // 刷新页面而不是 reload，保持用户体验
+            loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
         } else {
             showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
         }
     })
     .catch(function(err) {
+        console.error('Accept offer simple error:', err);
         showToastMessage('Request failed: ' + err.message, 'error');
     });
 }
@@ -700,12 +731,14 @@ function rejectOfferSimple(offerId) {
     .then(function(d) {
         if (d.success) {
             showToastMessage('Offer rejected', 'success');
-            location.reload();
+            loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
         } else {
             showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
         }
     })
     .catch(function(err) {
+        console.error('Reject offer simple error:', err);
         showToastMessage('Request failed: ' + err.message, 'error');
     });
 }
