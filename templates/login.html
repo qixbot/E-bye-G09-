@@ -33,16 +33,8 @@
 
         <!-- Right Column: Form -->
         <div class="auth-right">
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="flash-messages">
-                        {% for category, message in messages %}
-                            <div class="flash-message {{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
+            <!-- 注意：Flash Messages 已移除，改用自定义 Toast 消息 -->
+            <!-- Toast 消息由 base.html 中的 toast-container 显示 -->
 
             <form method="POST" action="{{ url_for('login') }}" id="login-form" autocomplete="on">
                 <h2>👋 Welcome Back</h2>
