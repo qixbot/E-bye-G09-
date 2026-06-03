@@ -363,13 +363,17 @@
     // Send offer to seller via API
     function sendOffer() {
     const offerInput = document.getElementById('offerAmount');
-    const offerAmount = parseFloat(offerInput.value);
+    let offerAmount = parseFloat(offerInput.value);
     const productId = {{ product.id }};
     
-    if (!offerAmount || offerAmount <= 0) {
-        showGlobalToast("Please enter a valid offer amount.", "error");
+    // 验证输入
+    if (isNaN(offerAmount) || offerAmount <= 0) {
+        showGlobalToast("Please enter a valid offer amount (positive number).", "error");
         return;
     }
+    
+    // 限制小数位数为2位
+    offerAmount = Math.round(offerAmount * 100) / 100;
     
     const sendBtn = document.querySelector('#offerModal .modal-send');
     const originalText = sendBtn.textContent;
@@ -378,18 +382,26 @@
     
     fetch('/api/product/' + productId + '/offers/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ 
             offer_price: offerAmount,
             message: "Offer of RM " + offerAmount.toFixed(2)
         }),
-        credentials: 'same-origin'
+        credentials: 'same-origin'  // 关键：添加这行！
     })
-    .then(function(r) { 
-        if (!r.ok) {
-            throw new Error('HTTP ' + r.status);
+    .then(function(response) { 
+        // 先检查响应状态
+        if (!response.ok) {
+            // 尝试解析错误信息
+            return response.json().then(function(errData) {
+                throw new Error(errData.error || 'Server error (HTTP ' + response.status + ')');
+            }).catch(function() {
+                throw new Error('Server error (HTTP ' + response.status + ')');
+            });
         }
-        return r.json(); 
+        return response.json(); 
     })
     .then(function(data) {
         if (data.success) {
@@ -402,7 +414,7 @@
     })
     .catch(function(err) {
         console.error('Offer error:', err);
-        showGlobalToast("❌ Error: " + err.message, "error");
+        showGlobalToast("❌ " + err.message, "error");
     })
     .finally(function() {
         sendBtn.textContent = originalText;
