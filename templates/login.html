@@ -110,47 +110,41 @@
         }
     }
 
-    // Save credentials to localStorage
-    function saveCredentials(email, password) {
+    // ✅ 修改：只保存邮箱，不保存密码
+    function saveCredentials(email) {
         try {
             localStorage.setItem('savedEmail', email);
-            localStorage.setItem('savedPassword', password);
             localStorage.setItem('savedTimestamp', Date.now().toString());
-            console.log('✅ Credentials saved to localStorage');
+            console.log('✅ Email saved to localStorage');
         } catch (e) {
-            console.error('Failed to save credentials:', e);
+            console.error('Failed to save email:', e);
         }
     }
 
     // Clear credentials from localStorage
     function clearCredentials() {
         localStorage.removeItem('savedEmail');
-        localStorage.removeItem('savedPassword');
+        localStorage.removeItem('savedPassword');  // 清除旧数据
         localStorage.removeItem('savedTimestamp');
         console.log('🗑️ Credentials cleared from localStorage');
     }
 
-    // Load credentials from localStorage and fill form
+    // ✅ 修改：只加载邮箱，不加载密码
     function loadCredentials() {
         const savedEmail = localStorage.getItem('savedEmail');
-        const savedPassword = localStorage.getItem('savedPassword');
         const rememberCheckbox = document.getElementById('remember_me');
         
-        console.log('Loading credentials:', { 
-            hasEmail: !!savedEmail, 
-            hasPassword: !!savedPassword 
-        });
+        console.log('Loading email:', { hasEmail: !!savedEmail });
         
-        if (savedEmail && savedPassword) {
+        if (savedEmail) {
             document.getElementById('email').value = savedEmail;
-            document.getElementById('login-password').value = savedPassword;
             if (rememberCheckbox) {
                 rememberCheckbox.checked = true;
             }
-            console.log('✅ Credentials loaded and filled');
+            console.log('✅ Email loaded and filled');
             return true;
         }
-        console.log('ℹ️ No saved credentials found');
+        console.log('ℹ️ No saved email found');
         return false;
     }
 
@@ -185,10 +179,10 @@
             hasError = true;
         }
 
-        // Save or clear credentials based on Remember Me checkbox
+        // ✅ 修改：只保存邮箱，密码只传给后端，不存 localStorage
         if (!hasError) {
             if (rememberMe) {
-                saveCredentials(email, password);
+                saveCredentials(email);  // 只保存邮箱
             } else {
                 clearCredentials();
             }

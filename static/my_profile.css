@@ -2371,3 +2371,21 @@
         width: 100%;
     }
 }
+
+.reviewer-avatar-link {
+    display: inline-block;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.reviewer-name-link {
+    text-decoration: none;
+    color: #2c3e50;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.reviewer-name-link:hover {
+    color: #00c896;
+    text-decoration: underline;
+}

@@ -115,39 +115,36 @@
         if (input) input.classList.remove('field-error');
     }
 
-    // Save admin credentials to localStorage
-    function saveAdminCredentials(email, password) {
+    // ✅ 修改：只保存邮箱，不保存密码
+    function saveAdminCredentials(email) {
         try {
             localStorage.setItem('adminSavedEmail', email);
-            localStorage.setItem('adminSavedPassword', password);
             localStorage.setItem('adminSavedTimestamp', Date.now().toString());
-            console.log('✅ Admin credentials saved to localStorage');
+            console.log('✅ Admin email saved to localStorage');
         } catch (e) {
-            console.error('Failed to save admin credentials:', e);
+            console.error('Failed to save admin email:', e);
         }
     }
 
     // Clear admin credentials from localStorage
     function clearAdminCredentials() {
         localStorage.removeItem('adminSavedEmail');
-        localStorage.removeItem('adminSavedPassword');
+        localStorage.removeItem('adminSavedPassword');  // 清除旧数据
         localStorage.removeItem('adminSavedTimestamp');
         console.log('🗑️ Admin credentials cleared from localStorage');
     }
 
-    // Load admin credentials from localStorage
+    // ✅ 修改：只加载邮箱，不加载密码
     function loadAdminCredentials() {
         const savedEmail = localStorage.getItem('adminSavedEmail');
-        const savedPassword = localStorage.getItem('adminSavedPassword');
         const rememberCheckbox = document.getElementById('remember_me');
         
-        if (savedEmail && savedPassword) {
+        if (savedEmail) {
             document.getElementById('admin-email').value = savedEmail;
-            document.getElementById('admin-password').value = savedPassword;
             if (rememberCheckbox) {
                 rememberCheckbox.checked = true;
             }
-            console.log('✅ Admin credentials loaded and filled');
+            console.log('✅ Admin email loaded and filled');
             return true;
         }
         return false;
@@ -192,10 +189,10 @@
             hasError = true;
         }
 
-        // Save or clear credentials
+        // ✅ 修改：只保存邮箱，密码只传给后端，不存 localStorage
         if (!hasError) {
             if (rememberMe) {
-                saveAdminCredentials(email, password);
+                saveAdminCredentials(email);  // 只保存邮箱
             } else {
                 clearAdminCredentials();
             }

@@ -25,7 +25,7 @@ from database import init_db, get_db, init_products, init_messages, init_announc
 init_db()
 
 app = Flask(__name__)
-app.secret_key = 'e-bye-secret-key-2026-new'
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024      # 100MB max upload size
 app.config['MAX_FORM_MEMORY_SIZE'] = 100 * 1024 * 1024  
 app.config['MAX_FORM_PARTS'] = 1000   
@@ -203,14 +203,17 @@ init_reviews()
 @app.route('/')
 def index():
     return render_template('welcome.html')  
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
         remember_me = request.form.get('remember_me')
-
+        
+        if not email.endswith('@student.mmu.edu.my'):
+            flash('Only @student.mmu.edu.my email addresses are allowed', 'error')
+            return render_template('login.html')
+        
         db = get_db()
         cur = db.cursor()
         cur.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(%s)', (email,))
@@ -2506,10 +2509,14 @@ def forgot_password():
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        email = request.form.get('email')
+        email = request.form.get('email', '').strip() 
         password = request.form.get('password')
         remember_me = request.form.get('remember_me') 
-
+    
+        if not email.endswith('@student.mmu.edu.my'):
+            flash('Only @student.mmu.edu.my email addresses are allowed', 'error')
+            return render_template('admin_login.html')
+    
         db = get_db()
         cur = db.cursor()
         cur.execute('SELECT * FROM users WHERE email = %s AND is_admin = 1', (email,))
@@ -3960,7 +3967,7 @@ def api_get_user_reviews(user_id):
     cur = db.cursor()
 
     cur.execute('''
-        SELECT r.*, u.username as reviewer_name, u.full_name as reviewer_full_name,
+        SELECT r.*, r.reviewer_id, u.username as reviewer_name, u.full_name as reviewer_full_name,
                u.avatar_blob, p.name as product_name
         FROM reviews r
         JOIN users u ON r.reviewer_id = u.id
@@ -3989,6 +3996,7 @@ def api_get_user_reviews(user_id):
         else:
             r_dict['reviewer_avatar_base64'] = None
         r_dict.pop('avatar_blob', None)
+        r_dict['reviewer_id'] = r['reviewer_id'] if 'reviewer_id' in r else r.get('id')
         result.append(r_dict)  
     
     return jsonify({
@@ -3999,6 +4007,7 @@ def api_get_user_reviews(user_id):
         'avg_overall': round(stats['avg_overall'], 1) if stats['avg_overall'] else 0,
         'total_reviews': stats['total'] or 0
     })
+
 @app.route('/api/user/<int:user_id>/can-review', methods=['GET'])
 def api_can_review_user(user_id):
     """Check whether user can comment and review seller or not(check either have completed order but not review order or not)"""
@@ -4194,4 +4203,4 @@ def api_user_other_listings(user_id):
     return jsonify(listings)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

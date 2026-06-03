@@ -1701,6 +1701,10 @@ function openReviewsModal() {
     fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
+
+        console.log('Reviews data:', data);
+        console.log('First review:', data.reviews ? data.reviews[0] : 'no reviews');
+        
         var starsHtml = generateStarsHtml(data.avg_overall);
         
         var statsHtml = `
@@ -1721,9 +1725,16 @@ function openReviewsModal() {
             var listHtml = '';
             for (var i = 0; i < data.reviews.length; i++) {
                 var review = data.reviews[i];
+                var reviewerId = review.reviewer_id;  
+                var profileLink = `/user/${reviewerId}`;
+                
                 var avatarHtml = review.reviewer_avatar_base64 ?
-                    '<img src="' + review.reviewer_avatar_base64 + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">' :
-                    '<div class="reviewer-avatar">' + (review.reviewer_name ? review.reviewer_name[0].toUpperCase() : 'U') + '</div>';
+                    `<a href="${profileLink}" class="reviewer-avatar-link" target="_blank" rel="noopener noreferrer">
+                        <img src="${review.reviewer_avatar_base64}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                    </a>` :
+                    `<a href="${profileLink}" class="reviewer-avatar-link" target="_blank" rel="noopener noreferrer">
+                        <div class="reviewer-avatar">${review.reviewer_name ? review.reviewer_name[0].toUpperCase() : 'U'}</div>
+                    </a>`;
                 
                 var reviewStars = generateStarsHtml(review.rating_overall);
                 var commentText = review.comment ? review.comment : 'No comment provided';
@@ -1732,7 +1743,9 @@ function openReviewsModal() {
                     <div class="review-card">
                         <div class="review-header">
                             ${avatarHtml}
-                            <div class="reviewer-name">👤 ${escapeHtml(review.reviewer_full_name || review.reviewer_name)}</div>
+                            <a href="${profileLink}" class="reviewer-name-link" target="_blank" rel="noopener noreferrer">
+                                👤 ${escapeHtml(review.reviewer_full_name || review.reviewer_name)}
+                            </a>
                             <div class="review-overall">${reviewStars} (${review.rating_overall})</div>
                         </div>
                         <div class="review-detail-ratings">
