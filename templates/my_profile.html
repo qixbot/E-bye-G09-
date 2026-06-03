@@ -254,7 +254,7 @@
     </div>
 </div>
 
-<!-- Confirm Received Modal - -->
+<!-- Confirm Received Modal -->
 <div id="confirmReceivedModal" class="modal" style="display: none;">
     <div class="modal-content confirm-modal">
         <div class="modal-header">
@@ -386,7 +386,6 @@ function loadListings() {
             console.log('Listings data received:', data);
             console.log('Data type:', typeof data, 'Is array:', Array.isArray(data));
             
-            // 确保 data 是数组
             if (!data || !Array.isArray(data)) {
                 console.error('Invalid data format:', data);
                 container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings: Invalid data format</div>';
@@ -415,12 +414,10 @@ function loadListings() {
                 var offerBtn = '';
                 var editDeleteBtns = '';
                 
-                // Only approved products display the Offers button
                 if (item.status === 'approved') {
                     offerBtn = '<button class="offer-view-btn" onclick="event.stopPropagation();viewOffers(' + item.id + ', \'' + escapeHtml(item.name).replace(/\'/g,"\\\'") + '\')">💰 Offers</button>';
                 }
                 
-                // Sold products are displayed with a "Sold" tag, and the edit/delete buttons are not shown
                 if (item.status !== 'sold') {
                     editDeleteBtns = `
                         <button class="edit-product-btn" onclick="editListing(${item.id})">✏️ Edit</button>
@@ -470,18 +467,15 @@ function loadListings() {
             container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings.<br><small>' + (err.message || 'Unknown error') + '</small><br><small>Check console for details (F12)</small></div>';
         });
 }
+
 // ============================================================
-// LOAD MY PURCHASES - WITH PRODUCT IMAGES
-// ============================================================
-// ============================================================
-// LOAD MY PURCHASES - 同时显示订单和待处理的 offers
+// LOAD MY PURCHASES - with product image clickable & auto-checkout after accept
 // ============================================================
 function loadPurchases() {
     var container = document.getElementById('purchases-list');
     var countSpan = document.getElementById('cnt-purchases');
     container.innerHTML = '<div class="loading-state">🛍️ Loading your purchases...</div>';
     
-    // 获取买家的所有 offers
     fetch('/api/user/offers', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -496,7 +490,6 @@ function loadPurchases() {
             for (var i = 0; i < data.length; i++) {
                 var item = data[i];
                 
-                // 处理 status 显示和按钮
                 var statusBadge = '';
                 var actionButtons = '';
                 var isCountered = (item.status === 'countered');
@@ -506,42 +499,39 @@ function loadPurchases() {
                 var isOrdered = (item.status === 'ordered');
                 
                 if (isCountered) {
-                statusBadge = '<span class="offer-status countered">🔄 Counter Offer Received</span>';
-                var counterPrice = parseFloat(item.counter_price || item.offer_price).toFixed(2);
-                actionButtons = `
-                      <button class="offer-action-btn accept-counter-btn" onclick="acceptCounterOffer(${item.id})">✅ Accept (RM ${counterPrice})</button>
-                      <button class="offer-action-btn reject-counter-btn" onclick="rejectCounterOffer(${item.id})">❌ Decline</button>
-                      <button class="offer-action-btn cancel-counter-btn" onclick="cancelCounterOffer(${item.id})">🗑️ Cancel Offer</button>
-                      <a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>
-                `;
+                    statusBadge = '<span class="offer-status countered">🔄 Counter Offer Received</span>';
+                    var counterPrice = parseFloat(item.counter_price || item.offer_price).toFixed(2);
+                    actionButtons = `
+                          <button class="offer-action-btn accept-counter-btn" onclick="acceptCounterOffer(${item.id})">✅ Accept (RM ${counterPrice})</button>
+                          <button class="offer-action-btn reject-counter-btn" onclick="rejectCounterOffer(${item.id})">❌ Decline</button>
+                          <button class="offer-action-btn cancel-counter-btn" onclick="cancelCounterOffer(${item.id})">🗑️ Cancel Offer</button>
+                    `;
                 } else if (isAccepted) {
                     statusBadge = '<span class="offer-status accepted">✅ Offer Accepted</span>';
                     actionButtons = `
                         <button class="offer-action-btn checkout-btn" onclick="createOrderFromOffer(${item.id})">🛒 Proceed to Checkout</button>
-                        <a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>
                     `;
                 } else if (isPending) {
                     statusBadge = '<span class="offer-status pending">⏳ Offer Pending</span>';
-                    actionButtons = `<a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>`;
+                    actionButtons = ``;
                 } else if (isRejected) {
                     statusBadge = '<span class="offer-status rejected">❌ Offer Declined</span>';
-                    actionButtons = `<a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>`;
+                    actionButtons = ``;
                 } else if (isOrdered) {
                     statusBadge = '<span class="offer-status ordered">📦 Order Created</span>';
-                    actionButtons = `<a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>`;
+                    actionButtons = `<button class="offer-action-btn view-order-btn" onclick="switchTab('orders')">📋 View Order</button>`;
                 }
                 
-                // 获取产品图片
                 var productImage = item.product_image || null;
                 var imageHtml = '';
                 if (productImage) {
                     if (productImage.startsWith('data:')) {
-                        imageHtml = '<img src="' + escapeHtml(productImage) + '" class="purchase-product-img" alt="' + escapeHtml(item.product_name) + '">';
+                        imageHtml = `<a href="/product/${item.product_id}" target="_blank"><img src="${escapeHtml(productImage)}" class="purchase-product-img" alt="${escapeHtml(item.product_name)}"></a>`;
                     } else {
-                        imageHtml = '<div class="purchase-image-wrapper"><img src="' + escapeHtml(productImage) + '" class="purchase-product-img" alt="' + escapeHtml(item.product_name) + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div class=\\\'purchase-img-placeholder\\\'>📦</div>\'"><div class="purchase-img-placeholder" style="display:none">📦</div></div>';
+                        imageHtml = `<div class="purchase-image-wrapper"><a href="/product/${item.product_id}" target="_blank"><img src="${escapeHtml(productImage)}" class="purchase-product-img" alt="${escapeHtml(item.product_name)}" onerror="this.style.display='none';this.parentElement.parentElement.innerHTML='<div class=\\\'purchase-img-placeholder\\\'>📦</div>'"></a><div class="purchase-img-placeholder" style="display:none">📦</div></div>`;
                     }
                 } else {
-                    imageHtml = '<div class="purchase-img-placeholder">📦</div>';
+                    imageHtml = `<a href="/product/${item.product_id}" target="_blank"><div class="purchase-img-placeholder">📦</div></a>`;
                 }
                 
                 html += `
@@ -551,7 +541,7 @@ function loadPurchases() {
                                 ${imageHtml}
                             </div>
                             <div class="purchase-title-section">
-                                <div class="purchase-name">${escapeHtml(item.product_name)}</div>
+                                <div class="purchase-name"><a href="/product/${item.product_id}" target="_blank" style="text-decoration:none;color:#205c30;">${escapeHtml(item.product_name)}</a></div>
                                 <div class="purchase-seller">from @${escapeHtml(item.seller_name || 'Unknown')}</div>
                                 ${statusBadge}
                             </div>
@@ -588,7 +578,7 @@ function loadPurchases() {
 }
 
 // ============================================================
-// 买家接受 counter offer
+// 买家接受 counter offer - 成功后直接打开 checkout 弹窗
 // ============================================================
 function acceptCounterOffer(offerId) {
     showToastMessage('Accepting counter offer...', 'info');
@@ -600,8 +590,10 @@ function acceptCounterOffer(offerId) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            showToastMessage('Counter offer accepted! You can now checkout.', 'success');
-            loadPurchases();
+            showToastMessage('Counter offer accepted! Opening checkout...', 'success');
+            // 直接打开 checkout 弹窗（选择地点和日期）
+            createOrderFromOffer(offerId);
+            loadPurchases(); // 刷新列表
         } else {
             throw new Error(data.error || 'Failed to accept');
         }
@@ -615,24 +607,53 @@ function acceptCounterOffer(offerId) {
 // 买家拒绝 counter offer
 // ============================================================
 function rejectCounterOffer(offerId) {
-    showToastMessage('Declining counter offer...', 'info');
-    fetch('/api/offer/' + offerId + '/reject-counter', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Counter offer declined.', 'success');
-            loadPurchases();
-        } else {
-            throw new Error(data.error || 'Failed to decline');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    });
+    var modalHtml = `
+        <div id="rejectCounterConfirm" class="custom-modal">
+            <div class="modal-card">
+                <div class="modal-icon">❌</div>
+                <div class="modal-title">Decline Counter Offer?</div>
+                <div class="modal-message">The seller will see your original offer still pending.</div>
+                <div class="modal-buttons">
+                    <button class="modal-cancel" id="rejectCancelBtn">Keep Offer</button>
+                    <button class="modal-confirm" id="rejectConfirmBtn">Decline</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    var existing = document.getElementById('rejectCounterConfirm');
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    var modal = document.getElementById('rejectCounterConfirm');
+    var cancelBtn = document.getElementById('rejectCancelBtn');
+    var confirmBtn = document.getElementById('rejectConfirmBtn');
+    
+    cancelBtn.onclick = function() { modal.remove(); };
+    confirmBtn.onclick = function() {
+        modal.remove();
+        showToastMessage('Declining counter offer...', 'info');
+        
+        fetch('/api/offer/' + offerId + '/reject-counter', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showToastMessage('Counter offer declined. Offer is now pending again.', 'success');
+                loadPurchases();
+                // 刷新卖家端 listings 以便卖家看到 pending offer
+                if (typeof loadListings === 'function') loadListings();
+            } else {
+                throw new Error(data.error || 'Failed to decline');
+            }
+        })
+        .catch(function(err) {
+            showToastMessage('Error: ' + err.message, 'error');
+        });
+    };
 }
 
 // ============================================================
@@ -675,7 +696,7 @@ function cancelCounterOffer(offerId) {
         .then(function(data) {
             if (data.success) {
                 showToastMessage('Counter offer cancelled! Offer is now pending again.', 'success');
-                loadPurchases();  // Refresh the list
+                loadPurchases();
             } else {
                 throw new Error(data.error || 'Failed to cancel');
             }
@@ -686,11 +707,8 @@ function cancelCounterOffer(offerId) {
     };
 }
 
-// ============================================================
-// 从接受的 offer 创建订单
-// ============================================================
+/// 从接受的 offer 创建订单（打开地点/时间选择）
 function createOrderFromOffer(offerId) {
-    // 先获取 offer 详情，然后显示 meetup 选择界面
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -698,25 +716,31 @@ function createOrderFromOffer(offerId) {
                 throw new Error(data.error);
             }
             
-            // 显示 meetup 选择弹窗
+            // 初始化全局变量
+            window.checkoutSelectedLocations = [];
+            
             var meetupHtml = `
                 <div id="checkoutMeetupModal" class="custom-modal">
                     <div class="modal-card" style="max-width: 500px;">
                         <div class="modal-icon">📍</div>
                         <div class="modal-title">Checkout: ${escapeHtml(data.product_name)}</div>
-                        <div class="modal-message">Price: RM ${data.offer_price.toFixed(2)}</div>
+                        <div class="modal-message">Agreed Price: RM ${data.offer_price.toFixed(2)}</div>
                         
                         <div style="margin: 16px 0;">
-                            <label style="font-weight:600; display:block; margin-bottom:8px;">Select Meetup Location(s):</label>
-                            <div class="meetup-options">
-                                <label class="checkbox-option"><input type="checkbox" value="FOM (Faculty of Management)"> FOM (Faculty of Management)</label>
-                                <label class="checkbox-option"><input type="checkbox" value="FOE (Faculty of Engineering)"> FOE (Faculty of Engineering)</label>
-                                <label class="checkbox-option"><input type="checkbox" value="FCI (Faculty of Computing)"> FCI (Faculty of Computing)</label>
-                                <label class="checkbox-option"><input type="checkbox" value="Library"> Library</label>
-                                <label class="checkbox-option"><input type="checkbox" value="Cafeteria"> Cafeteria</label>
-                                <label class="checkbox-option"><input type="checkbox" value="Student Hub"> Student Hub</label>
-                                <label class="checkbox-option"><input type="checkbox" value="Others (specify in chat)"> Others (specify in chat)</label>
+                            <label style="font-weight:600; display:block; margin-bottom:8px;">Select Meetup Location(s) (max 3):</label>
+                            <div id="checkoutLocationGrid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                            <div id="checkoutLocationInfo" style="font-size:12px; margin-top:8px; color:#e74c3c;">⚠️ Please select 1-3 locations</div>
+                        </div>
+                        
+                        <div style="margin: 16px 0;">
+                            <label style="font-weight:600; display:block; margin-bottom:8px;">Select up to 3 preferred dates & times:</label>
+                            <div id="dateTimeInputsCheckout" style="display: flex; flex-direction: column; gap: 10px;">
+                                <div class="date-row">
+                                    <input type="datetime-local" class="datetime-picker" step="60">
+                                    <button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button>
+                                </div>
                             </div>
+                            <button type="button" id="addDateBtnCheckout" class="add-more-btn" style="margin-top:8px; background:#205c30; color:white; border:none; padding:5px 12px; border-radius:20px; cursor:pointer;">+ Add another date</button>
                         </div>
                         
                         <div class="modal-buttons">
@@ -731,7 +755,70 @@ function createOrderFromOffer(offerId) {
             if (existing) existing.remove();
             document.body.insertAdjacentHTML('beforeend', meetupHtml);
             
-            window.currentCheckoutOfferId = offerId;
+            // 构建地点选项（按钮式，带高亮）
+            var locations = [
+                "FOM (Faculty of Management)", "FOE (Faculty of Engineering)", "FCI (Faculty of Computing)",
+                "Library", "Cafeteria", "Student Hub", "DTC", "Starbees", "CLC",
+                "Masjid", "Tekun Mart", "Chancellery Building", "Others (specify in chat)"
+            ];
+            
+            var grid = document.getElementById('checkoutLocationGrid');
+            for (var i = 0; i < locations.length; i++) {
+                var loc = locations[i];
+                var btn = document.createElement('button');
+                btn.textContent = loc;
+                btn.style.cssText = 'padding:8px 12px; margin:4px; border:1px solid #ddd; border-radius:20px; background:#f5f5f5; cursor:pointer;';
+                
+                btn.onclick = (function(locationName, button) {
+                    return function() {
+                        var idx = window.checkoutSelectedLocations.indexOf(locationName);
+                        if (idx !== -1) {
+                            // 取消选择
+                            window.checkoutSelectedLocations.splice(idx, 1);
+                            button.style.background = '#f5f5f5';
+                            button.style.borderColor = '#ddd';
+                            button.style.color = '#333';
+                        } else {
+                            // 选择（最多3个）
+                            if (window.checkoutSelectedLocations.length >= 3) {
+                                showToastMessage('Maximum 3 locations allowed', 'error');
+                                return;
+                            }
+                            window.checkoutSelectedLocations.push(locationName);
+                            button.style.background = '#205c30';
+                            button.style.borderColor = '#205c30';
+                            button.style.color = 'white';
+                        }
+                        
+                        var infoDiv = document.getElementById('checkoutLocationInfo');
+                        if (infoDiv) {
+                            if (window.checkoutSelectedLocations.length === 0) {
+                                infoDiv.innerHTML = '⚠️ Please select 1-3 locations';
+                                infoDiv.style.color = '#e74c3c';
+                            } else {
+                                infoDiv.innerHTML = '✓ Selected: ' + window.checkoutSelectedLocations.join(', ');
+                                infoDiv.style.color = '#2ecc71';
+                            }
+                        }
+                    };
+                })(loc, btn);
+                
+                grid.appendChild(btn);
+            }
+            
+            // 添加日期选择行
+            document.getElementById('addDateBtnCheckout').addEventListener('click', function() {
+                var container = document.getElementById('dateTimeInputsCheckout');
+                var rows = container.querySelectorAll('.date-row');
+                if (rows.length >= 3) {
+                    showToastMessage('Maximum 3 dates allowed', 'error');
+                    return;
+                }
+                var newRow = document.createElement('div');
+                newRow.className = 'date-row';
+                newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button>';
+                container.appendChild(newRow);
+            });
         })
         .catch(function(err) {
             showToastMessage('Error: ' + err.message, 'error');
@@ -744,14 +831,21 @@ function closeCheckoutModal() {
 }
 
 function submitOrderFromOffer(offerId) {
-    var checkboxes = document.querySelectorAll('#checkoutMeetupModal input[type="checkbox"]:checked');
-    var selectedLocations = [];
-    checkboxes.forEach(function(cb) {
-        selectedLocations.push(cb.value);
-    });
-    
-    if (selectedLocations.length === 0) {
+    // 使用全局变量 window.checkoutSelectedLocations
+    if (!window.checkoutSelectedLocations || window.checkoutSelectedLocations.length === 0) {
         showToastMessage('Please select at least one meetup location', 'error');
+        return;
+    }
+    
+    var dateInputs = document.querySelectorAll('#dateTimeInputsCheckout .datetime-picker');
+    var selectedDates = [];
+    for (var i = 0; i < dateInputs.length; i++) {
+        var val = dateInputs[i].value;
+        if (val) selectedDates.push(val);
+    }
+    
+    if (selectedDates.length === 0) {
+        showToastMessage('Please select at least one preferred date and time', 'error');
         return;
     }
     
@@ -760,7 +854,10 @@ function submitOrderFromOffer(offerId) {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meetup_locations: selectedLocations })
+        body: JSON.stringify({ 
+            meetup_locations: window.checkoutSelectedLocations,
+            meeting_dates: selectedDates
+        })
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -779,14 +876,13 @@ function submitOrderFromOffer(offerId) {
 }
 
 // ============================================================
-// LOAD MY Orders
+// LOAD MY ORDERS - with product image clickable
 // ============================================================
 function loadOrders() {
     var container = document.getElementById('orders-list');
     var countSpan = document.getElementById('cnt-orders');
     container.innerHTML = '<div class="loading-state">📋 Loading your orders...</div>';
     
-    // FIXED: Use correct API endpoint /api/orders/my
     fetch('/api/orders/my', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -803,7 +899,6 @@ function loadOrders() {
 
             var html = '';
 
-            // As seller orders (seller needs to manage the order)
             if(asSeller.length > 0) {
                 html += '<div class="orders-section"><h4>📦 Orders I need to Process</h4>';
                 for (var i = 0; i < asSeller.length; i++) {
@@ -812,7 +907,6 @@ function loadOrders() {
                 html += '</div>';
             }
 
-            // As buyer orders (buyer can only view the order status)
             if(asBuyer.length > 0) {
                 html += '<div class="orders-section"><h4>🛒 My Purchases</h4>';
                 for (var j = 0; j < asBuyer.length; j++) {
@@ -833,14 +927,17 @@ function renderOrderCard(order, role) {
     var status = order.status;
     var statusText = getStatusText(status);
     var statusClass = getStatusClass(status);
-
+    
     var actionButtons = '';
     var meetupInfo = '';
-
+    
     if (order.meeting_point) {
         meetupInfo = '<div>📍 Meetup: ' + escapeHtml(order.meeting_point) + '</div>';
     }
-
+    if (order.meeting_time && order.meeting_time !== '') {
+        meetupInfo += '<div>⏰ Preferred Time: ' + escapeHtml(order.meeting_time) + '</div>';
+    }
+    
     if (role === 'seller') {
         if (status === 'pending') {
             actionButtons = '<button class="order-action-btn confirm-btn" onclick="openConfirmOrderModal(' + order.id + ', \'' + escapeHtml(order.order_number) + '\', \'' + escapeHtml(order.product_name) + '\', \'' + escapeHtml(order.meeting_point || '') + '\', \'' + escapeHtml(order.meeting_time || '') + '\')">✅ Confirm Order</button>';
@@ -854,41 +951,53 @@ function renderOrderCard(order, role) {
             actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
         }
     } else if (role === 'buyer') {
-    // Buyer can only confirm receipt or leave review based on order status
-    if (status === 'delivered') {
-        actionButtons = '<button class="order-action-btn complete-btn" onclick="openConfirmReceivedModal(' + order.id + ', \'' + escapeHtml(order.product_name) + '\', \'' + escapeHtml(order.order_number) + '\')">✅ Confirm Received</button>';
-    } else if (status === 'completed') {
-        // 已完成订单不显示评价按钮（确认收货时已弹出）
-        actionButtons = '<span class="order-status-badge completed">✅ Completed</span>';
-    } else if (status === 'pending') {
-        actionButtons = '<span class="order-status-badge waiting">⏳ Awaiting seller confirmation</span>';
-    } else if (status === 'cancelled') {
-        actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
-    } else {
-        actionButtons = '<span class="order-status-badge ' + status + '">' + statusText + '</span>';
+        // 买家端显示
+        if (status === 'pending') {
+            actionButtons = '<span class="order-status-badge waiting">⏳ Awaiting seller confirmation</span>';
+        } else if (status === 'confirmed') {
+            actionButtons = '<span class="order-status-badge confirmed">✅ Seller confirmed - waiting for delivery</span>';
+        } else if (status === 'delivered') {
+            actionButtons = '<button class="order-action-btn complete-btn" onclick="openConfirmReceivedModal(' + order.id + ', \'' + escapeHtml(order.product_name) + '\', \'' + escapeHtml(order.order_number) + '\')">✅ Confirm Received</button>';
+        } else if (status === 'completed') {
+            actionButtons = '<span class="order-status-badge completed">✅ Completed</span>';
+        } else if (status === 'cancelled') {
+            actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
+        } else {
+            actionButtons = '<span class="order-status-badge ' + status + '">' + statusText + '</span>';
+        }
     }
-}
-
     
-    // FIXED: Added backticks for template literal and fixed return statement
-    return `<div class="order-card">
-        <div class="order-header">
-            <div class="order-number">#${escapeHtml(order.order_number)}</div>
-            <div class="order-status ${statusClass}">${statusText}</div>
-        </div>
-        <div class="order-product">
-            <div class="order-product-name">📦 ${escapeHtml(order.product_name)}</div>
-            <div class="order-price">RM ${parseFloat(order.offer_price).toFixed(2)}</div>
-        </div>
-        <div class="order-meta">
-            <div>👤 ${role === 'buyer' ? 'Seller: @' + escapeHtml(order.seller_name) : 'Buyer: @' + escapeHtml(order.buyer_name)}</div>
-            ${meetupInfo}
-            <div>📅 ${order.created_at ? order.created_at.split(' ')[0] : ''}</div>
-        </div>
-        <div class="order-actions">
-            ${actionButtons}
-        </div>
-    </div>`;
+    // 产品图片可点击
+    var productImage = order.product_image || '';
+    var imageHtml = '';
+    if (productImage) {
+        if (productImage.startsWith('data:')) {
+            imageHtml = '<a href="/product/' + order.product_id + '" target="_blank"><img src="' + escapeHtml(productImage) + '" style="width:60px;height:60px;object-fit:cover;border-radius:8px;"></a>';
+        } else {
+            imageHtml = '<a href="/product/' + order.product_id + '" target="_blank"><img src="' + escapeHtml(productImage) + '" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" onerror="this.src=\'/static/placeholder.jpg\'"></a>';
+        }
+    } else {
+        imageHtml = '<a href="/product/' + order.product_id + '" target="_blank"><div style="width:60px;height:60px;background:#f0f0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;">📦</div></a>';
+    }
+    
+    return '<div class="order-card">' +
+        '<div class="order-header">' +
+        '<div class="order-number">#' + escapeHtml(order.order_number) + '</div>' +
+        '<div class="order-status ' + statusClass + '">' + statusText + '</div>' +
+        '</div>' +
+        '<div class="order-product" style="display:flex; gap:12px; align-items:center;">' +
+        imageHtml +
+        '<div style="flex:1;">' +
+        '<div class="order-product-name">📦 ' + escapeHtml(order.product_name) + '</div>' +
+        '<div class="order-price">RM ' + parseFloat(order.offer_price).toFixed(2) + '</div>' +
+        '</div></div>' +
+        '<div class="order-meta">' +
+        '<div>👤 ' + (role === 'buyer' ? 'Seller: @' + escapeHtml(order.seller_name) : 'Buyer: @' + escapeHtml(order.buyer_name)) + '</div>' +
+        meetupInfo +
+        '<div>📅 ' + (order.created_at ? order.created_at.split(' ')[0] : '') + '</div>' +
+        '</div>' +
+        '<div class="order-actions">' + actionButtons + '</div>' +
+        '</div>';
 }
 
 function getStatusText(status) {
@@ -927,7 +1036,6 @@ function updateOrderStatus(orderId, newStatus, callback) {
             showToastMessage('Order status updated to ' + newStatus + '!', 'success');
             loadOrders();
             loadListings();
-            // 如果有回调函数，执行它
             if (callback && typeof callback === 'function') {
                 callback();
             }
@@ -945,9 +1053,8 @@ function confirmOrderCompletion(orderId) {
 }
 
 // ============================================================
-// CONFIRM RECEIVED MODAL - 
+// CONFIRM RECEIVED MODAL
 // ============================================================
-
 var pendingConfirmOrderId = null;
 
 function openConfirmReceivedModal(orderId, productName, orderNumber) {
@@ -970,7 +1077,6 @@ function closeConfirmReceivedModal() {
     pendingConfirmOrderId = null;
 }
 
-// 确认收货按钮事件
 document.addEventListener('DOMContentLoaded', function() {
     var confirmBtn = document.getElementById('confirmReceivedBtn');
     if (confirmBtn) {
@@ -984,17 +1090,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-
 function onConfirmReceived() {
     if (pendingConfirmOrderId) {
         var orderId = pendingConfirmOrderId;
         
-        // 先获取订单信息（产品名称）
         fetch('/api/orders/my', { credentials: 'same-origin' })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 var order = null;
-                // 在 as_buyer 中查找这个订单
                 if (data.as_buyer) {
                     for (var i = 0; i < data.as_buyer.length; i++) {
                         if (data.as_buyer[i].id == orderId) {
@@ -1003,15 +1106,9 @@ function onConfirmReceived() {
                         }
                     }
                 }
-                
                 var productName = order ? order.product_name : 'this item';
-                
-                // 关闭确认弹框
                 closeConfirmReceivedModal();
-                
-                // 先更新订单状态为 completed
                 updateOrderStatus(orderId, 'completed', function() {
-                    // 订单完成后，打开评价弹框
                     openReviewModal(orderId, productName);
                 });
             })
@@ -1026,50 +1123,70 @@ function onConfirmReceived() {
 }
 
 function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocations, meetingTimes) {
-    var locations = meetupLocations ? meetupLocations.split(',') : [];
-    var times = meetingTimes ? meetingTimes.split(',') : [];
+    // 解析地点和时间数组
+    var locations = [];
+    if (meetupLocations && meetupLocations !== '') {
+        locations = meetupLocations.split(',');
+    }
     
-    var modalHtml = `<div id="confirmOrderModal" class="custom-modal">
-        <div class="modal-card" style="max-width: 500px;">
-            <div class="modal-icon">📋</div>
-            <div class="modal-title">Confirm Order #${escapeHtml(orderNumber)}</div>
-            <div class="modal-message">Product: ${escapeHtml(productName)}</div>
-            
-            <div style="margin: 16px 0;">
-                <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Location (select one):</label>
-                <div class="location-options">
-                    ${locations.map(function(loc, idx) {
-                        return `<label class="radio-option">
-                            <input type="radio" name="selected_location" value="${escapeHtml(loc)}"> ${escapeHtml(loc)}
-                        </label>`;
-                    }).join('')}
-                    ${locations.length === 0 ? '<p class="no-data">No location specified</p>' : ''}
-                </div>
-            </div>
-            
-            <div style="margin: 16px 0;">
-                <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Time (select one):</label>
-                <div class="time-options">
-                    ${times.map(function(t, idx) {
-                        return `<label class="radio-option">
-                            <input type="radio" name="selected_time" value="${escapeHtml(t)}"> ${escapeHtml(t)}
-                        </label>`;
-                    }).join('')}
-                    ${times.length === 0 ? '<p class="no-data">No time specified</p>' : ''}
-                </div>
-            </div>
-            
-            <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeConfirmOrderModal()">Cancel</button>
-                <button class="modal-confirm" onclick="submitOrderConfirmation(${orderId})">Confirm Order</button>
-            </div>
-        </div>
-    </div>`;
+    var times = [];
+    if (meetingTimes && meetingTimes !== '') {
+        times = meetingTimes.split(',');
+    }
+    
+    // 生成地点选项 HTML
+    var locationHtml = '';
+    for (var i = 0; i < locations.length; i++) {
+        var loc = locations[i];
+        locationHtml += '<label class="radio-option" style="display:block; margin-bottom:8px; cursor:pointer;">';
+        locationHtml += '<input type="radio" name="selected_location" value="' + escapeHtml(loc) + '"> ';
+        locationHtml += '<span>' + escapeHtml(loc) + '</span>';
+        locationHtml += '</label>';
+    }
+    if (locations.length === 0) {
+        locationHtml = '<p class="no-data" style="color:#999;">No location specified</p>';
+    }
+    
+    // 生成时间选项 HTML
+    var timeHtml = '';
+    for (var j = 0; j < times.length; j++) {
+        var t = times[j];
+        // 格式化显示时间
+        var displayTime = t;
+        if (t && t.includes('T')) {
+            displayTime = t.replace('T', ' at ');
+        }
+        timeHtml += '<label class="radio-option" style="display:block; margin-bottom:8px; cursor:pointer;">';
+        timeHtml += '<input type="radio" name="selected_time" value="' + escapeHtml(t) + '"> ';
+        timeHtml += '<span>' + escapeHtml(displayTime) + '</span>';
+        timeHtml += '</label>';
+    }
+    if (times.length === 0) {
+        timeHtml = '<p class="no-data" style="color:#999;">No time specified</p>';
+    }
+    
+    var modalHtml = '<div id="confirmOrderModal" class="custom-modal">';
+    modalHtml += '<div class="modal-card" style="max-width: 500px;">';
+    modalHtml += '<div class="modal-icon">📋</div>';
+    modalHtml += '<div class="modal-title">Confirm Order #' + escapeHtml(orderNumber) + '</div>';
+    modalHtml += '<div class="modal-message">Product: ' + escapeHtml(productName) + '</div>';
+    modalHtml += '<div style="margin: 16px 0;">';
+    modalHtml += '<label style="font-weight:600; display:block; margin-bottom:12px;">📍 Buyer\'s Preferred Location (select one):</label>';
+    modalHtml += '<div class="location-options" style="background:#f9f9f9; padding:12px; border-radius:12px;">';
+    modalHtml += locationHtml;
+    modalHtml += '</div></div>';
+    modalHtml += '<div style="margin: 16px 0;">';
+    modalHtml += '<label style="font-weight:600; display:block; margin-bottom:12px;">⏰ Buyer\'s Preferred Time (select one):</label>';
+    modalHtml += '<div class="time-options" style="background:#f9f9f9; padding:12px; border-radius:12px;">';
+    modalHtml += timeHtml;
+    modalHtml += '</div></div>';
+    modalHtml += '<div class="modal-buttons" style="display:flex; gap:12px; justify-content:flex-end; margin-top:20px;">';
+    modalHtml += '<button class="modal-cancel" style="padding:10px 20px; border-radius:30px; background:#f0f0f0; border:none; cursor:pointer;" onclick="closeConfirmOrderModal()">Cancel</button>';
+    modalHtml += '<button class="modal-confirm" style="padding:10px 20px; border-radius:30px; background:#205c30; color:white; border:none; cursor:pointer;" onclick="submitOrderConfirmation(' + orderId + ')">Confirm Order</button>';
+    modalHtml += '</div></div></div>';
     
     var existingModal = document.getElementById('confirmOrderModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
+    if (existingModal) existingModal.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
@@ -1079,11 +1196,29 @@ function closeConfirmOrderModal() {
 }
 
 function submitOrderConfirmation(orderId) {
-    var selectedLocation = document.querySelector('input[name="selected_location"]:checked');
-    var selectedTime = document.querySelector('input[name="selected_time"]:checked');
+    // 获取选中的地点 - 使用更精确的选择器
+    var selectedLocationElem = document.querySelector('#confirmOrderModal input[name="selected_location"]:checked');
+    var selectedLocation = selectedLocationElem ? selectedLocationElem.value : null;
     
-    if (!selectedLocation || !selectedTime) {
-        showToastMessage('Please select a location and time', 'error');
+    // 获取选中的时间 - 使用更精确的选择器
+    var selectedTimeElem = document.querySelector('#confirmOrderModal input[name="selected_time"]:checked');
+    var selectedTime = selectedTimeElem ? selectedTimeElem.value : null;
+    
+    // 调试输出 - 在浏览器控制台查看
+    console.log('=== Order Confirmation Debug ===');
+    console.log('Order ID:', orderId);
+    console.log('Selected location element:', selectedLocationElem);
+    console.log('Selected location value:', selectedLocation);
+    console.log('Selected time element:', selectedTimeElem);
+    console.log('Selected time value:', selectedTime);
+    console.log('================================');
+    
+    if (!selectedLocation) {
+        showToastMessage('Please select a meetup location', 'error');
+        return;
+    }
+    if (!selectedTime) {
+        showToastMessage('Please select a meeting time', 'error');
         return;
     }
     
@@ -1093,23 +1228,28 @@ function submitOrderConfirmation(orderId) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            meeting_point: selectedLocation.value,
-            meeting_time: selectedTime.value
+            meeting_point: selectedLocation,
+            meeting_time: selectedTime
         }),
         credentials: 'same-origin'
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { 
+        console.log('Response status:', r.status);
+        return r.json(); 
+    })
     .then(function(data) {
+        console.log('Response data:', data);
         if (data.success) {
             showToastMessage('Order confirmed!', 'success');
             closeConfirmOrderModal();
             loadOrders();
             loadListings();
         } else {
-            throw new Error(data.error);
+            throw new Error(data.error || 'Failed to confirm order');
         }
     })
     .catch(function(err) {
+        console.error('Confirm order error:', err);
         showToastMessage('Failed: ' + err.message, 'error');
     });
 }
@@ -1237,7 +1377,7 @@ function contactBuyer(buyerId) {
 }
 
 // ============================================================
-// EDIT PRODUCT MODAL FUNCTIONS 
+// EDIT PRODUCT MODAL FUNCTIONS
 // ============================================================
 var currentMediaFiles = [];   
 var newMediaFiles = [];        
@@ -1661,7 +1801,6 @@ function deleteListing(id, name) {
 // ============================================================
 // SELLER RATING BUTTON 
 // ============================================================
-
 function loadSellerRating() {
     var userId = CURRENT_USER_ID;
     if (!userId || userId === 0) {
@@ -1674,17 +1813,13 @@ function loadSellerRating() {
     fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        
         container.style.display = 'block';  
         document.getElementById('reviewCount').textContent = data.total_reviews || 0;
-
-        // Check if user can write a review
         return fetch('/api/user/' + userId + '/can-review', { credentials: 'same-origin' });
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        // We don't need to show write review button on the simplified view
-        // The write review button is only available in the orders tab
+        // no need to show write review button on simplified view
     })
     .catch(function(err) {
         console.log('Load seller rating error:', err);
@@ -1694,14 +1829,12 @@ function loadSellerRating() {
 // ============================================================
 // Open reviews modal - show all buyer reviews with comments
 // ============================================================
-
 function openReviewsModal() {
     var userId = {{ user.id }}; 
 
     fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-
         console.log('Reviews data:', data);
         console.log('First review:', data.reviews ? data.reviews[0] : 'no reviews');
         
@@ -1772,20 +1905,17 @@ function closeReviewsModal() {
     document.getElementById('reviewsModal').style.display = 'none';
 }
 
-
 function formatReviewDate(dateStr) {
     if (!dateStr) return 'Recently';
     var d = new Date(dateStr);
     return d.toLocaleDateString();
 }
 
-// Click outside modal to close
 window.onclick = function(event) {
     var modal = document.getElementById('reviewsModal');
     if (event.target === modal) closeReviewsModal();
 };
 
-// Parse URL parameters to switch tab
 var urlParams = new URLSearchParams(window.location.search);
 var tabParam = urlParams.get('tab');
 if (tabParam && (tabParam === 'orders' || tabParam === 'listings' || tabParam === 'purchases')) {
@@ -1795,7 +1925,6 @@ if (tabParam && (tabParam === 'orders' || tabParam === 'listings' || tabParam ==
 if (tabParam === 'received-reviews') {
     openReviewsModal();
 }
-
 
 // ============================================================
 // Open review writing modal - from orders tab
@@ -1920,8 +2049,8 @@ function submitSellerReview() {
         if (data.success) {
             showToastMessage('Review submitted! Thank you!', 'success');
             closeWriteReviewModal();
-            loadSellerRating(); // Refresh the review count
-            loadOrders(); // Refresh orders to remove the review button
+            loadSellerRating();
+            loadOrders();
             window.pendingReviewOrderId = null;
             window.pendingReviewProductName = null;
         } else {
@@ -1952,25 +2081,21 @@ function generateStarsHtml(rating) {
 }
 
 // ============================================================
-// AVATAR MODAL - 纯查看头像
+// AVATAR MODAL
 // ============================================================
-
 function openAvatarModal() {
     var modal = document.getElementById('avatarModal');
     var largeImg = document.getElementById('avatarLargeImg');
     var placeholder = document.getElementById('avatarLargePlaceholder');
     
-    // 获取当前头像信息
     var avatarImg = document.querySelector('.pf-avatar img');
     var avatarInit = document.querySelector('.pf-avatar-init');
     
     if (avatarImg && avatarImg.style.display !== 'none' && avatarImg.src) {
-        // 有头像图片
         largeImg.src = avatarImg.src;
         largeImg.style.display = 'block';
         placeholder.style.display = 'none';
     } else {
-        // 没有头像，显示首字母
         largeImg.style.display = 'none';
         placeholder.textContent = avatarInit ? avatarInit.textContent : 'U';
         placeholder.style.display = 'flex';
@@ -1984,7 +2109,6 @@ function closeAvatarModal() {
     modal.style.display = 'none';
 }
 
-// 点击模态框外部关闭
 window.onclick = function(event) {
     var confirmModal = document.getElementById('confirmReceivedModal');
     if (event.target === confirmModal) closeConfirmReceivedModal();
@@ -2006,7 +2130,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadPurchases();
     loadSellerRating();
     
-    // support URL hash for tab switching (for old links like #orders)
     var hash = window.location.hash;
     if (hash === '#orders') {
         switchTab('orders');

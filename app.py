@@ -1043,29 +1043,35 @@ def api_confirm_order(order_id):
     meeting_point = data.get('meeting_point')
     meeting_time = data.get('meeting_time')
     
+    if not meeting_point or not meeting_time:
+        return jsonify({'success': False, 'error': 'Meeting point and time are required'}), 400
+    
     db = get_db()
     cur = db.cursor()
     
-    cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s', 
-                (order_id, session['user_id']))
+    # 修复：使用单引号 'pending'，不要用双引号
+    cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s AND status = %s', 
+                (order_id, session['user_id'], 'pending'))
     order = cur.fetchone()
     
     if not order:
         cur.close()
         db.close()
-        return jsonify({'success': False, 'error': 'Order not found'}), 404
+        return jsonify({'success': False, 'error': 'Order not found or already confirmed'}), 404
     
+    # 更新订单状态为 confirmed
     cur.execute('''
         UPDATE orders 
         SET meeting_point = %s, meeting_time = %s, status = 'confirmed', updated_at = NOW()
         WHERE id = %s
     ''', (meeting_point, meeting_time, order_id))
     
+    # 通知买家订单已确认
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), 'order', %s, 0)
     ''', (order['buyer_id'], 
-          f" Order #{order['order_number']} has been CONFIRMED by seller! Meeting at: {meeting_point} on {meeting_time}",
+          f"✅ Order #{order['order_number']} has been CONFIRMED by seller! Meeting at: {meeting_point} on {meeting_time}",
           order_id))
     
     db.commit()
@@ -1572,6 +1578,7 @@ def api_create_order_from_offer(offer_id):
     
     data = request.get_json()
     meetup_locations = data.get('meetup_locations', [])
+    meeting_dates = data.get('meeting_dates', [])  # 注意这里是 meeting_dates
     
     if not meetup_locations:
         return jsonify({'success': False, 'error': 'Please select meetup locations'}), 400
@@ -1595,12 +1602,15 @@ def api_create_order_from_offer(offer_id):
     
     order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
     
+    # 将日期列表转为字符串存储
+    meeting_dates_str = ','.join(meeting_dates) if meeting_dates else ''
+    
     cur.execute('''
         INSERT INTO orders (order_number, product_id, buyer_id, seller_id, offer_price,
-                           meeting_point, status, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW()) RETURNING id
+                           meeting_point, meeting_time, status, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW()) RETURNING id
     ''', (order_number, offer['product_id'], offer['buyer_id'], offer['seller_id'],
-          offer['offer_price'], ','.join(meetup_locations)))
+          offer['offer_price'], ','.join(meetup_locations), meeting_dates_str))
     
     order_id = cur.fetchone()['id']
     
@@ -1619,7 +1629,7 @@ def api_create_order_from_offer(offer_id):
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (session['user_id'],
-          f"📋 Order #{order_number} created successfully for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}. Meetup: {', '.join(meetup_locations)}. Waiting for seller to confirm.",
+          f"📋 Order #{order_number} created successfully for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}. Meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Waiting for seller to confirm.",
           'order_created', order_id))
     
     db.commit()
@@ -1691,7 +1701,7 @@ def api_buy_now():
     data = request.get_json()
     product_id = data.get('product_id')
     meetup_locations = data.get('meetup_locations', [])
-    meeting_dates = data.get('meeting_dates', [])
+    meeting_dates = data.get('meeting_dates', [])  # 获取日期数组
     meeting_dates_str = ','.join(meeting_dates) if meeting_dates else ''
 
     if not product_id or not meetup_locations:
@@ -1731,14 +1741,14 @@ def api_buy_now():
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (product['seller_id'],
-          f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Go to My Orders to confirm.",
+          f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Go to My Orders to confirm.",
           'order_created', order_id))
     
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (session['user_id'],
-          f"✅ Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. Meetup: {', '.join(meetup_locations)}. Waiting for seller to confirm.",
+          f"✅ Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. Meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Waiting for seller to confirm.",
           'order_created', order_id))
     
     db.commit()
@@ -3834,38 +3844,38 @@ def api_update_order_status(order_id):
         db.close()
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
-    # 允许的状态转换
-    allowed = {
-        'pending': {'confirmed': 'seller', 'cancelled': 'both'},
-        'confirmed': {'delivered': 'seller', 'cancelled': 'both'},
-        'delivered': {'completed': 'buyer'},
-        'completed': {},
-        'cancelled': {}
-    }
-    
-    if new_status not in allowed.get(order['status'], {}):
-        cur.close()
-        db.close()
+    # 状态转换验证
+    if new_status == 'confirmed':
+        if order['status'] != 'pending':
+            return jsonify({'success': False, 'error': 'Can only confirm pending orders'}), 400
+        if not is_seller:
+            return jsonify({'success': False, 'error': 'Only seller can confirm order'}), 403
+    elif new_status == 'delivered':
+        if order['status'] != 'confirmed':
+            return jsonify({'success': False, 'error': 'Can only mark as delivered after confirmed'}), 400
+        if not is_seller:
+            return jsonify({'success': False, 'error': 'Only seller can mark as delivered'}), 403
+    elif new_status == 'completed':
+        if order['status'] != 'delivered':
+            return jsonify({'success': False, 'error': 'Can only complete after delivered'}), 400
+        if not is_buyer:
+            return jsonify({'success': False, 'error': 'Only buyer can confirm receipt'}), 403
+    elif new_status == 'cancelled':
+        if order['status'] not in ['pending', 'confirmed']:
+            return jsonify({'success': False, 'error': 'Cannot cancel order at this stage'}), 400
+    else:
         return jsonify({'success': False, 'error': 'Invalid status transition'}), 400
     
-    allowed_by = allowed[order['status']][new_status]
-    if allowed_by == 'seller' and not is_seller:
-        cur.close()
-        db.close()
-        return jsonify({'success': False, 'error': 'Only seller can do this'}), 403
-    if allowed_by == 'buyer' and not is_buyer:
-        cur.close()
-        db.close()
-        return jsonify({'success': False, 'error': 'Only buyer can do this'}), 403
-    
+    # 执行更新
     cur.execute('UPDATE orders SET status = %s, updated_at = NOW() WHERE id = %s', (new_status, order_id))
     
+    # 发送通知
     notify_user_id = order['buyer_id'] if is_seller else order['seller_id']
     
     messages = {
         'confirmed': f"✅ Order #{order['order_number']} has been CONFIRMED by seller!",
-        'delivered': f"🚚 Order #{order['order_number']} has been MARKED AS DELIVERED! Please confirm receipt to complete the order.",
-        'completed': f"🎉 Order #{order['order_number']} is COMPLETED! Please leave a review.",
+        'delivered': f"🚚 Order #{order['order_number']} has been MARKED AS DELIVERED! Please confirm receipt.",
+        'completed': f"🎉 Order #{order['order_number']} is COMPLETED! Thank you!",
         'cancelled': f"❌ Order #{order['order_number']} has been CANCELLED."
     }
     
@@ -3874,6 +3884,10 @@ def api_update_order_status(order_id):
             INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
             VALUES (%s, %s, NOW(), 'order', %s, 0)
         ''', (notify_user_id, messages[new_status], order_id))
+    
+    # 订单完成后更新产品状态 - 使用单引号
+    if new_status == 'completed':
+        cur.execute('UPDATE products SET status = %s WHERE id = %s', ('sold', order['product_id']))
     
     db.commit()
     cur.close()

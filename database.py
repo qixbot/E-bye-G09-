@@ -14,21 +14,15 @@ logger = logging.getLogger(__name__)
 # Database Configuration
 # ============================================================
 
-# Your new Neon database connection string
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if not DATABASE_URL:
-    # Updated Neon connection string
     DATABASE_URL = "postgresql://neondb_owner:npg_mIbexS1E0npq@ep-morning-queen-aoeg1sed.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
     logger.info("Using default DATABASE_URL (Neon PostgreSQL)")
 
 
-# ============================================================
-# Backward compatible functions for app.py
-# ============================================================
-
 def get_db():
-    """Get database connection - returns a connection object (not context manager)"""
+    """Get database connection"""
     try:
         conn = psycopg2.connect(
             DATABASE_URL,
@@ -38,7 +32,6 @@ def get_db():
             keepalives_interval=2,
             keepalives_count=2
         )
-        # Set cursor factory for RealDictCursor by default
         conn.cursor_factory = RealDictCursor
         return conn
     except Exception as e:
@@ -47,7 +40,6 @@ def get_db():
 
 
 def get_db_with_retry(retries=3, delay=2):
-    """带重试的连接获取"""
     for i in range(retries):
         try:
             return get_db()
@@ -60,7 +52,6 @@ def get_db_with_retry(retries=3, delay=2):
 
 
 def execute_query(sql: str, params: tuple = None, fetch_one: bool = False, fetch_all: bool = False):
-    """Helper to execute queries with auto cleanup"""
     conn = None
     cur = None
     try:
@@ -81,55 +72,6 @@ def execute_query(sql: str, params: tuple = None, fetch_one: bool = False, fetch
         if conn:
             conn.rollback()
         logger.error(f"Query execution error: {e}")
-        raise
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
-
-
-def add_column_if_not_exists(table: str, column: str, column_def: str) -> bool:
-    """Safely add a column to a table if it doesn't exist"""
-    try:
-        execute_query(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {column_def}")
-        logger.info(f"✅ Added column '{column}' to {table}")
-        return True
-    except Exception as e:
-        logger.warning(f"Could not add column '{column}' to {table}: {e}")
-        return False
-
-
-def add_missing_notification_columns():
-    """添加缺失的通知表列"""
-    conn = None
-    cur = None
-    try:
-        conn = get_db_with_retry()
-        cur = conn.cursor()
-        
-        try:
-            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general'")
-            print("✅ Added 'type' column to notifications")
-        except Exception as e:
-            print(f"Note: type column already exists or error: {e}")
-        
-        try:
-            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS related_id INTEGER")
-            print("✅ Added 'related_id' column to notifications")
-        except Exception as e:
-            print(f"Note: related_id column already exists or error: {e}")
-        
-        try:
-            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0")
-            print("✅ Added 'is_read' column to notifications")
-        except Exception as e:
-            print(f"Note: is_read column already exists or error: {e}")
-        
-        conn.commit()
-        print("✅ Notification columns check completed")
-    except Exception as e:
-        logger.error(f"add_missing_notification_columns failed: {e}")
         raise
     finally:
         if cur:
@@ -291,7 +233,7 @@ def init_db():
             )
         ''')
 
-        # Orders table
+        # Orders table - with meeting_time field
         cur.execute('''
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
@@ -306,6 +248,7 @@ def init_db():
                 buyer_note TEXT,
                 status TEXT DEFAULT 'pending',
                 last_reminder_sent TIMESTAMP,
+                product_image TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP
             )
@@ -333,20 +276,22 @@ def init_db():
         raise
 
 
-def add_review_columns():
-    """添加评分相关列"""
+def add_missing_columns():
+    """添加所有缺失的列"""
     conn = None
     cur = None
     try:
         conn = get_db_with_retry()
         cur = conn.cursor()
         
+        # Users table columns
         user_columns = [
             ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
             ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
             ('avg_quality_rating', 'DECIMAL(3,2) DEFAULT 0'),
             ('avg_overall_rating', 'DECIMAL(3,2) DEFAULT 0'),
             ('total_reviews', 'INTEGER DEFAULT 0'),
+            ('campus', 'TEXT'),
         ]
         
         for col_name, col_def in user_columns:
@@ -356,6 +301,7 @@ def add_review_columns():
             except Exception as e:
                 print(f"Could not add {col_name}: {e}")
         
+        # Reviews table columns
         review_columns = [
             ('rating_service', 'INTEGER DEFAULT 0'),
             ('rating_shipping', 'INTEGER DEFAULT 0'),
@@ -370,34 +316,39 @@ def add_review_columns():
             except Exception as e:
                 print(f"Could not add {col_name}: {e}")
         
+        # Notifications table columns
+        notif_columns = [
+            ('type', "TEXT DEFAULT 'general'"),
+            ('related_id', 'INTEGER'),
+            ('is_read', 'INTEGER DEFAULT 0'),
+            ('product_id', 'INTEGER'),
+        ]
+        
+        for col_name, col_def in notif_columns:
+            try:
+                cur.execute(f"ALTER TABLE notifications ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
+                print(f"✅ Added column {col_name} to notifications")
+            except Exception as e:
+                print(f"Could not add {col_name}: {e}")
+        
+        # Orders table columns
+        order_columns = [
+            ('meeting_time', 'TEXT'),
+            ('updated_at', 'TIMESTAMP'),
+            ('product_image', 'TEXT'),
+        ]
+        
+        for col_name, col_def in order_columns:
+            try:
+                cur.execute(f"ALTER TABLE orders ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
+                print(f"✅ Added column {col_name} to orders")
+            except Exception as e:
+                print(f"Could not add {col_name}: {e}")
+        
         conn.commit()
-        print("✅ Review columns added successfully")
+        print("✅ All missing columns added successfully")
     except Exception as e:
-        logger.error(f"add_review_columns failed: {e}")
-        raise
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
-
-
-def add_campus_column():
-    """添加 campus 字段到 users 表"""
-    conn = None
-    cur = None
-    try:
-        conn = get_db_with_retry()
-        cur = conn.cursor()
-        try:
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS campus TEXT DEFAULT NULL")
-            print("✅ Added 'campus' column to users table")
-        except Exception as e:
-            print(f"Note: campus column already exists or error: {e}")
-        conn.commit()
-        print("✅ Campus column check completed")
-    except Exception as e:
-        logger.error(f"add_campus_column failed: {e}")
+        logger.error(f"add_missing_columns failed: {e}")
         raise
     finally:
         if cur:
@@ -447,9 +398,7 @@ if __name__ == '__main__':
     if test_connection():
         print("\nInitializing database...")
         init_db()
-        add_review_columns()
-        add_missing_notification_columns()
-        add_campus_column()
+        add_missing_columns()
         print("\n✅ All done! Database is ready.")
     else:
         print("\n❌ Cannot initialize database. Please check your connection string.")

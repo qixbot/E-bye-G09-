@@ -121,7 +121,6 @@
                         <small style="color:#777;">Thank you for your interest!</small>
                     </div>
                 {% elif product.seller_id == session.user_id %}
-                    <!-- seller's own product – show edit link -->
                     <div class="own-product-notice" style="background:#f0faf4;border:1px solid #00381f;border-radius:10px;padding:12px 16px;color:#00381f;font-weight:600;text-align:center;">
                         🏷️ This is your listing. Manage it in <a href="{{ url_for('my_profile') }}?tab=listings" style="color:#00381f;text-decoration:underline;">My Listings</a>.
                     </div>
@@ -183,17 +182,14 @@
     </div>
 </div>
 
-<!-- Date & Time Selection Modal (Step 1) – Two‑column layout -->
+<!-- Date & Time Selection Modal (Step 1) -->
 <div id="dateModal" class="modal">
     <div class="modal-content buy-modal-content" style="max-width: 1100px; width: 90%;">
         <span class="close" onclick="closeDateModal()">&times;</span>
 
         <div class="buy-modal-two-columns">
-            <!-- LEFT COLUMN – product details (static, same as location modal) -->
             <div class="buy-modal-left">
-                <div class="product-image-preview" id="dateModalProductImage">
-                    <!-- Image will be copied from main product view (same as location modal) -->
-                </div>
+                <div class="product-image-preview" id="dateModalProductImage"></div>
                 <h3 class="modal-product-name">{{ product.name }}</h3>
                 <p class="modal-product-price">RM {{ "%.2f"|format(product.price) }}</p>
                 <p>
@@ -208,10 +204,8 @@
                 </p>
             </div>
 
-            <!-- VERTICAL DIVIDER -->
             <div class="buy-modal-divider"></div>
 
-            <!-- RIGHT COLUMN – date/time selection (styled) -->
             <div class="buy-modal-right">
                 <div class="location-header">
                     <p class="location-instruction">Select up to 3 preferred dates and times (all must be in the future).</p>
@@ -240,11 +234,8 @@
         <span class="close" onclick="finalCancel()">&times;</span>
 
         <div class="buy-modal-two-columns">
-            <!-- LEFT COLUMN – product details (static) -->
             <div class="buy-modal-left">
-                <div class="product-image-preview" id="modalProductImage">
-                    <!-- Image will be copied from main product view -->
-                </div>
+                <div class="product-image-preview" id="modalProductImage"></div>
                 <h3 class="modal-product-name">{{ product.name }}</h3>
                 <p class="modal-product-price">RM {{ "%.2f"|format(product.price) }}</p>
                 <p>
@@ -259,10 +250,8 @@
                 </p>
             </div>
 
-            <!-- VERTICAL DIVIDER -->
             <div class="buy-modal-divider"></div>
 
-            <!-- RIGHT COLUMN – location selection (scrollable) -->
             <div class="buy-modal-right">
                 <div class="location-header">
                     <p class="location-instruction">
@@ -278,9 +267,7 @@
                     </p>
                     <div id="selectedLocationsInfo" class="selected-locations-info"></div>
                 </div>
-                <div class="location-grid" id="locationGrid">
-                    <!-- location buttons injected by JavaScript -->
-                </div>
+                <div class="location-grid" id="locationGrid"></div>
             </div>
         </div>
 
@@ -292,8 +279,7 @@
 </div>
 
 <script>
-    const sellerCampus = "{% if product.seller_campus == 'Cyberjaya' %}Cyberjaya Campus{% else %}{{ product.seller_campus }}{% endif %}";  // e.g., "Cyberjaya Campus" or "Melaka Campus"
-    // Copy product link to clipboard
+    const sellerCampus = "{% if product.seller_campus == 'Cyberjaya' %}Cyberjaya Campus{% else %}{{ product.seller_campus }}{% endif %}";
     document.getElementById('copyLinkBtn').addEventListener('click', function() {
         const url = window.location.href;
         navigator.clipboard.writeText(url).then(() => {
@@ -303,7 +289,6 @@
         });
     });
 
-    // Media items array for product images/videos
     const mediaItems = [
         {% for img in images %}
         {
@@ -314,7 +299,6 @@
     ];
     let currentMediaIndex = 0;
 
-    // Set active thumbnail highlight
     function setActiveThumb(index) {
         document.querySelectorAll('.thumbnail, .thumbnail-video-wrap').forEach((el, i) => {
             el.classList.toggle('active', i === index);
@@ -326,13 +310,11 @@
         }
     }
 
-    // Change main media (image/video) when thumbnail clicked
     function changeMainMedia(src, index) {
         const mainContainer = document.querySelector('.main-image');
         const item = mediaItems[index];
         const isVideo = item ? item.isVideo : src.startsWith('data:video/') || /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(src);
 
-        // Remove old media, keep nav buttons
         mainContainer.querySelectorAll('img, video').forEach(el => el.remove());
 
         if (isVideo) {
@@ -362,13 +344,11 @@
         setActiveThumb(index);
     }
 
-    // Navigate between media items (prev/next)
     function navigateMedia(dir) {
         const next = (currentMediaIndex + dir + mediaItems.length) % mediaItems.length;
         changeMainMedia(mediaItems[next].src, next);
     }
 
-    // Generate canvas thumbnails for base64 videos
     document.querySelectorAll('.thumb-canvas').forEach(canvas => {
         const src = canvas.getAttribute('data-videosrc');
         if (!src) return;
@@ -385,17 +365,14 @@
         video.load();
     });
 
-    // Open offer modal
     function openOfferModal() {
         document.getElementById('offerModal').style.display = 'flex';
     }
 
-    // Close offer modal
     function closeOfferModal() {
         document.getElementById('offerModal').style.display = 'none';
     }
 
-    // Send offer to seller via API
     function sendOffer() {
         const offerInput = document.getElementById('offerAmount');
         const offerAmount = parseFloat(offerInput.value);
@@ -439,7 +416,6 @@
         });
     }
 
-    // Go back to previous page
     function goBack() {
         if (document.referrer && document.referrer !== "") {
             window.location.href = document.referrer;
@@ -448,7 +424,6 @@
         }
     }
 
-    // Report modal logic
     const reportModal = document.getElementById('reportModal');
     const reportBtn = document.getElementById('reportBtn');
     const otherReasonBtn = document.getElementById('otherReasonBtn');
@@ -513,7 +488,6 @@
         .catch(err => showGlobalToast('Failed to send report: ' + err.message, 'error'));
     });
 
-    // Close modals when clicking outside their content — unified handler
     window.onclick = function(event) {
         const reportModal = document.getElementById('reportModal');
         const buyModal = document.getElementById('buyModal');
@@ -523,7 +497,6 @@
         if (event.target === offerModal) closeOfferModal();
     };
 
-    // Limit and format offer price input
     function limitOfferPrice(input) {
         let val = parseFloat(input.value);
         if (val > 9999999) {
@@ -547,7 +520,6 @@
         }
     }
 
-    // List of meetup locations
     const cyberjayaLocations = [
         { name: "Library", image: "/static/uploads/library.jpg" },
         { name: "DTC", image: "/static/uploads/dtc.jpg" },
@@ -590,13 +562,12 @@
         if (sellerCampus && sellerCampus.includes('Cyberjaya')) {
             return cyberjayaLocations;
         } else {
-            return melakaLocations;  // default to Melaka
+            return melakaLocations;
         }
     }
 
-    let selectedLocations = [];   // stores names of chosen locations
+    let selectedLocations = [];
 
-    // Generate location buttons dynamically
     function generateLocationButtons() {
         const grid = document.getElementById('locationGrid');
         if (!grid) return;
@@ -617,14 +588,11 @@
         });
     }
 
-    // Toggle selection (max 3)
     function toggleLocation(locationName) {
         const index = selectedLocations.indexOf(locationName);
         if (index !== -1) {
-            // deselect
             selectedLocations.splice(index, 1);
         } else {
-            // select if under limit
             if (selectedLocations.length >= 3) {
                 showGlobalToast('You can select up to 3 locations.', 'error');
                 return;
@@ -634,7 +602,6 @@
         updateLocationUI();
     }
 
-    // Update button styles and info text
     function updateLocationUI() {
         document.querySelectorAll('.location-btn').forEach(btn => {
             const locName = btn.querySelector('.location-btn-label').innerText;
@@ -656,12 +623,10 @@
         }
     }
 
-    // Open buy modal – copy main product image and reset selection
     function openBuyModal(preserve = false) {
         const modal = document.getElementById('buyModal');
         if (!modal) return;
 
-        // Copy product preview image (always)
         const modalImageContainer = document.getElementById('modalProductImage');
         if (modalImageContainer) {
             const firstMedia = mediaItems[0];
@@ -692,13 +657,11 @@
             }
         }
 
-        // Reset or preserve location selection
         if (!preserve) {
             selectedLocations = [];
         }
-        // Regenerate location buttons (they are always generated from scratch)
         generateLocationButtons();
-        updateLocationUI(); // this will highlight previously selected locations if preserve=true (because selectedLocations still has the array)
+        updateLocationUI();
 
         modal.style.display = 'flex';
     }
@@ -706,34 +669,23 @@
     function closeBuyModal() {
         const modal = document.getElementById('buyModal');
         if (modal) modal.style.display = 'none';
-        // Clear selections only when user closes the modal (e.g., Cancel/X)
-        // But we don't clear if we are going back – that's handled by goBackToDateModal
-        // So we only clear here when used as final cancel.
-        // We'll separate the close action: 
-        // - For Cancel button, we call finalCancel().
-        // - For X button, also finalCancel().
-        // For Back button, we call goBackToDateModal() which does NOT clear.
     }
 
-    // New function for final cancel (clears everything)
     function finalCancel() {
         closeBuyModal();
         resetDateModal();
         selectedDates = [];
         selectedLocations = [];
-        // Also close date modal if open (but it's already closed)
         const dateModal = document.getElementById('dateModal');
         if (dateModal) dateModal.style.display = 'none';
     }
 
-    // ========== DATE MODAL FUNCTIONS ==========
     let selectedDates = [];
 
     function openDateModal(preserve = false) {
         const modal = document.getElementById('dateModal');
         if (!modal) return;
 
-        // Copy product preview image
         const modalImageContainer = document.getElementById('dateModalProductImage');
         if (modalImageContainer) {
             const firstMedia = mediaItems[0];
@@ -862,25 +814,13 @@
             selected.push(val);
         }
         selectedDates = selected;
-        closeDateModal(true);   // preserve selections when closing
-        openBuyModal(true);     // preserve locations when opening location modal
+        closeDateModal(true);
+        openBuyModal(true);
     }
 
-    // Add event listener for Confirm Dates button
     document.getElementById('confirmDatesBtn')?.addEventListener('click', validateAndProceed);
     document.getElementById('addDateBtn')?.addEventListener('click', addDateTimeRow);
 
-    function updateRemoveButtons() {
-        const rows = document.querySelectorAll('#dateTimeInputs .date-row');
-        rows.forEach(row => {
-            const removeBtn = row.querySelector('.remove-date-btn');
-            removeBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
-        });
-    }
-
-    // ============================================================
-    // BUY NOW CONFIRMATION - Send request to backend
-    // ============================================================
     const confirmBuyBtn = document.getElementById('confirmBuyBtn');
     if (confirmBuyBtn) {
         confirmBuyBtn.addEventListener('click', function() {
@@ -893,25 +833,23 @@
             confirmBtn.disabled = true;
             confirmBtn.textContent = 'Processing...';
             
-            // Send buy now request to backend
             fetch('/api/buy-now', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     product_id: {{ product.id }}, 
                     meetup_locations: selectedLocations,
-                    meeting_dates: selectedDates   // <-- ADD THIS LINE
+                    meeting_dates: selectedDates
                 }),
                 credentials: 'same-origin'
             })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data.success) {
-                    showGlobalToast('✅ Purchase reserved! Seller will confirm.', 'success'); // changed text
+                    showGlobalToast('✅ Purchase reserved! Seller will confirm.', 'success');
                     closeBuyModal();
                     selectedDates = [];
                     selectedLocations = [];
-                    // Redirect to orders page after 2 seconds
                     setTimeout(function() {
                         window.location.href = '/my-profile?tab=orders';
                     }, 2000);
@@ -929,21 +867,26 @@
         });
     }
 
-    // Buy Now button click handler
     const buyNowBtn = document.querySelector('.buy-btn');
     if (buyNowBtn) {
         buyNowBtn.removeAttribute('onclick');
         buyNowBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            openDateModal();   // ← changed from openBuyModal()
+            openDateModal();
         });
     }
     function goBackToDateModal() {
-        // Close location modal without clearing selections
         const modal = document.getElementById('buyModal');
         if (modal) modal.style.display = 'none';
-        // Reopen date modal with preserve=true
         openDateModal(true);
+    }
+
+    function showGlobalToast(msg, type) {
+        var container = document.createElement('div');
+        container.className = 'global-toast';
+        container.innerHTML = `<div class="toast ${type}">${msg}</div>`;
+        document.body.appendChild(container);
+        setTimeout(() => container.remove(), 3000);
     }
 </script>
 {% endblock %}
