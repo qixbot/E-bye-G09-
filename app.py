@@ -1233,6 +1233,8 @@ def get_product_offer_count(product_id):
     
     return jsonify({'count': count})
 
+
+
 @app.route('/api/product/<int:product_id>/offers/send', methods=['POST'])
 def send_offer(product_id):
     if 'user_id' not in session:
