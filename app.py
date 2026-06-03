@@ -1350,63 +1350,70 @@ def counter_offer(offer_id):
     db.close()
     
     return jsonify({'success': True})
+
 @app.route('/api/offer/<int:offer_id>/accept-counter', methods=['POST'])
 def accept_counter_offer(offer_id):
     """Buyer accepts seller's counter offer"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
-    data = request.get_json() or {}
-    db = get_db()
-    cur = db.cursor()
-    
-    cur.execute('''
-        SELECT o.*, p.name as product_name, p.seller_id, p.price as product_price
-        FROM offers o
-        JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s AND o.buyer_id = %s
-    ''', (offer_id, session['user_id']))
-    offer = cur.fetchone()
-    
-    if not offer:
+    try:
+        db = get_db()
+        cur = db.cursor()
+        
+        # 获取 offer 信息 - 使用参数化查询，不要用双引号
+        cur.execute('''
+            SELECT o.*, p.name as product_name, p.seller_id, p.price as product_price,
+                   u.username as seller_name
+            FROM offers o
+            JOIN products p ON o.product_id = p.id
+            JOIN users u ON p.seller_id = u.id
+            WHERE o.id = %s AND o.buyer_id = %s AND o.status = %s
+        ''', (offer_id, session['user_id'], 'countered'))
+        
+        offer = cur.fetchone()
+        
+        if not offer:
+            cur.close()
+            db.close()
+            return jsonify({'success': False, 'error': 'Offer not found or not countered'}), 404
+        
+        agreed_price = float(offer['counter_price'])
+        
+        # 更新 offer 状态
+        cur.execute('''
+            UPDATE offers 
+            SET offer_price = %s, status = %s, counter_price = NULL
+            WHERE id = %s
+        ''', (agreed_price, 'accepted', offer_id))
+        
+        # 通知卖家
+        cur.execute('''
+            INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+            VALUES (%s, %s, NOW(), %s, %s, 0)
+        ''', (offer['seller_id'],
+              f"🎉 Buyer accepted your counter offer of RM {agreed_price:.2f} for \"{offer['product_name']}\". Waiting for checkout.",
+              'offer_accepted', offer_id))
+        
+        # 通知买家
+        cur.execute('''
+            INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+            VALUES (%s, %s, NOW(), %s, %s, 0)
+        ''', (session['user_id'],
+              f"✅ Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' to confirm your order.",
+              'offer_accepted', offer_id))
+        
+        db.commit()
         cur.close()
         db.close()
-        return jsonify({'success': False, 'error': 'Offer not found'}), 404
-    
-    if offer['status'] != 'countered':
-        cur.close()
-        db.close()
-        return jsonify({'success': False, 'error': 'No counter offer available'}), 400
-    
-    agreed_price = float(offer['counter_price'])
-    
-    cur.execute('''
-        UPDATE offers 
-        SET offer_price = %s, status = 'accepted', counter_price = NULL
-        WHERE id = %s
-    ''', (agreed_price, offer_id))
-    
-    # Notify seller
-    cur.execute('''
-        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'offer_accepted', %s, 0)
-    ''', (offer['seller_id'],
-          f"🎉 Buyer accepted your counter offer of RM {agreed_price:.2f} for \"{offer['product_name']}\". Waiting for checkout.",
-          offer_id))
-    
-    # Notify buyer
-    cur.execute('''
-        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'offer_accepted', %s, 0)
-    ''', (session['user_id'],
-          f" Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' to confirm your order.",
-          offer_id))
-    
-    db.commit()
-    cur.close()
-    db.close()
-    
-    return jsonify({'success': True, 'offer_id': offer_id, 'accepted_price': agreed_price})
+        
+        return jsonify({'success': True, 'offer_id': offer_id, 'accepted_price': agreed_price})
+        
+    except Exception as e:
+        print(f"Error in accept_counter_offer: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/offer/<int:offer_id>/reject-counter', methods=['POST'])
 def reject_counter_offer(offer_id):
@@ -1414,38 +1421,46 @@ def reject_counter_offer(offer_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
-    db = get_db()
-    cur = db.cursor()
-    
-    cur.execute('''
-        SELECT o.*, p.name as product_name, p.seller_id
-        FROM offers o
-        JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s AND o.buyer_id = %s AND o.status = 'countered'
-    ''', (offer_id, session['user_id']))
-    offer = cur.fetchone()
-    
-    if not offer:
+    try:
+        db = get_db()
+        cur = db.cursor()
+        
+        cur.execute('''
+            SELECT o.*, p.name as product_name, p.seller_id
+            FROM offers o
+            JOIN products p ON o.product_id = p.id
+            WHERE o.id = %s AND o.buyer_id = %s AND o.status = %s
+        ''', (offer_id, session['user_id'], 'countered'))
+        
+        offer = cur.fetchone()
+        
+        if not offer:
+            cur.close()
+            db.close()
+            return jsonify({'success': False, 'error': 'Offer not found or not countered'}), 404
+        
+        # 将状态改回 pending，清除 counter_price
+        cur.execute("UPDATE offers SET status = %s, counter_price = NULL WHERE id = %s", ('pending', offer_id))
+        
+        # 通知卖家
+        cur.execute('''
+            INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+            VALUES (%s, %s, NOW(), %s, %s, 0)
+        ''', (offer['seller_id'],
+              f"❌ Buyer rejected your counter offer for \"{offer['product_name']}\". The original offer is still pending.",
+              'offer_rejected', offer_id))
+        
+        db.commit()
         cur.close()
         db.close()
-        return jsonify({'success': False, 'error': 'Offer not found or not countered'}), 404
-    
-    # 将状态改回 pending，清除 counter_price
-    cur.execute("UPDATE offers SET status = 'pending', counter_price = NULL WHERE id = %s", (offer_id,))
-    
-    # 通知卖家
-    cur.execute('''
-        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'offer_rejected', %s, 0)
-    ''', (offer['seller_id'],
-          f"❌ Buyer rejected your counter offer of RM {offer['counter_price']:.2f} for \"{offer['product_name']}\". The original offer is still pending.",
-          offer_id))
-    
-    db.commit()
-    cur.close()
-    db.close()
-    
-    return jsonify({'success': True})
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f"Error in reject_counter_offer: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/user/offers')
 def api_user_offers():
@@ -1501,8 +1516,8 @@ def cancel_offer(offer_id):
     db = get_db()
     cur = db.cursor()
     
-    cur.execute('SELECT * FROM offers WHERE id = %s AND buyer_id = %s AND status = "pending"', 
-                (offer_id, session['user_id']))
+    cur.execute('SELECT * FROM offers WHERE id = %s AND buyer_id = %s AND status = %s', 
+                (offer_id, session['user_id'], 'pending'))  # ✅ 单引号
     offer = cur.fetchone()
     
     if not offer:
@@ -1510,25 +1525,9 @@ def cancel_offer(offer_id):
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found or cannot be cancelled'}), 404
     
-    cur.execute('UPDATE offers SET status = "cancelled" WHERE id = %s', (offer_id,))
+    cur.execute('UPDATE offers SET status = %s WHERE id = %s', ('cancelled', offer_id))  # ✅ 单引号
     
-    # 获取产品信息以发送通知给卖家
-    cur.execute('SELECT seller_id, name FROM products WHERE id = %s', (offer['product_id'],))
-    product = cur.fetchone()
-    
-    if product:
-        cur.execute('''
-            INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-            VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
-        ''', (product['seller_id'],
-              f"Buyer cancelled their offer of RM {offer['offer_price']:.2f} for \"{product['name']}\".",
-              offer_id))
-    
-    db.commit()
-    cur.close()
-    db.close()
-    
-    return jsonify({'success': True})
+    # ... 其余代码保持不变
 
 @app.route('/api/offer/<int:offer_id>/cancel-counter', methods=['POST'])
 def cancel_counter_offer(offer_id):
@@ -1638,6 +1637,73 @@ def api_create_order_from_offer(offer_id):
     
     return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
 
+@app.route('/api/offer/<int:offer_id>/create-order-from-accept', methods=['POST'])
+def api_create_order_from_accept(offer_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    meetup_locations = data.get('meetup_locations', [])
+    meeting_dates = data.get('meeting_dates', [])
+    
+    if not meetup_locations:
+        return jsonify({'success': False, 'error': 'Please select meetup locations'}), 400
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    # 获取 offer 信息，确保当前用户是卖家
+    cur.execute('''
+        SELECT o.*, p.name as product_name, p.seller_id, p.price as product_price
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s AND o.seller_id = %s AND o.status = 'accepted'
+    ''', (offer_id, session['user_id']))
+    
+    offer = cur.fetchone()
+    
+    if not offer:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Offer not found or not accepted'}), 404
+    
+    order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
+    
+    meeting_dates_str = ','.join(meeting_dates) if meeting_dates else ''
+    
+    cur.execute('''
+        INSERT INTO orders (order_number, product_id, buyer_id, seller_id, offer_price,
+                           meeting_point, meeting_time, status, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW()) RETURNING id
+    ''', (order_number, offer['product_id'], offer['buyer_id'], offer['seller_id'],
+          offer['offer_price'], ','.join(meetup_locations), meeting_dates_str))
+    
+    order_id = cur.fetchone()['id']
+    
+    cur.execute("UPDATE offers SET status = 'ordered' WHERE id = %s", (offer_id,))
+    cur.execute("UPDATE products SET status = 'sold' WHERE id = %s", (offer['product_id'],))
+    
+    # 通知买家订单已创建
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'order_created', %s, 0)
+    ''', (offer['buyer_id'],
+          f"🛒 Order #{order_number} created! Seller has confirmed meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}",
+          order_id))
+    
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'order_created', %s, 0)
+    ''', (session['user_id'],
+          f"📋 Order #{order_number} created for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}",
+          order_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
+
 @app.route('/api/offer/<int:offer_id>/details', methods=['GET'])
 def api_offer_details(offer_id):
     if 'user_id' not in session:
@@ -1649,9 +1715,11 @@ def api_offer_details(offer_id):
         SELECT o.id, o.offer_price, o.status, o.counter_price,
                p.id as product_id, p.name as product_name, p.price as product_price,
                p.condition as product_condition, p.status as product_status,
-               p.images_blob, p.images, p.seller_id, o.buyer_id
+               p.images_blob, p.images, p.seller_id, o.buyer_id,
+               u.campus as seller_campus
         FROM offers o
         JOIN products p ON o.product_id = p.id
+        JOIN users u ON p.seller_id = u.id
         WHERE o.id = %s
     ''', (offer_id,))
     offer = cur.fetchone()
@@ -1690,7 +1758,8 @@ def api_offer_details(offer_id):
         'product_status': offer['product_status'],
         'product_image': product_image,
         'seller_id': offer['seller_id'],
-        'buyer_id': offer['buyer_id']
+        'buyer_id': offer['buyer_id'],
+        'seller_campus': offer['seller_campus']  # 添加这一行
     })
 
 @app.route('/api/buy-now', methods=['POST'])

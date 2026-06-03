@@ -97,6 +97,33 @@
         top: 20px;
         right: 20px;
     }
+
+    /* Checkout-for-offer modal (dynamically injected) */
+    .custom-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(4px);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+    .modal-card {
+        background: #fff;
+        border-radius: 20px;
+        width: 100%;
+        max-width: 500px;
+        max-height: 88vh;
+        overflow-y: auto;
+        padding: 24px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        animation: popIn 0.25s ease;
+    }
+    .modal-icon { font-size: 36px; text-align: center; margin-bottom: 8px; }
+    .modal-title { font-size: 17px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; text-align: center; }
+    .modal-message { font-size: 14px; color: #555; text-align: center; margin-bottom: 4px; }
     .modal-buttons {
         display: flex;
         gap: 12px;
@@ -554,7 +581,9 @@ function showConfirm(options) {
     });
 }
 
-// 打开购买弹窗（包含日期和地点）
+// ============================================================
+// 购买弹窗相关函数
+// ============================================================
 function openPurchaseModal(offerId) {
     purchaseOfferId = offerId;
     selectedLocations = [];
@@ -567,15 +596,41 @@ function openPurchaseModal(offerId) {
             document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Error loading product details</div>';
             return;
         }
+        
+        var sellerCampus = data.seller_campus || '';
+        var meetupLocations = [];
+        
+        if (sellerCampus.includes('Cyberjaya') || sellerCampus.includes('Cyber')) {
+            meetupLocations = [
+                "Library", "DTC", "Starbees", "CLC", "FCI", "FOM", "FAIE", "FCM",
+                "STC", "HB1", "HB2", "HB3", "HB4", "Masjid", "Tekun Mart", "Chancellery Building"
+            ];
+        } else {
+            meetupLocations = [
+                "Library (Melaka)", "Dewan Tun Canselor", "Cafeteria", "Block A", "Block B",
+                "Block C", "Block D", "Block E", "Sports Complex", "Hostel 1", "Hostel 2",
+                "Hostel 3", "Hostel 4", "Surau", "Mini Mart", "Admin Building"
+            ];
+        }
+        
         document.getElementById('purchaseProductInfo').innerHTML = 
             '<div class="offer-detail">' +
             '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
             'Price: RM ' + parseFloat(data.offer_price).toFixed(2) +
             (data.product_image ? '<br><img src="' + data.product_image + '" style="width:80px;border-radius:8px;margin-top:8px;">' : '') +
+            '<br><span style="font-size:11px; color:#205c30;">📍 Seller\'s Campus: ' + escapeHtml(sellerCampus || 'Not specified') + '</span>' +
             '</div>';
-        buildLocationGrid('purchaseLocationGrid');
         
-        // 初始化日期选择
+        var grid = document.getElementById('purchaseLocationGrid');
+        grid.innerHTML = '';
+        meetupLocations.forEach(function(loc) {
+            var btn = document.createElement('button');
+            btn.className = 'location-btn';
+            btn.innerHTML = '<img src="/static/uploads/placeholder.jpg" alt=""><span>' + loc + '</span>';
+            btn.onclick = function() { toggleLocation(loc); };
+            grid.appendChild(btn);
+        });
+        
         var dateContainer = document.getElementById('purchaseDateInputs');
         dateContainer.innerHTML = '<div class="date-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button></div>';
         document.getElementById('addPurchaseDateBtn')?.addEventListener('click', function() {
@@ -667,6 +722,184 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
     });
 });
 
+// ============================================================
+// 卖家接受 offer 后的 checkout 弹窗函数（必须在 acceptOffer 之前定义）
+// ============================================================
+function openCheckoutForOffer(offerId) {
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) {
+                throw new Error(data.error);
+            }
+            
+            window.checkoutSelectedLocations = [];
+            
+            var locations = [];
+            var sellerCampus = data.seller_campus || '';
+            
+            if (sellerCampus.includes('Cyberjaya') || sellerCampus.includes('Cyber')) {
+                locations = [
+                    "Library", "DTC", "Starbees", "CLC", "FCI", "FOM", "FAIE", "FCM",
+                    "STC", "HB1", "HB2", "HB3", "HB4", "Masjid", "Tekun Mart", "Chancellery Building"
+                ];
+            } else {
+                locations = [
+                    "Library (Melaka)", "Dewan Tun Canselor", "Cafeteria", "Block A", "Block B",
+                    "Block C", "Block D", "Block E", "Sports Complex", "Hostel 1", "Hostel 2",
+                    "Hostel 3", "Hostel 4", "Surau", "Mini Mart", "Admin Building"
+                ];
+            }
+            
+            var meetupHtml = `
+                <div id="checkoutForOfferModal" class="custom-modal">
+                    <div class="modal-card" style="max-width: 500px;">
+                        <div class="modal-icon">📍</div>
+                        <div class="modal-title">Confirm Order: ${escapeHtml(data.product_name)}</div>
+                        <div class="modal-message">Agreed Price: RM ${data.offer_price.toFixed(2)}</div>
+                        <div style="margin: 16px 0;">
+                            <label style="font-weight:600; display:block; margin-bottom:8px;">Select Meetup Location(s) (max 3):</label>
+                            <div id="checkoutLocationGridForOffer" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                            <div id="checkoutLocationInfoForOffer" style="font-size:12px; margin-top:8px; color:#e74c3c;">⚠️ Please select 1-3 locations</div>
+                        </div>
+                        <div style="margin: 16px 0;">
+                            <label style="font-weight:600; display:block; margin-bottom:8px;">Select up to 3 preferred dates & times:</label>
+                            <div id="dateTimeInputsForOffer" style="display: flex; flex-direction: column; gap: 10px;">
+                                <div class="date-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button></div>
+                            </div>
+                            <button type="button" id="addDateBtnForOffer" class="add-more-btn" style="margin-top:8px; background:#205c30; color:white; border:none; padding:5px 12px; border-radius:20px; cursor:pointer;">+ Add another date</button>
+                        </div>
+                        <div class="modal-buttons">
+                            <button class="modal-cancel" onclick="closeCheckoutForOfferModal()">Cancel</button>
+                            <button class="modal-confirm" onclick="submitOrderFromOfferAccept(${offerId})">Confirm Order</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            var existing = document.getElementById('checkoutForOfferModal');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', meetupHtml);
+            
+            var grid = document.getElementById('checkoutLocationGridForOffer');
+            for (var i = 0; i < locations.length; i++) {
+                var loc = locations[i];
+                var btn = document.createElement('button');
+                btn.textContent = loc;
+                btn.style.cssText = 'padding:8px 12px; margin:4px; border:1px solid #ddd; border-radius:20px; background:#f5f5f5; cursor:pointer;';
+                btn.onclick = (function(locationName, button) {
+                    return function() {
+                        var idx = window.checkoutSelectedLocations.indexOf(locationName);
+                        if (idx !== -1) {
+                            window.checkoutSelectedLocations.splice(idx, 1);
+                            button.style.background = '#f5f5f5';
+                            button.style.borderColor = '#ddd';
+                            button.style.color = '#333';
+                        } else {
+                            if (window.checkoutSelectedLocations.length >= 3) {
+                                showToastMessage('Maximum 3 locations allowed', 'error');
+                                return;
+                            }
+                            window.checkoutSelectedLocations.push(locationName);
+                            button.style.background = '#205c30';
+                            button.style.borderColor = '#205c30';
+                            button.style.color = 'white';
+                        }
+                        var infoDiv = document.getElementById('checkoutLocationInfoForOffer');
+                        if (infoDiv) {
+                            if (window.checkoutSelectedLocations.length === 0) {
+                                infoDiv.innerHTML = '⚠️ Please select 1-3 locations';
+                                infoDiv.style.color = '#e74c3c';
+                            } else {
+                                infoDiv.innerHTML = '✓ Selected: ' + window.checkoutSelectedLocations.join(', ');
+                                infoDiv.style.color = '#2ecc71';
+                            }
+                        }
+                    };
+                })(loc, btn);
+                grid.appendChild(btn);
+            }
+            
+            document.getElementById('addDateBtnForOffer').addEventListener('click', function() {
+                var container = document.getElementById('dateTimeInputsForOffer');
+                var rows = container.querySelectorAll('.date-row');
+                if (rows.length >= 3) {
+                    showToastMessage('Maximum 3 dates allowed', 'error');
+                    return;
+                }
+                var newRow = document.createElement('div');
+                newRow.className = 'date-row';
+                newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button>';
+                container.appendChild(newRow);
+            });
+        })
+        .catch(function(err) {
+            showToastMessage('Error: ' + err.message, 'error');
+        });
+}
+
+function closeCheckoutForOfferModal() {
+    var modal = document.getElementById('checkoutForOfferModal');
+    if (modal) modal.remove();
+}
+
+function submitOrderFromOfferAccept(offerId) {
+    console.log('=== submitOrderFromOfferAccept called ===');
+    console.log('offerId:', offerId);
+    console.log('window.checkoutSelectedLocations:', window.checkoutSelectedLocations);
+    console.log('window.checkoutSelectedLocations length:', window.checkoutSelectedLocations ? window.checkoutSelectedLocations.length : 'undefined');
+    
+    if (!window.checkoutSelectedLocations || window.checkoutSelectedLocations.length === 0) {
+        showToastMessage('Please select at least one meetup location', 'error');
+        return;
+    }
+    
+    var dateInputs = document.querySelectorAll('#dateTimeInputsForOffer .datetime-picker');
+    var selectedDates = [];
+    for (var i = 0; i < dateInputs.length; i++) {
+        var val = dateInputs[i].value;
+        if (val) selectedDates.push(val);
+    }
+    console.log('selectedDates:', selectedDates);
+    
+    if (selectedDates.length === 0) {
+        showToastMessage('Please select at least one preferred date and time', 'error');
+        return;
+    }
+    
+    showToastMessage('Creating order...', 'info');
+    
+    fetch('/api/offer/' + offerId + '/create-order-from-accept', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            meetup_locations: window.checkoutSelectedLocations,
+            meeting_dates: selectedDates
+        })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        console.log('Response:', data);
+        if (data.success) {
+            showToastMessage('Order created successfully!', 'success');
+            closeCheckoutForOfferModal();
+            loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
+            if (typeof loadOrders === 'function') loadOrders();
+        } else {
+            throw new Error(data.error || 'Failed to create order');
+        }
+    })
+    .catch(function(err) {
+        console.error('Order creation error:', err);
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ============================================================
+// Offer 管理弹窗相关函数
+// ============================================================
 function openOfferManageModal(offerId) {
     manageOfferId = offerId;
     document.getElementById('offerManageModal').classList.add('show');
@@ -705,13 +938,10 @@ function openOfferManageModal(offerId) {
                             html += '<button class="notif-btn warning" onclick="openCounterOfferModal(' + offerId + ')">💰 Counter Offer</button>';
                             html += '</div>';
                         } else if (data.status === 'countered') {
-                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                            html += '<button class="notif-btn primary" onclick="acceptCounterOfferFromModal(' + offerId + ')">✅ Accept Counter Offer (RM ' + parseFloat(data.counter_price).toFixed(2) + ')</button>';
-                            html += '<button class="notif-btn danger" onclick="rejectCounterOfferFromModal(' + offerId + ')">❌ Reject Counter Offer</button>';
-                            html += '</div>';
+                            html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#fff3cd; color:#856404;">⏳ Counter offer sent (RM ' + parseFloat(data.counter_price).toFixed(2) + '). Waiting for buyer response...</span></div>';
                         } else if (data.status === 'accepted') {
                             html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                            html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
+                            html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openCheckoutForOffer(' + offerId + ')">🛒 Proceed to Checkout</button>';
                             html += '</div>';
                         } else if (data.status === 'rejected') {
                             html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#f0f0f0;">❌ Offer was rejected</span></div>';
@@ -754,7 +984,9 @@ function closeOfferManageModal() {
     manageOfferId = null;
 }
 
-// 从弹窗接受 counter offer
+// ============================================================
+// 从弹窗接受/拒绝 counter offer（卖家端）
+// ============================================================
 async function acceptCounterOfferFromModal(offerId) {
     const confirmed = await showConfirm({
         title: 'Accept Counter Offer',
@@ -767,19 +999,34 @@ async function acceptCounterOfferFromModal(offerId) {
     if (!confirmed) return;
     
     showToastMessage('Accepting counter offer...', 'info');
+    
     fetch('/api/offer/' + offerId + '/accept-counter', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' }
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { 
+        console.log('Response status:', r.status);
+        console.log('Response headers:', r.headers);
+        return r.text();  // 先获取原始文本
+    })
+    .then(function(text) {
+        console.log('Raw response:', text);
+        try {
+            var data = JSON.parse(text);
+            return data;
+        } catch(e) {
+            console.error('JSON parse error:', e);
+            throw new Error('Server returned invalid response');
+        }
+    })
     .then(function(data) {
         if (data.success) {
             showToastMessage('Counter offer accepted! Opening checkout...', 'success');
             closeOfferManageModal();
-            openPurchaseModal(offerId);
+            openCheckoutForOffer(offerId);
             loadNotifications();
-            if (typeof loadPurchases === 'function') loadPurchases();
+            if (typeof loadListings === 'function') loadListings();
         } else {
             showToastMessage('Error: ' + (data.error || 'Failed to accept'), 'error');
         }
@@ -790,7 +1037,6 @@ async function acceptCounterOfferFromModal(offerId) {
     });
 }
 
-// 从弹窗拒绝 counter offer
 async function rejectCounterOfferFromModal(offerId) {
     const confirmed = await showConfirm({
         title: 'Reject Counter Offer',
@@ -814,7 +1060,6 @@ async function rejectCounterOfferFromModal(offerId) {
             showToastMessage('Counter offer declined. Offer is now pending again.', 'success');
             closeOfferManageModal();
             loadNotifications();
-            if (typeof loadPurchases === 'function') loadPurchases();
             if (typeof loadListings === 'function') loadListings();
         } else {
             showToastMessage('Error: ' + (data.error || 'Failed to decline'), 'error');
@@ -826,6 +1071,9 @@ async function rejectCounterOfferFromModal(offerId) {
     });
 }
 
+// ============================================================
+// 买家取消自己的 offer
+// ============================================================
 async function cancelMyOffer(offerId) {
     const confirmed = await showConfirm({
         title: 'Cancel Offer',
@@ -860,6 +1108,9 @@ async function cancelMyOffer(offerId) {
     });
 }
 
+// ============================================================
+// 买家端接受/拒绝 counter offer（通过通知中心）
+// ============================================================
 async function acceptCounterOffer(offerId) {
     const confirmed = await showConfirm({
         title: 'Accept Counter Offer',
@@ -919,7 +1170,7 @@ async function rejectCounterOffer(offerId) {
             closeOfferManageModal();
             loadNotifications();
             if (typeof loadPurchases === 'function') loadPurchases();
-            if (typeof loadListings === 'function') loadListings(); // 刷新卖家端
+            if (typeof loadListings === 'function') loadListings();
         } else {
             showToastMessage('Error: ' + (data.error || 'Failed to decline'), 'error');
         }
@@ -930,10 +1181,13 @@ async function rejectCounterOffer(offerId) {
     });
 }
 
+// ============================================================
+// 卖家接受普通 offer（核心函数）
+// ============================================================
 async function acceptOffer(offerId) {
     const confirmed = await showConfirm({
         title: 'Accept Offer',
-        message: 'Are you sure you want to accept this offer? The buyer will be notified.',
+        message: 'Are you sure you want to accept this offer?',
         icon: '💰',
         isAccept: true,
         confirmText: 'Accept',
@@ -951,11 +1205,11 @@ async function acceptOffer(offerId) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            showToastMessage('✅ Offer accepted! Buyer can now checkout.', 'success');
+            showToastMessage('Offer accepted! Opening checkout...', 'success');
             closeOfferManageModal();
+            openCheckoutForOffer(offerId);
             loadNotifications();
             if (typeof loadListings === 'function') loadListings();
-            if (typeof loadOrders === 'function') loadOrders();
         } else {
             showToastMessage('Error: ' + (data.error || 'Unknown error'), 'error');
         }
@@ -966,6 +1220,9 @@ async function acceptOffer(offerId) {
     });
 }
 
+// ============================================================
+// 卖家拒绝普通 offer
+// ============================================================
 async function rejectOffer(offerId) {
     const confirmed = await showConfirm({
         title: 'Reject Offer',
@@ -1000,6 +1257,9 @@ async function rejectOffer(offerId) {
     });
 }
 
+// ============================================================
+// Counter Offer 弹窗相关
+// ============================================================
 function openCounterOfferModal(offerId) {
     pendingCounterOfferId = offerId;
     document.getElementById('counterOfferModal').classList.add('show');

@@ -719,12 +719,31 @@ function createOrderFromOffer(offerId) {
             // 初始化全局变量
             window.checkoutSelectedLocations = [];
             
+            // 根据卖家 campus 选择地点列表
+            var locations = [];
+            var sellerCampus = data.seller_campus || '';
+            
+            if (sellerCampus.includes('Cyberjaya') || sellerCampus.includes('Cyber')) {
+                locations = [
+                    "Library", "DTC", "Starbees", "CLC", "FCI", "FOM", "FAIE", "FCM",
+                    "STC", "HB1", "HB2", "HB3", "HB4", "Masjid", "Tekun Mart", "Chancellery Building"
+                ];
+            } else {
+                // Melaka Campus 地点
+                locations = [
+                    "Library (Melaka)", "Dewan Tun Canselor", "Cafeteria", "Block A", "Block B",
+                    "Block C", "Block D", "Block E", "Sports Complex", "Hostel 1", "Hostel 2",
+                    "Hostel 3", "Hostel 4", "Surau", "Mini Mart", "Admin Building"
+                ];
+            }
+            
             var meetupHtml = `
                 <div id="checkoutMeetupModal" class="custom-modal">
                     <div class="modal-card" style="max-width: 500px;">
                         <div class="modal-icon">📍</div>
                         <div class="modal-title">Checkout: ${escapeHtml(data.product_name)}</div>
                         <div class="modal-message">Agreed Price: RM ${data.offer_price.toFixed(2)}</div>
+                        <div class="modal-message" style="font-size:12px; color:#205c30;">📍 Seller's Campus: ${escapeHtml(sellerCampus || 'Not specified')}</div>
                         
                         <div style="margin: 16px 0;">
                             <label style="font-weight:600; display:block; margin-bottom:8px;">Select Meetup Location(s) (max 3):</label>
@@ -756,12 +775,6 @@ function createOrderFromOffer(offerId) {
             document.body.insertAdjacentHTML('beforeend', meetupHtml);
             
             // 构建地点选项（按钮式，带高亮）
-            var locations = [
-                "FOM (Faculty of Management)", "FOE (Faculty of Engineering)", "FCI (Faculty of Computing)",
-                "Library", "Cafeteria", "Student Hub", "DTC", "Starbees", "CLC",
-                "Masjid", "Tekun Mart", "Chancellery Building", "Others (specify in chat)"
-            ];
-            
             var grid = document.getElementById('checkoutLocationGrid');
             for (var i = 0; i < locations.length; i++) {
                 var loc = locations[i];
@@ -773,13 +786,11 @@ function createOrderFromOffer(offerId) {
                     return function() {
                         var idx = window.checkoutSelectedLocations.indexOf(locationName);
                         if (idx !== -1) {
-                            // 取消选择
                             window.checkoutSelectedLocations.splice(idx, 1);
                             button.style.background = '#f5f5f5';
                             button.style.borderColor = '#ddd';
                             button.style.color = '#333';
                         } else {
-                            // 选择（最多3个）
                             if (window.checkoutSelectedLocations.length >= 3) {
                                 showToastMessage('Maximum 3 locations allowed', 'error');
                                 return;
