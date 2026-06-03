@@ -97,6 +97,118 @@
     .toast-success { background: #27ae60; }
     .toast-error { background: #e74c3c; }
     .toast-info { background: #3498db; }
+
+    /* 自定义漂亮确认弹窗 */
+    .custom-confirm-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(8px);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+    }
+
+    .custom-confirm-card {
+        background: white;
+        border-radius: 28px;
+        max-width: 340px;
+        width: 90%;
+        padding: 28px 24px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        animation: popIn 0.25s ease;
+        border: 1px solid rgba(0, 56, 31, 0.1);
+    }
+
+    .custom-confirm-icon {
+        font-size: 52px;
+        margin-bottom: 12px;
+    }
+
+    .custom-confirm-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #1a1a1a;
+        margin-bottom: 8px;
+    }
+
+    .custom-confirm-message {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 24px;
+        line-height: 1.5;
+    }
+
+    .custom-confirm-buttons {
+        display: flex;
+        gap: 12px;
+    }
+
+    .custom-confirm-btn {
+        flex: 1;
+        padding: 12px 0;
+        border-radius: 40px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        font-family: inherit;
+    }
+
+    .custom-confirm-cancel {
+        background: #f0f0f0;
+        color: #666;
+    }
+
+    .custom-confirm-cancel:hover {
+        background: #e0e0e0;
+        transform: translateY(-1px);
+    }
+
+    .custom-confirm-confirm {
+        background: linear-gradient(135deg, #00381f, #1a6b3c);
+        color: white;
+    }
+
+    .custom-confirm-confirm:hover {
+        background: linear-gradient(135deg, #1a6b3c, #0d5a30);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 56, 31, 0.3);
+    }
+
+    .custom-confirm-danger {
+        background: linear-gradient(135deg, #d63c2c, #c0392b);
+        color: white;
+    }
+
+    .custom-confirm-danger:hover {
+        background: linear-gradient(135deg, #c0392b, #a93226);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(214, 60, 44, 0.3);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes popIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
 </style>
 
 <div class="notif-page">
@@ -307,6 +419,64 @@ function formatDate(dateStr) {
 
 function escapeHtml(s) { return s ? s.replace(/[&<>]/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]; }) : ''; }
 
+// ========== 自定义漂亮确认弹窗 ==========
+function showConfirm(options) {
+    return new Promise((resolve) => {
+        // 移除已存在的弹窗
+        const existing = document.querySelector('.custom-confirm-modal');
+        if (existing) existing.remove();
+        
+        const modal = document.createElement('div');
+        modal.className = 'custom-confirm-modal';
+        
+        // 设置图标
+        let icon = options.icon || '💬';
+        if (options.isAccept) icon = '💰';
+        if (options.isReject) icon = '❌';
+        if (options.type === 'cancel') icon = '🗑️';
+        
+        // 按钮样式
+        const confirmBtnClass = options.isReject ? 'custom-confirm-danger' : 'custom-confirm-confirm';
+        
+        modal.innerHTML = `
+            <div class="custom-confirm-card">
+                <div class="custom-confirm-icon">${icon}</div>
+                <div class="custom-confirm-title">${options.title || 'Confirm'}</div>
+                <div class="custom-confirm-message">${options.message || 'Are you sure?'}</div>
+                <div class="custom-confirm-buttons">
+                    <button class="custom-confirm-btn custom-confirm-cancel" id="confirmCancelBtn">${options.cancelText || 'Cancel'}</button>
+                    <button class="custom-confirm-btn ${confirmBtnClass}" id="confirmOkBtn">${options.confirmText || 'Confirm'}</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        const cancelBtn = document.getElementById('confirmCancelBtn');
+        const okBtn = document.getElementById('confirmOkBtn');
+        
+        const cleanup = () => modal.remove();
+        
+        cancelBtn.onclick = () => {
+            cleanup();
+            resolve(false);
+        };
+        
+        okBtn.onclick = () => {
+            cleanup();
+            resolve(true);
+        };
+        
+        // 点击背景关闭
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                cleanup();
+                resolve(false);
+            }
+        };
+    });
+}
+
 // ========== PURCHASE MODAL ==========
 function openPurchaseModal(offerId) {
     purchaseOfferId = offerId;
@@ -402,7 +572,7 @@ function openOfferManageModal(offerId) {
             return;
         }
         
-        // 获取当前用户ID（从 cookie 或 session 获取）
+        // 获取当前用户ID
         return fetch('/api/current-user-id', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(userData) {
@@ -422,7 +592,6 @@ function openOfferManageModal(offerId) {
             
             // 根据角色和状态显示不同的按钮
             if (isSeller) {
-                // ========== 卖家看到的按钮 ==========
                 if (data.status === 'pending') {
                     html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
                     html += '<button class="notif-btn primary" onclick="acceptOffer(' + offerId + ')">✅ Accept Offer</button>';
@@ -444,7 +613,6 @@ function openOfferManageModal(offerId) {
                     html += '</div>';
                 }
             } else if (isBuyer) {
-                // ========== 买家看到的按钮 ==========
                 if (data.status === 'pending') {
                     html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
                     html += '<span class="notif-btn secondary" style="background:#f0f0f0;">⏳ Waiting for seller response...</span>';
@@ -480,9 +648,24 @@ function openOfferManageModal(offerId) {
         document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ Failed to load offer details</div>';
     });
 }
+
+function closeOfferManageModal() {
+    document.getElementById('offerManageModal').classList.remove('show');
+    manageOfferId = null;
+}
+
 // ========== 买家取消自己的 offer ==========
-function cancelMyOffer(offerId) {
-    if (!confirm('Cancel your offer? This cannot be undone.')) return;
+async function cancelMyOffer(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Cancel Offer',
+        message: 'Are you sure you want to cancel your offer? This cannot be undone.',
+        icon: '🗑️',
+        isReject: true,
+        type: 'cancel',
+        confirmText: 'Cancel Offer',
+        cancelText: 'Keep Offer'
+    });
+    if (!confirmed) return;
     
     showToastMessage('Cancelling offer...', 'info');
     fetch('/api/offer/' + offerId + '/cancel', {
@@ -496,7 +679,6 @@ function cancelMyOffer(offerId) {
             showToastMessage('Your offer has been cancelled.', 'success');
             closeOfferManageModal();
             loadNotifications();
-            // 刷新页面相关数据
             if (typeof loadPurchases === 'function') loadPurchases();
         } else {
             throw new Error(data.error || 'Failed to cancel');
@@ -507,14 +689,17 @@ function cancelMyOffer(offerId) {
     });
 }
 
-function closeOfferManageModal() {
-    document.getElementById('offerManageModal').classList.remove('show');
-    manageOfferId = null;
-}
-
-// ========== 买家接受 Counter Offer ==========
-function acceptCounterOffer(offerId) {
-    if (!confirm('Accept this counter offer?')) return;
+// ========== 接受 Counter Offer ==========
+async function acceptCounterOffer(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Accept Counter Offer',
+        message: 'Are you sure you want to accept this counter offer?',
+        icon: '💰',
+        isAccept: true,
+        confirmText: 'Accept',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
     
     showToastMessage('Accepting counter offer...', 'info');
     fetch('/api/offer/' + offerId + '/accept-counter', {
@@ -528,10 +713,9 @@ function acceptCounterOffer(offerId) {
             showToastMessage('Counter offer accepted! You can now checkout.', 'success');
             closeOfferManageModal();
             loadNotifications();
-            // 刷新 purchases 页面
             if (typeof loadPurchases === 'function') loadPurchases();
         } else {
-            showToastMessage('Error: ' + (data.error || 'Failed to accept counter offer'), 'error');
+            showToastMessage('Error: ' + (data.error || 'Failed to accept'), 'error');
         }
     })
     .catch(function(err) {
@@ -540,9 +724,17 @@ function acceptCounterOffer(offerId) {
     });
 }
 
-// ========== 买家拒绝 Counter Offer ==========
-function rejectCounterOffer(offerId) {
-    if (!confirm('Reject this counter offer?')) return;
+// ========== 拒绝 Counter Offer ==========
+async function rejectCounterOffer(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Reject Counter Offer',
+        message: 'Are you sure you want to reject this counter offer?',
+        icon: '❌',
+        isReject: true,
+        confirmText: 'Reject',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
     
     showToastMessage('Declining counter offer...', 'info');
     fetch('/api/offer/' + offerId + '/reject-counter', {
@@ -568,9 +760,16 @@ function rejectCounterOffer(offerId) {
 }
 
 // ========== 卖家接受普通 Offer ==========
-function acceptOffer(offerId) {
-    console.log('🔍 acceptOffer called with offerId:', offerId);
-    if (!confirm('Accept this offer? This will notify the buyer.')) return;
+async function acceptOffer(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Accept Offer',
+        message: 'Are you sure you want to accept this offer? The buyer will be notified.',
+        icon: '💰',
+        isAccept: true,
+        confirmText: 'Accept',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
     
     showToastMessage('Accepting offer...', 'info');
     
@@ -579,17 +778,12 @@ function acceptOffer(offerId) {
         credentials: 'same-origin',
         headers: {'Content-Type': 'application/json'}
     })
-    .then(function(r) { 
-        console.log('Response status:', r.status);
-        return r.json(); 
-    })
+    .then(function(r) { return r.json(); })
     .then(function(data) {
-        console.log('Response data:', data);
         if (data.success) {
             showToastMessage('✅ Offer accepted! Buyer can now checkout.', 'success');
             closeOfferManageModal();
             loadNotifications();
-            // 刷新 listings 页面显示
             if (typeof loadListings === 'function') loadListings();
             if (typeof loadOrders === 'function') loadOrders();
         } else {
@@ -603,8 +797,16 @@ function acceptOffer(offerId) {
 }
 
 // ========== 卖家拒绝普通 Offer ==========
-function rejectOffer(offerId) {
-    if (!confirm('Reject this offer?')) return;
+async function rejectOffer(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Reject Offer',
+        message: 'Are you sure you want to reject this offer?',
+        icon: '❌',
+        isReject: true,
+        confirmText: 'Reject',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
     
     showToastMessage('Rejecting offer...', 'info');
     fetch('/api/offer/' + offerId + '/reject', {
@@ -693,8 +895,16 @@ document.getElementById('sendCounterOfferBtn')?.addEventListener('click', functi
 });
 
 // ========== 卖家接受普通 Offer（从通知中心） ==========
-function acceptOfferSimple(offerId) {
-    if (!confirm('Accept this offer?')) return;
+async function acceptOfferSimple(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Accept Offer',
+        message: 'Are you sure you want to accept this offer?',
+        icon: '💰',
+        isAccept: true,
+        confirmText: 'Accept',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
     
     fetch('/api/offer/' + offerId + '/accept', { 
         method: 'POST', 
@@ -705,7 +915,6 @@ function acceptOfferSimple(offerId) {
     .then(function(d) {
         if (d.success) {
             showToastMessage('Offer accepted!', 'success');
-            // 刷新页面而不是 reload，保持用户体验
             loadNotifications();
             if (typeof loadListings === 'function') loadListings();
         } else {
@@ -719,8 +928,16 @@ function acceptOfferSimple(offerId) {
 }
 
 // ========== 卖家拒绝普通 Offer ==========
-function rejectOfferSimple(offerId) {
-    if (!confirm('Reject this offer?')) return;
+async function rejectOfferSimple(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Reject Offer',
+        message: 'Are you sure you want to reject this offer?',
+        icon: '❌',
+        isReject: true,
+        confirmText: 'Reject',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
     
     fetch('/api/offer/' + offerId + '/reject', { 
         method: 'POST', 
