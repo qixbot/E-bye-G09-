@@ -8,75 +8,124 @@
     padding: 30px;
 }
 
-/* Hero Banner Container */
-.hero-banner {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #00381f;
-    border-radius: 12px;
-    padding: 40px 60px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    border: 1px solid #00381f; 
+/* Master Frame Wrapper: Keeping original frame parameters intact */
+.hero-carousel-container {
+    position: relative;
     max-width: 1200px;
+    height: 236px; /* Sizing completely left alone */
     margin: 0 auto;
+    overflow: hidden; 
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 
-/* Left Side: Text */
-.hero-text {
-    flex: 1;
-    padding-right: 40px;
-    color: #ffffff;
-}
-
-.hero-title {
-    font-size: 3rem;
-    font-family: 'Helvetica', Arial, sans-serif;
-    font-weight: bold;
-    color: #ffffff;
-    margin-bottom: 15px;
-    margin-top: 0;
-}
-
-.hero-motto {
-    font-size: 1.2rem;
-    font-family: 'Inter', sans-serif;
-    color: #ffffff;
-    line-height: 1.6;
-}
-
-/* Right Side: Graphic */
-.hero-graphic {
-    flex: 0 1 400px;
+/* Moving Film Track: Width accounts for 4 slides total (3 real + 1 clone) */
+.hero-carousel-track {
     display: flex;
-    justify-content: center;
+    width: 400%; 
+    height: 100%;
+    transform: translateX(0%);
+}
+
+/* Original Content Properties maintained exactly */
+.hero-slide-item {
+    display: block; 
+    width: 25%;       /* CHANGED from 100% to 25% (100% divided by 4 slides) */
+    height: 100%;
+    background-color: #00381f; 
+    padding: 0;       /* Keep this at 0 for full bleed */
+    border: none;     
+    box-sizing: border-box;
+    text-decoration: none;
+    flex-shrink: 0; 
+    overflow: hidden;
+}
+
+/* Hyperimage Slide Variations */
+.hyperimage-slide {
+    cursor: pointer;
+}
+.hyperimage-slide:hover {
+    background-color: #002c18; 
+}
+
+.banner-cta-badge {
+    display: inline-block;
+    margin-top: 12px;
+    background: #ffffff;
+    color: #00381f;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+}
+.hyperimage-slide:hover .banner-cta-badge {
+    transform: scale(1.05);
 }
 
 .hero-img {
-    width: 100%;
-    max-width: 350px;
-    height: auto;
+    max-height: 154px; 
+    width: auto;
     object-fit: contain;
 }
 
-/* MOBILE VIEW RESPONSIVENESS */
-@media (max-width: 768px) {
-    .hero-banner {
-        flex-direction: column;
-        padding: 30px 20px;
-        max-height: 300px;
-    }
+.hero-full-bleed-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures image covers frame perfectly without stretching */
+    display: block;
+}
 
-    .hero-text {
-        padding-right: 100px;
-        margin-bottom: 20px;
-    }
+/* UTAR Style Navigation Arrows: Semi-solid block background with shading hover layer */
+.carousel-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(40, 40, 40, 0.45); /* Standard grey opacity layer mimicking UTAR */
+    border: none;
+    color: #ffffff;
+    font-size: 1.1rem;   
+    width: 34px;          
+    height: 34px;         
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.25s ease-in-out;
+    z-index: 5;
+}
 
-    .hero-graphic {
-        align-self: flex-end; /* Push to the right */
-        width: 30%;
-        flex: auto;
-    }
+/* Deep alpha shading hover state */
+.carousel-nav-btn:hover {
+    background: rgba(0, 0, 0, 0.85); /* Deep dark background shade shift when hovered */
+    color: #ffffff;
+}
+.prev-btn { left: 12px; }
+.next-btn { right: 12px; }
+
+/* Indicator Dots Configuration */
+.carousel-dots-wrapper {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 5;
+}
+.carousel-dot {
+    width: 7px;           
+    height: 7px;          
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.3s ease;
+}
+.carousel-dot.active {
+    background: #ffffff;
+    transform: scale(1.2); 
 }
 
 /* --- HOMEPAGE: CATEGORIES SECTION --- */

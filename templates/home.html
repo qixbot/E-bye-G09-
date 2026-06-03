@@ -17,19 +17,35 @@
     
 <div class="homepage-wrapper">
     
-    <div class="hero-banner">
+    <div class="hero-carousel-container">
+        <div class="hero-carousel-track" id="heroTrack">
         
-        <div class="hero-text">
-            <h1 class="hero-title">E-bye</h1>
-            <p class="hero-motto">
-                The official second-hand marketplace for MMU students. Say goodbye to old items, get great deals!
-            </p>
+        <div class="hero-slide-item image-slide">
+            <img src="{{ url_for('static', filename='banner_image_1.jpg') }}" alt="E-bye Welcome" class="hero-full-bleed-img">
         </div>
 
-        <div class="hero-graphic">
-            <img src="{{ url_for('static', filename='shopping-cart.png') }}" alt="E-bye Banner Graphic" class="hero-img">
+        <a href="{{ url_for('search', category='Books') }}" class="hero-slide-item image-slide hyperimage-slide">
+            <img src="{{ url_for('static', filename='banner_image_books.jpg') }}" alt="Browse Books" class="hero-full-bleed-img">
+        </a>
+
+        <a href="{{ url_for('search', category='Electronics') }}" class="hero-slide-item image-slide hyperimage-slide">
+            <img src="{{ url_for('static', filename='banner_image_gadgets.jpg') }}" alt="Explore Gadgets" class="hero-full-bleed-img">
+        </a>
+
+        <div class="hero-slide-item image-slide clone-slide">
+            <img src="{{ url_for('static', filename='banner_image_1.jpg') }}" alt="E-bye Welcome" class="hero-full-bleed-img">
         </div>
-        
+
+    </div>
+
+        <button class="carousel-nav-btn prev-btn" id="heroPrevBtn" aria-label="Previous Slide">&#10094;</button>
+        <button class="carousel-nav-btn next-btn" id="heroNextBtn" aria-label="Next Slide">&#10095;</button>
+
+        <div class="carousel-dots-wrapper" id="heroDotsContainer">
+            <span class="carousel-dot active" data-slide-index="0"></span>
+            <span class="carousel-dot" data-slide-index="1"></span>
+            <span class="carousel-dot" data-slide-index="2"></span>
+        </div>
     </div>
 
     <section class="categories-section">
@@ -237,25 +253,128 @@
             resetToFirst();
         });
     });
-</script>
 
-<script>
-// Generate canvas thumbnails for video items in product card carousels
-document.querySelectorAll('.carousel-video-thumb').forEach(function(wrap) {
-    var src = wrap.getAttribute('data-videosrc');
-    var canvas = wrap.querySelector('.card-thumb-canvas');
-    if (!src || !canvas) return;
-    var video = document.createElement('video');
-    video.muted = true;
-    video.preload = 'metadata';
-    video.src = src;
-    video.addEventListener('loadeddata', function() { video.currentTime = 0.5; });
-    video.addEventListener('seeked', function() {
-        canvas.width = canvas.offsetWidth || 200;
-        canvas.height = canvas.offsetHeight || 200;
-        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Generate canvas thumbnails for video items in product card carousels
+    document.querySelectorAll('.carousel-video-thumb').forEach(function(wrap) {
+        var src = wrap.getAttribute('data-videosrc');
+        var canvas = wrap.querySelector('.card-thumb-canvas');
+        if (!src || !canvas) return;
+        var video = document.createElement('video');
+        video.muted = true;
+        video.preload = 'metadata';
+        video.src = src;
+        video.addEventListener('loadeddata', function() { video.currentTime = 0.5; });
+        video.addEventListener('seeked', function() {
+            canvas.width = canvas.offsetWidth || 200;
+            canvas.height = canvas.offsetHeight || 200;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        });
+        video.load();
     });
-    video.load();
-});
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const track = document.getElementById('heroTrack');
+        const dots = document.querySelectorAll('.carousel-dot');
+        const prevBtn = document.getElementById('heroPrevBtn');
+        const nextBtn = document.getElementById('heroNextBtn');
+        const container = document.querySelector('.hero-carousel-container');
+        
+        let currentIndex = 0;
+        const realSlidesCount = 3; // Excluding our clone slide item
+        let autoSlideTimer = null;
+        const intervalDuration = 6500; // Time spent viewing each slide
+        let isTransitioning = false; // Flag lock protecting track animation updates
+
+        function updateTrackPosition(smooth = true) {
+            if (smooth) {
+                track.style.transition = "transform 1.1s cubic-bezier(0.25, 1, 0.5, 1)";
+            } else {
+                track.style.transition = "none";
+            }
+            // Calculate and shift layout percentage positions along track strip
+            track.style.transform = `translateX(-${currentIndex * 25}%)`;
+            
+            // Sync indicator active dot highlight states
+            const activeDotIndex = currentIndex % realSlidesCount;
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === activeDotIndex);
+            });
+        }
+
+        function showNextSlide() {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            currentIndex++;
+            updateTrackPosition(true);
+        }
+
+        function showPrevSlide() {
+            if (isTransitioning) return;
+            isTransitioning = true;
+
+            if (currentIndex === 0) {
+                // Instantly warp to clone node location at far right edge first
+                currentIndex = realSlidesCount;
+                updateTrackPosition(false);
+                
+                // Force browser repaint calculation lifecycle trigger
+                void track.offsetWidth;
+                
+                // Then glide smoothly backward to slide 2
+                currentIndex--;
+                updateTrackPosition(true);
+            } else {
+                currentIndex--;
+                updateTrackPosition(true);
+            }
+        }
+
+        // Handles infinite loop resetting after transitions complete
+        track.addEventListener('transitionend', () => {
+            isTransitioning = false;
+            
+            // If track landed on slide 1's clone at the end of a forward swipe
+            if (currentIndex === realSlidesCount) {
+                currentIndex = 0;
+                updateTrackPosition(false); // Instantly warp back to real Slide 1 safely
+            }
+        });
+
+        function startAutoSwipe() {
+            stopAutoSwipe();
+            autoSlideTimer = setInterval(showNextSlide, intervalDuration);
+        }
+
+        function stopAutoSwipe() {
+            if (autoSlideTimer) clearInterval(autoSlideTimer);
+        }
+
+        // Event Trigger Attachments
+        nextBtn.addEventListener('click', () => {
+            showNextSlide();
+            startAutoSwipe();
+        });
+
+        prevBtn.addEventListener('click', () => {
+            showPrevSlide();
+            startAutoSwipe();
+        });
+
+        dots.forEach(dot => {
+            dot.addEventListener('click', (e) => {
+                if (isTransitioning) return;
+                currentIndex = parseInt(e.target.getAttribute('data-slide-index'));
+                updateTrackPosition(true);
+                startAutoSwipe();
+            });
+        });
+
+        // Pause cycling loop on desktop hover interaction triggers
+        container.addEventListener('mouseenter', stopAutoSwipe);
+        container.addEventListener('mouseleave', startAutoSwipe);
+
+        // Boot cycle engine logic 
+        startAutoSwipe();
+    });
 </script>
 {% endblock %}
