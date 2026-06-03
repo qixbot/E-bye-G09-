@@ -509,12 +509,11 @@ function loadPurchases() {
                 statusBadge = '<span class="offer-status countered">🔄 Counter Offer Received</span>';
                 var counterPrice = parseFloat(item.counter_price || item.offer_price).toFixed(2);
                 actionButtons = `
-                           <button class="offer-action-btn accept-counter-btn" onclick="acceptCounterOffer(${item.id})">✅ Accept (RM ${counterPrice})</button>
-                           <button class="offer-action-btn reject-counter-btn" onclick="rejectCounterOffer(${item.id})">❌ Decline</button>
-                           <button class="offer-action-btn cancel-counter-btn" onclick="cancelCounterOffer(${item.id})">🗑️ Cancel Offer</button>
-                           <a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>
-                  `;
-                }
+                      <button class="offer-action-btn accept-counter-btn" onclick="acceptCounterOffer(${item.id})">✅ Accept (RM ${counterPrice})</button>
+                      <button class="offer-action-btn reject-counter-btn" onclick="rejectCounterOffer(${item.id})">❌ Decline</button>
+                      <button class="offer-action-btn cancel-counter-btn" onclick="cancelCounterOffer(${item.id})">🗑️ Cancel Offer</button>
+                      <a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>
+                `;
                 } else if (isAccepted) {
                     statusBadge = '<span class="offer-status accepted">✅ Offer Accepted</span>';
                     actionButtons = `
