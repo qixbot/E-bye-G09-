@@ -506,13 +506,15 @@ function loadPurchases() {
                 var isOrdered = (item.status === 'ordered');
                 
                 if (isCountered) {
-                    statusBadge = '<span class="offer-status countered">🔄 Counter Offer Received</span>';
-                    var counterPrice = parseFloat(item.counter_price || item.offer_price).toFixed(2);
-                    actionButtons = `
-                        <button class="offer-action-btn accept-counter-btn" onclick="acceptCounterOffer(${item.id})">✅ Accept (RM ${counterPrice})</button>
-                        <button class="offer-action-btn reject-counter-btn" onclick="rejectCounterOffer(${item.id})">❌ Decline</button>
-                        <a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>
-                    `;
+                statusBadge = '<span class="offer-status countered">🔄 Counter Offer Received</span>';
+                var counterPrice = parseFloat(item.counter_price || item.offer_price).toFixed(2);
+                actionButtons = `
+                           <button class="offer-action-btn accept-counter-btn" onclick="acceptCounterOffer(${item.id})">✅ Accept (RM ${counterPrice})</button>
+                           <button class="offer-action-btn reject-counter-btn" onclick="rejectCounterOffer(${item.id})">❌ Decline</button>
+                           <button class="offer-action-btn cancel-counter-btn" onclick="cancelCounterOffer(${item.id})">🗑️ Cancel Offer</button>
+                           <a href="/product/${item.product_id}" class="offer-action-btn view-product-btn">🔍 View Product</a>
+                  `;
+                }
                 } else if (isAccepted) {
                     statusBadge = '<span class="offer-status accepted">✅ Offer Accepted</span>';
                     actionButtons = `
@@ -632,6 +634,57 @@ function rejectCounterOffer(offerId) {
     .catch(function(err) {
         showToastMessage('Error: ' + err.message, 'error');
     });
+}
+
+// ============================================================
+// 买家取消自己的 counter offer (恢复为 pending)
+// ============================================================
+function cancelCounterOffer(offerId) {
+    var modalHtml = `
+        <div id="cancelCounterModal" class="custom-modal">
+            <div class="modal-card">
+                <div class="modal-icon">🗑️</div>
+                <div class="modal-title">Cancel Counter Offer?</div>
+                <div class="modal-message">This will cancel the counter offer and return the offer to "Pending" status. The seller will see your original offer again.</div>
+                <div class="modal-buttons">
+                    <button class="modal-cancel" id="cancelCounterCancelBtn">Keep Offer</button>
+                    <button class="modal-confirm" id="cancelCounterConfirmBtn">Cancel Counter Offer</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    var existing = document.getElementById('cancelCounterModal');
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    var modal = document.getElementById('cancelCounterModal');
+    var cancelBtn = document.getElementById('cancelCounterCancelBtn');
+    var confirmBtn = document.getElementById('cancelCounterConfirmBtn');
+    
+    cancelBtn.onclick = function() { modal.remove(); };
+    confirmBtn.onclick = function() {
+        modal.remove();
+        showToastMessage('Cancelling counter offer...', 'info');
+        
+        fetch('/api/offer/' + offerId + '/cancel-counter', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showToastMessage('Counter offer cancelled! Offer is now pending again.', 'success');
+                loadPurchases();  // Refresh the list
+            } else {
+                throw new Error(data.error || 'Failed to cancel');
+            }
+        })
+        .catch(function(err) {
+            showToastMessage('Error: ' + err.message, 'error');
+        });
+    };
 }
 
 // ============================================================

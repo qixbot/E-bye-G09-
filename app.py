@@ -1521,6 +1521,47 @@ def cancel_offer(offer_id):
     
     return jsonify({'success': True})
 
+@app.route('/api/offer/<int:offer_id>/cancel-counter', methods=['POST'])
+def cancel_counter_offer(offer_id):
+    """Buyer cancels their own counter offer, reverts to pending"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    # Check if offer exists and belongs to the buyer, and is in 'countered' status
+    cur.execute('''
+        SELECT o.*, p.name as product_name, p.seller_id
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s AND o.buyer_id = %s AND o.status = 'countered'
+    ''', (offer_id, session['user_id']))
+    
+    offer = cur.fetchone()
+    
+    if not offer:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Offer not found or cannot be cancelled'}), 404
+    
+    # Revert to pending status and clear counter_price
+    cur.execute("UPDATE offers SET status = 'pending', counter_price = NULL WHERE id = %s", (offer_id,))
+    
+    # Notify seller
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
+    ''', (offer['seller_id'],
+          f" Buyer cancelled their counter offer for \"{offer['product_name']}\". The original offer of RM {offer['offer_price']:.2f} is still pending.",
+          offer_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
+
 @app.route('/api/offer/<int:offer_id>/create-order', methods=['POST'])
 def api_create_order_from_offer(offer_id):
     if 'user_id' not in session:

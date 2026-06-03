@@ -642,8 +642,39 @@ function checkAdminStatus() {
 }
 
 window.switchToAdmin = function() {
-    if (confirm('👑 Switch to Admin Dashboard?\n\nYou can return to user mode by logging out and logging back in.')) {
-        // show toast message before redirecting
+    // Create beautiful modal for admin switch
+    var modalHtml = `
+        <div id="adminSwitchModal" class="custom-modal">
+            <div class="modal-card" style="max-width: 380px;">
+                <div class="modal-icon" style="font-size: 48px;">👑</div>
+                <div class="modal-title" style="color: #8e44ad;">Switch to Admin Mode</div>
+                <div class="modal-message">You will be redirected to the Admin Dashboard.<br><br>
+                    <span style="font-size: 12px; color: #666;">💡 You can return to user mode by logging out and logging back in.</span>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-cancel" id="adminSwitchCancelBtn" style="background: #f5f5f5; border: none;">Cancel</button>
+                    <button class="modal-confirm" id="adminSwitchConfirmBtn" style="background: linear-gradient(135deg, #8e44ad, #6c3483);">Continue →</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    var existing = document.getElementById('adminSwitchModal');
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    var modal = document.getElementById('adminSwitchModal');
+    var cancelBtn = document.getElementById('adminSwitchCancelBtn');
+    var confirmBtn = document.getElementById('adminSwitchConfirmBtn');
+    
+    cancelBtn.onclick = function() {
+        modal.remove();
+    };
+    
+    confirmBtn.onclick = function() {
+        modal.remove();
+        
+        // Show loading toast
         var container = document.createElement('div');
         container.className = 'toast-container';
         var toastDiv = document.createElement('div');
@@ -652,11 +683,14 @@ window.switchToAdmin = function() {
         container.appendChild(toastDiv);
         document.body.appendChild(container);
         
-        // 1.5second delay to allow user to see the message before redirecting
         setTimeout(function() {
             window.location.href = '/switch-to-admin';
         }, 400);
-    }
+    };
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) modal.remove();
+    };
 };
 
 function showToastMessage(message, type) {
