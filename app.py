@@ -3473,6 +3473,18 @@ def upload_product():
         flash("You must be logged in to post an item.", "error")
         return redirect(url_for('login'))
 
+    # Check if user has selected a campus
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT campus FROM users WHERE id = %s', (session['user_id'],))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+
+    if not user or not user['campus']:
+        flash('📍 Please select your campus in Edit Profile before listing items.', 'error')
+        return redirect(url_for('edit_profile'))
+
     if request.method == 'POST':
         name = request.form.get('item_name', '').strip()
         price = request.form.get('item_price', '').strip()
