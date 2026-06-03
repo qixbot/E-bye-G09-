@@ -1691,81 +1691,77 @@ function loadSellerRating() {
     });
 }
 
-// ============================================================
-// Open reviews modal - show all buyer reviews with comments
-// ============================================================
-
 function openReviewsModal() {
-    var userId = {{ user.id }}; 
-
-    fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-
-        console.log('Reviews data:', data);
-        console.log('First review:', data.reviews ? data.reviews[0] : 'no reviews');
-        
-        var starsHtml = generateStarsHtml(data.avg_overall);
-        
-        var statsHtml = `
-            <div class="overall-score">${data.avg_overall}</div>
-            <div class="overall-stars">${starsHtml}</div>
-            <div>Based on ${data.total_reviews} review(s)</div>
-            <div class="stats-detail">
-                <span>😊 Service: ${data.avg_service}★</span>
-                <span>📦 Delivery: ${data.avg_shipping}★</span>
-                <span>✨ Quality: ${data.avg_quality}★</span>
-            </div>
-        `;
-        document.getElementById('reviewsStats').innerHTML = statsHtml;
-
-        if (!data.reviews || data.reviews.length === 0) {
-            document.getElementById('reviewsList').innerHTML = '<div class="empty-state">No reviews yet</div>';
-        } else {
-            var listHtml = '';
-            for (var i = 0; i < data.reviews.length; i++) {
-                var review = data.reviews[i];
-                var reviewerId = review.reviewer_id;  
-                var profileLink = `/user/${reviewerId}`;
-                
-                var avatarHtml = review.reviewer_avatar_base64 ?
-                    `<a href="${profileLink}" class="reviewer-avatar-link" target="_blank" rel="noopener noreferrer">
-                        <img src="${review.reviewer_avatar_base64}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
-                    </a>` :
-                    `<a href="${profileLink}" class="reviewer-avatar-link" target="_blank" rel="noopener noreferrer">
-                        <div class="reviewer-avatar">${review.reviewer_name ? review.reviewer_name[0].toUpperCase() : 'U'}</div>
-                    </a>`;
-                
-                var reviewStars = generateStarsHtml(review.rating_overall);
-                var commentText = review.comment ? review.comment : 'No comment provided';
-                
-                listHtml += `
-                    <div class="review-card">
-                        <div class="review-header">
-                            ${avatarHtml}
-                            <a href="${profileLink}" class="reviewer-name-link" target="_blank" rel="noopener noreferrer">
-                                👤 ${escapeHtml(review.reviewer_full_name || review.reviewer_name)}
-                            </a>
-                            <div class="review-overall">${reviewStars} (${review.rating_overall})</div>
+    fetch(`/api/user/${OTHER_USER_ID}/reviews`, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            const avgOverall = data.avg_overall || 0;
+            const starsHtml = generateStarsHtml(avgOverall);
+            const statsHtml = `
+                <div class="overall-score">${avgOverall}</div>
+                <div class="overall-stars">${starsHtml}</div>
+                <div>Based on ${data.total_reviews || 0} review(s)</div>
+                <div class="stats-detail">
+                    <span>😊 Service: ${data.avg_service || 0}★</span>
+                    <span>📦 Delivery: ${data.avg_shipping || 0}★</span>
+                    <span>✨ Quality: ${data.avg_quality || 0}★</span>
+                </div>
+            `;
+            document.getElementById('reviewsStats').innerHTML = statsHtml;
+            
+            if (!data.reviews || data.reviews.length === 0) {
+                document.getElementById('reviewsList').innerHTML = '<div class="empty-state">No reviews yet</div>';
+            } else {
+                let listHtml = '';
+                for (let i = 0; i < data.reviews.length; i++) {
+                    const r = data.reviews[i];
+                    const reviewerId = r.reviewer_id;
+                    
+                    // ✅ 判断是否是当前登录用户
+                    const isCurrentUser = (reviewerId === CURRENT_USER_ID);
+                    // 如果是当前用户，跳转到 my_profile；否则跳转到 other_profile
+                    const profileLink = isCurrentUser ? '/my-profile' : `/user/${reviewerId}`;
+                    const targetAttr = isCurrentUser ? '' : 'target="_blank" rel="noopener noreferrer"';
+                    
+                    const avatarHtml = r.reviewer_avatar_base64 ?
+                        `<a href="${profileLink}" class="reviewer-avatar-link" ${targetAttr}>
+                            <img src="${r.reviewer_avatar_base64}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                        </a>` :
+                        `<a href="${profileLink}" class="reviewer-avatar-link" ${targetAttr}>
+                            <div class="reviewer-avatar">${(r.reviewer_name ? r.reviewer_name[0].toUpperCase() : 'U')}</div>
+                        </a>`;
+                    
+                    const reviewStars = generateStarsHtml(r.rating_overall);
+                    const commentText = r.comment ? r.comment : 'No comment provided';
+                    
+                    listHtml += `
+                        <div class="review-card">
+                            <div class="review-header">
+                                ${avatarHtml}
+                                <a href="${profileLink}" class="reviewer-name-link" ${targetAttr}>
+                                    👤 ${escapeHtml(r.reviewer_full_name || r.reviewer_name)}
+                                </a>
+                                <div class="review-overall">${reviewStars} (${r.rating_overall})</div>
+                            </div>
+                            <div class="review-detail-ratings">
+                                <span>😊 Service: ${r.rating_service}★</span>
+                                <span>📦 Delivery: ${r.rating_shipping}★</span>
+                                <span>✨ Quality: ${r.rating_quality}★</span>
+                            </div>
+                            <div class="review-product">📦 ${escapeHtml(r.product_name)}</div>
+                            <div class="review-comment">"${escapeHtml(commentText)}"</div>
+                            <div class="review-date">${formatReviewDate(r.created_at)}</div>
                         </div>
-                        <div class="review-detail-ratings">
-                            <span>😊 Service: ${review.rating_service}★</span>
-                            <span>📦 Delivery: ${review.rating_shipping}★</span>
-                            <span>✨ Quality: ${review.rating_quality}★</span>
-                        </div>
-                        <div class="review-product">📦 ${escapeHtml(review.product_name)}</div>
-                        <div class="review-comment">"${escapeHtml(commentText)}"</div>
-                        <div class="review-date">${formatReviewDate(review.created_at)}</div>
-                    </div>
-                `;
+                    `;
+                }
+                document.getElementById('reviewsList').innerHTML = listHtml;
             }
-            document.getElementById('reviewsList').innerHTML = listHtml;
-        }
-        document.getElementById('reviewsModal').style.display = 'flex';
-    })
-    .catch(function(err) {
-        showToastMessage('Failed to load reviews: ' + err.message, 'error');
-    });
+            document.getElementById('reviewsModal').style.display = 'flex';
+        })
+        .catch(err => {
+            console.error('Load reviews error:', err);
+            showToastMessage('Failed to load reviews', 'error');
+        });
 }
 
 function closeReviewsModal() {
