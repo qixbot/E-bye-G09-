@@ -3777,19 +3777,12 @@ def api_get_my_orders():
     result_buyer = []
     for o in buyer_orders:
         o_dict = dict(o)
-        # 获取产品图片
         if o_dict.get('images_blob'):
             try:
                 imgs = json.loads(o_dict['images_blob'])
                 o_dict['product_image'] = imgs[0] if imgs else None
             except:
                 o_dict['product_image'] = None
-        elif o_dict.get('images'):
-            img_list = o_dict['images'].split(',')
-            if img_list:
-                o_dict['product_image'] = '/static/uploads/' + img_list[0]
-        else:
-            o_dict['product_image'] = None
         result_buyer.append(o_dict)
     
     result_seller = []
@@ -3801,12 +3794,6 @@ def api_get_my_orders():
                 o_dict['product_image'] = imgs[0] if imgs else None
             except:
                 o_dict['product_image'] = None
-        elif o_dict.get('images'):
-            img_list = o_dict['images'].split(',')
-            if img_list:
-                o_dict['product_image'] = '/static/uploads/' + img_list[0]
-        else:
-            o_dict['product_image'] = None
         result_seller.append(o_dict)
     
     return jsonify({'as_buyer': result_buyer, 'as_seller': result_seller})

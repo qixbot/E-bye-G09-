@@ -209,28 +209,6 @@
             transform: scale(1);
         }
     }
-    
-    /* Checkout 弹窗中的地点按钮样式 */
-    .checkout-location-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        cursor: pointer;
-        font-size: 12px;
-        background: white;
-        transition: all 0.2s;
-    }
-    .checkout-location-btn.selected {
-        background: #205c3033;
-        border-color: #205c30;
-        color: #205c30;
-    }
-    .checkout-location-btn:hover {
-        background: #f0f0f0;
-    }
 </style>
 
 <div class="notif-page">
@@ -258,7 +236,7 @@
     <div class="bottom-nav-spacer"></div>
 </div>
 
-<!-- 确认购买弹窗（旧，保留但可能不再使用，为了兼容） -->
+<!-- 确认购买弹窗 -->
 <div class="modal-overlay" id="purchaseModal">
     <div class="modal-box">
         <button class="modal-close" onclick="closePurchaseModal()">✕</button>
@@ -444,17 +422,20 @@ function escapeHtml(s) { return s ? s.replace(/[&<>]/g, function(m) { return {'&
 // ========== 自定义漂亮确认弹窗 ==========
 function showConfirm(options) {
     return new Promise((resolve) => {
+        // 移除已存在的弹窗
         const existing = document.querySelector('.custom-confirm-modal');
         if (existing) existing.remove();
         
         const modal = document.createElement('div');
         modal.className = 'custom-confirm-modal';
         
+        // 设置图标
         let icon = options.icon || '💬';
         if (options.isAccept) icon = '💰';
         if (options.isReject) icon = '❌';
         if (options.type === 'cancel') icon = '🗑️';
         
+        // 按钮样式
         const confirmBtnClass = options.isReject ? 'custom-confirm-danger' : 'custom-confirm-confirm';
         
         modal.innerHTML = `
@@ -486,6 +467,7 @@ function showConfirm(options) {
             resolve(true);
         };
         
+        // 点击背景关闭
         modal.onclick = (e) => {
             if (e.target === modal) {
                 cleanup();
@@ -495,139 +477,30 @@ function showConfirm(options) {
     });
 }
 
-// ========== 打开购买弹窗（创建订单） ==========
+// ========== PURCHASE MODAL ==========
 function openPurchaseModal(offerId) {
     purchaseOfferId = offerId;
     selectedLocations = [];
+    document.getElementById('purchaseModal').classList.add('show');
     
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (!data.success) {
-            showToastMessage('Failed to load offer details', 'error');
+            document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Error loading product details</div>';
             return;
         }
-        showCheckoutModal(offerId, data.product_name, data.offer_price);
+        document.getElementById('purchaseProductInfo').innerHTML = 
+            '<div class="offer-detail">' +
+            '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
+            'Price: RM ' + parseFloat(data.offer_price).toFixed(2) +
+            (data.product_image ? '<br><img src="' + data.product_image + '" style="width:80px;border-radius:8px;margin-top:8px;">' : '') +
+            '</div>';
+        buildLocationGrid('purchaseLocationGrid');
     })
-    .catch(function(err) {
-        console.error('Error:', err);
-        showToastMessage('Failed to load offer details', 'error');
+    .catch(function() {
+        document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Failed to load product details</div>';
     });
-}
-
-// ========== 显示 Checkout 弹窗（选择 meetup 地点，最多3个） ==========
-function showCheckoutModal(offerId, productName, price) {
-    // 移除已存在的弹窗
-    const existing = document.getElementById('checkoutModal');
-    if (existing) existing.remove();
-    
-    const modalHtml = `
-        <div id="checkoutModal" class="custom-confirm-modal">
-            <div class="custom-confirm-card" style="max-width: 500px;">
-                <div class="custom-confirm-icon">🛒</div>
-                <div class="custom-confirm-title">Checkout</div>
-                <div class="custom-confirm-message">
-                    <strong>${escapeHtml(productName)}</strong><br>
-                    Price: RM ${parseFloat(price).toFixed(2)}
-                </div>
-                
-                <div style="margin: 16px 0; text-align: left;">
-                    <label style="font-weight: 600; display: block; margin-bottom: 8px;">Select Meetup Location(s) (max 3):</label>
-                    <div id="checkoutLocationGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 250px; overflow-y: auto;">
-                    </div>
-                    <p id="checkoutLocationInfo" style="font-size: 12px; color: #e74c3c; margin-top: 8px;"></p>
-                </div>
-                
-                <div class="custom-confirm-buttons">
-                    <button class="custom-confirm-btn custom-confirm-cancel" id="checkoutCancelBtn">Cancel</button>
-                    <button class="custom-confirm-btn custom-confirm-confirm" id="checkoutConfirmBtn">Confirm Order</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const modal = document.getElementById('checkoutModal');
-    const locationGrid = document.getElementById('checkoutLocationGrid');
-    const locationInfo = document.getElementById('checkoutLocationInfo');
-    
-    // 地点列表
-    const locations = [
-        "Library", "DTC", "Starbees", "CLC", "FCI", "FOM", "FAIE", "FCM",
-        "STC", "HB1", "HB2", "HB3", "HB4", "Masjid", "Tekun Mart", "Chancellery Building"
-    ];
-    
-    let selected = [];
-    
-    locations.forEach(function(loc) {
-        const btn = document.createElement('button');
-        btn.className = 'checkout-location-btn';
-        btn.innerHTML = `<span>${escapeHtml(loc)}</span>`;
-        btn.onclick = function() {
-            const idx = selected.indexOf(loc);
-            if (idx !== -1) {
-                selected.splice(idx, 1);
-                btn.classList.remove('selected');
-            } else {
-                if (selected.length >= 3) {
-                    showToastMessage('Max 3 locations allowed', 'error');
-                    return;
-                }
-                selected.push(loc);
-                btn.classList.add('selected');
-            }
-            locationInfo.innerText = selected.length > 0 ? 
-                '✓ Selected: ' + selected.join(', ') : '⚠️ Please select 1-3 locations';
-        };
-        locationGrid.appendChild(btn);
-    });
-    
-    const cancelBtn = document.getElementById('checkoutCancelBtn');
-    const confirmBtn = document.getElementById('checkoutConfirmBtn');
-    
-    cancelBtn.onclick = function() {
-        modal.remove();
-    };
-    
-    confirmBtn.onclick = function() {
-        if (selected.length === 0) {
-            showToastMessage('Please select at least one meetup location', 'error');
-            return;
-        }
-        
-        modal.remove();
-        showToastMessage('Creating order...', 'info');
-        
-        fetch('/api/offer/' + offerId + '/create-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ meetup_locations: selected }),
-            credentials: 'same-origin'
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                showToastMessage('Order created successfully!', 'success');
-                loadNotifications();
-                if (typeof loadOrders === 'function') loadOrders();
-                if (typeof loadPurchases === 'function') loadPurchases();
-                closeOfferManageModal();
-            } else {
-                showToastMessage('Error: ' + (data.error || 'Failed to create order'), 'error');
-            }
-        })
-        .catch(function(err) {
-            console.error('Create order error:', err);
-            showToastMessage('Failed to create order', 'error');
-        });
-    };
-    
-    modal.onclick = function(e) {
-        if (e.target === modal) {
-            modal.remove();
-        }
-    };
 }
 
 function closePurchaseModal() {
@@ -699,6 +572,7 @@ function openOfferManageModal(offerId) {
             return;
         }
         
+        // 获取当前用户ID
         return fetch('/api/current-user-id', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(userData) {
@@ -716,6 +590,7 @@ function openOfferManageModal(offerId) {
             
             html += '</div>';
             
+            // 根据角色和状态显示不同的按钮
             if (isSeller) {
                 if (data.status === 'pending') {
                     html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
@@ -786,22 +661,19 @@ async function cancelMyOffer(offerId) {
         message: 'Are you sure you want to cancel your offer? This cannot be undone.',
         icon: '🗑️',
         isReject: true,
-        confirmText: 'Yes, Cancel Offer',
+        type: 'cancel',
+        confirmText: 'Cancel Offer',
         cancelText: 'Keep Offer'
     });
     if (!confirmed) return;
     
     showToastMessage('Cancelling offer...', 'info');
-    
     fetch('/api/offer/' + offerId + '/cancel', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' }
     })
-    .then(function(r) { 
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json(); 
-    })
+    .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
             showToastMessage('Your offer has been cancelled.', 'success');
@@ -809,16 +681,15 @@ async function cancelMyOffer(offerId) {
             loadNotifications();
             if (typeof loadPurchases === 'function') loadPurchases();
         } else {
-            showToastMessage('Error: ' + (data.error || 'Failed to cancel'), 'error');
+            throw new Error(data.error || 'Failed to cancel');
         }
     })
     .catch(function(err) {
-        console.error('Cancel offer error:', err);
         showToastMessage('Error: ' + err.message, 'error');
     });
 }
 
-// ========== 接受 Counter Offer（接受后自动打开 Checkout） ==========
+// ========== 接受 Counter Offer ==========
 async function acceptCounterOffer(offerId) {
     const confirmed = await showConfirm({
         title: 'Accept Counter Offer',
@@ -839,12 +710,10 @@ async function acceptCounterOffer(offerId) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            showToastMessage('Counter offer accepted!', 'success');
+            showToastMessage('Counter offer accepted! You can now checkout.', 'success');
             closeOfferManageModal();
             loadNotifications();
             if (typeof loadPurchases === 'function') loadPurchases();
-            // 自动打开 checkout 弹窗创建订单
-            openPurchaseModal(offerId);
         } else {
             showToastMessage('Error: ' + (data.error || 'Failed to accept'), 'error');
         }
@@ -890,7 +759,7 @@ async function rejectCounterOffer(offerId) {
     });
 }
 
-// ========== 卖家接受普通 Offer（接受后自动打开 Checkout） ==========
+// ========== 卖家接受普通 Offer ==========
 async function acceptOffer(offerId) {
     const confirmed = await showConfirm({
         title: 'Accept Offer',
@@ -912,13 +781,11 @@ async function acceptOffer(offerId) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            showToastMessage('✅ Offer accepted!', 'success');
+            showToastMessage('✅ Offer accepted! Buyer can now checkout.', 'success');
             closeOfferManageModal();
             loadNotifications();
             if (typeof loadListings === 'function') loadListings();
             if (typeof loadOrders === 'function') loadOrders();
-            // 自动打开 checkout 弹窗创建订单
-            openPurchaseModal(offerId);
         } else {
             showToastMessage('Error: ' + (data.error || 'Unknown error'), 'error');
         }
@@ -1050,8 +917,6 @@ async function acceptOfferSimple(offerId) {
             showToastMessage('Offer accepted!', 'success');
             loadNotifications();
             if (typeof loadListings === 'function') loadListings();
-            // 自动打开 checkout 弹窗创建订单
-            openPurchaseModal(offerId);
         } else {
             showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
         }
