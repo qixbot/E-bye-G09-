@@ -16,10 +16,11 @@
             background: #fff;
         }
 
+        /* 导航栏 - 加大 */
         .chat-header {
             display: flex;
             align-items: center;
-            padding: 14px 18px;
+            padding: 16px 20px;
             border-bottom: 1px solid #e0e0e0;
             background: #fff;
             position: sticky;
@@ -29,53 +30,271 @@
         .back-btn {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             text-decoration: none;
             color: #205c30;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 600;
-            padding: 8px 14px;
-            border-radius: 20px;
+            padding: 10px 16px;
+            border-radius: 25px;
             background: #eaf4ed;
-            margin-right: 10px;
+            margin-right: 12px;
             transition: 0.2s;
         }
         .back-btn:hover { background: #d4e8d8; }
+        
+        /* 头像 - 加大 */
         .avatar-circle {
-            width: 44px;
-            height: 44px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
             background: #205c30;
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
-            margin-right: 10px;
+            margin-right: 12px;
             flex-shrink: 0;
             position: relative;
             overflow: hidden;
         }
         .avatar-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+        
         .header-info { flex: 1; }
-        .header-name { font-weight: 600; font-size: 16px; }
-        .header-status { font-size: 11px; }
+        .header-name { font-weight: 700; font-size: 18px; margin-bottom: 4px; }
+        .header-status { font-size: 12px; }
         .header-status.online { color: #27ae60; }
         .header-status.offline { color: #888; }
 
         .report-btn {
             background: none;
             border: 1px solid #ddd;
-            border-radius: 16px;
-            padding: 6px 12px;
-            font-size: 12px;
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 13px;
             cursor: pointer;
             color: #888;
             transition: 0.2s;
         }
         .report-btn:hover { background: #fee; color: #e74c3c; border-color: #e74c3c; }
 
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f6f5;
+        }
+        .msg-row { margin-bottom: 16px; display: flex; flex-direction: column; }
+        .msg-row.right { align-items: flex-end; }
+        .msg-row.left { align-items: flex-start; }
+
+        .date-divider {
+            text-align: center;
+            margin: 20px 0 16px;
+        }
+        .date-divider span {
+            background: rgba(0,0,0,0.08);
+            color: #666;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* 消息气泡 - 字体加大 */
+        .msg-bubble {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 20px;
+            font-size: 16px;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+        .msg-bubble.sent { background: #205c30; color: white; border-bottom-right-radius: 4px; }
+        .msg-bubble.received { background: #fff; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .msg-bubble img { max-width: 200px; border-radius: 8px; margin: 4px 0; cursor: pointer; display: block; }
+        
+        .product-card-link { text-decoration: none; display: block; }
+        .product-preview {
+            background: #f0f7f2;
+            border-radius: 12px;
+            padding: 12px;
+            max-width: 260px;
+            border: 1px solid #d4e8d8;
+        }
+        .product-preview-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; color: #1a1a1a; }
+        .product-preview-price { color: #205c30; font-weight: bold; font-size: 16px; margin-bottom: 4px; }
+        .product-preview-link { font-size: 11px; color: #205c30; text-decoration: underline; }
+        
+        .msg-meta { 
+            font-size: 11px; 
+            color: #999; 
+            margin-top: 4px; 
+            padding: 0 6px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-bar {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-top: 1px solid #e0e0e0;
+            gap: 10px;
+            background: #fff;
+            position: sticky;
+            bottom: 0;
+        }
+        .input-bar button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .input-bar button:hover { background: #f0f0f0; }
+        .input-bar input[type="text"] {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 28px;
+            padding: 12px 18px;
+            font-size: 16px;
+            outline: none;
+            background: #f9f9f9;
+            transition: all 0.2s;
+        }
+        .input-bar input[type="text"]:focus {
+            border-color: #205c30;
+            background: #fff;
+            box-shadow: 0 0 0 2px rgba(32,92,48,0.1);
+        }
+        .btn-send {
+            background: #205c30 !important;
+            color: white !important;
+            padding: 10px 22px !important;
+            border-radius: 28px !important;
+            font-size: 15px !important;
+            font-weight: 600;
+            width: auto !important;
+        }
+        .btn-send:hover { background: #0e3a1a !important; transform: scale(1.02); }
+
+        #imageInput { display: none; }
+        .image-preview { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 16px; background: #f9f9f9; }
+        .image-preview-item { position: relative; display: inline-block; }
+        .image-preview-img { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; }
+        .remove-preview {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .emoji-panel {
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px;
+            background: #fff;
+            border-top: 1px solid #eee;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+        .emoji-panel.show { display: flex; }
+        .emoji-panel span {
+            font-size: 24px;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+        .emoji-panel span:hover { background: #f0f0f0; }
+
+        .image-preview-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .image-preview-overlay.show { display: flex; }
+        .image-preview-overlay img { max-width: 95%; max-height: 95%; border-radius: 8px; }
+
+        .report-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .report-modal.show { display: flex; }
+        .report-box {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 90%;
+            max-width: 380px;
+        }
+        .report-box h3 { margin-bottom: 16px; font-size: 18px; }
+        .report-box textarea {
+            width: 100%;
+            height: 80px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 10px;
+            font-size: 14px;
+            resize: none;
+        }
+        .report-box select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            margin-bottom: 12px;
+        }
+        .report-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        
+        .loading-messages {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        /* 产品选择器 */
         .product-picker {
             display: none;
             padding: 12px 16px;
@@ -100,73 +319,6 @@
             cursor: pointer;
             margin-right: 6px;
         }
-
-        .messages-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 20px;
-            background: #f5f6f5;
-        }
-        .msg-row { margin-bottom: 8px; display: flex; flex-direction: column; }
-        .msg-row.right { align-items: flex-end; }
-        .msg-row.left { align-items: flex-start; }
-
-        .date-divider {
-            text-align: center;
-            margin: 20px 0 14px;
-            position: sticky;
-            top: 60px;
-            z-index: 5;
-        }
-        .date-divider span {
-            background: rgba(0,0,0,0.08);
-            color: #666;
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 500;
-        }
-
-        .msg-bubble {
-            max-width: 70%;
-            padding: 12px 18px;
-            border-radius: 16px;
-            font-size: 15px;
-            line-height: 1.4;
-            word-break: break-word;
-        }
-        .msg-bubble.sent { background: #205c30; color: white; border-bottom-right-radius: 4px; }
-        .msg-bubble.received { background: #fff; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .msg-bubble img { max-width: 200px; border-radius: 8px; margin: 4px 0; cursor: pointer; display: block; }
-        .msg-meta { font-size: 10px; color: #999; margin-top: 3px; padding: 0 4px; }
-
-        .input-bar {
-            display: flex; align-items: center; padding: 10px 12px;
-            border-top: 1px solid #e0e0e0; gap: 6px;
-            background: #fff; position: sticky; bottom: 0;
-        }
-        .input-bar button { background: none; border: none; font-size: 22px; cursor: pointer; padding: 4px; }
-        .input-bar input[type="text"] { flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 10px 14px; font-size: 15px; outline: none; background: #f9f9f9; }
-        .input-bar input[type="text"]:focus { border-color: #205c30; background: #fff; }
-        .btn-send { background: #205c30 !important; color: white !important; padding: 8px 18px !important; border-radius: 18px !important; font-size: 14px !important; font-weight: 600; }
-
-        #imageInput { display: none; }
-        .image-preview { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px 12px; }
-        .emoji-panel { display: none; flex-wrap: wrap; gap: 2px; padding: 6px 12px; background: #f9f9f9; border-top: 1px solid #eee; max-height: 100px; overflow-y: auto; }
-        .emoji-panel.show { display: flex; }
-        .emoji-panel span { font-size: 20px; cursor: pointer; padding: 2px 4px; }
-
-        .image-preview-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; }
-        .image-preview-overlay.show { display: flex; }
-        .image-preview-overlay img { max-width: 95%; max-height: 95%; border-radius: 8px; }
-
-        .report-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
-        .report-modal.show { display: flex; }
-        .report-box { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 380px; }
-        .report-box h3 { margin-bottom: 12px; }
-        .report-box textarea { width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 10px; padding: 10px; font-size: 14px; resize: none; }
-        .report-box select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 10px; }
-        .report-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
     </style>
 </head>
 <body>
@@ -187,54 +339,37 @@
     </div>
 
     <div class="messages-area" id="chatMessages">
-        {% set last_date = namespace(value='') %}
-        {% for msg in messages %}
-            {% set msg_date = msg.created_at[:10] if msg.created_at else '' %}
-            {% if msg_date != last_date.value %}
-                <div class="date-divider"><span>{{ msg_date }}</span></div>
-                {% set last_date.value = msg_date %}
-            {% endif %}
-            <div class="msg-row {% if msg.sender_id == session['user_id'] %}right{% else %}left{% endif %}">
-                <div class="msg-bubble {% if msg.sender_id == session['user_id'] %}sent{% else %}received{% endif %}">
-                    {% if msg.image %}
-                        {% set imgs = msg.image.split(',') %}
-                        {% for img in imgs %}
-                        <img src="{{ url_for('static', filename='uploads/' ~ img.strip()) }}" onclick="previewImage(this.src)" loading="lazy">
-                        {% endfor %}
-                    {% endif %}
-                    {{ msg.content | safe }}
-                </div>
-                <div class="msg-meta">
-                    {{ msg.created_at[11:19] if msg.created_at else '' }}
-                    {% if msg.sender_id == session['user_id'] %}
-                        {% if msg.is_read %}✓✓ Read{% else %}✓ Sent{% endif %}
-                    {% endif %}
-                </div>
-            </div>
-        {% endfor %}
+        <div class="loading-messages">Loading messages...</div>
     </div>
 
     <div class="product-picker" id="productPicker">
         <select id="productSelect"><option value="">Select a product...</option></select>
-        <button onclick="sendSelectedProduct()">Send Product Info</button>
-        <button onclick="document.getElementById('productPicker').classList.remove('show')" style="background:#999;">Cancel</button>
+        <div>
+            <button onclick="sendSelectedProduct()">Send Product Info</button>
+            <button onclick="closeProductPicker()" style="background:#999;">Cancel</button>
+        </div>
     </div>
 
     <div class="emoji-panel" id="emojiPanel">
-        {% set emojis = ['😀','😂','😍','🥰','😎','🤩','👍','❤️','🔥','🎉','💯','✅','👋','🙏','💪','📦','💰','💬'] %}
-        {% for emoji in emojis %}
-        <span onclick="insertEmoji('{{ emoji }}')">{{ emoji }}</span>
-        {% endfor %}
+        <span onclick="insertEmoji('😀')">😀</span><span onclick="insertEmoji('😂')">😂</span>
+        <span onclick="insertEmoji('😍')">😍</span><span onclick="insertEmoji('🥰')">🥰</span>
+        <span onclick="insertEmoji('😎')">😎</span><span onclick="insertEmoji('🤩')">🤩</span>
+        <span onclick="insertEmoji('👍')">👍</span><span onclick="insertEmoji('❤️')">❤️</span>
+        <span onclick="insertEmoji('🔥')">🔥</span><span onclick="insertEmoji('🎉')">🎉</span>
+        <span onclick="insertEmoji('💯')">💯</span><span onclick="insertEmoji('✅')">✅</span>
+        <span onclick="insertEmoji('👋')">👋</span><span onclick="insertEmoji('🙏')">🙏</span>
+        <span onclick="insertEmoji('💪')">💪</span><span onclick="insertEmoji('📦')">📦</span>
+        <span onclick="insertEmoji('💰')">💰</span><span onclick="insertEmoji('💬')">💬</span>
     </div>
 
     <div class="image-preview" id="imagePreviewBar"></div>
 
     <div class="input-bar">
-        <input type="file" id="imageInput" accept="image/*" multiple onchange="previewImages()">
+        <input type="file" id="imageInput" accept="image/*" multiple style="display:none" onchange="previewImages()">
         <button onclick="document.getElementById('imageInput').click()" title="Photo">🖼️</button>
         <button onclick="toggleEmoji()" title="Emoji">😀</button>
         <button onclick="openProductPicker()" title="Send Product">📦</button>
-        <input type="text" id="msgInput" placeholder="Message...">
+        <input type="text" id="msgInput" placeholder="Message..." onkeypress="handleEnterKey(event)">
         <button class="btn-send" onclick="sendMsg()">Send</button>
     </div>
 </div>
@@ -255,19 +390,143 @@
         </select>
         <textarea id="reportDetails" placeholder="Add details (optional)..."></textarea>
         <div class="report-actions">
-            <button onclick="closeReportModal()" style="background:#eee;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;">Cancel</button>
-            <button onclick="submitReport()" style="background:#e74c3c;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;">Submit Report</button>
+            <button onclick="closeReportModal()" style="background:#eee; border:none; padding:8px 16px; border-radius:12px; cursor:pointer;">Cancel</button>
+            <button onclick="submitReport()" style="background:#e74c3c; color:white; border:none; padding:8px 16px; border-radius:12px; cursor:pointer;">Submit Report</button>
         </div>
     </div>
 </div>
 
 <script>
 var otherId = {{ other_user.id }};
+var currentUserId = {{ session['user_id'] }};
 var selectedFiles = [];
+var lastMessageId = 0;
 
+// ============================================================
+// 时间格式化 - 显示准确时间
+// ============================================================
+function formatChatTime(dateStr) {
+    if (!dateStr) return '';
+    
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    
+    // 直接使用浏览器本地时区显示时间
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatFullDateTime(dateStr) {
+    if (!dateStr) return 'Unknown';
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    
+    return d.toLocaleString([], { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+function formatDateDivider(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    var now = new Date();
+    
+    if (isNaN(d.getTime())) return '';
+    
+    if (d.toDateString() === now.toDateString()) {
+        return 'Today';
+    }
+    var yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+    }
+    return d.toLocaleDateString();
+}
+
+// ============================================================
+// 渲染消息
+// ============================================================
+function renderMessages(messages) {
+    var container = document.getElementById('chatMessages');
+    if (!container) return;
+    
+    if (!messages || messages.length === 0) {
+        container.innerHTML = '<div class="loading-messages">💬 No messages yet. Say hi!</div>';
+        return;
+    }
+    
+    var html = '';
+    var lastDate = '';
+    
+    for (var i = 0; i < messages.length; i++) {
+        var msg = messages[i];
+        var msgDate = formatDateDivider(msg.created_at);
+        
+        if (msgDate !== lastDate) {
+            html += '<div class="date-divider"><span>' + msgDate + '</span></div>';
+            lastDate = msgDate;
+        }
+        
+        var isSent = (msg.sender_id === currentUserId);
+        
+        html += '<div class="msg-row ' + (isSent ? 'right' : 'left') + '">';
+        html += '<div class="msg-bubble ' + (isSent ? 'sent' : 'received') + '">';
+        
+        if (msg.image) {
+            var images = msg.image.split(',');
+            for (var j = 0; j < images.length; j++) {
+                var imgSrc = images[j].trim();
+                if (!imgSrc.startsWith('http') && !imgSrc.startsWith('data:')) {
+                    imgSrc = '/static/uploads/' + imgSrc;
+                }
+                html += '<img src="' + escapeHtml(imgSrc) + '" onclick="previewImage(this.src)">';
+            }
+        }
+        
+        var messageContent = msg.content || '';
+        if (messageContent.includes('/product/')) {
+            html += messageContent;
+        } else {
+            html += escapeHtml(messageContent);
+        }
+        
+        html += '</div>';
+        html += '<div class="msg-meta">';
+        html += formatChatTime(msg.created_at);
+        if (isSent) {
+            html += msg.is_read ? ' ✓✓ Read' : ' ✓ Sent';
+        }
+        html += '</div>';
+        html += '</div>';
+        
+        if (msg.id > lastMessageId) lastMessageId = msg.id;
+    }
+    
+    container.innerHTML = html;
+    container.scrollTop = container.scrollHeight;
+}
+
+function loadMessages() {
+    fetch('/api/chat/messages/' + otherId + '?since=0', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(messages) {
+        renderMessages(messages);
+    })
+    .catch(function(err) { console.log('Load error:', err); });
+}
+
+// ============================================================
+// 发送消息
+// ============================================================
 function sendMsg() {
     var input = document.getElementById('msgInput');
     var text = input.value.trim();
+    
     if (!text && selectedFiles.length === 0) return;
     
     if (selectedFiles.length > 0) {
@@ -275,21 +534,42 @@ function sendMsg() {
     } else {
         fetch('/chat/send', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ receiver_id: otherId, content: text })
-        }).then(function(r){ return r.json(); }).then(function(d){
-            if (d.success) { input.value = ''; location.reload(); }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ receiver_id: otherId, content: text }),
+            credentials: 'same-origin'
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.success) {
+                input.value = '';
+                loadMessages();
+            }
         });
     }
 }
 
 function sendImages() {
     var formData = new FormData();
-    for (var i = 0; i < selectedFiles.length; i++) { formData.append('images', selectedFiles[i]); }
+    for (var i = 0; i < selectedFiles.length; i++) {
+        formData.append('images', selectedFiles[i]);
+    }
     formData.append('receiver_id', otherId);
     formData.append('content', document.getElementById('msgInput').value.trim());
-    fetch('/chat/send-images', { method: 'POST', body: formData })
-    .then(function(r){ return r.json(); }).then(function(d){ if (d.success) location.reload(); });
+    
+    fetch('/chat/send-images', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success) {
+            document.getElementById('msgInput').value = '';
+            selectedFiles = [];
+            document.getElementById('imagePreviewBar').innerHTML = '';
+            loadMessages();
+        }
+    });
 }
 
 function previewImages() {
@@ -298,14 +578,16 @@ function previewImages() {
     var bar = document.getElementById('imagePreviewBar');
     bar.innerHTML = '';
     var max = Math.min(files.length, 3);
+    
     for (var i = 0; i < max; i++) {
         selectedFiles.push(files[i]);
         (function(file, idx) {
             var reader = new FileReader();
             reader.onload = function(e) {
                 var div = document.createElement('div');
-                div.style.cssText = 'position:relative;display:inline-block;';
-                div.innerHTML = '<img src="' + e.target.result + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover;margin:2px;"><button style="position:absolute;top:-6px;right:-6px;background:#e74c3c;color:white;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;" onclick="removeImage(' + idx + ')">✕</button>';
+                div.className = 'image-preview-item';
+                div.innerHTML = '<img src="' + e.target.result + '" class="image-preview-img">' +
+                    '<button class="remove-preview" onclick="removeImage(' + idx + ')">✕</button>';
                 bar.appendChild(div);
             };
             reader.readAsDataURL(files[i]);
@@ -313,90 +595,181 @@ function previewImages() {
     }
 }
 
-function removeImage(index) { selectedFiles.splice(index, 1); previewImages(); }
+function removeImage(index) {
+    selectedFiles.splice(index, 1);
+    previewImages();
+}
 
+// ============================================================
+// 产品选择器
+// ============================================================
 function openProductPicker() {
     var picker = document.getElementById('productPicker');
     picker.classList.toggle('show');
     if (picker.classList.contains('show')) {
         fetch('/api/user/' + otherId + '/listings')
-        .then(function(r){ return r.json(); })
-        .then(function(data){
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
             var select = document.getElementById('productSelect');
             select.innerHTML = '<option value="">Select a product...</option>';
-            data.forEach(function(p){
+            data.forEach(function(p) {
                 if (p.status === 'approved') {
                     select.innerHTML += '<option value="' + p.id + '">' + p.name + ' (RM ' + parseFloat(p.price).toFixed(2) + ')</option>';
                 }
             });
-            if (select.options.length === 1) {
-                select.innerHTML += '<option disabled>No available products from this seller</option>';
-            }
         });
     }
+}
+
+function closeProductPicker() {
+    document.getElementById('productPicker').classList.remove('show');
 }
 
 function sendSelectedProduct() {
     var select = document.getElementById('productSelect');
     var pid = select.value;
-    if (!pid) { alert('Please select a product first'); return; }
+    if (!pid) {
+        alert('Please select a product first');
+        return;
+    }
     var option = select.options[select.selectedIndex];
     var text = option.text;
-    var price = text.match(/RM [\d.]+/)[0];
+    var priceMatch = text.match(/RM [\d.]+/);
+    var price = priceMatch ? priceMatch[0] : 'RM 0.00';
     var name = text.replace(price, '').replace('()', '').trim();
     var link = '/product/' + pid;
     
-    var cardHtml = '<a href="' + link + '" style="text-decoration:none;color:#333;">' +
-    '<div style="background:#f0f7f2;border-radius:12px;padding:12px;max-width:260px;border:1px solid #d4e8d8;">' +
-    '<div style="font-weight:600;font-size:14px;margin-bottom:6px;color:#1a1a1a;">📦 ' + name + '</div>' +
-    '<div style="color:#205c30;font-weight:bold;font-size:16px;margin-bottom:4px;">' + price + '</div>' +
-    '<div style="font-size:11px;color:#205c30;text-decoration:underline;">Tap to view product →</div>' +
-    '</div></a>';
+    var cardHtml = '<a href="' + link + '" class="product-card-link">' +
+        '<div class="product-preview">' +
+        '<div class="product-preview-name">📦 ' + escapeHtml(name) + '</div>' +
+        '<div class="product-preview-price">' + price + '</div>' +
+        '<div class="product-preview-link">Tap to view product →</div>' +
+        '</div></a>';
     
     fetch('/chat/send', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ receiver_id: otherId, product_id: parseInt(pid), content: cardHtml })
-    }).then(function(r){ return r.json(); }).then(function(d){
-        if (d.success) { document.getElementById('productPicker').classList.remove('show'); location.reload(); }
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiver_id: otherId, product_id: parseInt(pid), content: cardHtml }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success) {
+            closeProductPicker();
+            loadMessages();
+        }
     });
 }
 
-function toggleEmoji() { document.getElementById('emojiPanel').classList.toggle('show'); }
-function insertEmoji(e) { var input = document.getElementById('msgInput'); input.value += e; input.focus(); }
-function previewImage(src) { document.getElementById('previewImg').src = src; document.getElementById('imagePreviewOverlay').classList.add('show'); }
-function openReportModal() { document.getElementById('reportModal').classList.add('show'); }
-function closeReportModal() { document.getElementById('reportModal').classList.remove('show'); }
+// ============================================================
+// 表情和Enter
+// ============================================================
+function toggleEmoji() {
+    document.getElementById('emojiPanel').classList.toggle('show');
+}
+
+function insertEmoji(emoji) {
+    var input = document.getElementById('msgInput');
+    input.value += emoji;
+    input.focus();
+}
+
+function handleEnterKey(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMsg();
+    }
+}
+
+function previewImage(src) {
+    document.getElementById('previewImg').src = src;
+    document.getElementById('imagePreviewOverlay').classList.add('show');
+}
+
+// ============================================================
+// 举报
+// ============================================================
+function openReportModal() {
+    document.getElementById('reportModal').classList.add('show');
+}
+
+function closeReportModal() {
+    document.getElementById('reportModal').classList.remove('show');
+}
 
 function submitReport() {
     var reason = document.getElementById('reportReason').value;
     var details = document.getElementById('reportDetails').value.trim();
+    
     fetch('/report-user/' + otherId, {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ reason: reason, details: details })
-    }).then(function(r){ return r.json(); }).then(function(d){
-        if (d.success) { alert('Report submitted. Thank you.'); closeReportModal(); }
-        else { alert('Failed to submit report'); }
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason, details: details }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success) {
+            alert('Report submitted. Thank you.');
+            closeReportModal();
+        } else {
+            alert('Failed to submit report');
+        }
     });
 }
 
-function updateStatus() {
-    fetch('/api/user/' + otherId + '/status').then(function(r){ return r.json(); }).then(function(d){
-        var el = document.getElementById('userStatus');
-        if (d.online) { el.textContent = '🟢 Online'; el.className = 'header-status online'; }
-        else { el.textContent = 'Last seen: ' + (d.last_seen || 'Unknown'); el.className = 'header-status offline'; }
+// ============================================================
+// 在线状态 - 显示最后在线时间
+// ============================================================
+// ============================================================
+// 在线状态 - 显示准确的最后在线时间
+// ============================================================
+function updateUserStatus() {
+    fetch('/api/user/' + otherId + '/status', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var statusEl = document.getElementById('userStatus');
+        if (data.online) {
+            statusEl.innerHTML = '🟢 Online';
+            statusEl.className = 'header-status online';
+        } else {
+            var lastSeen = data.last_seen ? formatFullDateTime(data.last_seen) : 'Recently';
+            statusEl.innerHTML = 'Last seen: ' + lastSeen;
+            statusEl.className = 'header-status offline';
+        }
+    })
+    .catch(function(err) {
+        document.getElementById('userStatus').innerHTML = 'Last seen: Unknown';
     });
 }
-updateStatus();
-setInterval(updateStatus, 30000);
 
-document.getElementById('msgInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); sendMsg(); } });
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
 
-window.addEventListener('load', function() { var d = document.getElementById('chatMessages'); if (d) d.scrollTop = d.scrollHeight; });
+// ============================================================
+// 初始化
+// ============================================================
+function init() {
+    loadMessages();
+    updateUserStatus();
+    setInterval(updateUserStatus, 30000);
+    setInterval(function() {
+        fetch('/api/chat/messages/' + otherId + '?since=' + lastMessageId, { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(messages) {
+            if (messages && messages.length > 0) loadMessages();
+        });
+    }, 3000);
+}
 
-setInterval(function() {
-    fetch('/api/chat/messages/' + otherId + '?since=' + ({{ messages[-1].id if messages and messages|length > 0 else 0 }}))
-    .then(function(r){ return r.json(); }).then(function(msgs) { if (msgs && msgs.length > 0) location.reload(); });
-}, 3000);
+init();
 </script>
 
 </body>

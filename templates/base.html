@@ -121,8 +121,21 @@
     </script>
     <script>
 (function() {
+    let lastUpdate = 0;
+    let pending = false;
+    
     function updateBadge() {
-        fetch('/api/unread-count')
+        // 防止过于频繁
+        const now = Date.now();
+        if (now - lastUpdate < 3000 || pending) return;
+        
+        pending = true;
+        lastUpdate = now;
+        
+        fetch('/api/unread-count', {
+            method: 'GET',
+            headers: { 'Cache-Control': 'no-cache' }
+        })
         .then(function(r) { return r.json(); })
         .then(function(d) {
             var badge = document.getElementById('chatBadge');
@@ -131,11 +144,25 @@
             if (total > 0) {
                 badge.textContent = total > 99 ? '99+' : total;
                 badge.style.display = 'block';
-            } else { badge.style.display = 'none'; }
-        });
+            } else { 
+                badge.style.display = 'none'; 
+            }
+        })
+        .catch(function(e) { console.log('Badge error:', e); })
+        .finally(function() { pending = false; });
     }
-    updateBadge();
-    setInterval(updateBadge, 30000);
+    
+    // 页面加载后延迟3秒执行，每60秒一次
+    setTimeout(updateBadge, 3000);
+    setInterval(updateBadge, 60000);
+    
+    // 页面可见时立即更新
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            lastUpdate = 0; // 重置，允许立即请求
+            updateBadge();
+        }
+    });
 })();
 </script>
 
