@@ -14,7 +14,6 @@
     font-size: 0.9rem;
     cursor: pointer;
     transition: 0.2s;
-    /* remove position: sticky; top: 20px; etc. */
 }
 .back-btn:hover {
     background: #e0e0e0;
@@ -51,6 +50,7 @@
     font-size: 0.9rem;
     cursor: pointer;
     transition: 0.2s;
+    display: block;
 }
 .category-filter:hover {
     background: #e8e8e8;
@@ -92,6 +92,7 @@
     color: #00381f;
     margin: 0;
     line-height: 1.2;
+    padding: 0 0 0 120px; 
 }
 
 /* Only "Unavailable" title remains (available title removed) */
@@ -151,27 +152,10 @@
     font-weight: 600;
     cursor: pointer;
     transition: 0.2s;
-}
-.remove-btn {
     background: #e74c3c;
     color: white;
 }
-.remove-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-}
-.remove-unavail-btn {
-    background: #f0f0f0;
-    color: #333;
-}
-.remove-unavail-btn:hover {
-    background: #e0e0e0;
-}
-.clear-cart-btn {
-    background: #e74c3c;
-    color: white;
-}
-.clear-cart-btn:hover {
+.action-btn:hover {
     background: #c0392b;
 }
 
