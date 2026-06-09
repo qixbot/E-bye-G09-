@@ -1862,6 +1862,87 @@ def add_to_cart(product_id):
         # Unique violation = already in cart
         return jsonify({'success': False, 'error': 'Item already in cart'}), 400
 
+@app.route('/cart')
+def shopping_cart():
+    if 'user_id' not in session:
+        flash('Please login first', 'error')
+        return redirect(url_for('login'))
+    return render_template('shopping_cart.html')
+
+@app.route('/api/cart')
+def api_get_cart():
+    if 'user_id' not in session:
+        return jsonify({'available': [], 'unavailable': []})
+
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        SELECT ci.product_id, p.name as product_name, p.price, p.status, p.category,
+               u.id as seller_id, u.username as seller_name, u.full_name as seller_full_name,
+               u.avatar_blob as seller_avatar,
+               p.images_blob, p.images
+        FROM cart_items ci
+        JOIN products p ON ci.product_id = p.id
+        JOIN users u ON p.seller_id = u.id
+        WHERE ci.user_id = %s
+        ORDER BY ci.added_at DESC
+    ''', (session['user_id'],))
+    items = cur.fetchall()
+    cur.close()
+    db.close()
+
+    available = []
+    unavailable = []
+    for item in items:
+        item_dict = dict(item)
+        
+        # Convert avatar blob to base64 if exists
+        if item_dict.get('seller_avatar'):
+            import base64
+            try:
+                avatar_b64 = base64.b64encode(bytes(item_dict['seller_avatar'])).decode('utf-8')
+                item_dict['seller_avatar'] = f"data:image/jpeg;base64,{avatar_b64}"
+            except:
+                item_dict['seller_avatar'] = None
+        else:
+            item_dict['seller_avatar'] = None
+        
+        # Get product image safely (no json_array_elements)
+        product_image = '/static/uploads/placeholder.jpg'
+        try:
+            blob = item_dict.get('images_blob')
+            if blob and blob != '[]':
+                import json
+                blob_list = json.loads(blob)
+                if isinstance(blob_list, list) and len(blob_list) > 0:
+                    first = blob_list[0]
+                    if isinstance(first, str):
+                        if first.startswith('data:'):
+                            product_image = first
+                        else:
+                            product_image = '/static/uploads/' + first
+        except Exception as e:
+            print(f"Error parsing images_blob for cart item {item_dict.get('product_id')}: {e}")
+        
+        # Fallback to images column if needed
+        if product_image == '/static/uploads/placeholder.jpg' and item_dict.get('images'):
+            img_list = item_dict['images'].split(',')
+            if img_list and img_list[0].strip():
+                product_image = '/static/uploads/' + img_list[0].strip()
+        
+        item_dict['product_image'] = product_image
+        # Remove raw blob fields to keep response small
+        item_dict.pop('images_blob', None)
+        item_dict.pop('images', None)
+        
+        if item_dict['status'] == 'approved':
+            available.append(item_dict)
+        else:
+            unavailable.append(item_dict)
+
+    return jsonify({'available': available, 'unavailable': unavailable})
+
+
 @app.route('/api/cart/check/<int:product_id>')
 def cart_check(product_id):
     if 'user_id' not in session:
@@ -1874,6 +1955,61 @@ def cart_check(product_id):
     cur.close()
     db.close()
     return jsonify({'in_cart': exists})
+
+@app.route('/cart/remove', methods=['POST'])
+def cart_remove():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    product_ids = data.get('product_ids', [])
+    if not product_ids:
+        return jsonify({'success': False, 'error': 'No items specified'}), 400
+
+    db = get_db()
+    cur = db.cursor()
+    placeholders = ','.join(['%s'] * len(product_ids))
+    cur.execute(f'''
+        DELETE FROM cart_items 
+        WHERE user_id = %s AND product_id IN ({placeholders})
+    ''', [session['user_id']] + product_ids)
+    db.commit()
+    cur.close()
+    db.close()
+    return jsonify({'success': True})
+
+@app.route('/cart/remove-unavailable', methods=['POST'])
+def cart_remove_unavailable():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        DELETE FROM cart_items 
+        WHERE user_id = %s 
+        AND product_id IN (
+            SELECT id FROM products WHERE status != 'approved'
+        )
+    ''', (session['user_id'],))
+    db.commit()
+    cur.close()
+    db.close()
+    return jsonify({'success': True})
+
+@app.route('/api/product/<int:product_id>/seller-campus')
+def api_product_seller_campus(product_id):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        SELECT u.campus FROM products p
+        JOIN users u ON p.seller_id = u.id
+        WHERE p.id = %s
+    ''', (product_id,))
+    row = cur.fetchone()
+    cur.close()
+    db.close()
+    return jsonify({'campus': row['campus'] if row else 'Cyberjaya'})
 
 @app.route('/notifications')
 def notifications_page():
@@ -4333,6 +4469,63 @@ def api_user_other_listings(user_id):
         listings.append(item)
 
     return jsonify(listings)
+
+@app.route('/debug/cart-check')
+def debug_cart_check():
+    if 'user_id' not in session:
+        return "Please login first", 401
+    
+    db = get_db()
+    cur = db.cursor()
+    output = []
+    
+    # 1. Check if cart_items table exists
+    try:
+        cur.execute("SELECT to_regclass('public.cart_items')")
+        row = cur.fetchone()
+        table_exists = row[0] is not None
+        output.append(f"📌 cart_items table exists: {table_exists}")
+    except Exception as e:
+        output.append(f"❌ Error checking table: {e}")
+        table_exists = False
+    
+    # 2. Create table if missing
+    if not table_exists:
+        try:
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS cart_items (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+                    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, product_id)
+                )
+            ''')
+            db.commit()
+            output.append("✅ cart_items table created")
+        except Exception as e:
+            output.append(f"❌ Failed to create table: {e}")
+    
+    # 3. Now check current cart items
+    try:
+        cur.execute("SELECT product_id FROM cart_items WHERE user_id = %s", (session['user_id'],))
+        items = cur.fetchall()
+        output.append(f"🛒 Items in your cart: {len(items)}")
+        for item in items:
+            output.append(f"   - product_id: {item['product_id']}")
+            cur.execute("SELECT id, name, status FROM products WHERE id = %s", (item['product_id'],))
+            p = cur.fetchone()
+            if p:
+                output.append(f"     → Product '{p['name']}' status: {p['status']}")
+            else:
+                output.append(f"     → Product not found!")
+    except Exception as e:
+        output.append(f"❌ Error reading cart_items: {e}")
+    
+    cur.close()
+    db.close()
+    
+    return "<br>".join(output)
 
 if __name__ == '__main__':
     app.run(debug=True)

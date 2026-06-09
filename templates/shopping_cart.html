@@ -1,0 +1,522 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='shopping_cart.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='_product_card.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='product.css') }}">
+
+<div class="cart-page">
+    <!-- Back button (same as product page) -->
+    <div class="cart-header">
+        <button class="back-btn" onclick="goBack()">← Back</button>
+        <button class="edit-mode-btn" id="editModeBtn">✏️ Edit</button>
+    </div>
+
+    <div class="cart-layout">
+        <!-- LEFT: Category Filter (vertical) -->
+        <aside class="cart-sidebar-left" id="categorySidebar">
+            <div class="category-filters">
+                <button class="category-filter active" data-category="all">📦 All</button>
+                <div id="categoryList"></div>
+            </div>
+        </aside>
+
+        <!-- MIDDLE: Product Grid -->
+        <main class="cart-main">
+            <!-- Available products section -->
+            <div class="cart-section" id="availableSection">
+                <h3 class="section-title">Available</h3>
+                <div id="availableProducts" class="cart-grid"></div>
+            </div>
+
+            <!-- Unavailable products section (sold/reserved) -->
+            <div class="cart-section" id="unavailableSection" style="display: none;">
+                <h3 class="section-title">Unavailable</h3>
+                <div id="unavailableProducts" class="cart-grid"></div>
+            </div>
+
+            <div id="emptyCartMessage" class="empty-cart-message" style="display: none;">
+                <span class="empty-icon">🛒</span>
+                <p>Your cart is empty</p>
+                <a href="{{ url_for('home') }}" class="continue-shopping-btn">Continue Shopping →</a>
+            </div>
+        </main>
+
+        <!-- RIGHT: Action Buttons -->
+        <aside class="cart-sidebar-right" id="actionSidebar">
+            <div class="action-buttons">
+                <button id="removeSelectedBtn" class="action-btn remove-btn" disabled>🗑️ Remove</button>
+                <button id="removeUnavailableBtn" class="action-btn remove-unavail-btn">📦 Remove Unavailable</button>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<!-- Offer Modal (reuse same as product page) -->
+<div id="offerModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeOfferModal()">&times;</span>
+        <h2>Make an Offer</h2>
+        <p class="modal-caption">Current asking price: <strong id="offerProductPrice"></strong></p>
+        <div class="form-group">
+            <label>Your offer (RM)</label>
+            <input type="number" id="offerAmount" class="offer-input" placeholder="0.00" step="0.01" min="0" max="9999999">
+            <small class="offer-hint">Max RM 9,999,999.99</small>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-cancel" onclick="closeOfferModal()">Cancel</button>
+            <button class="modal-send" id="sendOfferBtn">Send Offer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Buy Modal (reuse same as product page) -->
+<div id="buyModal" class="modal">
+    <div class="modal-content buy-modal-content">
+        <span class="close" onclick="closeBuyModal()">&times;</span>
+        <div class="buy-modal-two-columns">
+            <div class="buy-modal-left">
+                <div class="product-image-preview" id="buyModalImage"></div>
+                <h3 id="buyModalProductName"></h3>
+                <p class="modal-product-price" id="buyModalPrice"></p>
+            </div>
+            <div class="buy-modal-divider"></div>
+            <div class="buy-modal-right">
+                <div class="location-header">
+                    <p class="location-instruction">Select meetup location(s) (max 3):</p>
+                    <div id="buySelectedLocationsInfo"></div>
+                </div>
+                <div class="location-grid" id="buyLocationGrid"></div>
+            </div>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-cancel" onclick="closeBuyModal()">Cancel</button>
+            <button class="modal-send" id="confirmBuyFromCartBtn">Confirm Purchase</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let cartData = { available: [], unavailable: [] };
+let editMode = false;
+let currentFilter = 'all';
+let categoriesSet = new Set();
+let currentOfferProductId = null;
+let currentBuyProductId = null;
+let selectedLocations = [];
+
+// Load cart data
+async function loadCart() {
+    const response = await fetch('/api/cart', { credentials: 'same-origin' });
+    const data = await response.json();
+    cartData = data;
+    renderCategories();
+    renderCart();
+}
+
+// Render category filters (vertical) - only categories from available products
+function renderCategories() {
+    categoriesSet.clear();
+    cartData.available.forEach(item => {
+        if (item.category) categoriesSet.add(item.category);
+    });
+    const categoryList = document.getElementById('categoryList');
+    categoryList.innerHTML = '';
+    const sorted = Array.from(categoriesSet).sort();
+    sorted.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'category-filter';
+        btn.setAttribute('data-category', cat);
+        btn.textContent = cat === 'books' ? '📚 Books' :
+                          cat === 'gadgets' ? '💻 Gadgets' :
+                          cat === 'dorm' ? '🛏️ Dorm' :
+                          cat === 'fashion' ? '👕 Fashion' :
+                          cat === 'beauty' ? '💄 Beauty' :
+                          cat === 'sports' ? '⚽ Sports' :
+                          cat === 'groceries' ? '🛒 Groceries' :
+                          cat === 'stationery' ? '✏️ Stationery' :
+                          cat === 'music' ? '🎸 Music' : '📦 Others';
+        btn.onclick = () => filterByCategory(cat);
+        categoryList.appendChild(btn);
+    });
+}
+
+// Filter products by category
+function filterByCategory(category) {
+    currentFilter = category;
+    document.querySelectorAll('.category-filter').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-category') === category || (category === 'all' && btn.getAttribute('data-category') === 'all')) {
+            btn.classList.add('active');
+        }
+    });
+    renderCart();
+}
+
+// Render the cart items (with filter applied)
+function renderCart() {
+    const availableContainer = document.getElementById('availableProducts');
+    const unavailableContainer = document.getElementById('unavailableProducts');
+    const unavailableSection = document.getElementById('unavailableSection');
+    const emptyMessage = document.getElementById('emptyCartMessage');
+
+    let filteredAvailable = cartData.available;
+    if (currentFilter !== 'all') {
+        filteredAvailable = cartData.available.filter(item => item.category === currentFilter);
+    }
+
+    if (filteredAvailable.length === 0 && cartData.unavailable.length === 0) {
+        emptyMessage.style.display = 'block';
+        availableContainer.innerHTML = '';
+        unavailableContainer.innerHTML = '';
+        unavailableSection.style.display = 'none';
+        return;
+    }
+
+    emptyMessage.style.display = 'none';
+
+    // Render available products
+    if (filteredAvailable.length === 0) {
+        availableContainer.innerHTML = '<div class="no-items-message">No items in this category</div>';
+    } else {
+        availableContainer.innerHTML = filteredAvailable.map(item => renderCartItem(item, false)).join('');
+    }
+
+    // Render unavailable products
+    if (cartData.unavailable.length === 0) {
+        unavailableSection.style.display = 'none';
+    } else {
+        unavailableSection.style.display = 'block';
+        unavailableContainer.innerHTML = cartData.unavailable.map(item => renderCartItem(item, true)).join('');
+    }
+
+    attachItemEvents();
+}
+
+// Render a single cart item card
+function renderCartItem(item, isUnavailable) {
+    const sellerInitial = (item.seller_name && item.seller_name[0]) ? item.seller_name[0].toUpperCase() : 'U';
+    const statusClass = item.status === 'approved' ? '' : 'unavailable';
+    const disabledAttr = isUnavailable ? 'disabled' : '';
+    const checkboxHtml = editMode ? `<div class="cart-checkbox"><input type="checkbox" class="item-select" data-product-id="${item.product_id}"></div>` : '';
+
+    let avatarHtml = '';
+    if (item.seller_avatar) {
+        avatarHtml = `<img src="${item.seller_avatar}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">`;
+    }
+    avatarHtml += `<span class="seller-initials" style="display: ${item.seller_avatar ? 'none' : 'flex'};">${sellerInitial}</span>`;
+
+    return `
+        <div class="cart-item-card ${statusClass}" data-product-id="${item.product_id}" data-category="${item.category}">
+            ${checkboxHtml}
+            <div class="cart-item-seller">
+                <div class="seller-avatar-small">
+                    ${avatarHtml}
+                </div>
+                <span class="seller-name">${escapeHtml(item.seller_full_name || item.seller_name)}</span>
+            </div>
+            <div class="cart-item-content">
+                <div class="cart-item-image">
+                    <img src="${item.product_image}" alt="${escapeHtml(item.product_name)}" onerror="this.src='/static/uploads/placeholder.jpg'">
+                    ${isUnavailable ? `<div class="unavailable-overlay">${item.status === 'sold' ? 'SOLD' : 'RESERVED'}</div>` : ''}
+                </div>
+                <div class="cart-item-details">
+                    <div class="cart-item-name">${escapeHtml(item.product_name)}</div>
+                    <div class="cart-item-price">RM ${parseFloat(item.price).toFixed(2)}</div>
+                    <div class="cart-item-actions">
+                        <button class="offer-from-cart-btn" data-product-id="${item.product_id}" data-price="${item.price}" ${disabledAttr}>💰 Offer</button>
+                        <button class="buy-from-cart-btn" data-product-id="${item.product_id}" data-name="${escapeHtml(item.product_name)}" data-price="${item.price}" ${disabledAttr}>🛒 Buy Now</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+}
+
+function attachItemEvents() {
+    document.querySelectorAll('.offer-from-cart-btn').forEach(btn => {
+        btn.removeEventListener('click', handleOfferClick);
+        btn.addEventListener('click', handleOfferClick);
+    });
+    document.querySelectorAll('.buy-from-cart-btn').forEach(btn => {
+        btn.removeEventListener('click', handleBuyClick);
+        btn.addEventListener('click', handleBuyClick);
+    });
+}
+
+function handleOfferClick(e) {
+    const btn = e.currentTarget;
+    currentOfferProductId = parseInt(btn.dataset.productId);
+    const price = parseFloat(btn.dataset.price);
+    document.getElementById('offerProductPrice').innerText = `RM ${price.toFixed(2)}`;
+    document.getElementById('offerAmount').value = '';
+    document.getElementById('offerModal').style.display = 'flex';
+}
+
+function handleBuyClick(e) {
+    const btn = e.currentTarget;
+    currentBuyProductId = parseInt(btn.dataset.productId);
+    const name = btn.dataset.name;
+    const price = parseFloat(btn.dataset.price);
+    document.getElementById('buyModalProductName').innerText = name;
+    document.getElementById('buyModalPrice').innerText = `RM ${price.toFixed(2)}`;
+    document.getElementById('buyModalImage').innerHTML = '<div style="font-size:40px;">📦</div>';
+    loadBuyLocations(currentBuyProductId);
+    document.getElementById('buyModal').style.display = 'flex';
+}
+
+async function loadBuyLocations(productId) {
+    const resp = await fetch(`/api/product/${productId}/seller-campus`, { credentials: 'same-origin' });
+    const data = await resp.json();
+    const campus = data.campus || 'Cyberjaya';
+    const locations = campus.includes('Cyber') ? cyberjayaLocations : melakaLocations;
+    renderLocationButtons(locations);
+}
+
+function renderLocationButtons(locations) {
+    const grid = document.getElementById('buyLocationGrid');
+    grid.innerHTML = '';
+    selectedLocations = [];
+    locations.forEach(loc => {
+        const btn = document.createElement('button');
+        btn.className = 'location-btn';
+        btn.innerHTML = `<img src="${loc.image}" class="location-btn-img"><div class="location-btn-label">${loc.name}</div>`;
+        btn.onclick = () => toggleBuyLocation(loc.name);
+        grid.appendChild(btn);
+    });
+    updateBuyLocationUI();
+}
+
+function toggleBuyLocation(locName) {
+    const idx = selectedLocations.indexOf(locName);
+    if (idx !== -1) {
+        selectedLocations.splice(idx, 1);
+    } else {
+        if (selectedLocations.length >= 3) {
+            showToastMessage('Maximum 3 locations allowed', 'error');
+            return;
+        }
+        selectedLocations.push(locName);
+    }
+    updateBuyLocationUI();
+}
+
+function updateBuyLocationUI() {
+    const infoDiv = document.getElementById('buySelectedLocationsInfo');
+    if (selectedLocations.length === 0) {
+        infoDiv.innerHTML = '⚠️ Select 1-3 meetup locations';
+        infoDiv.style.color = '#e74c3c';
+    } else {
+        infoDiv.innerHTML = `✓ Selected: ${selectedLocations.join(', ')}`;
+        infoDiv.style.color = '#2ecc71';
+    }
+    document.querySelectorAll('#buyLocationGrid .location-btn').forEach(btn => {
+        const label = btn.querySelector('.location-btn-label').innerText;
+        if (selectedLocations.includes(label)) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+}
+
+document.getElementById('sendOfferBtn').onclick = async () => {
+    const amount = parseFloat(document.getElementById('offerAmount').value);
+    if (!amount || amount <= 0) {
+        showToastMessage('Enter a valid amount', 'error');
+        return;
+    }
+    const resp = await fetch(`/api/product/${currentOfferProductId}/offers/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offer_price: amount, message: `Offer from cart: RM ${amount.toFixed(2)}` }),
+        credentials: 'same-origin'
+    });
+    const data = await resp.json();
+    if (data.success) {
+        showToastMessage('Offer sent!', 'success');
+        closeOfferModal();
+        await removeCartItems([currentOfferProductId]);
+        loadCart();
+    } else {
+        showToastMessage(data.error || 'Failed to send offer', 'error');
+    }
+};
+
+document.getElementById('confirmBuyFromCartBtn').onclick = async () => {
+    if (selectedLocations.length === 0) {
+        showToastMessage('Select meetup locations', 'error');
+        return;
+    }
+    const resp = await fetch('/api/buy-now', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            product_id: currentBuyProductId,
+            meetup_locations: selectedLocations,
+            meeting_dates: []
+        }),
+        credentials: 'same-origin'
+    });
+    const data = await resp.json();
+    if (data.success) {
+        showToastMessage('Order created! Redirecting...', 'success');
+        closeBuyModal();
+        await removeCartItems([currentBuyProductId]);
+        loadCart();
+        setTimeout(() => window.location.href = '/my-profile?tab=orders', 1500);
+    } else {
+        showToastMessage(data.error || 'Failed to create order', 'error');
+    }
+};
+
+async function removeCartItems(productIds) {
+    const resp = await fetch('/cart/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_ids: productIds }),
+        credentials: 'same-origin'
+    });
+    const data = await resp.json();
+    if (data.success) {
+        showToastMessage('Removed from cart', 'success');
+    } else {
+        showToastMessage('Failed to remove', 'error');
+    }
+}
+
+async function removeUnavailable() {
+    const resp = await fetch('/cart/remove-unavailable', {
+        method: 'POST',
+        credentials: 'same-origin'
+    });
+    const data = await resp.json();
+    if (data.success) {
+        showToastMessage('Unavailable items removed', 'success');
+        loadCart();
+    } else {
+        showToastMessage('Failed to remove', 'error');
+    }
+}
+
+function toggleEditMode() {
+    editMode = !editMode;
+    const editBtn = document.getElementById('editModeBtn');
+    const removeBtn = document.getElementById('removeSelectedBtn');
+    if (editMode) {
+        editBtn.textContent = 'Done';
+        editBtn.classList.add('active');
+        removeBtn.disabled = false;
+        document.querySelectorAll('.cart-item-card').forEach(card => {
+            let checkboxDiv = card.querySelector('.cart-checkbox');
+            if (!checkboxDiv) {
+                checkboxDiv = document.createElement('div');
+                checkboxDiv.className = 'cart-checkbox';
+                checkboxDiv.innerHTML = '<input type="checkbox" class="item-select">';
+                card.insertBefore(checkboxDiv, card.firstChild);
+            } else {
+                checkboxDiv.style.display = 'block';
+            }
+        });
+    } else {
+        editBtn.textContent = '✏️ Edit';
+        editBtn.classList.remove('active');
+        removeBtn.disabled = true;
+        document.querySelectorAll('.cart-checkbox').forEach(ch => ch.style.display = 'none');
+        document.querySelectorAll('.item-select').forEach(cb => cb.checked = false);
+    }
+}
+
+async function removeSelected() {
+    const checkedBoxes = document.querySelectorAll('.item-select:checked');
+    if (checkedBoxes.length === 0) {
+        showToastMessage('Select items to remove', 'error');
+        return;
+    }
+    const productIds = Array.from(checkedBoxes).map(cb => parseInt(cb.dataset.productId));
+    await removeCartItems(productIds);
+    loadCart();
+    if (editMode) toggleEditMode();
+}
+
+function goBack() {
+    if (document.referrer && document.referrer !== "") {
+        window.location.href = document.referrer;
+    } else {
+        window.location.href = "{{ url_for('home') }}";
+    }
+}
+
+function closeOfferModal() {
+    document.getElementById('offerModal').style.display = 'none';
+    currentOfferProductId = null;
+}
+
+function closeBuyModal() {
+    document.getElementById('buyModal').style.display = 'none';
+    currentBuyProductId = null;
+}
+
+function showToastMessage(message, type) {
+    const existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    const container = document.createElement('div');
+    container.className = 'toast-container';
+    const toastDiv = document.createElement('div');
+    toastDiv.className = `toast toast-${type}`;
+    toastDiv.textContent = message;
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    setTimeout(() => container.remove(), 3000);
+}
+
+const cyberjayaLocations = [
+    { name: "Library", image: "/static/uploads/library.jpg" },
+    { name: "DTC", image: "/static/uploads/dtc.jpg" },
+    { name: "Starbees", image: "/static/uploads/starbees.jpg" },
+    { name: "CLC", image: "/static/uploads/clc.jpg" },
+    { name: "FCI", image: "/static/uploads/fci.jpg" },
+    { name: "FOM", image: "/static/uploads/fom.jpg" },
+    { name: "FAIE", image: "/static/uploads/faie.jpg" },
+    { name: "FCM", image: "/static/uploads/fcm.jpg" },
+    { name: "STC", image: "/static/uploads/stc.jpg" },
+    { name: "HB1", image: "/static/uploads/hb1.jpg" },
+    { name: "HB2", image: "/static/uploads/hb2.jpg" },
+    { name: "HB3", image: "/static/uploads/hb3.jpg" },
+    { name: "HB4", image: "/static/uploads/hb4.jpg" },
+    { name: "Masjid", image: "/static/uploads/masjid.jpg" },
+    { name: "Tekun Mart", image: "/static/uploads/tekun_mart.jpg" },
+    { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
+];
+const melakaLocations = [
+    { name: "Library (Melaka)", image: "/static/uploads/library.jpg" },
+    { name: "Dewan Tun Canselor", image: "/static/uploads/dtc.jpg" },
+    { name: "Cafeteria", image: "/static/uploads/starbees.jpg" },
+    { name: "Block A", image: "/static/uploads/clc.jpg" },
+    { name: "Block B", image: "/static/uploads/fci.jpg" },
+    { name: "Block C", image: "/static/uploads/fom.jpg" },
+    { name: "Block D", image: "/static/uploads/faie.jpg" },
+    { name: "Block E", image: "/static/uploads/fcm.jpg" },
+    { name: "Sports Complex", image: "/static/uploads/stc.jpg" },
+    { name: "Hostel 1", image: "/static/uploads/hb1.jpg" },
+    { name: "Hostel 2", image: "/static/uploads/hb2.jpg" },
+    { name: "Hostel 3", image: "/static/uploads/hb3.jpg" },
+    { name: "Hostel 4", image: "/static/uploads/hb4.jpg" },
+    { name: "Surau", image: "/static/uploads/masjid.jpg" },
+    { name: "Mini Mart", image: "/static/uploads/tekun_mart.jpg" },
+    { name: "Admin Building", image: "/static/uploads/chancellery.jpg" }
+];
+
+document.getElementById('editModeBtn').addEventListener('click', toggleEditMode);
+document.getElementById('removeSelectedBtn').addEventListener('click', removeSelected);
+document.getElementById('removeUnavailableBtn').addEventListener('click', removeUnavailable);
+
+loadCart();
+</script>
+
+{% endblock %}
