@@ -124,6 +124,31 @@
     margin-bottom: 12px;
 }
 
+/* Seller group header */
+.seller-group {
+    margin-bottom: 24px;
+    border: 1px solid #eae7e0;
+    border-radius: 16px;
+    background: white;
+    overflow: hidden;
+}
+
+.seller-group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #fafaf8;
+    border-bottom: 1px solid #eae7e0;
+}
+
+.seller-group-items {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 .seller-avatar-small {
     width: 32px;
     height: 32px;
@@ -133,6 +158,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .seller-avatar-small img {
@@ -196,8 +222,9 @@
 
 .cart-item-name {
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.95rem;
     margin-bottom: 4px;
+    line-height: 1.4;
 }
 
 .cart-item-price {
@@ -209,7 +236,8 @@
 
 .cart-item-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .offer-from-cart-btn, .buy-from-cart-btn {
@@ -371,4 +399,76 @@
         height: auto;
         aspect-ratio: 1;
     }
+}
+
+/* Product card clickable link */
+.cart-item-main-link {
+    display: flex;
+    gap: 16px;
+    text-decoration: none;
+    color: inherit;
+    flex: 1;
+    cursor: pointer;
+}
+
+.cart-item-main-link:hover .cart-item-name {
+    color: #00381f;
+    text-decoration: underline;
+}
+
+/* Seller header link */
+.seller-info-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    flex: 1;
+}
+
+.seller-info-link:hover .seller-name {
+    color: #00381f;
+    text-decoration: underline;
+}
+
+/* Checkbox styles */
+.group-checkbox, .item-checkbox {
+    display: none; /* Hidden by default, shown in edit mode */
+}
+
+.cart-item-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e0e0e0;
+    padding: 12px;
+    transition: 0.2s;
+}
+
+.cart-item-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.cart-item-image {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    background: #f5f5f5;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.cart-item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cart-item-details {
+    flex: 1;
+    min-width: 0;
 }

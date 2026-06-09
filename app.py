@@ -1877,7 +1877,7 @@ def api_get_cart():
     db = get_db()
     cur = db.cursor()
     cur.execute('''
-        SELECT ci.product_id, p.name as product_name, p.price, p.status, p.category,
+        SELECT ci.product_id, ci.added_at, p.name as product_name, p.price, p.status, p.category,
                u.id as seller_id, u.username as seller_name, u.full_name as seller_full_name,
                u.avatar_blob as seller_avatar,
                p.images_blob, p.images
@@ -1896,6 +1896,12 @@ def api_get_cart():
     for item in items:
         item_dict = dict(item)
         
+        # Convert datetime to string (CRITICAL FIX)
+        if item_dict.get('added_at'):
+            item_dict['added_at'] = item_dict['added_at'].isoformat()
+        else:
+            item_dict['added_at'] = None
+        
         # Convert avatar blob to base64 if exists
         if item_dict.get('seller_avatar'):
             import base64
@@ -1907,7 +1913,7 @@ def api_get_cart():
         else:
             item_dict['seller_avatar'] = None
         
-        # Get product image safely (no json_array_elements)
+        # Get product image safely
         product_image = '/static/uploads/placeholder.jpg'
         try:
             blob = item_dict.get('images_blob')
@@ -1922,16 +1928,14 @@ def api_get_cart():
                         else:
                             product_image = '/static/uploads/' + first
         except Exception as e:
-            print(f"Error parsing images_blob for cart item {item_dict.get('product_id')}: {e}")
+            print(f"Error parsing images_blob: {e}")
         
-        # Fallback to images column if needed
         if product_image == '/static/uploads/placeholder.jpg' and item_dict.get('images'):
             img_list = item_dict['images'].split(',')
             if img_list and img_list[0].strip():
                 product_image = '/static/uploads/' + img_list[0].strip()
         
         item_dict['product_image'] = product_image
-        # Remove raw blob fields to keep response small
         item_dict.pop('images_blob', None)
         item_dict.pop('images', None)
         
@@ -1941,7 +1945,6 @@ def api_get_cart():
             unavailable.append(item_dict)
 
     return jsonify({'available': available, 'unavailable': unavailable})
-
 
 @app.route('/api/cart/check/<int:product_id>')
 def cart_check(product_id):
@@ -4526,6 +4529,20 @@ def debug_cart_check():
     db.close()
     
     return "<br>".join(output)
+
+@app.route('/debug/cart-items')
+def debug_cart_items():
+    if 'user_id' not in session:
+        return "Please login", 401
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT product_id FROM cart_items WHERE user_id = %s", (session['user_id'],))
+    items = cur.fetchall()
+    cur.close()
+    db.close()
+    if not items:
+        return "Your cart is empty."
+    return f"Cart has {len(items)} item(s): " + ", ".join(str(i['product_id']) for i in items)
 
 if __name__ == '__main__':
     app.run(debug=True)

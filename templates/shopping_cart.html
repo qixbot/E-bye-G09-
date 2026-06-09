@@ -105,6 +105,34 @@ let currentOfferProductId = null;
 let currentBuyProductId = null;
 let selectedLocations = [];
 
+// Helper: group items by seller, each group contains seller info and items array, and maxAddedAt for sorting
+function groupBySeller(items) {
+    const groups = {};
+    for (const item of items) {
+        const sid = item.seller_id;
+        if (!groups[sid]) {
+            groups[sid] = {
+                seller_id: sid,
+                seller_name: item.seller_name,
+                seller_full_name: item.seller_full_name,
+                seller_avatar: item.seller_avatar,
+                maxAddedAt: item.added_at ? new Date(item.added_at) : new Date(0),
+                items: []
+            };
+        }
+        groups[sid].items.push(item);
+        if (item.added_at) {
+            const itemDate = new Date(item.added_at);
+            if (itemDate > groups[sid].maxAddedAt) {
+                groups[sid].maxAddedAt = itemDate;
+            }
+        }
+    }
+    let groupsArray = Object.values(groups);
+    groupsArray.sort((a, b) => b.maxAddedAt - a.maxAddedAt);
+    return groupsArray;
+}
+
 // Load cart data
 async function loadCart() {
     const response = await fetch('/api/cart', { credentials: 'same-origin' });
@@ -113,21 +141,6 @@ async function loadCart() {
     renderCategories();
     renderCart();
 }
-
-// Add click handler for the static "All" button
-function setupAllButton() {
-    const allBtn = document.querySelector('.category-filter[data-category="all"]');
-    if (allBtn) {
-        // Remove any existing listener to avoid duplicates
-        const newAllBtn = allBtn.cloneNode(true);
-        allBtn.parentNode.replaceChild(newAllBtn, allBtn);
-        newAllBtn.addEventListener('click', () => filterByCategory('all'));
-    }
-}
-
-// Call this after initial load and whenever the DOM might change (like after renderCategories)
-// But renderCategories doesn't replace the All button, so we can call it once.
-setupAllButton();
 
 // Render category filters (vertical) - only categories from available products
 function renderCategories() {
@@ -169,19 +182,16 @@ function renderCategories() {
 // Filter products by category
 function filterByCategory(category) {
     currentFilter = category;
-    
-    // Update button active states
     document.querySelectorAll('.category-filter').forEach(btn => {
         btn.classList.remove('active');
         if (btn.getAttribute('data-category') === category) {
             btn.classList.add('active');
         }
     });
-    
     renderCart();
 }
 
-// Render the cart items (with filter applied)
+// Main render: group and display
 function renderCart() {
     const availableContainer = document.getElementById('availableProducts');
     const unavailableContainer = document.getElementById('unavailableProducts');
@@ -200,72 +210,109 @@ function renderCart() {
         unavailableSection.style.display = 'none';
         return;
     }
-
     emptyMessage.style.display = 'none';
 
-    // Render available products
-    if (filteredAvailable.length === 0) {
+    // Group available items
+    const availableGroups = groupBySeller(filteredAvailable);
+    if (availableGroups.length === 0) {
         availableContainer.innerHTML = '<div class="no-items-message">No items in this category</div>';
     } else {
-        availableContainer.innerHTML = filteredAvailable.map(item => renderCartItem(item, false)).join('');
+        availableContainer.innerHTML = availableGroups.map(group => renderSellerGroup(group, false)).join('');
     }
 
-    // Render unavailable products
-    if (cartData.unavailable.length === 0) {
+    // Group unavailable items
+    const unavailableGroups = groupBySeller(cartData.unavailable);
+    if (unavailableGroups.length === 0) {
         unavailableSection.style.display = 'none';
     } else {
         unavailableSection.style.display = 'block';
-        unavailableContainer.innerHTML = cartData.unavailable.map(item => renderCartItem(item, true)).join('');
+        unavailableContainer.innerHTML = unavailableGroups.map(group => renderSellerGroup(group, true)).join('');
     }
 
     attachItemEvents();
+    attachGroupCheckboxEvents();
+}
+
+// Render a seller group (header + items)
+function renderSellerGroup(group, isUnavailable) {
+    try {
+        const groupId = `seller-${group.seller_id}`;
+        const sellerInitial = (group.seller_name && group.seller_name[0]) ? group.seller_name[0].toUpperCase() : 'U';
+        let avatarHtml = '';
+        if (group.seller_avatar) {
+            avatarHtml = `<img src="${group.seller_avatar}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">`;
+        }
+        avatarHtml += `<span class="seller-initials" style="display: ${group.seller_avatar ? 'none' : 'flex'};">${sellerInitial}</span>`;
+
+        const groupCheckboxHtml = editMode ? `<div class="group-checkbox"><input type="checkbox" class="group-select" data-seller-id="${group.seller_id}"></div>` : '';
+
+        let itemsHtml = '';
+        for (const item of group.items) {
+            itemsHtml += renderCartItem(item, isUnavailable);
+        }
+
+        return `
+            <div class="seller-group" id="${groupId}" data-seller-id="${group.seller_id}">
+                <div class="seller-group-header">
+                    ${groupCheckboxHtml}
+                    <a href="/user/${group.seller_id}" class="seller-info-link">
+                        <div class="seller-avatar-small">${avatarHtml}</div>
+                        <span class="seller-name">${escapeHtml(group.seller_full_name || group.seller_name)}</span>
+                    </a>
+                </div>
+                <div class="seller-group-items">
+                    ${itemsHtml}
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        console.error('renderSellerGroup error:', err);
+        return `<div>Error rendering seller group</div>`;
+    }
 }
 
 // Render a single cart item card
 function renderCartItem(item, isUnavailable) {
-    const sellerInitial = (item.seller_name && item.seller_name[0]) ? item.seller_name[0].toUpperCase() : 'U';
-    const statusClass = item.status === 'approved' ? '' : 'unavailable';
-    const disabledAttr = isUnavailable ? 'disabled' : '';
-    const checkboxHtml = editMode ? `<div class="cart-checkbox"><input type="checkbox" class="item-select" data-product-id="${item.product_id}"></div>` : '';
+    try {
+        const statusClass = item.status === 'approved' ? '' : 'unavailable';
+        const disabledAttr = isUnavailable ? 'disabled' : '';
+        const itemCheckboxHtml = editMode ? `<div class="item-checkbox"><input type="checkbox" class="item-select" data-product-id="${item.product_id}" data-seller-id="${item.seller_id}"></div>` : '';
+        const productLink = `/product/${item.product_id}`;
+        const productName = item.product_name || 'Product';
+        const price = item.price ? parseFloat(item.price).toFixed(2) : '0.00';
+        let productImage = item.product_image || '/static/uploads/placeholder.jpg';
+        
+        if (productImage && productImage.startsWith('/static/uploads//')) {
+            productImage = productImage.replace('/static/uploads//', '/static/uploads/');
+        }
 
-    let avatarHtml = '';
-    if (item.seller_avatar) {
-        avatarHtml = `<img src="${item.seller_avatar}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">`;
-    }
-    avatarHtml += `<span class="seller-initials" style="display: ${item.seller_avatar ? 'none' : 'flex'};">${sellerInitial}</span>`;
-
-    return `
-        <div class="cart-item-card ${statusClass}" data-product-id="${item.product_id}" data-category="${item.category}">
-            ${checkboxHtml}
-            <div class="cart-item-seller">
-                <div class="seller-avatar-small">
-                    ${avatarHtml}
-                </div>
-                <span class="seller-name">${escapeHtml(item.seller_full_name || item.seller_name)}</span>
-            </div>
-            <div class="cart-item-content">
-                <div class="cart-item-image">
-                    <img src="${item.product_image}" alt="${escapeHtml(item.product_name)}" onerror="this.src='/static/uploads/placeholder.jpg'">
-                    ${isUnavailable ? `<div class="unavailable-overlay">${item.status === 'sold' ? 'SOLD' : 'RESERVED'}</div>` : ''}
-                </div>
-                <div class="cart-item-details">
-                    <div class="cart-item-name">${escapeHtml(item.product_name)}</div>
-                    <div class="cart-item-price">RM ${parseFloat(item.price).toFixed(2)}</div>
-                    <div class="cart-item-actions">
-                        <button class="offer-from-cart-btn" data-product-id="${item.product_id}" data-price="${item.price}" ${disabledAttr}>💰 Offer</button>
-                        <button class="buy-from-cart-btn" data-product-id="${item.product_id}" data-name="${escapeHtml(item.product_name)}" data-price="${item.price}" data-image="${item.product_image}" ${disabledAttr}>🛒 Buy Now</button>
+        // Make the entire card content (image + details) clickable except buttons
+        return `
+            <div class="cart-item-card ${statusClass}" data-product-id="${item.product_id}" data-category="${item.category || ''}">
+                ${itemCheckboxHtml}
+                <a href="${productLink}" class="cart-item-main-link">
+                    <div class="cart-item-image">
+                        <img src="${productImage}" alt="${escapeHtml(productName)}" onerror="this.src='/static/uploads/placeholder.jpg'">
+                        ${isUnavailable ? `<div class="unavailable-overlay">${item.status === 'sold' ? 'SOLD' : 'RESERVED'}</div>` : ''}
                     </div>
+                    <div class="cart-item-details">
+                        <div class="cart-item-name">${escapeHtml(productName)}</div>
+                        <div class="cart-item-price">RM ${price}</div>
+                    </div>
+                </a>
+                <div class="cart-item-actions">
+                    <button class="offer-from-cart-btn" data-product-id="${item.product_id}" data-price="${item.price}" ${disabledAttr}>💰 Offer</button>
+                    <button class="buy-from-cart-btn" data-product-id="${item.product_id}" data-name="${escapeHtml(productName)}" data-price="${item.price}" data-image="${productImage}" ${disabledAttr}>🛒 Buy Now</button>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+    } catch (err) {
+        console.error('renderCartItem error:', err);
+        return `<div>Error rendering item</div>`;
+    }
 }
 
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
-}
-
+// Attach events for individual item buttons (offer, buy, etc.)
 function attachItemEvents() {
     document.querySelectorAll('.offer-from-cart-btn').forEach(btn => {
         btn.removeEventListener('click', handleOfferClick);
@@ -274,6 +321,25 @@ function attachItemEvents() {
     document.querySelectorAll('.buy-from-cart-btn').forEach(btn => {
         btn.removeEventListener('click', handleBuyClick);
         btn.addEventListener('click', handleBuyClick);
+    });
+}
+
+// Attach group checkbox events (toggle all items in group)
+function attachGroupCheckboxEvents() {
+    document.querySelectorAll('.group-select').forEach(groupChk => {
+        groupChk.removeEventListener('change', handleGroupCheckboxChange);
+        groupChk.addEventListener('change', handleGroupCheckboxChange);
+    });
+}
+
+function handleGroupCheckboxChange(e) {
+    const groupChk = e.target;
+    const sellerId = groupChk.dataset.sellerId;
+    const isChecked = groupChk.checked;
+    const groupDiv = groupChk.closest('.seller-group');
+    const itemCheckboxes = groupDiv.querySelectorAll('.item-select');
+    itemCheckboxes.forEach(itemChk => {
+        itemChk.checked = isChecked;
     });
 }
 
@@ -291,15 +357,13 @@ function handleBuyClick(e) {
     currentBuyProductId = parseInt(btn.dataset.productId);
     const name = btn.dataset.name;
     const price = parseFloat(btn.dataset.price);
-    const imageUrl = btn.dataset.image;  // Get the image URL from data-image
+    const imageUrl = btn.dataset.image;
     
     document.getElementById('buyModalProductName').innerText = name;
     document.getElementById('buyModalPrice').innerText = `RM ${price.toFixed(2)}`;
     
-    // Set the product image
     const modalImageContainer = document.getElementById('buyModalImage');
     if (imageUrl && imageUrl !== '/static/uploads/placeholder.jpg') {
-        // If it's a base64 data URL or a path, display it
         if (imageUrl.startsWith('data:')) {
             modalImageContainer.innerHTML = `<img src="${imageUrl}" style="width:100%;height:100%;object-fit:cover;">`;
         } else {
@@ -368,6 +432,7 @@ function updateBuyLocationUI() {
     });
 }
 
+// Send offer
 document.getElementById('sendOfferBtn').onclick = async () => {
     const amount = parseFloat(document.getElementById('offerAmount').value);
     if (!amount || amount <= 0) {
@@ -391,6 +456,7 @@ document.getElementById('sendOfferBtn').onclick = async () => {
     }
 };
 
+// Buy now from cart
 document.getElementById('confirmBuyFromCartBtn').onclick = async () => {
     if (selectedLocations.length === 0) {
         showToastMessage('Select meetup locations', 'error');
@@ -447,6 +513,7 @@ async function removeUnavailable() {
     }
 }
 
+// Edit mode toggle
 function toggleEditMode() {
     editMode = !editMode;
     const editBtn = document.getElementById('editModeBtn');
@@ -455,33 +522,23 @@ function toggleEditMode() {
         editBtn.textContent = 'Done';
         editBtn.classList.add('active');
         removeBtn.disabled = false;
-        document.querySelectorAll('.cart-item-card').forEach(card => {
-            let checkboxDiv = card.querySelector('.cart-checkbox');
-            if (!checkboxDiv) {
-                checkboxDiv = document.createElement('div');
-                checkboxDiv.className = 'cart-checkbox';
-                checkboxDiv.innerHTML = '<input type="checkbox" class="item-select">';
-                card.insertBefore(checkboxDiv, card.firstChild);
-            } else {
-                checkboxDiv.style.display = 'block';
-            }
-        });
+        document.querySelectorAll('.group-checkbox, .item-checkbox').forEach(ch => ch.style.display = 'block');
     } else {
         editBtn.textContent = '✏️ Edit';
         editBtn.classList.remove('active');
         removeBtn.disabled = true;
-        document.querySelectorAll('.cart-checkbox').forEach(ch => ch.style.display = 'none');
-        document.querySelectorAll('.item-select').forEach(cb => cb.checked = false);
+        document.querySelectorAll('.group-checkbox, .item-checkbox').forEach(ch => ch.style.display = 'none');
+        document.querySelectorAll('.group-select, .item-select').forEach(cb => cb.checked = false);
     }
 }
 
 async function removeSelected() {
-    const checkedBoxes = document.querySelectorAll('.item-select:checked');
-    if (checkedBoxes.length === 0) {
+    const checkedItems = document.querySelectorAll('.item-select:checked');
+    if (checkedItems.length === 0) {
         showToastMessage('Select items to remove', 'error');
         return;
     }
-    const productIds = Array.from(checkedBoxes).map(cb => parseInt(cb.dataset.productId));
+    const productIds = Array.from(checkedItems).map(cb => parseInt(cb.dataset.productId));
     await removeCartItems(productIds);
     loadCart();
     if (editMode) toggleEditMode();
@@ -518,6 +575,12 @@ function showToastMessage(message, type) {
     setTimeout(() => container.remove(), 3000);
 }
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+}
+
+// Locations data
 const cyberjayaLocations = [
     { name: "Library", image: "/static/uploads/library.jpg" },
     { name: "DTC", image: "/static/uploads/dtc.jpg" },
@@ -555,21 +618,22 @@ const melakaLocations = [
     { name: "Admin Building", image: "/static/uploads/chancellery.jpg" }
 ];
 
-document.getElementById('editModeBtn').addEventListener('click', toggleEditMode);
-document.getElementById('removeSelectedBtn').addEventListener('click', removeSelected);
-document.getElementById('removeUnavailableBtn').addEventListener('click', removeUnavailable);
-
-loadCart();
-// Ensure "All" button works
-(function() {
+// Setup "All" button click handler
+function setupAllButton() {
     const allBtn = document.querySelector('.category-filter[data-category="all"]');
     if (allBtn) {
-        // Replace with a fresh clone to clear any previous listeners
         const newBtn = allBtn.cloneNode(true);
         allBtn.parentNode.replaceChild(newBtn, allBtn);
         newBtn.addEventListener('click', () => filterByCategory('all'));
     }
-})();
+}
+
+// Initialize event listeners
+document.getElementById('editModeBtn').addEventListener('click', toggleEditMode);
+document.getElementById('removeSelectedBtn').addEventListener('click', removeSelected);
+document.getElementById('removeUnavailableBtn').addEventListener('click', removeUnavailable);
+setupAllButton();
+loadCart();
 </script>
 
 {% endblock %}
