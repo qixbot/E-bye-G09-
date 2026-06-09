@@ -1,0 +1,326 @@
+/* Buy Modal Styles – used by both product page and shopping cart */
+.buy-modal-content {
+    max-width: 1100px !important;
+    width: 90% !important;
+    padding: 30px !important;
+    overflow: visible !important;
+}
+
+.buy-modal-two-columns {
+    display: flex;
+    gap: 40px;
+    align-items: stretch;
+    min-height: 450px;
+    max-height: 70vh;
+}
+
+.buy-modal-left {
+    flex: 0 0 280px;
+    overflow-y: hidden;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+}
+
+.product-image-preview {
+    background: #f5f5f5;
+    border-radius: 16px;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.product-image-preview img,
+.product-image-preview video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.modal-product-name {
+    margin: 15px 0 5px;
+    font-size: 1.2rem;
+}
+
+.modal-product-price {
+    font-size: 1.4rem;
+    color: #00381f;
+    font-weight: bold;
+    margin: 5px 0;
+}
+
+.buy-modal-right {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.location-header {
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+    padding-bottom: 12px;
+    padding-left: 10px;
+}
+
+.location-instruction {
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.selected-locations-info {
+    font-size: 13px;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.location-grid {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 360px;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+    align-content: flex-start !important;
+    justify-content: flex-start !important;
+    padding: 8px 4px !important;
+}
+
+/* Desktop: 4 columns */
+@media (min-width: 768px) {
+    .location-btn {
+        flex: 0 0 calc(25% - 15px) !important;
+        max-width: calc(25% - 15px) !important;
+    }
+}
+
+/* Mobile: 2 columns */
+@media (max-width: 767px) {
+    .location-btn {
+        flex: 0 0 calc(50% - 10px) !important;
+        max-width: calc(50% - 10px) !important;
+    }
+}
+
+.location-btn {
+    aspect-ratio: 1 / 1;
+    border: 1px solid #ddd;
+    border-radius: 16px;
+    background: white;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    text-align: center;
+    margin: 0 !important;
+}
+
+.location-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: #00381f;
+}
+
+.location-btn-img {
+    width: 100%;
+    height: calc(100% - 40px);
+    object-fit: cover;
+    background-color: #f0f0f0;
+}
+
+.location-btn-label {
+    height: 40px;
+    line-height: 40px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    background: white;
+}
+
+.location-btn.selected {
+    border-color: #00381f;
+    background-color: #f0f7f2;
+    box-shadow: 0 0 0 2px #00381f33;
+}
+
+.buy-modal-divider {
+    width: 1px;
+    background-color: #e0e0e0;
+    margin: 16px 0;
+    align-self: stretch;
+}
+
+/* Date/time picker styles */
+.datetime-picker {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    background: white;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.datetime-picker:focus {
+    border-color: #00381f;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0,56,31,0.1);
+}
+
+.date-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f9f9f9;
+    padding: 8px 12px;
+    border-radius: 24px;
+    border: 1px solid #eee;
+}
+
+.date-row .datetime-picker {
+    flex: 1;
+    background: white;
+}
+
+.remove-date-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #888;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.remove-date-btn:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+.add-more-btn {
+    margin-top: 16px;
+    background: #00381f;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 30px;
+    cursor: pointer;
+    width: auto;
+    align-self: flex-start;
+    transition: background 0.2s;
+}
+
+.add-more-btn:hover {
+    background: #1a5c3a;
+}
+
+/* Responsive stack */
+@media (max-width: 700px) {
+    .buy-modal-two-columns {
+        flex-direction: column;
+        gap: 20px;
+    }
+    .buy-modal-divider {
+        display: none;
+    }
+    .location-grid {
+        height: 340px;
+    }
+}
+
+/* Modal buttons (shared) */
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+    justify-content: flex-end;
+}
+
+.modal-cancel {
+    padding: 12px 24px;
+    background: #f0f0f0;
+    color: #333;
+    border: none;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.modal-cancel:hover {
+    background: #e0e0e0;
+}
+
+.modal-send {
+    padding: 12px 28px;
+    background: #00381f;
+    color: white;
+    border: none;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.modal-send:hover {
+    background: #1a5c3a;
+}
+
+/* Condition badge (reused from _product_card.css, but ensure it's defined) */
+.condition-badge {
+    background-color: #00381f;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+/* Campus badges */
+.campus-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+.campus-badge.cyber {
+    background-color: #3A6B8F;
+}
+
+.campus-badge.mlk {
+    background-color: #9B5A5A;
+}
+
+/* Modal close button (from product.css) */
+.modal .close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #aaa;
+    z-index: 10;
+}
+
+.modal .close:hover {
+    color: #00381f;
+}

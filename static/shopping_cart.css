@@ -103,28 +103,7 @@
     gap: 16px;
 }
 
-/* Cart Item Card */
-.cart-item-card {
-    background: white;
-    border-radius: 16px;
-    border: 1px solid #e0e0e0;
-    padding: 16px;
-    transition: 0.2s;
-    position: relative;
-}
-
-.cart-item-card.unavailable {
-    opacity: 0.7;
-}
-
-.cart-item-seller {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-/* Seller group header */
+/* Seller Group */
 .seller-group {
     margin-bottom: 24px;
     border: 1px solid #eae7e0;
@@ -135,11 +114,47 @@
 
 .seller-group-header {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
+    align-items: stretch;
     background: #fafaf8;
     border-bottom: 1px solid #eae7e0;
+}
+
+/* Checkbox container – perfectly centered */
+.group-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    background: #fafaf8;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.group-checkbox input {
+    width: 18px;
+    height: 18px;
+    margin: 0 !important;
+    padding: 0 !important;
+    cursor: pointer;
+    vertical-align: middle;
+    display: inline-block;
+}
+
+/* Link that fills the rest of the header */
+.seller-group-link {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    padding: 10px 16px;
+    background: #fafaf8;
+    transition: background-color 0.2s;
+}
+
+.seller-group-link:hover {
+    background-color: rgba(0, 56, 31, 0.05);
 }
 
 .seller-group-items {
@@ -177,14 +192,44 @@
     font-size: 0.9rem;
 }
 
-.cart-item-content {
+/* Individual Cart Item Card */
+.cart-item-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e0e0e0;
+    padding: 12px;
+    transition: 0.2s;
+    position: relative;
     display: flex;
+    align-items: center;
     gap: 16px;
 }
 
+.cart-item-card.unavailable {
+    opacity: 0.7;
+}
+
+.cart-item-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Item checkbox – bigger and centered */
+.item-checkbox {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.item-checkbox input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+}
+
 .cart-item-image {
-    width: 100px;
-    height: 100px;
+    width: 80px;
+    height: 80px;
     flex-shrink: 0;
     background: #f5f5f5;
     border-radius: 12px;
@@ -216,8 +261,7 @@
 
 .cart-item-details {
     flex: 1;
-    display: flex;
-    flex-direction: column;
+    min-width: 0;
 }
 
 .cart-item-name {
@@ -273,21 +317,6 @@
 .offer-from-cart-btn:disabled, .buy-from-cart-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-}
-
-/* Checkbox in edit mode */
-.cart-checkbox {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    z-index: 2;
-    display: none;
-}
-
-.cart-checkbox input {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
 }
 
 /* RIGHT SIDEBAR */
@@ -359,7 +388,24 @@
     padding: 40px;
 }
 
-/* Responsive: on mobile, categories become horizontal scrollable bar */
+/* Hide checkboxes by default, show only in edit mode */
+.group-checkbox, .item-checkbox {
+    display: none;
+}
+
+.edit-mode .group-checkbox,
+.edit-mode .item-checkbox {
+    display: flex !important;
+}
+
+/* Product card link (entire card clickable) */
+.cart-item-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
     .cart-layout {
         flex-direction: column;
@@ -391,84 +437,13 @@
         flex-direction: row;
         position: static;
     }
-    .cart-item-content {
+    .cart-item-card {
         flex-direction: column;
+        align-items: stretch;
     }
     .cart-item-image {
         width: 100%;
         height: auto;
         aspect-ratio: 1;
     }
-}
-
-/* Product card clickable link */
-.cart-item-main-link {
-    display: flex;
-    gap: 16px;
-    text-decoration: none;
-    color: inherit;
-    flex: 1;
-    cursor: pointer;
-}
-
-.cart-item-main-link:hover .cart-item-name {
-    color: #00381f;
-    text-decoration: underline;
-}
-
-/* Seller header link */
-.seller-info-link {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    text-decoration: none;
-    color: inherit;
-    flex: 1;
-}
-
-.seller-info-link:hover .seller-name {
-    color: #00381f;
-    text-decoration: underline;
-}
-
-/* Checkbox styles */
-.group-checkbox, .item-checkbox {
-    display: none; /* Hidden by default, shown in edit mode */
-}
-
-.cart-item-card {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: white;
-    border-radius: 16px;
-    border: 1px solid #e0e0e0;
-    padding: 12px;
-    transition: 0.2s;
-}
-
-.cart-item-card:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.cart-item-image {
-    width: 80px;
-    height: 80px;
-    flex-shrink: 0;
-    background: #f5f5f5;
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
-}
-
-.cart-item-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.cart-item-details {
-    flex: 1;
-    min-width: 0;
 }
