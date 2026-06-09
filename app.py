@@ -1557,7 +1557,6 @@ def accept_counter_offer(offer_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
-<<<<<<< HEAD
     try:
         db = get_db()
         cur = db.cursor()
@@ -1571,25 +1570,12 @@ def accept_counter_offer(offer_id):
             JOIN users u ON p.seller_id = u.id
             WHERE o.id = %s AND o.buyer_id = %s AND o.status = %s
         ''', (offer_id, session['user_id'], 'countered'))
-=======
-    db = get_db()
-    cur = db.cursor()
-    
-    try:
-        cur.execute('''
-            SELECT o.*, p.name as product_name, p.seller_id, p.price as product_price
-            FROM offers o
-            JOIN products p ON o.product_id = p.id
-            WHERE o.id = %s AND o.buyer_id = %s
-        ''', (offer_id, session['user_id']))
->>>>>>> keting/week10
         
         offer = cur.fetchone()
         
         if not offer:
             cur.close()
             db.close()
-<<<<<<< HEAD
             return jsonify({'success': False, 'error': 'Offer not found or not countered'}), 404
         
         agreed_price = float(offer['counter_price'])
@@ -1600,52 +1586,22 @@ def accept_counter_offer(offer_id):
             SET offer_price = %s, status = %s, counter_price = NULL
             WHERE id = %s
         ''', (agreed_price, 'accepted', offer_id))
-=======
-            return jsonify({'success': False, 'error': 'Offer not found'}), 404
-        
-        if offer['status'] != 'countered':
-            cur.close()
-            db.close()
-            return jsonify({'success': False, 'error': 'No counter offer available'}), 400
-        
-        agreed_price = float(offer['counter_price'])
-        
-        cur.execute('''
-            UPDATE offers 
-            SET offer_price = %s, status = 'accepted', counter_price = NULL
-            WHERE id = %s
-        ''', (agreed_price, offer_id))
->>>>>>> keting/week10
         
         # 通知卖家
         cur.execute('''
             INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-<<<<<<< HEAD
             VALUES (%s, %s, NOW(), %s, %s, 0)
         ''', (offer['seller_id'],
               f"🎉 Buyer accepted your counter offer of RM {agreed_price:.2f} for \"{offer['product_name']}\". Waiting for checkout.",
               'offer_accepted', offer_id))
-=======
-            VALUES (%s, %s, NOW(), 'offer_accepted', %s, 0)
-        ''', (offer['seller_id'],
-              f"🎉 Buyer accepted your counter offer of RM {agreed_price:.2f} for \"{offer['product_name']}\". Waiting for checkout.",
-              offer_id))
->>>>>>> keting/week10
         
         # 通知买家
         cur.execute('''
             INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-<<<<<<< HEAD
             VALUES (%s, %s, NOW(), %s, %s, 0)
         ''', (session['user_id'],
               f"✅ Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' to confirm your order.",
               'offer_accepted', offer_id))
-=======
-            VALUES (%s, %s, NOW(), 'offer_accepted', %s, 0)
-        ''', (session['user_id'],
-              f"✅ Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' to confirm your order.",
-              offer_id))
->>>>>>> keting/week10
         
         db.commit()
         cur.close()
@@ -1655,19 +1611,10 @@ def accept_counter_offer(offer_id):
         
     except Exception as e:
         print(f"Error in accept_counter_offer: {e}")
-<<<<<<< HEAD
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
-=======
-        if db:
-            db.rollback()
-            cur.close()
-            db.close()
-        return jsonify({'success': False, 'error': str(e)}), 500
     
->>>>>>> keting/week10
 @app.route('/api/offer/<int:offer_id>/reject-counter', methods=['POST'])
 def reject_counter_offer(offer_id):
     """Buyer rejects seller's counter offer"""
