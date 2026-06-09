@@ -314,8 +314,30 @@
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+.chat-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    text-decoration: none;
+    color: #333;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.chat-icon-btn:hover {
+    background-color: #e0e0e0;
+    color: #00381f;
+    transform: translateY(-2px);
 }
 .upload-date {
+    margin-left: auto;
     color: #888;
     font-size: 0.85rem;
 }
@@ -329,7 +351,7 @@
     display: flex;
     gap: 12px;
 }
-.offer-btn, .chat-btn {
+.offer-btn, .add-to-cart-btn {
     flex: 1;
     padding: 12px;
     border-radius: 40px;
@@ -348,16 +370,20 @@
     background: #00381f;
     color: white;
 }
-.chat-btn {
+.add-to-cart-btn {
     background: #f0f0f0;
     color: #333;
     text-decoration: none;
     border: 1px solid #ddd;
     display: inline-block;
 }
-.chat-btn:hover {
+.add-to-cart-btn:hover {
     background: #e0e0e0;
     color: #00381f;
+}
+.add-to-cart-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 .buy-btn {
     width: 100%;

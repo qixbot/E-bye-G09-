@@ -4286,4 +4286,4 @@ def api_user_other_listings(user_id):
     return jsonify(listings)
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)

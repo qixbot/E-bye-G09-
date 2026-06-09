@@ -105,6 +105,7 @@
                         </div>
                     </div>
                 </a>
+                <a href="{{ url_for('chat_page', other_user_id=product.seller_id, product_id=product.id) }}" class="chat-icon-btn" title="Chat with seller">💬</a>
                 <div class="upload-date">Posted on {{ product.created_at.strftime('%Y-%m-%d') if product.created_at else '' }}</div>
             </div>
 
@@ -133,7 +134,7 @@
                 {% else %}
                     <div class="double-buttons">
                         <button class="offer-btn" onclick="openOfferModal()">Make an Offer</button>
-                        <a href="{{ url_for('chat_page', other_user_id=product.seller_id, product_id=product.id) }}" class="chat-btn">💬 Chat with seller</a>
+                        <button class="add-to-cart-btn" id="addToCartBtn" data-product-id="{{ product.id }}">🛒 Add to Cart</button>
                     </div>
                     <button class="buy-btn" id="buyNowBtn">Buy Now</button>
                 {% endif %}
@@ -887,6 +888,25 @@
         container.innerHTML = `<div class="toast ${type}">${msg}</div>`;
         document.body.appendChild(container);
         setTimeout(() => container.remove(), 3000);
+    }
+    
+    // Add to Cart button handler
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    if (addToCartBtn) {
+        addToCartBtn.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            const originalText = this.textContent;
+            this.textContent = 'Adding...';
+            this.disabled = true;
+
+            // For now, just simulate success with toast (no backend yet)
+            // Later we will replace with actual fetch to /add-to-cart
+            setTimeout(() => {
+                showGlobalToast('🛒 Item added to cart!', 'success');
+                this.textContent = originalText;
+                this.disabled = false;
+            }, 500);
+        });
     }
 </script>
 {% endblock %}
