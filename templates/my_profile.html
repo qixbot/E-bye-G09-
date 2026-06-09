@@ -1150,7 +1150,6 @@ function onConfirmReceived() {
 }
 
 function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocations, meetingTimes) {
-<<<<<<< HEAD
     // 解析地点和时间数组
     var locations = [];
     if (meetupLocations && meetupLocations !== '') {
@@ -1212,72 +1211,6 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
     modalHtml += '<button class="modal-cancel" style="padding:10px 20px; border-radius:30px; background:#f0f0f0; border:none; cursor:pointer;" onclick="closeConfirmOrderModal()">Cancel</button>';
     modalHtml += '<button class="modal-confirm" style="padding:10px 20px; border-radius:30px; background:#205c30; color:white; border:none; cursor:pointer;" onclick="submitOrderConfirmation(' + orderId + ')">Confirm Order</button>';
     modalHtml += '</div></div></div>';
-=======
-    // 解析地点（逗号分隔的字符串转数组）
-    var locations = meetupLocations ? meetupLocations.split(',') : [];
-    
-    // 解析时间（逗号分隔的字符串转数组，格式如 "2026-06-10T15:00,2026-06-11T10:00"）
-    var times = [];
-    if (meetingTimes && meetingTimes.trim() !== '') {
-        times = meetingTimes.split(',');
-    }
-    
-    // 生成地点选项 HTML
-    var locationsHtml = '';
-    if (locations.length === 0) {
-        locationsHtml = '<p class="no-data">No location specified</p>';
-    } else {
-        locationsHtml = '<div class="location-options">' +
-            locations.map(function(loc, idx) {
-                return '<label class="radio-option">' +
-                    '<input type="radio" name="selected_location" value="' + escapeHtml(loc) + '"> ' + escapeHtml(loc) +
-                    '</label>';
-            }).join('') +
-            '</div>';
-    }
-    
-    // 生成时间选项 HTML
-    var timesHtml = '';
-    if (times.length === 0) {
-        timesHtml = '<p class="no-data">No time specified by buyer</p>';
-    } else {
-        timesHtml = '<div class="time-options">' +
-            times.map(function(t, idx) {
-                // 格式化显示时间：将 "2026-06-10T15:00" 显示为 "2026-06-10 15:00"
-                var displayTime = t;
-                if (t && t.includes('T')) {
-                    displayTime = t.replace('T', ' ').substring(0, 16);
-                }
-                return '<label class="radio-option">' +
-                    '<input type="radio" name="selected_time" value="' + escapeHtml(t) + '"> ' + escapeHtml(displayTime) +
-                    '</label>';
-            }).join('') +
-            '</div>';
-    }
-    
-    var modalHtml = `<div id="confirmOrderModal" class="custom-modal">
-        <div class="modal-card" style="max-width: 500px;">
-            <div class="modal-icon">📋</div>
-            <div class="modal-title">Confirm Order #${escapeHtml(orderNumber)}</div>
-            <div class="modal-message">Product: ${escapeHtml(productName)}</div>
-            
-            <div style="margin: 16px 0;">
-                <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Location (select one):</label>
-                ${locationsHtml}
-            </div>
-            
-            <div style="margin: 16px 0;">
-                <label style="font-weight:600; display:block; margin-bottom:8px;">Buyer's Preferred Time (select one):</label>
-                ${timesHtml}
-            </div>
-            
-            <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeConfirmOrderModal()">Cancel</button>
-                <button class="modal-confirm" onclick="submitOrderConfirmation(${orderId})">Confirm Order</button>
-            </div>
-        </div>
-    </div>`;
->>>>>>> keting/week10
     
     // 移除已有弹窗并添加
     var existingModal = document.getElementById('confirmOrderModal');
@@ -1295,7 +1228,6 @@ function submitOrderConfirmation(orderId) {
     var selectedLocationElem = document.querySelector('#confirmOrderModal input[name="selected_location"]:checked');
     var selectedLocation = selectedLocationElem ? selectedLocationElem.value : null;
     
-<<<<<<< HEAD
     // 获取选中的时间 - 使用更精确的选择器
     var selectedTimeElem = document.querySelector('#confirmOrderModal input[name="selected_time"]:checked');
     var selectedTime = selectedTimeElem ? selectedTimeElem.value : null;
@@ -1309,18 +1241,12 @@ function submitOrderConfirmation(orderId) {
     console.log('Selected time value:', selectedTime);
     console.log('================================');
     
-=======
->>>>>>> keting/week10
     if (!selectedLocation) {
         showToastMessage('Please select a meetup location', 'error');
         return;
     }
     if (!selectedTime) {
-<<<<<<< HEAD
         showToastMessage('Please select a meeting time', 'error');
-=======
-        showToastMessage('Please select a meetup time', 'error');
->>>>>>> keting/week10
         return;
     }
     
