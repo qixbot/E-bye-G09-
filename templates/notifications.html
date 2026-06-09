@@ -633,6 +633,11 @@ function renderNotificationCard(n) {
     } else if (t.includes('offer_countered')) {
         icon = '🔄'; iconClass = 'offer';
         actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
+    } else if (t.includes('offer_cancelled')) {
+        // ========== 新增：处理取消 offer 的通知 ==========
+        icon = '🗑️'; 
+        iconClass = 'offer';
+        actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=purchases\'">📋 View My Offers</button>';
     } else if (t.includes('order')) {
         icon = '📦'; iconClass = 'order';
         actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">View Order</button>';

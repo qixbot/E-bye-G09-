@@ -1716,9 +1716,14 @@ def cancel_offer(offer_id):
     db = get_db()
     cur = db.cursor()
     
-    # 检查 offer 是否存在且属于当前买家，状态为 pending
-    cur.execute('SELECT * FROM offers WHERE id = %s AND buyer_id = %s AND status = %s', 
-                (offer_id, session['user_id'], 'pending'))
+    # 通过 JOIN products 表获取 seller_id 和 product_name
+    cur.execute('''
+        SELECT o.*, p.seller_id, p.name as product_name
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s AND o.buyer_id = %s AND o.status = %s
+    ''', (offer_id, session['user_id'], 'pending'))
+    
     offer = cur.fetchone()
     
     if not offer:
@@ -1726,15 +1731,29 @@ def cancel_offer(offer_id):
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found or cannot be cancelled'}), 404
     
+    # 获取信息
+    seller_id = offer['seller_id']
+    buyer_id = session['user_id']
+    product_name = offer['product_name']
+    offer_price = float(offer['offer_price'])
+    
     # 更新状态为 cancelled
     cur.execute('UPDATE offers SET status = %s WHERE id = %s', ('cancelled', offer_id))
     
-    # 通知卖家 offer 已取消
+    # ========== 通知卖家 ==========
+    cur.execute('''
+    INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+    VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
+''', (seller_id, 
+      f'🗑️ Buyer cancelled their offer of RM {offer_price:.2f} for "{product_name}".',
+      offer_id))
+    
+    # ========== 通知买家（自己） ==========
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'system', %s, 0)
-    ''', (offer['seller_id'], 
-          f'🗑️ Buyer cancelled their offer of RM {offer["offer_price"]:.2f} for your product.',
+        VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
+    ''', (buyer_id,
+          f'✅ You have cancelled your offer of RM {offer_price:.2f} for "{product_name}".',
           offer_id))
     
     db.commit()
