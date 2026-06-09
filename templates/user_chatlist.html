@@ -2,388 +2,627 @@
 
 {% block content %}
 <style>
-    .chatlist-container { max-width: 700px; margin: 0 auto; padding: 0 16px; }
-    
-    .top-btns { display: flex; gap: 10px; padding: 14px 0; position: sticky; top: 0; background: #fff; z-index: 10; border-bottom: 1px solid #eee; }
-    .top-btn { 
-        flex: 1; text-align: center; padding: 12px 8px; border-radius: 14px; 
-        background: #f9f9f9; text-decoration: none; color: #444; 
-        font-size: 13px; font-weight: 500; position: relative; 
-        transition: all 0.2s ease; border: 1px solid #eee;
-    }
-    .top-btn:hover { 
-        background: #eaf4ed; color: #205c30; 
-        border-color: #205c30; transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(32,92,48,0.1);
-    }
-    .top-btn .badge { 
-        position: absolute; top: -6px; right: -6px; 
-        background: #e74c3c; color: white; border-radius: 50%; 
-        width: 20px; height: 20px; font-size: 11px; 
-        display: flex; align-items: center; justify-content: center; 
-        box-shadow: 0 2px 6px rgba(231,76,60,0.3);
-    }
-    
-    .section-title { font-size: 14px; color: #888; padding: 16px 0 8px; font-weight: 600; }
-    
-    .chat-item { display: flex; align-items: center; padding: 14px; background: #fff; border-radius: 14px; margin-bottom: 8px; text-decoration: none; color: #333; box-shadow: 0 1px 3px rgba(0,0,0,0.04); gap: 12px; transition: all 0.2s; }
-    .chat-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
-    .chat-avatar { width: 46px; height: 46px; border-radius: 50%; background: #205c30; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; flex-shrink: 0; position: relative; overflow: hidden; }
-    .chat-avatar-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
-    .chat-info { flex: 1; min-width: 0; }
-    .chat-name { font-weight: 600; font-size: 15px; }
-    .chat-last { font-size: 13px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .chat-meta { text-align: right; flex-shrink: 0; }
-    .chat-time { font-size: 11px; color: #aaa; }
-    .unread-dot { display: inline-block; background: #e74c3c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; text-align: center; line-height: 22px; margin-top: 4px; }
+/* ============================================================
+   Chatlist 页面样式 - 优化版，减少空白
+   ============================================================ */
+.chatlist-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 12px 80px 12px;
+    background: #f5f7f5;
+    min-height: 100vh;
+}
 
-    /* Notification Panel */
-    .notification-panel { display: none; margin-top: 15px; background: #fff; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .notification-item { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
-    .notification-item:hover { background: #fafafa; }
-    .notification-message { font-size: 13px; line-height: 1.4; color: #333; }
-    .notification-time { font-size: 10px; color: #aaa; margin-top: 4px; }
-    .notification-actions { margin-top: 10px; }
-    .notification-action-btn { background: #205c30; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; }
-    .notification-action-btn.secondary { background: #e0e0e0; color: #333; }
-    .notification-action-btn.counter { background: #e67e22; color: white; }
+/* 桌面端适当加宽 */
+@media (min-width: 768px) {
+    .chatlist-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 20px 80px 20px;
+    }
+}
 
-    /* Offer Card Styles */
-    .offer-card {
-        background: #fff;
-        border-radius: 16px;
-        padding: 16px;
-        margin-bottom: 12px;
-        border: 1px solid #eee;
-    }
-    .offer-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-    }
-    .offer-status {
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    .offer-status.pending { background: #fff3cd; color: #856404; }
-    .offer-status.accepted { background: #d4edda; color: #155724; }
-    .offer-status.rejected { background: #f8d7da; color: #721c24; }
-    .offer-status.countered { background: #fff3e0; color: #e67e22; }
-    .offer-status.ordered { background: #cce5ff; color: #004085; }
-    .offer-amount { margin-bottom: 8px; }
-    .offer-label { font-size: 12px; color: #888; }
-    .offer-price { font-size: 1.1rem; font-weight: 700; color: #205c30; }
-    .accept-offer-btn, .reject-offer-btn, .counter-offer-btn, .contact-buyer-btn {
-        padding: 8px 16px;
-        border-radius: 24px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-    }
-    .accept-offer-btn { background: #205c30; color: white; }
-    .reject-offer-btn { background: #e74c3c; color: white; }
-    .counter-offer-btn { background: #f39c12; color: white; }
-    .contact-buyer-btn { background: #3498db; color: white; }
+/* 顶部按钮栏 */
+.top-btns { 
+    display: flex; 
+    gap: 10px; 
+    padding: 14px 0; 
+    position: sticky; 
+    top: 0; 
+    background: #f5f7f5;
+    z-index: 10; 
+}
 
-    /* Confirm Purchase Modal */
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; }
-    .modal-content { background: white; border-radius: 24px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #eee; background: white; position: sticky; top: 0; }
-    .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; }
-    .buy-modal-two-columns { display: flex; gap: 24px; padding: 24px; }
-    .buy-modal-left { flex: 1; text-align: center; }
-    .buy-modal-right { flex: 1; }
-    .product-image-preview { width: 150px; height: 150px; margin: 0 auto 15px; background: #f5f5f5; border-radius: 12px; overflow: hidden; }
-    .product-image-preview img { width: 100%; height: 100%; object-fit: cover; }
-    .offer-price-info { margin-top: 10px; padding: 8px; background: #e8f5e8; border-radius: 8px; }
-    .location-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 300px; overflow-y: auto; margin-top: 15px; }
-    .location-btn { display: flex; flex-direction: column; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 12px; background: white; cursor: pointer; transition: all 0.2s; }
-    .location-btn.selected { background: #205c3033; border-color: #205c30; }
-    .location-btn-img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-bottom: 5px; }
-    .location-btn-label { font-size: 12px; font-weight: 500; }
-    .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; padding: 20px 24px; border-top: 1px solid #eee; }
-    .modal-cancel { padding: 10px 24px; background: #f0f0f0; border: none; border-radius: 40px; cursor: pointer; }
-    .modal-send { padding: 10px 28px; background: #205c30; color: white; border: none; border-radius: 40px; cursor: pointer; }
+.top-btn { 
+    flex: 1; 
+    text-align: center; 
+    padding: 12px 8px; 
+    border-radius: 14px; 
+    background: #fff; 
+    text-decoration: none; 
+    color: #444; 
+    font-size: 13px; 
+    font-weight: 500; 
+    position: relative; 
+    transition: all 0.2s ease; 
+    border: 1px solid #eee; 
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.top-btn:hover { 
+    background: #eaf4ed; 
+    color: #205c30; 
+    border-color: #205c30; 
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(32,92,48,0.1);
+}
+
+/* 红点徽章 */
+.top-btn .badge { 
+    position: absolute; 
+    top: -6px; 
+    right: -6px; 
+    background: #e74c3c; 
+    color: white; 
+    border-radius: 50%; 
+    min-width: 20px; 
+    height: 20px; 
+    font-size: 11px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 0 5px;
+    box-shadow: 0 2px 6px rgba(231,76,60,0.3);
+    font-weight: bold;
+}
+
+/* 分区标题 */
+.section-title { 
+    font-size: 14px; 
+    color: #888; 
+    padding: 16px 0 8px; 
+    font-weight: 600; 
+}
+
+/* 聊天列表项 */
+.chat-item { 
+    display: flex; 
+    align-items: center; 
+    padding: 14px; 
+    background: #fff; 
+    border-radius: 14px; 
+    margin-bottom: 8px; 
+    text-decoration: none; 
+    color: #333; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); 
+    gap: 12px; 
+    transition: all 0.2s; 
+}
+
+.chat-item:hover { 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+    transform: translateY(-1px); 
+}
+
+/* 头像 */
+.chat-avatar { 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    background: #205c30; 
+    color: white; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 18px; 
+    font-weight: bold; 
+    flex-shrink: 0; 
+    position: relative; 
+    overflow: hidden; 
+}
+
+.chat-avatar-img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+}
+
+/* 聊天信息区域 */
+.chat-info { 
+    flex: 1; 
+    min-width: 0; 
+}
+
+.chat-name { 
+    font-weight: 600; 
+    font-size: 15px; 
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* 在线状态小点 */
+.online-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #27ae60;
+    margin-left: 6px;
+}
+
+.offline-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #bdc3c7;
+    margin-left: 6px;
+}
+
+.chat-last { 
+    font-size: 13px; 
+    color: #888; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+
+/* 右侧时间和未读 */
+.chat-meta { 
+    text-align: right; 
+    flex-shrink: 0; 
+}
+
+.chat-time { 
+    font-size: 11px; 
+    color: #aaa; 
+    margin-bottom: 6px;
+}
+
+/* 未读红点 - 带数字 */
+.unread-dot { 
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e74c3c; 
+    color: white; 
+    border-radius: 50%; 
+    min-width: 22px; 
+    height: 22px; 
+    font-size: 11px; 
+    font-weight: bold;
+    padding: 0 6px;
+}
+
+/* 通知面板 - 优化样式 */
+.notification-panel { 
+    display: none; 
+    margin-top: 15px; 
+    background: #fff; 
+    border-radius: 20px; 
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12); 
+    border: 1px solid #eef2ee;
+    overflow: hidden;
+}
+
+/* 面板头部 */
+.notification-header {
+    padding: 16px 18px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fafbfa;
+}
+
+.notification-header h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #2c3e2c;
+}
+
+.mark-read-btn {
+    background: none;
+    border: none;
+    color: #205c30;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 20px;
+    transition: all 0.2s;
+}
+
+.mark-read-btn:hover {
+    background: #eaf4ed;
+}
+
+/* 通知列表容器 */
+.notification-list {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+/* 通知项 */
+.notification-item { 
+    padding: 14px 18px; 
+    border-bottom: 1px solid #f5f5f5; 
+    transition: background 0.2s; 
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    cursor: pointer;
+}
+
+.notification-item:hover { 
+    background: #fafbfa; 
+}
+
+/* 未读通知绿色标记 */
+.notification-unread-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #27ae60;
+    flex-shrink: 0;
+    margin-top: 5px;
+    box-shadow: 0 0 0 2px rgba(39,174,96,0.2);
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-message { 
+    font-size: 13px; 
+    line-height: 1.45; 
+    color: #5a6e5a; 
+}
+
+.notification-message.unread {
+    font-weight: 600;
+    color: #1a2e1a;
+}
+
+.notification-time { 
+    font-size: 10px; 
+    color: #bbb; 
+    margin-top: 5px; 
+}
+
+/* 查看全部按钮 - 底部居中 */
+.view-all-footer {
+    padding: 14px 18px;
+    text-align: center;
+    border-top: 1px solid #f0f0f0;
+    background: #fff;
+}
+
+.view-all-btn {
+    display: inline-block;
+    background: #205c30;
+    color: white;
+    text-decoration: none;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+}
+
+.view-all-btn:hover {
+    background: #0e3a1a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(32,92,48,0.3);
+}
+
+/* 空状态样式 */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.empty-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.empty-sub {
+    font-size: 14px;
+    color: #999;
+}
+
+/* 加载状态 */
+.loading-state {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+}
+
+/* 搜索框 */
+.search-container {
+    margin: 12px 0;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 30px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+    background: #fff;
+}
+
+.search-input:focus {
+    border-color: #205c30;
+    box-shadow: 0 0 0 2px rgba(32,92,48,0.1);
+}
+
+/* 公告弹窗 */
+.announcement-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+}
+
+.announcement-modal.show {
+    display: flex;
+}
+
+.announcement-modal-content {
+    background: #fff;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+/* Toast 通知 */
+.toast-container {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 11000;
+    pointer-events: none;
+}
+
+.toast {
+    background: #333;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideDown 0.3s ease;
+}
+
+.toast-success { background: #205c30; }
+.toast-error { background: #e74c3c; }
+.toast-info { background: #3498db; }
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 </style>
 
 <div class="chatlist-container">
 
-    <!-- Search User -->
-    <div style="padding:10px 0;">
-        <input type="text" id="userSearch" placeholder="🔍 Search user by name or ID..." 
-               style="width:100%;padding:10px 16px;border-radius:22px;border:1px solid #ddd;font-size:14px;outline:none;"
-               oninput="searchUsers()">
-        <div id="searchResults" style="margin-top:8px;"></div>
+    <!-- 搜索用户 -->
+    <div class="search-container">
+        <input type="text" id="userSearch" class="search-input" placeholder="🔍 Search user by name or ID..." oninput="searchUsers()">
+        <div id="searchResults" style="margin-top: 8px;"></div>
     </div>
 
-    <!-- Top Buttons -->
-<div class="top-btns">
-    <button id="btnNotifications" class="top-btn" style="background:none; width:100%; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-        🔔 Notifications
-        <span class="badge" id="badgeNotif" style="display:{% if unread_notifications > 0 %}flex{% else %}none{% endif %};">{{ unread_notifications }}</span>
-    </button>
-    <button onclick="openAnnouncements()" class="top-btn" style="background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-        📢 Announcements
-        <span class="badge" id="badgeAnn" style="display:{% if unread_announcements > 0 %}flex{% else %}none{% endif %};">{{ unread_announcements }}</span>
-    </button>
-    <button onclick="viewMyReviews()" class="top-btn" style="background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-        💬 Reviews
-        <span class="badge" id="badgeReview" style="display:{% if unread_reviews > 0 %}flex{% else %}none{% endif %};">{{ unread_reviews }}</span>
-    </button>
-</div>
+    <!-- 顶部按钮 -->
+    <div class="top-btns">
+        <button id="btnNotifications" class="top-btn" onclick="handleNotificationClick(event)">
+            🔔 Notifications
+            <span class="badge" id="badgeNotif" style="display: none;">0</span>
+        </button>
+        <button id="btnAnnouncements" class="top-btn" onclick="openAnnouncements()">
+            📢 Announcements
+            <span class="badge" id="badgeAnn" style="display: none;">0</span>
+        </button>
+        <button id="btnReviews" class="top-btn" onclick="viewMyReviews()">
+            💬 Reviews
+            <span class="badge" id="badgeReview" style="display: none;">0</span>
+        </button>
+    </div>
 
-    <!-- Notification Panel -->
+    <!-- 通知预览面板 - 优化版 -->
     <div id="notificationsPanel" class="notification-panel">
-        <div style="padding:12px 16px; border-bottom:1px solid #eee; display:flex; justify-content:space-between;">
-            <span style="font-weight:600;">🔔 Notifications</span>
-            <button onclick="markAllNotificationsRead()" style="background:none; border:none; color:#205c30; font-size:12px; cursor:pointer;">Mark all as read</button>
+        <div class="notification-header">
+            <h4>🔔 Notifications</h4>
+            <button class="mark-read-btn" onclick="markAllNotificationsReadFromPreview()">✓ Mark all read</button>
         </div>
-        <div id="notificationsList" style="max-height:400px; overflow-y:auto;">
-            <p style="text-align:center; padding:20px; color:#999;">Loading...</p>
+        <div id="notificationsList" class="notification-list">
+            <div class="loading-state">Loading...</div>
+        </div>
+        <div class="view-all-footer">
+            <button class="view-all-btn" onclick="goToNotificationsPage()">📋 View all notifications →</button>
         </div>
     </div>
 
-    <!-- Messages Section -->
+    <!-- 消息列表 -->
     <div class="section-title">💬 Messages</div>
     
-    {% if chats and chats|length > 0 %}
-        {% for chat in chats %}
-        <a href="{{ url_for('chat_page', other_user_id=chat.id) }}" class="chat-item">
-            <div class="chat-avatar">
-                <img class="chat-avatar-img" src="{{ url_for('user_avatar', user_id=chat.id) }}" 
-                     onerror="this.style.display='none'; this.parentElement.innerHTML='{{ chat.username[0].upper() }}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center';">
-            </div>
-            <div class="chat-info">
-                <div class="chat-name">{{ chat.full_name or chat.username }}</div>
-                <div class="chat-last">
-                    {% if chat.sender_id == session['user_id'] %}You: {% endif %}
-                    {{ chat.last_message if chat.last_message else '(Picture)' }}
+    <div id="chatListContainer">
+        {% if chats and chats|length > 0 %}
+            {% for chat in chats %}
+            <a href="{{ url_for('chat_page', other_user_id=chat.id) }}" class="chat-item" data-chat-id="{{ chat.id }}" data-user-id="{{ chat.id }}">
+                <div class="chat-avatar">
+                    <img class="chat-avatar-img" src="{{ url_for('user_avatar', user_id=chat.id) }}" 
+                         onerror="this.style.display='none'; this.parentElement.innerHTML='{{ chat.username[0].upper() }}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center';">
                 </div>
-            </div>
-            <div class="chat-meta">
-                <div class="chat-time">{{ chat.last_time if chat.last_time else '' }}</div>
-                {% if chat.unread_count > 0 and chat.sender_id != session['user_id'] %}
-                <span class="unread-dot">{{ chat.unread_count }}</span>
-                {% endif %}
-            </div>
-        </a>
-        {% endfor %}
-    {% else %}
-        <p style="text-align:center;color:#999;margin:40px 0;">No conversations yet.</p>
-    {% endif %}
-
-</div>
-
-<!-- Announcement Modal -->
-<div id="announcementModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;justify-content:center;align-items:center;">
-    <div style="background:#fff;border-radius:16px;width:90%;max-width:500px;max-height:70vh;overflow-y:auto;padding:24px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h3>📢 Announcements</h3>
-            <button onclick="closeAnnouncements()" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
-        </div>
-        <div id="announcementList"><p style="color:#999;">Loading...</p></div>
-    </div>
-</div>
-
-<!-- Confirm Purchase Modal -->
-<div id="confirmPurchaseModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>📦 Confirm Your Purchase</h2>
-            <button class="modal-close" onclick="closeConfirmPurchaseModal()">&times;</button>
-        </div>
-        <div class="buy-modal-two-columns">
-            <div class="buy-modal-left">
-                <div class="product-image-preview" id="confirmProductImage"></div>
-                <h3 id="confirmProductName"></h3>
-                <p id="confirmProductPrice"></p>
-                <p class="offer-price-info">Your offer: <strong id="confirmOfferPrice"></strong></p>
-            </div>
-            <div class="buy-modal-right">
-                <div class="location-header">
-                    <p>Preferred meetup location(s) – seller will contact you for further confirmation</p>
-                    <div id="confirmSelectedLocationsInfo" class="selected-locations-info"></div>
+                <div class="chat-info">
+                    <div class="chat-name">
+                        {{ chat.full_name or chat.username }}
+                        <span class="status-dot" data-user-id="{{ chat.id }}" style="display: inline-block;"></span>
+                    </div>
+                    <div class="chat-last">
+                        {% if chat.sender_id == session['user_id'] %}You: {% endif %}
+                        {{ chat.last_message if chat.last_message else '(Image)' }}
+                    </div>
                 </div>
-                <div class="location-grid" id="confirmLocationGrid"></div>
+                <div class="chat-meta">
+                    <div class="chat-time" data-time="{{ chat.last_time }}">{{ chat.last_time if chat.last_time else '' }}</div>
+                    {% if chat.unread_count > 0 and chat.sender_id != session['user_id'] %}
+                    <span class="unread-dot">{{ chat.unread_count }}</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <span class="empty-icon">💬</span>
+                <div class="empty-title">No conversations yet</div>
+                <div class="empty-sub">Start chatting with sellers or buyers!</div>
             </div>
-        </div>
-        <div class="modal-buttons">
-            <button class="modal-cancel" onclick="closeConfirmPurchaseModal()">Cancel</button>
-            <button class="modal-send" id="confirmPurchaseBtn">Confirm Purchase</button>
-        </div>
+        {% endif %}
     </div>
+
 </div>
 
-<!-- Offer Management Modal (same as my_profile) -->
-<div id="offerManageModal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 500px;">
-        <div class="modal-header">
-            <h2>💰 Offer Details</h2>
-            <button class="modal-close" onclick="closeOfferManageModal()">&times;</button>
+<!-- 公告弹窗 -->
+<div id="announcementModal" class="announcement-modal">
+    <div class="announcement-modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="margin:0;">📢 Announcements</h3>
+            <button onclick="closeAnnouncements()" style="background:none; border:none; font-size:24px; cursor:pointer;">✕</button>
         </div>
-        <div id="offerManageContent">
-            <div class="loading-state">Loading offer details...</div>
+        <div id="announcementList">
+            <div class="loading-state">Loading...</div>
         </div>
     </div>
 </div>
 
 <script>
-// Meetup locations
-const meetupLocations = [
-    { name: "Library", image: "/static/uploads/library.jpg" },
-    { name: "DTC", image: "/static/uploads/dtc.jpg" },
-    { name: "Starbees", image: "/static/uploads/starbees.jpg" },
-    { name: "CLC", image: "/static/uploads/clc.jpg" },
-    { name: "FCI", image: "/static/uploads/fci.jpg" },
-    { name: "FOM", image: "/static/uploads/fom.jpg" },
-    { name: "FAIE", image: "/static/uploads/faie.jpg" },
-    { name: "FCM", image: "/static/uploads/fcm.jpg" },
-    { name: "STC", image: "/static/uploads/stc.jpg" },
-    { name: "HB1", image: "/static/uploads/hb1.jpg" },
-    { name: "HB2", image: "/static/uploads/hb2.jpg" },
-    { name: "HB3", image: "/static/uploads/hb3.jpg" },
-    { name: "HB4", image: "/static/uploads/hb4.jpg" },
-    { name: "Masjid", image: "/static/uploads/masjid.jpg" },
-    { name: "Tekun Mart", image: "/static/uploads/tekun_mart.jpg" },
-    { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
-];
-
-var pendingOffer = null;
-var selectedConfirmLocations = [];
+// ============================================================
+// 全局变量
+// ============================================================
+let notificationClickTimer = null;
+let notificationClickCount = 0;
+let isNotificationPanelOpen = false;
+let unreadNotificationsCount = {{ unread_notifications|default(0) }};
+let unreadAnnouncementsCount = {{ unread_announcements|default(0) }};
+let userStatusCache = {};
+let notificationDataCache = [];
 
 // ============================================================
-// NOTIFICATIONS
+// 通知按钮处理（支持单击预览/双击跳转）
 // ============================================================
-
-function toggleNotifications() {
-    var panel = document.getElementById('notificationsPanel');
-    if (panel.style.display === 'block') {
-        panel.style.display = 'none';
-    } else {
-        panel.style.display = 'block';
-        loadNotifications();
+function handleNotificationClick(event) {
+    event.stopPropagation();
+    
+    notificationClickCount++;
+    
+    if (notificationClickTimer) {
+        clearTimeout(notificationClickTimer);
+        notificationClickTimer = null;
     }
-}
-
-// ============================================================
-// 通知按钮：单击显示下拉预览，双击进入通知中心
-// ============================================================
-
-var notificationClickTimer = null;
-
-function initNotificationButton() {
-    var notificationBtn = document.getElementById('btnNotifications');
-    if (!notificationBtn) return;
     
-    // 移除原有事件，避免重复绑定
-    var newBtn = notificationBtn.cloneNode(true);
-    notificationBtn.parentNode.replaceChild(newBtn, notificationBtn);
-    
-    newBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        if (notificationClickTimer) {
-            // 双击：清除定时器并跳转到通知中心
-            clearTimeout(notificationClickTimer);
-            notificationClickTimer = null;
-            window.location.href = '/notifications';
-        } else {
-            // 单击：设置定时器，显示下拉预览
-            notificationClickTimer = setTimeout(function() {
-                toggleNotificationsPreview();
-                notificationClickTimer = null;
-            }, 200);
+    notificationClickTimer = setTimeout(function() {
+        if (notificationClickCount === 1) {
+            // 单击：打开/关闭预览面板
+            toggleNotificationsPreview();
+        } else if (notificationClickCount >= 2) {
+            // 双击：直接跳转到通知中心页面
+            goToNotificationsPage();
         }
-    });
+        notificationClickCount = 0;
+        notificationClickTimer = null;
+    }, 250);
 }
 
-// 切换通知预览面板
 function toggleNotificationsPreview() {
     var panel = document.getElementById('notificationsPanel');
-    if (!panel) return;
-    
-    // 关闭公告弹窗
-    var annModal = document.getElementById('announcementModal');
-    if (annModal) annModal.style.display = 'none';
     
     if (panel.style.display === 'block') {
         panel.style.display = 'none';
+        isNotificationPanelOpen = false;
     } else {
         panel.style.display = 'block';
+        isNotificationPanelOpen = true;
         loadNotificationsPreview();
+        
+        // 5秒后自动关闭面板
+        setTimeout(function() {
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+                isNotificationPanelOpen = false;
+            }
+        }, 8000);
     }
 }
 
-// 加载通知预览（只显示未读的几条）
-function loadNotificationsPreview() {
-    var container = document.getElementById('notificationsList');
-    if (!container) return;
-    
-    container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">Loading...</p>';
-    
-    fetch('/api/notifications/unread', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
-        .then(function(notifications) {
-            if (!notifications || notifications.length === 0) {
-                container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">✨ No new notifications</p>';
-                return;
-            }
-            
-            var html = '';
-            var maxShow = Math.min(notifications.length, 5);
-            
-            for (var i = 0; i < maxShow; i++) {
-                var n = notifications[i];
-                var shortMsg = n.message.length > 80 ? n.message.substring(0, 80) + '...' : n.message;
-                html += '<div class="notification-item" style="border-bottom:1px solid #f0f0f0; padding:12px 16px;">' +
-                    '<div class="notification-message" style="font-size:13px; color:#333;">' + escapeHtml(shortMsg) + '</div>' +
-                    '<div class="notification-time" style="font-size:10px; color:#aaa; margin-top:4px;">' + formatDate(n.created_at) + '</div>' +
-                    '</div>';
-            }
-            
-            if (notifications.length > 5) {
-                html += '<div style="padding:12px; text-align:center; border-top:1px solid #eee;">' +
-                    '<button onclick="window.location.href=\'/notifications\'" style="background:#205c30; color:white; border:none; padding:8px 20px; border-radius:25px; cursor:pointer; font-size:13px;">📋 View all (' + notifications.length + ')</button>' +
-                    '</div>';
-            }
-            
-            container.innerHTML = html;
-        })
-        .catch(function(err) {
-            console.error('Load preview error:', err);
-            container.innerHTML = '<p style="text-align:center;padding:20px;color:#e74c3c;">Failed to load</p>';
-        });
+function goToNotificationsPage() {
+    window.location.href = '/notifications';
 }
 
-// 点击页面其他地方关闭通知面板
-document.addEventListener('click', function(e) {
-    var panel = document.getElementById('notificationsPanel');
-    var btn = document.getElementById('btnNotifications');
-    if (panel && panel.style.display === 'block') {
-        if (!panel.contains(e.target) && btn && !btn.contains(e.target)) {
-            panel.style.display = 'none';
-        }
+// ============================================================
+// 时间格式化
+// ============================================================
+function formatChatListTime(dateStr) {
+    if (!dateStr) return '';
+    
+    var d = new Date(dateStr);
+    var now = new Date();
+    
+    if (isNaN(d.getTime())) return '';
+    
+    if (d.toDateString() === now.toDateString()) {
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-});
-
-// 页面加载时初始化
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initNotificationButton);
-} else {
-    initNotificationButton();
+    
+    var yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+    }
+    
+    if (d.getFullYear() === now.getFullYear()) {
+        return (d.getMonth() + 1) + '/' + d.getDate();
+    }
+    
+    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
 }
 
-// 修改 formatDate 为友好格式
-function formatDate(dateStr) {
+function formatTimeAgo(dateStr) {
     if (!dateStr) return '';
     var d = new Date(dateStr);
     var now = new Date();
     var diffSeconds = Math.floor((now - d) / 1000);
+    
+    if (isNaN(d.getTime())) return '';
     
     if (diffSeconds < 60) return 'just now';
     if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + ' min ago';
@@ -393,452 +632,330 @@ function formatDate(dateStr) {
     return d.toLocaleDateString();
 }
 
-function loadNotifications() {
-    fetch('/api/notifications/all', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
-        .then(function(notifications) {
-            var container = document.getElementById('notificationsList');
-            if (!notifications || notifications.length === 0) {
-                container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">No notifications yet</p>';
-                return;
-            }
-            
-            var html = '';
-            for (var i = 0; i < notifications.length; i++) {
-                var n = notifications[i];
-                var actionHtml = '';
-                
-                // Buyer: seller accepted offer → show "Proceed to Checkout"
-                if (n.type === 'offer_accepted') {
-                    actionHtml = '<button class="notification-action-btn" onclick="handleOfferAccepted(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
-                
-                // Buyer: offer declined → view product again
-                } else if (n.type === 'offer_rejected') {
-                    actionHtml = '<button class="notification-action-btn secondary" onclick="viewProductByOffer(' + n.related_id + ')">👀 View Product</button>';
-                
-                // Seller: new offer received → go to My Listings
-                } else if (n.type === 'new_offer') {
-                    actionHtml = '<button class="notification-action-btn" onclick="window.location.href=\'/my-profile?tab=listings\'">💰 View Offers</button>';
-                
-                // Buyer: counter offer received → open offer management modal
-                } else if (n.type === 'offer_countered') {
-                    actionHtml = '<button class="notification-action-btn counter" onclick="openOfferManageModal(' + n.related_id + ')">🔄 View & Manage Offer</button>';
-                
-                // Seller: accepted confirmation / order created → go to My Orders
-                } else if (n.type === 'offer_accept_confirm' || n.type === 'order_created') {
-                    actionHtml = '<button class="notification-action-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">📋 My Orders</button>';
-                
-                // Review notification → view reviews
-                } else if (n.type === 'review') {
-                    actionHtml = '<button class="notification-action-btn secondary" onclick="viewMyReviews()">⭐ View Review</button>';
-                
-                // Order status updates (confirmed, shipped, delivered, completed)
-                } else if (n.type === 'order') {
-                    actionHtml = '<button class="notification-action-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">📦 View Order</button>';
-                }
-                
-                var unreadDot = !n.is_read ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#00381f;margin-right:6px;flex-shrink:0;"></span>' : '';
-                html += '<div class="notification-item" data-id="' + n.id + '" style="' + (!n.is_read ? 'background:#f0faf4;' : '') + '">' +
-                    '<div class="notification-message" style="display:flex;align-items:flex-start;gap:4px;">' + unreadDot + '<span>' + escapeHtml(n.message) + '</span></div>' +
-                    '<div class="notification-time">' + (n.created_at ? formatDate(n.created_at) : '') + '</div>' +
-                    '<div class="notification-actions">' + actionHtml + '</div>' +
-                    '</div>';
-            }
-            container.innerHTML = html;
-        })
-        .catch(function(err) {
-            console.error('Load notifications error:', err);
-            document.getElementById('notificationsList').innerHTML = '<p style="text-align:center;padding:20px;color:#e74c3c;">Failed to load notifications</p>';
-        });
+function formatLastSeen(dateStr) {
+    if (!dateStr) return 'Recently';
+    var d = new Date(dateStr);
+    var now = new Date();
+    var diffSeconds = Math.floor((now - d) / 1000);
+    
+    if (isNaN(d.getTime())) return 'Recently';
+    
+    if (diffSeconds < 60) return 'Online now';
+    if (diffSeconds < 3600) return 'Last seen ' + Math.floor(diffSeconds / 60) + ' min ago';
+    if (diffSeconds < 86400) return 'Last seen ' + Math.floor(diffSeconds / 3600) + ' hours ago';
+    if (diffSeconds < 604800) return 'Last seen ' + Math.floor(diffSeconds / 86400) + ' days ago';
+    
+    return 'Last seen ' + d.toLocaleDateString();
 }
 
-function markAllNotificationsRead() {
+// ============================================================
+// 更新所有未读徽章
+// ============================================================
+function updateAllBadges() {
+    var notifBadge = document.getElementById('badgeNotif');
+    if (notifBadge) {
+        if (unreadNotificationsCount > 0) {
+            notifBadge.textContent = unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount;
+            notifBadge.style.display = 'flex';
+        } else {
+            notifBadge.style.display = 'none';
+        }
+    }
+    
+    fetch('/api/unread-announcements', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        unreadAnnouncementsCount = data.count || 0;
+        var annBadge = document.getElementById('badgeAnn');
+        if (annBadge) {
+            if (unreadAnnouncementsCount > 0) {
+                annBadge.textContent = unreadAnnouncementsCount > 99 ? '99+' : unreadAnnouncementsCount;
+                annBadge.style.display = 'flex';
+            } else {
+                annBadge.style.display = 'none';
+            }
+        }
+    })
+    .catch(function() {
+        var annBadge = document.getElementById('badgeAnn');
+        if (annBadge) annBadge.style.display = 'none';
+    });
+}
+
+// ============================================================
+// 加载通知预览
+// ============================================================
+function loadNotificationsPreview() {
+    var container = document.getElementById('notificationsList');
+    container.innerHTML = '<div class="loading-state">Loading...</div>';
+    
+    fetch('/api/notifications/unread', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(notifications) {
+        notificationDataCache = notifications || [];
+        
+        if (!notifications || notifications.length === 0) {
+            container.innerHTML = '<div class="empty-state">✨ No new notifications</div>';
+            return;
+        }
+        
+        var html = '';
+        var maxShow = Math.min(notifications.length, 8);
+        
+        for (var i = 0; i < maxShow; i++) {
+            var n = notifications[i];
+            var shortMsg = n.message.length > 100 ? n.message.substring(0, 100) + '...' : n.message;
+            var isUnread = !n.is_read;
+            
+            // 根据通知类型生成跳转链接
+            var targetUrl = getNotificationTargetUrl(n);
+            
+            html += '<div class="notification-item" data-notif-id="' + n.id + '" data-target-url="' + targetUrl + '" onclick="handleNotificationItemClick(this, ' + n.id + ')">' +
+                '<div class="notification-unread-indicator" style="' + (isUnread ? 'opacity: 1;' : 'opacity: 0;') + '"></div>' +
+                '<div class="notification-content">' +
+                '<div class="notification-message' + (isUnread ? ' unread' : '') + '">' + escapeHtml(shortMsg) + '</div>' +
+                '<div class="notification-time">' + formatTimeAgo(n.created_at) + '</div>' +
+                '</div>' +
+                '</div>';
+        }
+        
+        container.innerHTML = html;
+        unreadNotificationsCount = notifications.length;
+        updateAllBadges();
+    })
+    .catch(function(err) {
+        console.error('Load preview error:', err);
+        container.innerHTML = '<div class="empty-state">Failed to load notifications</div>';
+    });
+}
+
+// 根据通知类型生成跳转目标
+function getNotificationTargetUrl(notification) {
+    var type = notification.type || 'general';
+    var relatedId = notification.related_id;
+    var productId = notification.product_id;
+    
+    switch(type) {
+        case 'order':
+        case 'order_created':
+            if (relatedId) return '/my-profile?tab=orders';
+            break;
+        case 'offer_accepted':
+        case 'offer_rejected':
+        case 'offer_countered':
+        case 'counter_sent':
+            if (relatedId) return '/my-profile?tab=purchases';
+            break;
+        case 'product_approved':
+        case 'product_rejected':
+        case 'product_uploaded':
+            if (productId) return '/my-profile?tab=listings';
+            if (relatedId) return '/my-profile?tab=listings';
+            break;
+        case 'review':
+            if (relatedId) return '/my-profile?tab=received-reviews';
+            break;
+        case 'report_dismissed':
+        case 'report_resolved':
+        case 'report_submitted':
+        case 'report_warning':
+            return '/my-profile';
+        case 'welcome':
+        case 'system':
+            return '/my-profile';
+        default:
+            return '/notifications';
+    }
+    return '/notifications';
+}
+
+// 处理通知项点击（先标记已读，然后跳转）
+function handleNotificationItemClick(element, notificationId) {
+    // 阻止事件冒泡
+    if (event) event.stopPropagation();
+    
+    var targetUrl = element.dataset.targetUrl || '/notifications';
+    
+    // 先发送已读请求（不等待结果直接跳转）
     fetch('/api/notifications/mark-read', {
-        method: 'POST', 
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}), 
+        body: JSON.stringify({ notification_ids: [notificationId] }),
+        credentials: 'same-origin'
+    })
+    .catch(function(err) { console.log('Mark read error:', err); });
+    
+    // 延迟一点点跳转，确保请求发出
+    setTimeout(function() {
+        window.location.href = targetUrl;
+    }, 50);
+}
+
+// 标记所有为已读
+function markAllNotificationsReadFromPreview() {
+    fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
         credentials: 'same-origin'
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            document.getElementById('badgeNotif').style.display = 'none';
-            // 如果预览面板是打开的，刷新内容
-            var panel = document.getElementById('notificationsPanel');
-            if (panel && panel.style.display === 'block') {
-                loadNotificationsPreview();
-            }
-            // 同时刷新完整的通知列表（如果已加载）
-            var fullContainer = document.getElementById('notificationsList');
-            if (fullContainer && panel && panel.style.display === 'block') {
-                // 已经通过 loadNotificationsPreview 刷新了
-            }
+            unreadNotificationsCount = 0;
+            updateAllBadges();
+            loadNotificationsPreview();
+            showToastMessage('All notifications marked as read', 'success');
         }
     });
 }
 
 // ============================================================
-// OFFER MANAGEMENT MODAL - same as My Listings
+// 用户在线状态
 // ============================================================
-var currentOfferId = null;
-var currentOfferData = null;
-
-function openOfferManageModal(offerId) {
-    currentOfferId = offerId;
-    document.getElementById('offerManageModal').style.display = 'flex';
-    
-    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                currentOfferData = data;
-                renderOfferManageContent(data);
-            } else {
-                document.getElementById('offerManageContent').innerHTML = '<div class="empty-state">Failed to load offer details</div>';
-            }
-        })
-        .catch(function(err) {
-            document.getElementById('offerManageContent').innerHTML = '<div class="empty-state">Error: ' + err.message + '</div>';
-        });
-}
-
-function renderOfferManageContent(data) {
-    var statusBadge = '';
-    var actionButtons = '';
-    var status = data.status || 'pending';
-    var offerPrice = parseFloat(data.offer_price).toFixed(2);
-    var productPrice = parseFloat(data.product_price).toFixed(2);
-    var originalOfferPrice = data.original_offer_price ? parseFloat(data.original_offer_price).toFixed(2) : offerPrice;
-    
-    if (status === 'pending') {
-        statusBadge = '<span class="offer-status pending">⏳ Pending</span>';
-        actionButtons = `
-            <button class="accept-offer-btn" onclick="respondToOfferManage('accept')">✅ Accept</button>
-            <button class="reject-offer-btn" onclick="respondToOfferManage('reject')">❌ Reject</button>
-            <button class="counter-offer-btn" onclick="makeCounterOfferManage()">💰 Counter</button>
-        `;
-    } else if (status === 'accepted') {
-        statusBadge = '<span class="offer-status accepted">✅ Accepted</span>';
-        actionButtons = '<button class="contact-buyer-btn" onclick="proceedToCheckoutFromOffer()">🛒 Proceed to Checkout</button>';
-    } else if (status === 'countered') {
-        statusBadge = '<span class="offer-status countered">🔄 Counter Offer</span>';
-        actionButtons = `
-            <button class="accept-offer-btn" onclick="respondToOfferManage('accept')">✅ Accept</button>
-            <button class="reject-offer-btn" onclick="respondToOfferManage('reject')">❌ Reject</button>
-        `;
-    } else if (status === 'rejected') {
-        statusBadge = '<span class="offer-status rejected">❌ Rejected</span>';
-    } else if (status === 'ordered') {
-        statusBadge = '<span class="offer-status ordered">📦 Ordered</span>';
-        actionButtons = '<button class="contact-buyer-btn" onclick="viewOrderFromOffer()">📋 View Order</button>';
+function fetchUserStatus(userId, element) {
+    var cached = userStatusCache[userId];
+    var now = Date.now();
+    if (cached && (now - cached.time) < 10000) {
+        updateStatusDisplay(element, cached.online, cached.lastSeen);
+        return;
     }
     
-    var html = `
-        <div class="offer-card" style="padding: 20px;">
-            <div class="offer-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <div class="offer-product"><strong>📦 ${escapeHtml(data.product_name)}</strong></div>
-                ${statusBadge}
-            </div>
-            <div class="offer-amount" style="margin-bottom:12px;">
-                <div class="offer-label">Original Price:</div>
-                <div class="offer-price">RM ${productPrice}</div>
-            </div>
-            <div class="offer-amount" style="margin-bottom:12px;">
-                <div class="offer-label">Your Offer:</div>
-                <div class="offer-price">RM ${originalOfferPrice}</div>
-            </div>
-            ${status === 'countered' ? `
-            <div class="offer-amount" style="margin-bottom:16px;background:#fff3e0;padding:10px;border-radius:12px;">
-                <div class="offer-label" style="color:#e67e22;">🔄 Seller's Counter Offer:</div>
-                <div class="offer-price" style="color:#e67e22;font-size:1.2rem;">RM ${offerPrice}</div>
-            </div>
-            ` : ''}
-            <div class="offer-meta" style="color:#888;font-size:12px;margin-bottom:16px;">
-                📅 ${data.created_at ? data.created_at.split(' ')[0] : 'Recently'}
-            </div>
-            <div class="offer-actions" style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
-                ${actionButtons}
-            </div>
-        </div>
-    `;
-    document.getElementById('offerManageContent').innerHTML = html;
+    fetch('/api/user/' + userId + '/status', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        userStatusCache[userId] = {
+            online: data.online,
+            lastSeen: data.last_seen,
+            time: now
+        };
+        updateStatusDisplay(element, data.online, data.last_seen);
+    })
+    .catch(function(err) {
+        console.log('Status fetch error for user ' + userId, err);
+        updateStatusDisplay(element, false, null);
+    });
 }
 
-function closeOfferManageModal() {
-    document.getElementById('offerManageModal').style.display = 'none';
-    currentOfferId = null;
-    currentOfferData = null;
-}
-
-function respondToOfferManage(action) {
-    if (!currentOfferId) return;
-    showToastMessage((action === 'accept' ? 'Accepting' : 'Rejecting') + ' offer...', 'info');
+function updateStatusDisplay(element, isOnline, lastSeen) {
+    if (!element) return;
     
-    fetch('/api/offer/' + currentOfferId + '/' + action, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
+    if (isOnline) {
+        element.innerHTML = '<span class="online-dot" title="Online"></span>';
+        element.style.display = 'inline-flex';
+    } else {
+        var title = lastSeen ? formatLastSeen(lastSeen) : 'Offline';
+        element.innerHTML = '<span class="offline-dot" title="' + title + '"></span>';
+        element.style.display = 'inline-flex';
+    }
+}
+
+function loadAllUserStatuses() {
+    var statusElements = document.querySelectorAll('.status-dot');
+    statusElements.forEach(function(el) {
+        var userId = el.dataset.userId;
+        if (userId) {
+            fetchUserStatus(userId, el);
+        }
+    });
+}
+
+// ============================================================
+// 格式化聊天列表中的所有时间
+// ============================================================
+function formatAllChatTimes() {
+    var timeElements = document.querySelectorAll('.chat-time');
+    timeElements.forEach(function(el) {
+        var rawTime = el.getAttribute('data-time') || el.textContent;
+        if (rawTime && rawTime.trim()) {
+            var formattedTime = formatChatListTime(rawTime);
+            el.textContent = formattedTime;
+        }
+    });
+}
+
+// ============================================================
+// 公告功能
+// ============================================================
+function openAnnouncements() {
+    var modal = document.getElementById('announcementModal');
+    modal.classList.add('show');
+    
+    fetch('/api/mark-ann-read', { 
+        method: 'POST', 
+        credentials: 'same-origin' 
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            showToastMessage('Offer ' + action + 'ed successfully!', 'success');
-            if (action === 'accept') {
-                // After accepting, refresh the offer details to show "Proceed to Checkout"
-                openOfferManageModal(currentOfferId);
-            } else {
-                closeOfferManageModal();
-            }
-            loadNotifications();
-        } else {
-            throw new Error(data.error || 'Failed to respond');
+            unreadAnnouncementsCount = 0;
+            updateAllBadges();
         }
     })
-    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); });
-}
-
-function makeCounterOfferManage() {
-    var newPrice = prompt('Enter your counter offer price (RM):', currentOfferData ? currentOfferData.offer_price : '0');
-    if (!newPrice || parseFloat(newPrice) <= 0) return;
+    .catch(function(err) {
+        console.error('Mark ann read error:', err);
+    });
     
-    showToastMessage('Sending counter offer...', 'info');
-    fetch('/api/offer/' + currentOfferId + '/counter', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ counter_price: parseFloat(newPrice) })
-    })
+    fetch('/api/announcements')
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        if (data.success) {
-            showToastMessage('Counter offer sent!', 'success');
-            closeOfferManageModal();
-            loadNotifications();
+        var html = '';
+        if (data.length === 0) {
+            html = '<div class="empty-state">No announcements yet.</div>';
         } else {
-            throw new Error(data.error || 'Failed to send counter offer');
+            data.forEach(function(a) {
+                var date = a.created_at ? new Date(a.created_at).toLocaleString() : '';
+                html += '<div style="padding:14px; border-bottom:1px solid #eee;">' +
+                    '<div style="font-weight:600; margin-bottom:6px;">' + escapeHtml(a.title) + '</div>' +
+                    '<div style="font-size:13px; color:#555; line-height:1.5;">' + escapeHtml(a.content) + '</div>' +
+                    '<div style="font-size:10px; color:#aaa; margin-top:6px;">📅 ' + date + '</div>' +
+                    '</div>';
+            });
         }
-    })
-    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); });
+        document.getElementById('announcementList').innerHTML = html;
+    });
 }
 
-function proceedToCheckoutFromOffer() {
-    if (!currentOfferId) return;
-    closeOfferManageModal();
-    handleOfferAccepted(currentOfferId);
+function closeAnnouncements() {
+    var modal = document.getElementById('announcementModal');
+    modal.classList.remove('show');
+    
+    fetch('/api/unread-announcements', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        unreadAnnouncementsCount = data.count || 0;
+        updateAllBadges();
+    });
 }
 
-function viewOrderFromOffer() {
-    window.location.href = '/my-profile?tab=orders';
-}
-
-// Navigate to a product page from a rejected-offer notification
-function viewProductByOffer(offerId) {
-    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success && data.product_id) {
-                window.location.href = '/product/' + data.product_id;
-            } else {
-                window.location.href = '/home';
-            }
-        })
-        .catch(function() { 
-            window.location.href = '/home'; 
-        });
-}
-
-// View my reviews
 function viewMyReviews() {
     window.location.href = '/my-profile?tab=received-reviews';
 }
 
 // ============================================================
-// HANDLE OFFER ACCEPTED - OPEN CONFIRM MODAL
+// 搜索用户
 // ============================================================
-
-function handleOfferAccepted(offerId) {
-    showToastMessage('Loading product details...', 'info');
-    
-    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                openConfirmPurchaseModal(
-                    offerId,
-                    data.product_id,
-                    data.product_name,
-                    data.product_price,
-                    data.offer_price,
-                    data.product_image || '',
-                    data.product_condition || 'Like New'
-                );
-            } else {
-                throw new Error(data.error);
-            }
-        })
-        .catch(function(err) {
-            showToastMessage('Error loading product: ' + err.message, 'error');
-        });
-}
-
-function openConfirmPurchaseModal(offerId, productId, productName, productPrice, offerPrice, productImage, condition) {
-    pendingOffer = { id: offerId, productId: productId, productName: productName, productPrice: productPrice, offerPrice: offerPrice, productImage: productImage };
-    selectedConfirmLocations = [];
-    
-    document.getElementById('confirmProductName').innerText = productName;
-    document.getElementById('confirmProductPrice').innerText = 'RM ' + parseFloat(productPrice).toFixed(2);
-    document.getElementById('confirmOfferPrice').innerText = 'RM ' + parseFloat(offerPrice).toFixed(2);
-    
-    var imgContainer = document.getElementById('confirmProductImage');
-    if (productImage && productImage.startsWith('data:')) {
-        imgContainer.innerHTML = '<img src="' + productImage + '" style="width:100%;height:100%;object-fit:cover;">';
-    } else if (productImage) {
-        imgContainer.innerHTML = '<img src="' + productImage + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.src=\'/static/uploads/placeholder.jpg\'">';
-    } else {
-        imgContainer.innerHTML = '<div style="font-size:40px;">📦</div>';
-    }
-    
-    generateConfirmLocationButtons();
-    updateConfirmLocationUI();
-    document.getElementById('confirmPurchaseModal').style.display = 'flex';
-}
-
-function closeConfirmPurchaseModal() {
-    document.getElementById('confirmPurchaseModal').style.display = 'none';
-    pendingOffer = null;
-    selectedConfirmLocations = [];
-}
-
-function generateConfirmLocationButtons() {
-    var grid = document.getElementById('confirmLocationGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    
-    meetupLocations.forEach(function(loc) {
-        var btn = document.createElement('button');
-        btn.className = 'location-btn';
-        btn.setAttribute('data-location', loc.name);
-        btn.innerHTML = '<img src="' + loc.image + '" class="location-btn-img" alt="' + loc.name + '">' +
-                        '<div class="location-btn-label">' + loc.name + '</div>';
-        btn.onclick = function() { toggleConfirmLocation(loc.name); };
-        grid.appendChild(btn);
-    });
-}
-
-
-function updateConfirmLocationUI() {
-    document.querySelectorAll('#confirmLocationGrid .location-btn').forEach(function(btn) {
-        var locName = btn.querySelector('.location-btn-label').innerText;
-        if (selectedConfirmLocations.includes(locName)) {
-            btn.classList.add('selected');
-        } else {
-            btn.classList.remove('selected');
-        }
-    });
-    
-    var infoDiv = document.getElementById('confirmSelectedLocationsInfo');
-    if (infoDiv) {
-        if (selectedConfirmLocations.length === 0) {
-            infoDiv.innerHTML = '⚠️ Please select 1-3 meetup locations.';
-            infoDiv.style.color = '#e74c3c';
-        } else {
-            infoDiv.innerHTML = '✓ Selected: ' + selectedConfirmLocations.join(', ') + ' (' + selectedConfirmLocations.length + '/3)';
-            infoDiv.style.color = '#2ecc71';
-        }
-    }
-}
-
-// ============================================================
-// CONFIRM PURCHASE - CREATE ORDER
-// ============================================================
-
-document.getElementById('confirmPurchaseBtn')?.addEventListener('click', function() {
-    if (selectedConfirmLocations.length === 0) {
-        showToastMessage('Please select at least one meetup location.', 'error');
-        return;
-    }
-    
-    if (!pendingOffer || !pendingOffer.id) {
-        showToastMessage('No pending offer found.', 'error');
-        return;
-    }
-    
-    var confirmBtn = document.getElementById('confirmPurchaseBtn');
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = 'Processing...';
-    
-    fetch('/api/offer/' + pendingOffer.id + '/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meetup_locations: selectedConfirmLocations }),
-        credentials: 'same-origin'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('✅ Order created successfully! Order #: ' + data.order_number, 'success');
-            closeConfirmPurchaseModal();
-            setTimeout(function() {
-                window.location.href = '/my-profile?tab=orders';
-            }, 1500);
-        } else {
-            throw new Error(data.error);
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    })
-    .finally(function() {
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = 'Confirm Purchase';
-    });
-});
-
-// ============================================================
-// UTILITY FUNCTIONS
-// ============================================================
-
 function searchUsers() {
     var q = document.getElementById('userSearch').value.trim();
-    if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
+    if (q.length < 2) {
+        document.getElementById('searchResults').innerHTML = '';
+        return;
+    }
+    
     fetch('/api/search-users?q=' + encodeURIComponent(q))
-    .then(function(r){ return r.json(); })
-    .then(function(users){
+    .then(function(r) { return r.json(); })
+    .then(function(users) {
         var html = '';
-        users.forEach(function(u){
-            html += '<div style="display:flex;align-items:center;padding:10px;background:#fff;border-radius:12px;margin-bottom:6px;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">' +
-                '<div style="width:40px;height:40px;border-radius:50%;background:#205c30;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;">' + (u.username ? u.username[0].toUpperCase() : 'U') + '</div>' +
+        users.forEach(function(u) {
+            html += '<div style="display:flex; align-items:center; padding:10px; background:#fff; border-radius:12px; margin-bottom:6px; gap:10px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">' +
+                '<div style="width:40px; height:40px; border-radius:50%; background:#205c30; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold;">' + (u.username ? u.username[0].toUpperCase() : 'U') + '</div>' +
                 '<div style="flex:1;"><b>' + escapeHtml(u.username) + '</b><br><small>ID: ' + escapeHtml(u.student_id) + '</small></div>' +
-                '<a href="/chat/' + u.id + '" style="background:#205c30;color:#fff;padding:6px 14px;border-radius:16px;text-decoration:none;font-size:12px;">Chat</a>' +
+                '<a href="/chat/' + u.id + '" style="background:#205c30; color:#fff; padding:6px 14px; border-radius:16px; text-decoration:none; font-size:12px;">Chat</a>' +
                 '</div>';
         });
-        document.getElementById('searchResults').innerHTML = html || '<p style="color:#999;text-align:center;">No users found</p>';
+        document.getElementById('searchResults').innerHTML = html || '<p style="color:#999; text-align:center;">No users found</p>';
     });
 }
-
-function openAnnouncements() {
-    document.getElementById('announcementModal').style.display = 'flex';
-    var badge = document.getElementById('badgeAnn');
-    if (badge) badge.style.display = 'none';
-    fetch('/api/announcements')
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-        var html = '';
-        if (data.length === 0) html = '<p style="color:#999;text-align:center;">No announcements yet.</p>';
-        data.forEach(function(a){
-            html += '<div style="padding:14px;border-bottom:1px solid #eee;">' +
-                '<div style="font-weight:600;margin-bottom:6px;font-size:15px;">' + escapeHtml(a.title) + '</div>' +
-                '<div style="font-size:13px;color:#555;line-height:1.5;">' + escapeHtml(a.content) + '</div>' +
-                '<div style="font-size:10px;color:#aaa;margin-top:6px;">' + (a.created_at || '') + '</div>' +
-                '</div>';
-        });
-        document.getElementById('announcementList').innerHTML = html;
-    });
-}
-
-function closeAnnouncements() { document.getElementById('announcementModal').style.display = 'none'; }
-
-function viewOrder(orderId) { window.location.href = '/my-profile?tab=orders'; }
 
 function escapeHtml(str) {
     if (!str) return '';
@@ -853,6 +970,7 @@ function escapeHtml(str) {
 function showToastMessage(message, type) {
     var existing = document.querySelector('.toast-container');
     if (existing) existing.remove();
+    
     var container = document.createElement('div');
     container.className = 'toast-container';
     var toastDiv = document.createElement('div');
@@ -860,17 +978,90 @@ function showToastMessage(message, type) {
     toastDiv.innerHTML = '<span>' + message + '</span>';
     container.appendChild(toastDiv);
     document.body.appendChild(container);
+    
     setTimeout(function() { container.remove(); }, 3000);
 }
 
-// 如果 URL 带了 ?open=notifications，自动打开通知面板
+// ============================================================
+// 实时更新未读消息数量
+// ============================================================
+function updateUnreadChatCount() {
+    fetch('/api/unread-count', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        unreadNotificationsCount = data.notifications || 0;
+        updateAllBadges();
+    });
+}
+
+// ============================================================
+// 定期刷新用户状态
+// ============================================================
+function refreshAllUserStatuses() {
+    var statusElements = document.querySelectorAll('.status-dot');
+    statusElements.forEach(function(el) {
+        var userId = el.dataset.userId;
+        if (userId) {
+            delete userStatusCache[userId];
+            fetchUserStatus(userId, el);
+        }
+    });
+}
+
+// ============================================================
+// 点击页面其他地方关闭通知面板
+// ============================================================
+document.addEventListener('click', function(e) {
+    var panel = document.getElementById('notificationsPanel');
+    var btn = document.getElementById('btnNotifications');
+    if (panel && panel.style.display === 'block') {
+        if (!panel.contains(e.target) && btn && !btn.contains(e.target)) {
+            panel.style.display = 'none';
+            isNotificationPanelOpen = false;
+        }
+    }
+});
+
+// ============================================================
+// 聊天项点击后标记为已读
+// ============================================================
+document.querySelectorAll('.chat-item').forEach(function(item) {
+    item.addEventListener('click', function(e) {
+        var unreadDot = this.querySelector('.unread-dot');
+        if (unreadDot) {
+            var chatId = this.dataset.chatId;
+            if (chatId) {
+                fetch('/api/chat/mark-read/' + chatId, { method: 'POST', credentials: 'same-origin' })
+                .catch(function(err) { console.log('Mark read error:', err); });
+            }
+        }
+    });
+});
+
+// ============================================================
+// 页面加载时检查 URL 参数
+// ============================================================
 (function() {
     var params = new URLSearchParams(window.location.search);
     if (params.get('open') === 'notifications') {
-        toggleNotifications();
+        setTimeout(function() {
+            toggleNotificationsPreview();
+        }, 500);
     }
 })();
 
+// ============================================================
+// 初始化
+// ============================================================
+function init() {
+    formatAllChatTimes();
+    loadAllUserStatuses();
+    
+    setInterval(refreshAllUserStatuses, 30000);
+    setInterval(updateUnreadChatCount, 60000);
+}
+
+init();
 </script>
 
 {% endblock %}

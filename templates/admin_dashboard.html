@@ -17,40 +17,63 @@
     <hr style="margin-bottom:40px;">
 
     <!-- 5个卡片 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:30px;margin-bottom:40px;">
-        <div style="background-color:#205c30;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(32,92,48,0.2);">
-            <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">📦</div>
-            <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Total Products</h5>
-            <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ approved_count }}</p>
-            <small style="opacity:0.85;position:relative;z-index:1;">Approved & live</small>
-        </div>
-        <div style="background:linear-gradient(135deg,#f39c12,#e67e22);color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(243,156,18,0.25);">
-            <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">⏳</div>
-            <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Pending Approval</h5>
-            <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ pending_count }}</p>
-            <small style="opacity:0.85;position:relative;z-index:1;">Needs review</small>
-        </div>
-        <div style="background-color:#2c3e50;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(44,62,80,0.25);">
-            <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">👥</div>
-            <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Registered Users</h5>
-            <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ total_users }}</p>
-            <small style="opacity:0.85;position:relative;z-index:1;">Platform members</small>
-        </div>
-        <div style="background-color:#8e44ad;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(142,68,173,0.25);">
-            <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">🛒</div>
-            <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Active Sellers</h5>
-            <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ seller_count }}</p>
-            <small style="opacity:0.85;position:relative;z-index:1;">Users with listings</small>
-        </div>
+    <!-- 5个卡片 - 添加点击跳转 -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:30px;margin-bottom:40px;">
+    <!-- Total Products 卡片 - 点击跳转到已通过商品 -->
+    <div onclick="window.location.href='{{ url_for('admin_products') }}?status=approved'" 
+         style="background-color:#205c30;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(32,92,48,0.2);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" 
+         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(32,92,48,0.3)';" 
+         onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 16px rgba(32,92,48,0.2)';">
+        <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">📦</div>
+        <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Total Products</h5>
+        <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ approved_count }}</p>
+        <small style="opacity:0.85;position:relative;z-index:1;">Approved & live</small>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:30px;">
-        <div onclick="openAnnModal()" style="background:linear-gradient(135deg,#1a5276,#1abc9c);color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;cursor:pointer;box-shadow:0 4px 16px rgba(26,188,156,0.2);transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-            <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">📢</div>
-            <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Announcements</h5>
-            <p style="font-size:20px;font-weight:600;margin:0;line-height:1.2;position:relative;z-index:1;">Manage & send</p>
-            <small style="opacity:0.85;position:relative;z-index:1;">Tap to open →</small>
-        </div>
+    <!-- Pending Approval 卡片 - 点击跳转到待审核商品 -->
+    <div onclick="window.location.href='{{ url_for('admin_products') }}?status=pending'" 
+         style="background:linear-gradient(135deg,#f39c12,#e67e22);color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(243,156,18,0.25);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" 
+         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(243,156,18,0.35)';" 
+         onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 16px rgba(243,156,18,0.25)';">
+        <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">⏳</div>
+        <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Pending Approval</h5>
+        <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ pending_count }}</p>
+        <small style="opacity:0.85;position:relative;z-index:1;">Needs review</small>
+    </div>
+
+    <!-- Registered Users 卡片 - 点击跳转到用户管理 -->
+    <div onclick="window.location.href='{{ url_for('admin_users') }}'" 
+         style="background-color:#2c3e50;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(44,62,80,0.25);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" 
+         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(44,62,80,0.35)';" 
+         onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 16px rgba(44,62,80,0.25)';">
+        <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">👥</div>
+        <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Registered Users</h5>
+        <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ total_users }}</p>
+        <small style="opacity:0.85;position:relative;z-index:1;">Platform members</small>
+    </div>
+
+    <!-- Active Sellers 卡片 - 点击跳转到用户管理并筛选卖家 -->
+    <div onclick="window.location.href='{{ url_for('admin_users') }}?filter=sellers'" 
+         style="background-color:#8e44ad;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(142,68,173,0.25);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" 
+         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(142,68,173,0.35)';" 
+         onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 16px rgba(142,68,173,0.25)';">
+        <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">🛒</div>
+        <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Active Sellers</h5>
+        <p style="font-size:44px;font-weight:700;margin:0;line-height:1.2;position:relative;z-index:1;">{{ seller_count }}</p>
+        <small style="opacity:0.85;position:relative;z-index:1;">Users with listings</small>
+    </div>
+</div>
+
+<!-- Announcements 卡片 - 点击打开公告弹窗 -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:30px;">
+    <div onclick="openAnnModal()" 
+         style="background:linear-gradient(135deg,#1a5276,#1abc9c);color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;cursor:pointer;box-shadow:0 4px 16px rgba(26,188,156,0.2);transition:transform 0.2s, box-shadow 0.2s;" 
+         onmouseover="this.style.transform='scale(1.02)';this.style.boxShadow='0 8px 24px rgba(26,188,156,0.3)';" 
+         onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(26,188,156,0.2)';">
+        <div style="position:absolute;top:-20px;right:-15px;font-size:80px;opacity:0.1;">📢</div>
+        <h5 style="margin:0 0 10px 0;font-size:14px;font-weight:500;position:relative;z-index:1;">Announcements</h5>
+        <p style="font-size:20px;font-weight:600;margin:0;line-height:1.2;position:relative;z-index:1;">Manage & send</p>
+        <small style="opacity:0.85;position:relative;z-index:1;">Tap to open →</small>
     </div>
 </div>
 
@@ -88,21 +111,29 @@ function closeAnnModal() { document.getElementById('annModal').style.display = '
 
 function loadAnnouncements() {
     fetch('/api/announcements')
-    .then(function(r){ return r.json(); })
-    .then(function(data){
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
         var html = '';
-        if (data.length === 0) html = '<p style="color:#999;text-align:center;">No announcements yet.</p>';
-        data.forEach(function(a){
-            html += '<div style="display:flex;justify-content:space-between;align-items:start;padding:14px;border:1px solid #eee;border-radius:12px;margin-bottom:8px;">' +
-                '<div style="flex:1;">' +
-                    '<div style="font-weight:600;margin-bottom:4px;">' + a.title + '</div>' +
-                    '<div style="font-size:13px;color:#555;">' + a.content + '</div>' +
-                    '<div style="font-size:10px;color:#aaa;margin-top:4px;">' + (a.created_at || '') + '</div>' +
-                '</div>' +
-                '<button onclick="deleteAnnouncement(' + a.id + ')" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:18px;flex-shrink:0;">🗑️</button>' +
+        if (data.length === 0) {
+            html = '<p style="color:#999;text-align:center;">No announcements yet.</p>';
+        } else {
+            data.forEach(function(a) {
+                var date = a.created_at ? new Date(a.created_at).toLocaleString() : '';
+                html += '<div style="display:flex;justify-content:space-between;align-items:start;padding:14px;border:1px solid #eee;border-radius:12px;margin-bottom:8px;">' +
+                    '<div style="flex:1;">' +
+                        '<div style="font-weight:600;margin-bottom:4px;">' + escapeHtml(a.title) + '</div>' +
+                        '<div style="font-size:13px;color:#555;">' + escapeHtml(a.content) + '</div>' +
+                        '<div style="font-size:10px;color:#aaa;margin-top:4px;">📅 ' + date + '</div>' +
+                    '</div>' +
+                    '<button onclick="deleteAnnouncement(' + a.id + ')" style="background:#e74c3c;color:white;border:none;border-radius:20px;padding:6px 12px;cursor:pointer;font-size:12px;">🗑️ Delete</button>' +
                 '</div>';
-        });
+            });
+        }
         document.getElementById('annList').innerHTML = html;
+    })
+    .catch(function(err) {
+        console.error('Load announcements error:', err);
+        document.getElementById('annList').innerHTML = '<p style="color:#e74c3c;text-align:center;">Failed to load announcements</p>';
     });
 }
 
@@ -124,10 +155,38 @@ function postAnnouncement() {
 }
 
 function deleteAnnouncement(id) {
-    if (!confirm('Delete this announcement? It will also be removed for all users.')) return;
-    fetch('/admin/announcement/delete/' + id, { method: 'POST' })
-    .then(function(r){ return r.json(); })
-    .then(function(d){ if (d.success) loadAnnouncements(); });
+    if (!confirm('⚠️ Delete this announcement?\n\nThis will also remove it for all users.')) {
+        return;
+    }
+    
+    fetch('/admin/announcement/delete/' + id, { 
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { 
+        if (d.success) {
+            alert('Announcement deleted!');
+            loadAnnouncements(); // 刷新列表
+        } else {
+            alert('Failed: ' + (d.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) { 
+        alert('Error: ' + err.message);
+    });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 </script>
 

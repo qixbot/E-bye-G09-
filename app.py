@@ -7,6 +7,7 @@ import base64
 import json
 import secrets
 import random
+import time
 
 from flask import (
     Flask, render_template, request, redirect,
@@ -29,6 +30,47 @@ app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024      # 100MB max upload size
 app.config['MAX_FORM_MEMORY_SIZE'] = 100 * 1024 * 1024  
 app.config['MAX_FORM_PARTS'] = 1000   
+
+_unread_cache = {}
+_unread_cache_time = {}
+
+@app.route('/api/unread-count')
+def unread_count():
+    if 'user_id' not in session:
+        return jsonify({'chat': 0, 'notifications': 0})
+    
+    user_id = session['user_id']
+    now = time.time()
+    
+    # 缓存5秒，避免频繁查数据库
+    if user_id in _unread_cache and (now - _unread_cache_time.get(user_id, 0)) < 5:
+        return jsonify(_unread_cache[user_id])
+    
+    try:
+        db = get_db()
+        cur = db.cursor()
+        
+        cur.execute("SELECT COUNT(*) AS count FROM messages WHERE receiver_id = %s AND is_read = 0", (user_id,))
+        chat_unread = cur.fetchone()['count']
+        
+        cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
+        notif_unread = cur.fetchone()['count']
+        
+        cur.close()
+        db.close()
+        
+        result = {'chat': chat_unread, 'notifications': notif_unread}
+        
+        # 更新缓存
+        _unread_cache[user_id] = result
+        _unread_cache_time[user_id] = now
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"Unread count error: {e}")
+        return jsonify({'chat': 0, 'notifications': 0})
+
+
 
 # ============================================================
 # Helper functions
@@ -222,33 +264,58 @@ def login():
         db.close()
         
         if user and check_password_hash(user['password'], password):
+            # ========== 冻结检查 ==========
             if user['is_blocked'] == 1:
                 flash('❌ This account is permanently blocked. Contact admin for appeal.', 'danger')
                 return redirect(url_for('login'))
 
-            if user['is_frozen'] == 1 and user['frozen_until']:
-                now = datetime.now()
-                expire_time = None
-                try:
-                    expire_time = datetime.strptime(user['frozen_until'], '%Y-%m-%d %H:%M:%S')
-                except:
-                    pass
-
-                if expire_time and now < expire_time:
-                    diff = expire_time - now
-                    days = diff.days
-                    hours = diff.seconds // 3600
-                    reason = user['freeze_reason'] or 'No reason provided'
-                    flash(f'⚠️ ACCOUNT FROZEN\nReason: {reason}\nUnlocks in: {days}d {hours}h', 'warning')
-                    return redirect(url_for('login'))
+            # 检查冻结状态
+            if user['is_frozen'] == 1:
+                frozen_until = user.get('frozen_until')
+                
+                if frozen_until:
+                    now = datetime.now()
+                    
+                    # 统一转换为 datetime 对象
+                    if isinstance(frozen_until, str):
+                        try:
+                            frozen_until = datetime.strptime(frozen_until, '%Y-%m-%d %H:%M:%S')
+                        except:
+                            frozen_until = None
+                    
+                    # 移除时区信息
+                    if frozen_until and hasattr(frozen_until, 'tzinfo') and frozen_until.tzinfo:
+                        frozen_until = frozen_until.replace(tzinfo=None)
+                    
+                    if frozen_until and now < frozen_until:
+                        days_left = (frozen_until - now).days
+                        hours_left = (frozen_until - now).seconds // 3600
+                        reason = user.get('freeze_reason') or 'No reason provided'
+                        flash(f'⚠️ ACCOUNT FROZEN!\nReason: {reason}\nUnlocks in: {days_left}d {hours_left}h', 'warning')
+                        return redirect(url_for('login'))
+                    else:
+                        # 冻结已过期，自动解冻
+                        db_auto = get_db()
+                        cur_auto = db_auto.cursor()
+                        cur_auto.execute("""
+                            UPDATE users 
+                            SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL 
+                            WHERE id = %s
+                        """, (user['id'],))
+                        db_auto.commit()
+                        cur_auto.close()
+                        db_auto.close()
+                        flash('Your account has been automatically unfrozen. Welcome back!', 'success')
                 else:
-                    db_auto = get_db()
-                    cur_auto = db_auto.cursor()
-                    cur_auto.execute("UPDATE users SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL WHERE id = %s", (user['id'],))
-                    db_auto.commit()
-                    cur_auto.close()
-                    db_auto.close()
+                    # 数据异常，修复
+                    db_fix = get_db()
+                    cur_fix = db_fix.cursor()
+                    cur_fix.execute("UPDATE users SET is_frozen = 0 WHERE id = %s", (user['id'],))
+                    db_fix.commit()
+                    cur_fix.close()
+                    db_fix.close()
             
+            # ========== 正常登录流程 ==========
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['student_id'] = user['student_id']
@@ -285,34 +352,43 @@ def login():
 @app.before_request
 def auto_unfreeze_expired():
     if 'user_id' in session or 'admin_logged_in' in session:
-        db = get_db()
-        cur = db.cursor()
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        cur.execute("""
-            SELECT id, username FROM users
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
-        """, (now,))
-        expired = cur.fetchall()
-        
-        cur.execute("""
-            UPDATE users
-            SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
-            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
-        """, (now,))
-        
-        for user in expired:
+        try:
+            db = get_db()
+            cur = db.cursor()
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 查找过期的冻结用户
             cur.execute("""
-                INSERT INTO notifications (user_id, message, created_at)
-                VALUES (%s, %s, NOW())
-            """, (user['id'],
-                  f"✅ Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
-                  f"Your freeze count remains. Please follow community guidelines.\n"
-                  f"After 3 freezes, your account will be permanently blocked."))
-        
-        db.commit()
-        cur.close()
-        db.close()
+                SELECT id, username, frozen_until FROM users
+                WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+            """, (now,))
+            expired = cur.fetchall()
+            
+            # 解冻
+            cur.execute("""
+                UPDATE users
+                SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
+                WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+            """, (now,))
+            
+            # 发送通知
+            for user in expired:
+                cur.execute("""
+                    INSERT INTO notifications (user_id, message, created_at, type, is_read)
+                    VALUES (%s, %s, NOW(), 'system', 0)
+                """, (user['id'],
+                      f"✅ Your 7-day freeze has ENDED. Your account is now ACTIVE.\n"
+                      f"Your freeze count remains. Please follow community guidelines.\n"
+                      f"After 3 freezes, your account will be permanently blocked."))
+            
+            db.commit()
+            cur.close()
+            db.close()
+            
+            if len(expired) > 0:
+                print(f"Auto-unfrozen {len(expired)} accounts")
+        except Exception as e:
+            print(f"auto_unfreeze_expired error: {e}")
 
 @app.before_request
 def check_upcoming_meetings():
@@ -321,27 +397,80 @@ def check_upcoming_meetings():
     user_id = session['user_id']
     db = get_db()
     cur = db.cursor()
+    
+    # 获取需要提醒的订单（在 Python 中处理时间比较）
     cur.execute('''
-        SELECT id, order_number, meeting_point, meeting_time
+        SELECT id, order_number, meeting_point, meeting_time, last_reminder_sent
         FROM orders
         WHERE (buyer_id = %s OR seller_id = %s)
           AND status IN ('confirmed', 'delivered')
-          AND DATE(meeting_time) <= CURRENT_DATE + INTERVAL '1 day'
-          AND DATE(meeting_time) >= CURRENT_DATE
+          AND meeting_time IS NOT NULL
+          AND meeting_time != ''
           AND (last_reminder_sent IS NULL OR last_reminder_sent < CURRENT_DATE)
-        LIMIT 1
+        LIMIT 20
     ''', (user_id, user_id))
-    orders_to_remind = cur.fetchall()
-    for ord in orders_to_remind:
+    
+    orders = cur.fetchall()
+    now = datetime.now()
+    reminded_orders = []
+    
+    for order in orders:
+        meeting_time_str = order['meeting_time']
+        if not meeting_time_str:
+            continue
+        
+        try:
+            if isinstance(meeting_time_str, str):
+                if 'T' in meeting_time_str:
+                    meeting_time = datetime.fromisoformat(meeting_time_str.replace('Z', '+00:00'))
+                else:
+                    meeting_time = datetime.strptime(meeting_time_str, '%Y-%m-%d %H:%M:%S')
+            else:
+                meeting_time = meeting_time_str
+            
+            if hasattr(meeting_time, 'tzinfo') and meeting_time.tzinfo:
+                meeting_time = meeting_time.replace(tzinfo=None)
+            
+            time_diff = (meeting_time - now).total_seconds()
+            if 0 < time_diff <= 3600:
+                reminded_orders.append(order)
+        except Exception as e:
+            print(f"Error parsing meeting_time: {e}")
+            continue
+    
+    for order in reminded_orders:
+        meeting_time = order['meeting_time']
+        if isinstance(meeting_time, str):
+            meeting_time = meeting_time[:16]
+        else:
+            meeting_time = meeting_time.strftime('%Y-%m-%d %H:%M')
+        
         cur.execute('''
             INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
             VALUES (%s, %s, NOW(), 'order', %s, 0)
         ''', (user_id,
-              f"📅 Reminder: Order #{ord['order_number']} has a meetup scheduled for {ord['meeting_time']} at {ord['meeting_point']}. Please be on time!",
-              ord['id']))
+              f"⏰ Reminder: Order #{order['order_number']} meetup at {meeting_time} at {order['meeting_point']}. Please be on time!",
+              order['id']))
+        
+        cur.execute("UPDATE orders SET last_reminder_sent = NOW() WHERE id = %s", (order['id'],))
+    
     db.commit()
     cur.close()
     db.close()
+
+# 在 check_upcoming_meetings 之后添加 update_last_seen
+@app.before_request
+def update_last_seen():
+    if 'user_id' in session:
+        try:
+            db = get_db()
+            cur = db.cursor()
+            cur.execute("UPDATE users SET last_seen = NOW() WHERE id = %s", (session['user_id'],))
+            db.commit()
+            cur.close()
+            db.close()
+        except Exception as e:
+            print(f"Update last_seen error: {e}")
 
 @app.before_request
 def check_remember_me():
@@ -458,12 +587,13 @@ def register():
         cur.execute('SELECT id FROM users WHERE email = %s', (email,))
         new_user = cur.fetchone()
         
+        # 在 register() 函数的成功注册后，修改 create_notification
         if new_user:
             create_notification(
                 user_id=new_user['id'],
-                message='🎉 Welcome to E-bye! Complete your profile to increase your trust score.',
+                message='🎉 Welcome to E-bye! Please complete your profile — especially your campus (Cyberjaya/Melaka) to help buyers find you.',
                 notif_type='welcome'
-            )
+                )
         
         cur.close()
         db.close()
@@ -1034,6 +1164,8 @@ def api_user_listings():
     
     return jsonify(listings)
 
+# app.py - 修改 /api/order/<int:order_id>/confirm 路由
+
 @app.route('/api/order/<int:order_id>/confirm', methods=['POST'])
 def api_confirm_order(order_id):
     if 'user_id' not in session:
@@ -1048,9 +1180,8 @@ def api_confirm_order(order_id):
     
     db = get_db()
     cur = db.cursor()
-    
-    # 修复：使用单引号 'pending'，不要用双引号
-    cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s AND status = %s', 
+     # 获取订单信息，包括产品ID（只查询 pending 状态的订单）
+    cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = s AND status = %s', 
                 (order_id, session['user_id'], 'pending'))
     order = cur.fetchone()
     
@@ -1065,6 +1196,9 @@ def api_confirm_order(order_id):
         SET meeting_point = %s, meeting_time = %s, status = 'confirmed', updated_at = NOW()
         WHERE id = %s
     ''', (meeting_point, meeting_time, order_id))
+    
+    # 当卖家确认订单后，将产品状态改为 'reserved'（已预留）
+    cur.execute('UPDATE products SET status = %s WHERE id = %s', ('reserved', order['product_id']))
     
     # 通知买家订单已确认
     cur.execute('''
@@ -1127,6 +1261,8 @@ def get_product_offer_count(product_id):
     
     return jsonify({'count': count})
 
+
+
 @app.route('/api/product/<int:product_id>/offers/send', methods=['POST'])
 def send_offer(product_id):
     if 'user_id' not in session:
@@ -1155,7 +1291,8 @@ def send_offer(product_id):
         db.close()
         return jsonify({'success': False, 'error': 'You cannot make an offer on your own product'}), 400
     
-    cur.execute("SELECT id FROM offers WHERE product_id = %s AND buyer_id = %s AND status = 'pending'", (product_id, session['user_id']))
+    cur.execute("SELECT id FROM offers WHERE product_id = %s AND buyer_id = %s AND status = 'pending'", 
+                (product_id, session['user_id']))
     existing = cur.fetchone()
     
     if existing:
@@ -1171,23 +1308,86 @@ def send_offer(product_id):
     
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
+        VALUES (%s, %s, NOW(), 'new_offer', %s, 0)
     ''', (product['seller_id'],
           f"💰 New offer of RM {float(offer_price):.2f} on your listing \"{product['name']}\". Go to My Listings → Offers to accept or decline.",
-          'new_offer', new_offer_id))
+          new_offer_id))
     
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
+        VALUES (%s, %s, NOW(), 'offer_sent', %s, 0)
     ''', (session['user_id'],
           f"Your offer of RM {float(offer_price):.2f} for \"{product['name']}\" has been sent to the seller. You'll be notified when they respond.",
-          'offer_sent', new_offer_id))
+          new_offer_id))
     
     db.commit()
     cur.close()
     db.close()
     
     return jsonify({'success': True, 'message': 'Offer sent successfully', 'offer_id': new_offer_id})
+
+@app.route('/api/seller/offers')
+def api_seller_offers():
+    """卖家获取收到的 offers"""
+    if 'user_id' not in session:
+        return jsonify([]), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    cur.execute('''
+        SELECT o.*, 
+               p.name as product_name, 
+               p.status as product_status,
+               u.username as buyer_name,
+               u.full_name as buyer_full_name
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        JOIN users u ON o.buyer_id = u.id
+        WHERE p.seller_id = %s
+        ORDER BY 
+            CASE o.status 
+                WHEN 'pending' THEN 1 
+                WHEN 'countered' THEN 2 
+                WHEN 'accepted' THEN 3 
+                ELSE 4 
+            END,
+            o.created_at DESC
+    ''', (session['user_id'],))
+    
+    offers = cur.fetchall()
+    cur.close()
+    db.close()
+    
+    result = []
+    for offer in offers:
+        offer_dict = dict(offer)
+        result.append(offer_dict)
+    
+    return jsonify(result)
+
+
+@app.route('/api/seller/offers/count')
+def api_seller_offers_count():
+    """卖家获取 pending offers 数量"""
+    if 'user_id' not in session:
+        return jsonify({'count': 0}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    cur.execute('''
+        SELECT COUNT(*) as count
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE p.seller_id = %s AND o.status = 'pending'
+    ''', (session['user_id'],))
+    
+    result = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    return jsonify({'count': result['count'] if result else 0})
 
 @app.route('/api/offer/<int:offer_id>/accept', methods=['POST'])
 def api_accept_offer(offer_id):
@@ -1414,7 +1614,7 @@ def accept_counter_offer(offer_id):
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
+    
 @app.route('/api/offer/<int:offer_id>/reject-counter', methods=['POST'])
 def reject_counter_offer(offer_id):
     """Buyer rejects seller's counter offer"""
@@ -1516,35 +1716,13 @@ def cancel_offer(offer_id):
     db = get_db()
     cur = db.cursor()
     
-    cur.execute('SELECT * FROM offers WHERE id = %s AND buyer_id = %s AND status = %s', 
-                (offer_id, session['user_id'], 'pending'))  # ✅ 单引号
-    offer = cur.fetchone()
-    
-    if not offer:
-        cur.close()
-        db.close()
-        return jsonify({'success': False, 'error': 'Offer not found or cannot be cancelled'}), 404
-    
-    cur.execute('UPDATE offers SET status = %s WHERE id = %s', ('cancelled', offer_id))  # ✅ 单引号
-    
-    # ... 其余代码保持不变
-
-@app.route('/api/offer/<int:offer_id>/cancel-counter', methods=['POST'])
-def cancel_counter_offer(offer_id):
-    """Buyer cancels their own counter offer, reverts to pending"""
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-    
-    db = get_db()
-    cur = db.cursor()
-    
-    # Check if offer exists and belongs to the buyer, and is in 'countered' status
+    # 通过 JOIN products 表获取 seller_id 和 product_name
     cur.execute('''
-        SELECT o.*, p.name as product_name, p.seller_id
+        SELECT o.*, p.seller_id, p.name as product_name
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s AND o.buyer_id = %s AND o.status = 'countered'
-    ''', (offer_id, session['user_id']))
+        WHERE o.id = %s AND o.buyer_id = %s AND o.status = %s
+    ''', (offer_id, session['user_id'], 'pending'))
     
     offer = cur.fetchone()
     
@@ -1553,15 +1731,29 @@ def cancel_counter_offer(offer_id):
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found or cannot be cancelled'}), 404
     
-    # Revert to pending status and clear counter_price
-    cur.execute("UPDATE offers SET status = 'pending', counter_price = NULL WHERE id = %s", (offer_id,))
+    # 获取信息
+    seller_id = offer['seller_id']
+    buyer_id = session['user_id']
+    product_name = offer['product_name']
+    offer_price = float(offer['offer_price'])
     
-    # Notify seller
+    # 更新状态为 cancelled
+    cur.execute('UPDATE offers SET status = %s WHERE id = %s', ('cancelled', offer_id))
+    
+    # ========== 通知卖家 ==========
+    cur.execute('''
+    INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+    VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
+''', (seller_id, 
+      f'🗑️ Buyer cancelled their offer of RM {offer_price:.2f} for "{product_name}".',
+      offer_id))
+    
+    # ========== 通知买家（自己） ==========
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
-    ''', (offer['seller_id'],
-          f" Buyer cancelled their counter offer for \"{offer['product_name']}\". The original offer of RM {offer['offer_price']:.2f} is still pending.",
+    ''', (buyer_id,
+          f'✅ You have cancelled your offer of RM {offer_price:.2f} for "{product_name}".',
           offer_id))
     
     db.commit()
@@ -1570,6 +1762,49 @@ def cancel_counter_offer(offer_id):
     
     return jsonify({'success': True})
 
+
+@app.route('/api/offer/<int:offer_id>/cancel-counter', methods=['POST'])
+def cancel_counter_offer(offer_id):
+    """买家取消自己的 counter offer，恢复为 pending 状态"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    # 检查 offer 是否存在且属于当前买家，状态为 countered
+    cur.execute('''
+        SELECT o.*, p.name as product_name, p.seller_id
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s AND o.buyer_id = %s AND o.status = %s
+    ''', (offer_id, session['user_id'], 'countered'))
+    
+    offer = cur.fetchone()
+    
+    if not offer:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Counter offer not found or cannot be cancelled'}), 404
+    
+    # 恢复到 pending 状态，清除 counter_price
+    cur.execute("UPDATE offers SET status = 'pending', counter_price = NULL WHERE id = %s", (offer_id,))
+    
+    # 通知卖家
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
+    ''', (offer['seller_id'],
+          f"❌ Buyer cancelled their counter offer for \"{offer['product_name']}\". The original offer of RM {offer['offer_price']:.2f} is still pending.",
+          offer_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
+
+    
 @app.route('/api/offer/<int:offer_id>/create-order', methods=['POST'])
 def api_create_order_from_offer(offer_id):
     if 'user_id' not in session:
@@ -1577,7 +1812,7 @@ def api_create_order_from_offer(offer_id):
     
     data = request.get_json()
     meetup_locations = data.get('meetup_locations', [])
-    meeting_dates = data.get('meeting_dates', [])  # 注意这里是 meeting_dates
+    meeting_dates = data.get('meeting_dates', [])  # 添加时间支持
     
     if not meetup_locations:
         return jsonify({'success': False, 'error': 'Please select meetup locations'}), 400
@@ -1617,18 +1852,25 @@ def api_create_order_from_offer(offer_id):
     
     cur.execute("UPDATE products SET status = 'sold' WHERE id = %s", (offer['product_id'],))
     
+    # 通知卖家（包含时间信息）
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (offer['seller_id'],
-          f"🛒 NEW ORDER #{order_number}! {session['username']} has placed an order for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}. Go to My Orders to confirm.",
+          f"🛒 NEW ORDER #{order_number}! {session['username']} has placed an order for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}. " +
+          f"Preferred locations: {', '.join(meetup_locations)}. " +
+          (f"Preferred times: {meeting_dates_str}" if meeting_dates else ""),
           'order_created', order_id))
     
+    # 通知买家
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (session['user_id'],
-          f"📋 Order #{order_number} created successfully for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}. Meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Waiting for seller to confirm.",
+          f"📋 Order #{order_number} created successfully for \"{offer['product_name']}\" at RM {offer['offer_price']:.2f}. " +
+          f"Meetup locations: {', '.join(meetup_locations)}. " +
+          (f"Preferred times: {meeting_dates_str}" if meeting_dates else "") +
+          " Waiting for seller to confirm.",
           'order_created', order_id))
     
     db.commit()
@@ -1762,6 +2004,8 @@ def api_offer_details(offer_id):
         'seller_campus': offer['seller_campus']  # 添加这一行
     })
 
+# app.py - 修改 /api/buy-now 路由
+
 @app.route('/api/buy-now', methods=['POST'])
 def api_buy_now():
     if 'user_id' not in session:
@@ -1785,7 +2029,7 @@ def api_buy_now():
     if not product:
         cur.close()
         db.close()
-        return jsonify({'success': False, 'error': 'Product not found'}), 404
+        return jsonify({'success': False, 'error': 'Product not found or already sold/reserved'}), 404
     
     if product['seller_id'] == session['user_id']:
         cur.close()
@@ -1794,6 +2038,7 @@ def api_buy_now():
     
     order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
     
+    # 创建订单，状态为 'pending' - 等待卖家确认
     cur.execute('''
         INSERT INTO orders (order_number, product_id, buyer_id, seller_id, offer_price,
                             meeting_point, meeting_time, status, created_at, updated_at)
@@ -1804,18 +2049,22 @@ def api_buy_now():
     
     order_id = cur.fetchone()['id']
     
-    cur.execute("UPDATE products SET status = 'reserved' WHERE id = %s", (product_id,))
+    # 重要：不要改变产品状态！保持 'approved'
+    # 只有当卖家确认订单后，产品才应该变为 'reserved' 或 'sold'
+    # cur.execute("UPDATE products SET status = 'reserved' WHERE id = %s", (product_id,))  # ← 删除这行！
     
+    # 通知卖家有新的订单
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
+        VALUES (%s, %s, NOW(), 'order', %s, 0)
     ''', (product['seller_id'],
           f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Go to My Orders to confirm.",
           'order_created', order_id))
     
+    # 通知买家订单已创建
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
+        VALUES (%s, %s, NOW(), 'order', %s, 0)
     ''', (session['user_id'],
           f"✅ Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. Meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Waiting for seller to confirm.",
           'order_created', order_id))
@@ -2107,6 +2356,24 @@ def mark_notifications_read():
     else:
         cur.execute('UPDATE notifications SET is_read = 1 WHERE user_id = %s', (session['user_id'],))
     
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/chat/mark-read/<int:other_user_id>', methods=['POST'])
+def mark_chat_read(other_user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        UPDATE messages 
+        SET is_read = 1 
+        WHERE sender_id = %s AND receiver_id = %s AND is_read = 0
+    ''', (other_user_id, session['user_id']))
     db.commit()
     cur.close()
     db.close()
@@ -2950,20 +3217,30 @@ def admin_users():
 
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM users")
+    
+    # 获取所有用户
+    cur.execute("SELECT * FROM users ORDER BY id")
     users = cur.fetchall()
-    cur.execute('''
-        SELECT r.*, u.username as reported_username,
-               rp.username as reporter_username
-        FROM reports r
-        JOIN users u ON r.reported_user_id = u.id
-        JOIN users rp ON r.reporter_id = rp.id
-        WHERE r.status = 'pending'
-        ORDER BY r.created_at DESC
-    ''')
-    reports = cur.fetchall()
+    
+    # 获取待处理的举报（添加错误处理）
+    try:
+        cur.execute('''
+            SELECT r.*, u.username as reported_username,
+                   rp.username as reporter_username
+            FROM reports r
+            LEFT JOIN users u ON r.reported_user_id = u.id
+            LEFT JOIN users rp ON r.reporter_id = rp.id
+            WHERE r.status = 'pending'
+            ORDER BY r.created_at DESC
+        ''')
+        reports = cur.fetchall()
+    except Exception as e:
+        print(f"Error loading reports: {e}")
+        reports = []
+    
     cur.close()
     db.close()
+    
     return render_template("admin_users.html", users=users, reports=reports)
 
 @app.route('/admin/products')
@@ -3021,7 +3298,8 @@ def approve_product(pid):
     
     cur.execute('''
         UPDATE products
-        SET status = 'approved', reject_reason = ''
+        SET status = 'approved', 
+            reject_reason = ''
         WHERE id = %s
     ''', (pid,))
 
@@ -3040,7 +3318,12 @@ def approve_product(pid):
     db.close()
 
     flash("Product approved successfully, now visible on homepage", "success")
-    return redirect(url_for('admin_products'))
+    # 直接重定向到 /admin/products 页面
+    return redirect('/admin/products')
+
+
+
+
 
 @app.route('/admin/product/reject/<int:pid>', methods=['POST'])
 def reject_product(pid):
@@ -3120,6 +3403,23 @@ def admin_get_product_info(pid):
     product_dict['images_list'] = images_list
     return product_dict
 
+@app.route('/api/user/<int:user_id>')
+def api_get_user_info(user_id):
+    """获取用户基本信息（用于显示审批人）"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT id, username, full_name FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user:
+        return jsonify(dict(user))
+    return jsonify({'error': 'User not found'}), 404
+
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
 def freeze_7day(user_id):
     if not session.get("admin_logged_in"):
@@ -3188,6 +3488,7 @@ def freeze_7day(user_id):
     
     flash(f"User frozen (Freeze {freeze_count + 1}/3). Notification sent.", "success")
     return redirect(url_for("admin_users"))
+
 
 @app.route('/admin/user/<int:user_id>/block', methods=['POST'])
 def block_user(user_id):
@@ -3338,9 +3639,10 @@ def chat_send():
 
     db = get_db()
     cur = db.cursor()
+    # 修改：统一使用 UTC 时间存储，不要用 AT TIME ZONE
     cur.execute('''
         INSERT INTO messages (sender_id, receiver_id, product_id, content, created_at)
-        VALUES (%s, %s, %s, %s, NOW() AT TIME ZONE 'Asia/Kuala_Lumpur')
+        VALUES (%s, %s, %s, %s, NOW() AT TIME ZONE 'UTC')
     ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, content))
     db.commit()
     cur.close()
@@ -3369,9 +3671,10 @@ def chat_send_images():
 
     db = get_db()
     cur = db.cursor()
+    # 修改：统一使用 UTC 时间
     cur.execute('''
         INSERT INTO messages (sender_id, receiver_id, content, image, created_at)
-        VALUES (%s, %s, %s, %s, NOW() AT TIME ZONE 'Asia/Kuala_Lumpur')
+        VALUES (%s, %s, %s, %s, NOW() AT TIME ZONE 'UTC')
     ''', (session['user_id'], int(receiver_id), content, ','.join(filenames)))
     db.commit()
     cur.close()
@@ -3379,33 +3682,6 @@ def chat_send_images():
 
     return jsonify({'success': True})
 
-@app.route('/chat/send-image', methods=['POST'])
-def chat_send_image():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    receiver_id = request.form.get('receiver_id')
-    product_id = request.form.get('product_id', 0)
-    file = request.files.get('image')
-
-    if not receiver_id or not file:
-        return jsonify({'success': False, 'error': 'Missing data'}), 400
-
-    filename = secure_filename("chat_" + str(session['user_id']) + "_" + uuid.uuid4().hex + ".jpg")
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
-
-    db = get_db()
-    cur = db.cursor()
-    cur.execute('''
-        INSERT INTO messages (sender_id, receiver_id, product_id, content, image, created_at)
-        VALUES (%s, %s, %s, %s, %s, NOW() AT TIME ZONE 'Asia/Kuala_Lumpur')
-    ''', (session['user_id'], int(receiver_id), int(product_id) if product_id else None, '', filename))
-    db.commit()
-    cur.close()
-    db.close()
-
-    return jsonify({'success': True})
 
 @app.route('/chat/<int:other_user_id>')
 @app.route('/chat/<int:other_user_id>/<int:product_id>')
@@ -3442,14 +3718,15 @@ def chat_page(other_user_id, product_id=None):
     ''', (session['user_id'], other_user_id, other_user_id, session['user_id']))
     messages = cur.fetchall()
     
+    # 修改：不要在后端做时区转换，直接输出原始 ISO 格式
     for msg in messages:
         if msg['created_at']:
-            from datetime import timezone, timedelta
-            malaysia_tz = timezone(timedelta(hours=8))
-            ca = msg['created_at']
-            if isinstance(ca, str):
-                ca = datetime.strptime(ca[:19], '%Y-%m-%d %H:%M:%S')
-            msg['created_at'] = ca.replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
+            # 确保输出 ISO 格式带时区信息
+            if isinstance(msg['created_at'], datetime):
+                msg['created_at'] = msg['created_at'].isoformat()
+            elif isinstance(msg['created_at'], str):
+                # 已经是字符串，保持原样但确保格式统一
+                pass
 
     cur.execute('''
         UPDATE messages SET is_read = 1
@@ -3484,18 +3761,17 @@ def chat_get_messages(other_user_id):
     cur.close()
     db.close()
 
-    from datetime import timezone, timedelta
-    malaysia_tz = timezone(timedelta(hours=8))
-    
     result = []
     for msg in messages:
-        msg = dict(msg)
-        if msg['created_at']:
-            ca = msg['created_at']
-            if isinstance(ca, str):
-                ca = datetime.strptime(ca[:19], '%Y-%m-%d %H:%M:%S')
-            msg['created_at'] = ca.replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
-        result.append(msg)
+        msg_dict = dict(msg)
+        if msg_dict['created_at']:
+            # 直接输出 ISO 格式，不做时区转换
+            if isinstance(msg_dict['created_at'], datetime):
+                msg_dict['created_at'] = msg_dict['created_at'].isoformat()
+            elif isinstance(msg_dict['created_at'], str):
+                # 如果已经是字符串，确保是标准格式
+                pass
+        result.append(msg_dict)
 
     return jsonify(result)
 
@@ -3553,6 +3829,7 @@ def chat_list():
     user_id = session['user_id']
     cur = db.cursor()
 
+    # 获取聊天列表
     cur.execute('''
         SELECT u.id, u.username, u.full_name, u.avatar_blob,
                m.content as last_message, m.image as last_image,
@@ -3571,6 +3848,7 @@ def chat_list():
         JOIN messages m ON m.id = latest.max_id
         ORDER BY m.created_at DESC
     ''', (user_id, user_id, user_id, user_id))
+    
     chats = cur.fetchall()
     
     chat_list_data = []
@@ -3587,11 +3865,22 @@ def chat_list():
             chat['last_time'] = lt.replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
         chat_list_data.append(chat)
 
+    # 获取未读通知数量
     cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
     unread_notifications = cur.fetchone()['count']
     unread_reviews = 0
     
-    cur.execute("SELECT COUNT(*) AS count FROM announcements")
+    # ========== 修复：正确计算未读公告数量 ==========
+    # 获取用户上次阅读公告的时间
+    cur.execute("SELECT last_read_ann FROM users WHERE id = %s", (user_id,))
+    user = cur.fetchone()
+    last_read = user['last_read_ann'] if user and user['last_read_ann'] else None
+    
+    # 统计未读公告数量
+    if last_read:
+        cur.execute("SELECT COUNT(*) AS count FROM announcements WHERE created_at > %s", (last_read,))
+    else:
+        cur.execute("SELECT COUNT(*) AS count FROM announcements")
     unread_announcements = cur.fetchone()['count']
     
     cur.close()
@@ -3602,6 +3891,30 @@ def chat_list():
                            unread_notifications=unread_notifications,
                            unread_reviews=unread_reviews,
                            unread_announcements=unread_announcements)
+
+@app.route('/api/user/<int:user_id>/status')
+def get_user_status(user_id):
+    db = get_db()
+    cur = db.cursor()
+    
+    cur.execute('''
+        SELECT last_seen, 
+               CASE WHEN last_seen > NOW() - INTERVAL '5 minutes' THEN true ELSE false END as is_online
+        FROM users WHERE id = %s
+    ''', (user_id,))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user:
+        # 确保输出 ISO 格式
+        last_seen_str = user['last_seen'].isoformat() if user['last_seen'] else None
+        return jsonify({
+            'online': user['is_online'] if user['is_online'] else False,
+            'last_seen': last_seen_str
+        })
+    return jsonify({'online': False, 'last_seen': None})
+
 
 @app.route('/api/order/<int:order_id>/update-meeting', methods=['POST'])
 def update_order_meeting(order_id):
@@ -3672,17 +3985,6 @@ def ship_order(order_id):
 
     return jsonify({'success': True})
 
-@app.route('/api/mark-ann-read', methods=['POST'])
-def mark_ann_read():
-    if 'user_id' not in session:
-        return jsonify({'success': False}), 401
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("UPDATE users SET last_read_ann = NOW() WHERE id = %s", (session['user_id'],))
-    db.commit()
-    cur.close()
-    db.close()
-    return jsonify({'success': True})
 
 @app.route('/api/search-users')
 def search_users():
@@ -3708,7 +4010,7 @@ def search_users():
 def api_announcements():
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT title, content, created_at FROM announcements ORDER BY created_at DESC")
+    cur.execute("SELECT id, title, content, created_at FROM announcements ORDER BY created_at DESC")
     anns = cur.fetchall()
     cur.close()
     db.close()
@@ -3733,36 +4035,67 @@ def add_announcement():
         return jsonify({'success': True, 'id': ann_id})
     return jsonify({'success': False})
 
-@app.route('/admin/announcement/delete/<int:ann_id>', methods=['POST'])
-def delete_announcement(ann_id):
-    if not session.get('admin_logged_in'):
-        return jsonify({'success': False}), 403
+@app.route('/api/unread-announcements')
+def unread_announcements():
+    if 'user_id' not in session:
+        return jsonify({'count': 0})
+    
     db = get_db()
     cur = db.cursor()
-    cur.execute("DELETE FROM announcements WHERE id = %s", (ann_id,))
+    
+    # 获取用户上次阅读公告的时间
+    cur.execute("SELECT last_read_ann FROM users WHERE id = %s", (session['user_id'],))
+    user = cur.fetchone()
+    last_read = user['last_read_ann'] if user and user['last_read_ann'] else None
+    
+    # 统计未读公告数量
+    if last_read:
+        cur.execute("SELECT COUNT(*) as count FROM announcements WHERE created_at > %s", (last_read,))
+    else:
+        cur.execute("SELECT COUNT(*) as count FROM announcements")
+    
+    count = cur.fetchone()['count']
+    cur.close()
+    db.close()
+    
+    return jsonify({'count': count})
+
+@app.route('/api/mark-ann-read', methods=['POST'])
+def mark_ann_read():
+    if 'user_id' not in session:
+        return jsonify({'success': False}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("UPDATE users SET last_read_ann = NOW() WHERE id = %s", (session['user_id'],))
     db.commit()
     cur.close()
     db.close()
+    
     return jsonify({'success': True})
 
-@app.route('/api/unread-count')
-def unread_count():
-    if 'user_id' not in session:
-        return jsonify({'chat': 0, 'notifications': 0})
-
-    user_id = session['user_id']
-    db = get_db()
-    cur = db.cursor()
-
-    cur.execute("SELECT COUNT(*) AS count FROM messages WHERE receiver_id = %s AND is_read = 0", (user_id,))
-    chat_unread = cur.fetchone()['count']
-
-    cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
-    notif_unread = cur.fetchone()['count']
-
-    cur.close()
-    db.close()
-    return jsonify({'chat': chat_unread, 'notifications': notif_unread})
+# ========== 添加这个删除公告的路由 ==========
+@app.route('/admin/announcement/delete/<int:ann_id>', methods=['POST'])
+def delete_announcement(ann_id):
+    """删除公告"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    try:
+        db = get_db()
+        cur = db.cursor()
+        
+        # 删除公告
+        cur.execute("DELETE FROM announcements WHERE id = %s", (ann_id,))
+        db.commit()
+        
+        cur.close()
+        db.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Delete announcement error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_product():
@@ -4495,6 +4828,57 @@ def api_user_other_listings(user_id):
         listings.append(item)
 
     return jsonify(listings)
+
+# ============================================================
+# 启动应用
+# ============================================================
+
+# 启动时检查并解冻过期账户
+def check_and_unfreeze_expired():
+    """启动时检查并解冻所有过期账户"""
+    try:
+        db = get_db()
+        cur = db.cursor()
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        cur.execute("""
+            SELECT id FROM users
+            WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
+        """, (now,))
+        expired = cur.fetchall()
+        
+        for user in expired:
+            cur.execute("""
+                UPDATE users 
+                SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL 
+                WHERE id = %s
+            """, (user['id'],))
+            
+            create_notification(
+                user_id=user['id'],
+                message='✅ Your 7-day freeze has ended. Your account is now ACTIVE.',
+                notif_type='system'
+            )
+        
+        db.commit()
+        cur.close()
+        db.close()
+        if len(expired) > 0:
+            print(f"Unfrozen {len(expired)} expired accounts")
+    except Exception as e:
+        print(f"Unfreeze check error: {e}")
+
+# 在后台线程中执行解冻检查，避免阻塞启动
+import threading
+def run_unfreeze_check():
+    try:
+        check_and_unfreeze_expired()
+    except Exception as e:
+        print(f"Unfreeze check failed: {e}")
+
+unfreeze_thread = threading.Thread(target=run_unfreeze_check)
+unfreeze_thread.daemon = True
+unfreeze_thread.start()
 
 if __name__ == '__main__':
     app.run(debug=True)
