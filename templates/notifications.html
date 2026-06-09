@@ -75,7 +75,6 @@
     .notif-msg { font-size: 14px; line-height: 1.5; word-break: break-word; }
     .notif-time { font-size: 11px; color: #aaa; margin-top: 6px; }
     .notif-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
-<<<<<<< HEAD
     .notif-btn { 
         padding: 10px 16px; 
         border-radius: 30px; 
@@ -87,17 +86,6 @@
         white-space: normal;
         word-break: break-word;
         min-width: 100px;
-=======
-    
-    .notif-btn { 
-        padding: 7px 16px; 
-        border-radius: 20px; 
-        border: none; 
-        font-size: 12px; 
-        font-weight: 600; 
-        cursor: pointer; 
-        transition: 0.2s; 
->>>>>>> keting/week10
     }
     .notif-btn.primary { background: #205c30; color: white; }
     .notif-btn.secondary { background: #e0e0e0; color: #333; }
@@ -107,106 +95,6 @@
     
     .notif-empty { text-align: center; padding: 60px 0; color: #bbb; }
 
-<<<<<<< HEAD
-    /* 弹窗样式 - 修复按钮被截断问题 */
-    .modal-overlay { 
-        display: none; 
-        position: fixed; 
-        inset: 0; 
-        background: rgba(0,0,0,0.5); 
-        z-index: 9999; 
-        justify-content: center; 
-        align-items: center; 
-    }
-    .modal-overlay.show { 
-        display: flex; 
-    }
-    .modal-box { 
-        background: #fff; 
-        border-radius: 20px; 
-        width: 90%; 
-        max-width: 500px; 
-        max-height: 85vh; 
-        overflow-y: auto; 
-        padding: 24px;
-        position: relative;
-        margin: 20px auto;
-    }
-    .modal-box h3 { 
-        margin: 0 0 16px; 
-        font-size: 18px; 
-        padding-right: 24px;
-    }
-    .modal-close { 
-        float: right; 
-        background: none; 
-        border: none; 
-        font-size: 22px; 
-        cursor: pointer; 
-        color: #888; 
-        position: absolute;
-        top: 20px;
-        right: 20px;
-    }
-
-    /* Checkout-for-offer modal (dynamically injected) */
-    .custom-modal {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.55);
-        backdrop-filter: blur(4px);
-        z-index: 99999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-    }
-    .modal-card {
-        background: #fff;
-        border-radius: 20px;
-        width: 100%;
-        max-width: 500px;
-        max-height: 88vh;
-        overflow-y: auto;
-        padding: 24px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-        animation: popIn 0.25s ease;
-    }
-    .modal-icon { font-size: 36px; text-align: center; margin-bottom: 8px; }
-    .modal-title { font-size: 17px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; text-align: center; }
-    .modal-message { font-size: 14px; color: #555; text-align: center; margin-bottom: 4px; }
-    .modal-buttons {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-        margin-top: 20px;
-        flex-wrap: wrap;
-    }
-    .modal-buttons button {
-        padding: 10px 16px;
-        border-radius: 30px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-    }
-    .modal-cancel {
-        background: #f0f0f0;
-        color: #666;
-    }
-    .modal-confirm {
-        background: #205c30;
-        color: white;
-    }
-    
-    .location-grid { 
-        display: grid; 
-        grid-template-columns: repeat(2, 1fr); 
-        gap: 8px; 
-        max-height: 250px; 
-        overflow-y: auto; 
-        margin: 12px 0; 
-=======
     /* 日期分割线 */
     .date-divider {
         text-align: center;
@@ -221,19 +109,18 @@
         font-weight: 500;
     }
 
-    /* 弹窗通用样式 */
+    /* 弹窗样式 */
     .modal-overlay { 
         display: none; 
         position: fixed; 
         inset: 0; 
-        background: rgba(0,0,0,0.6); 
+        background: rgba(0,0,0,0.5); 
         backdrop-filter: blur(4px);
-        z-index: 10000; 
+        z-index: 9999; 
         justify-content: center; 
         align-items: center; 
     }
     .modal-overlay.show { display: flex; }
-    
     .modal-box { 
         background: #fff; 
         border-radius: 20px; 
@@ -241,17 +128,22 @@
         max-width: 500px; 
         max-height: 85vh; 
         overflow-y: auto; 
+        padding: 24px;
+        position: relative;
+        margin: 20px auto;
         box-shadow: 0 20px 40px rgba(0,0,0,0.2);
     }
-    .modal-box h3 { margin: 0 0 16px; font-size: 18px; }
+    .modal-box h3 { margin: 0 0 16px; font-size: 18px; padding-right: 24px; }
     .modal-close { 
         float: right; 
         background: none; 
         border: none; 
         font-size: 22px; 
         cursor: pointer; 
-        color: #888;
-        padding: 0 8px;
+        color: #888; 
+        position: absolute;
+        top: 20px;
+        right: 20px;
     }
     .modal-close:hover { color: #333; }
 
@@ -263,180 +155,16 @@
         max-height: 300px; 
         overflow-y: auto; 
         margin: 16px 0; 
->>>>>>> keting/week10
     }
     .location-btn { 
         display: flex; 
         flex-direction: column; 
         align-items: center; 
-<<<<<<< HEAD
-        padding: 8px; 
-=======
         padding: 10px; 
->>>>>>> keting/week10
         border: 1px solid #ddd; 
         border-radius: 12px; 
         cursor: pointer; 
         font-size: 12px; 
-<<<<<<< HEAD
-    }
-    .location-btn.selected { 
-        background: #205c3033; 
-        border-color: #205c30; 
-    }
-    .location-btn img { 
-        width: 36px; 
-        height: 36px; 
-        border-radius: 8px; 
-        object-fit: cover; 
-    }
-    .offer-detail { 
-        background: #f9faf9; 
-        border-radius: 12px; 
-        padding: 14px; 
-        margin: 12px 0;
-        word-break: break-word;
-    }
-    
-    .bottom-nav-spacer {
-        display: block;
-        height: 70px;
-    }
-
-    .toast-container {
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 10000;
-        pointer-events: none;
-    }
-    .toast {
-        background: #333;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 30px;
-        font-size: 14px;
-        font-weight: 500;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        pointer-events: auto;
-    }
-    .toast-success { background: #27ae60; }
-    .toast-error { background: #e74c3c; }
-    .toast-info { background: #3498db; }
-
-    /* 自定义确认弹窗 */
-    .custom-confirm-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(8px);
-        z-index: 99999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.2s ease;
-    }
-
-    .custom-confirm-card {
-        background: white;
-        border-radius: 28px;
-        max-width: 340px;
-        width: 90%;
-        padding: 28px 24px;
-        text-align: center;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        animation: popIn 0.25s ease;
-        border: 1px solid rgba(0, 56, 31, 0.1);
-    }
-
-    .custom-confirm-icon {
-        font-size: 52px;
-        margin-bottom: 12px;
-    }
-
-    .custom-confirm-title {
-        font-size: 20px;
-        font-weight: 800;
-        color: #1a1a1a;
-        margin-bottom: 8px;
-    }
-
-    .custom-confirm-message {
-        font-size: 14px;
-        color: #666;
-        margin-bottom: 24px;
-        line-height: 1.5;
-    }
-
-    .custom-confirm-buttons {
-        display: flex;
-        gap: 12px;
-    }
-
-    .custom-confirm-btn {
-        flex: 1;
-        padding: 12px 0;
-        border-radius: 40px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: none;
-        font-family: inherit;
-    }
-
-    .custom-confirm-cancel {
-        background: #f0f0f0;
-        color: #666;
-    }
-
-    .custom-confirm-cancel:hover {
-        background: #e0e0e0;
-        transform: translateY(-1px);
-    }
-
-    .custom-confirm-confirm {
-        background: linear-gradient(135deg, #00381f, #1a6b3c);
-        color: white;
-    }
-
-    .custom-confirm-confirm:hover {
-        background: linear-gradient(135deg, #1a6b3c, #0d5a30);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 56, 31, 0.3);
-    }
-
-    .custom-confirm-danger {
-        background: linear-gradient(135deg, #d63c2c, #c0392b);
-        color: white;
-    }
-
-    .custom-confirm-danger:hover {
-        background: linear-gradient(135deg, #c0392b, #a93226);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(214, 60, 44, 0.3);
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    @keyframes popIn {
-        from {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-=======
         transition: all 0.2s;
         background: white;
     }
@@ -445,7 +173,7 @@
     .location-btn img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-bottom: 6px; }
     .location-btn span { font-size: 11px; font-weight: 500; }
 
-    /* 时间选择行 */
+    /* 时间选择行（动态增删） */
     .date-time-row {
         display: flex;
         align-items: center;
@@ -487,8 +215,101 @@
         padding: 16px; 
         margin: 12px 0; 
         text-align: center;
+        word-break: break-word;
     }
     
+    /* 自定义确认弹窗 */
+    .custom-confirm-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(8px);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+    }
+    .custom-confirm-card {
+        background: white;
+        border-radius: 28px;
+        max-width: 340px;
+        width: 90%;
+        padding: 28px 24px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        animation: popIn 0.25s ease;
+        border: 1px solid rgba(0, 56, 31, 0.1);
+    }
+    .custom-confirm-icon { font-size: 52px; margin-bottom: 12px; }
+    .custom-confirm-title { font-size: 20px; font-weight: 800; color: #1a1a1a; margin-bottom: 8px; }
+    .custom-confirm-message { font-size: 14px; color: #666; margin-bottom: 24px; line-height: 1.5; }
+    .custom-confirm-buttons { display: flex; gap: 12px; }
+    .custom-confirm-btn {
+        flex: 1;
+        padding: 12px 0;
+        border-radius: 40px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        font-family: inherit;
+    }
+    .custom-confirm-cancel { background: #f0f0f0; color: #666; }
+    .custom-confirm-cancel:hover { background: #e0e0e0; transform: translateY(-1px); }
+    .custom-confirm-confirm { background: linear-gradient(135deg, #00381f, #1a6b3c); color: white; }
+    .custom-confirm-confirm:hover { background: linear-gradient(135deg, #1a6b3c, #0d5a30); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 56, 31, 0.3); }
+    .custom-confirm-danger { background: linear-gradient(135deg, #d63c2c, #c0392b); color: white; }
+    .custom-confirm-danger:hover { background: linear-gradient(135deg, #c0392b, #a93226); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(214, 60, 44, 0.3); }
+
+    /* Checkout 弹窗 */
+    .custom-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(4px);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+    .modal-card {
+        background: #fff;
+        border-radius: 20px;
+        width: 100%;
+        max-width: 500px;
+        max-height: 88vh;
+        overflow-y: auto;
+        padding: 24px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        animation: popIn 0.25s ease;
+    }
+    .modal-icon { font-size: 36px; text-align: center; margin-bottom: 8px; }
+    .modal-title { font-size: 17px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; text-align: center; }
+    .modal-message { font-size: 14px; color: #555; text-align: center; margin-bottom: 4px; }
+    .modal-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 20px;
+        flex-wrap: wrap;
+    }
+    .modal-buttons button {
+        padding: 10px 16px;
+        border-radius: 30px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+    }
+    .modal-cancel { background: #f0f0f0; color: #666; }
+    .modal-confirm { background: #205c30; color: white; }
+
     /* Toast 通知 */
     .toast-container {
         position: fixed;
@@ -516,9 +337,22 @@
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
     }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @keyframes popIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
     
     .bottom-nav-spacer { display: block; height: 70px; }
->>>>>>> keting/week10
 </style>
 
 <div class="notif-page">
@@ -542,8 +376,8 @@
     <div class="bottom-nav-spacer"></div>
 </div>
 
-<<<<<<< HEAD
-<div class="modal-overlay" id="purchaseModal">
+<!-- 确认购买弹窗 -->
+<div id="purchaseModal" class="modal-overlay">
     <div class="modal-box">
         <button class="modal-close" onclick="closePurchaseModal()">✕</button>
         <h3>📦 Confirm Purchase</h3>
@@ -553,52 +387,23 @@
         <div style="margin: 16px 0;">
             <label style="font-weight:600; display:block; margin-bottom:8px;">Select up to 3 preferred dates & times:</label>
             <div id="purchaseDateInputs" style="display: flex; flex-direction: column; gap: 10px;">
-                <div class="date-row"><input type="datetime-local" class="datetime-picker" step="60"></div>
-            </div>
-            <button type="button" id="addPurchaseDateBtn" class="add-more-btn" style="margin-top:8px; background:#205c30; color:white; border:none; padding:5px 12px; border-radius:20px;">+ Add another date</button>
-        </div>
-        <p id="purchaseLocationInfo" style="font-size:12px;color:#e74c3c;"></p>
-        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
-=======
-<!-- 确认购买弹窗 -->
-<div id="purchaseModal" class="modal-overlay">
-    <div class="modal-box">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee;">
-            <h3 style="margin: 0;">📦 Confirm Purchase</h3>
-            <button class="modal-close" onclick="closePurchaseModal()">✕</button>
-        </div>
-        <div style="padding: 20px;" id="purchaseProductInfo"></div>
-        
-        <div style="padding: 0 20px;">
-            <p style="font-size:13px; color:#888; margin-bottom:8px;">📍 Select meetup locations (max 3):</p>
-            <div class="location-grid" id="purchaseLocationGrid"></div>
-            
-            <p style="font-size:13px; color:#888; margin-top:16px; margin-bottom:8px;">⏰ Select preferred dates/times (max 3):</p>
-            <div id="dateTimeInputs" style="margin-bottom: 12px;">
                 <div class="date-time-row">
-                    <input type="datetime-local" class="datetime-picker" step="60" id="dateTime1">
+                    <input type="datetime-local" class="datetime-picker" step="60">
                     <button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button>
                 </div>
             </div>
-            <button type="button" id="addDateBtn" class="add-date-btn" onclick="addDateTimeRow()">+ Add another date</button>
-            
-            <p id="purchaseLocationInfo" style="font-size:12px; color:#e74c3c; margin-top:16px;"></p>
+            <button type="button" id="addPurchaseDateBtn" class="add-date-btn" onclick="addDateTimeRow()">+ Add another date</button>
         </div>
-        
-        <div style="display:flex; gap:10px; justify-content:flex-end; padding: 16px 20px; border-top: 1px solid #eee; margin-top: 16px;">
->>>>>>> keting/week10
+        <p id="purchaseLocationInfo" style="font-size:12px;color:#e74c3c;"></p>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
             <button class="notif-btn secondary" onclick="closePurchaseModal()">Cancel</button>
             <button class="notif-btn primary" id="confirmPurchaseBtn">Confirm Purchase</button>
         </div>
     </div>
 </div>
 
-<<<<<<< HEAD
-<div class="modal-overlay" id="offerManageModal">
-=======
 <!-- 优惠管理弹窗 -->
 <div id="offerManageModal" class="modal-overlay">
->>>>>>> keting/week10
     <div class="modal-box">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee;">
             <h3 style="margin: 0;">💰 Offer Details</h3>
@@ -608,6 +413,7 @@
     </div>
 </div>
 
+<!-- Counter Offer 弹窗 -->
 <div class="modal-overlay" id="counterOfferModal">
     <div class="modal-box">
         <button class="modal-close" onclick="closeCounterOfferModal()">✕</button>
@@ -652,163 +458,7 @@ const meetupLocations = [
     { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
 ];
 
-<<<<<<< HEAD
-=======
-// ========== TOAST MESSAGE ==========
->>>>>>> keting/week10
-function showToastMessage(message, type) {
-    var existing = document.querySelector('.toast-container');
-    if (existing) existing.remove();
-    
-    var container = document.createElement('div');
-    container.className = 'toast-container';
-    var toastDiv = document.createElement('div');
-    toastDiv.className = 'toast toast-' + type;
-    toastDiv.innerHTML = '<span>' + message + '</span>';
-    container.appendChild(toastDiv);
-    document.body.appendChild(container);
-    
-    setTimeout(function() { container.remove(); }, 3000);
-}
-
-<<<<<<< HEAD
-=======
-// ========== LOAD NOTIFICATIONS ==========
->>>>>>> keting/week10
-function loadNotifications() {
-    fetch('/api/notifications/all', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        allNotifications = data || [];
-        renderNotifications();
-    })
-    .catch(function() {
-        document.getElementById('notifList').innerHTML = '<div class="notif-empty">Failed to load</div>';
-    });
-}
-
-function renderNotifications() {
-    var filtered = allNotifications;
-    if (currentFilter !== 'all') {
-        filtered = allNotifications.filter(function(n) {
-            var t = n.type || '';
-            if (currentFilter === 'offer') return t.includes('offer');
-            if (currentFilter === 'order') return t.includes('order');
-            if (currentFilter === 'system') return ['freeze', 'block', 'unblock', 'unfreeze', 'report', 'welcome'].some(function(k) { return t.includes(k); });
-            if (currentFilter === 'review') return t === 'review';
-            return true;
-        });
-    }
-    
-    var grouped = {};
-    filtered.forEach(function(n) {
-        var date = new Date(n.created_at).toLocaleDateString();
-        if (!grouped[date]) grouped[date] = [];
-        grouped[date].push(n);
-    });
-    
-    var html = '';
-    for (var date in grouped) {
-        html += '<div class="date-divider"><span>' + date + '</span></div>';
-        grouped[date].forEach(function(n) {
-            html += renderNotificationCard(n);
-        });
-    }
-    
-    if (filtered.length === 0) {
-        html = '<div class="notif-empty">📭 No notifications</div>';
-    }
-    document.getElementById('notifList').innerHTML = html;
-}
-
-<<<<<<< HEAD
-=======
-function renderNotificationCard(n) {
-    var icon = '🔔';
-    var iconClass = 'system';
-    var actions = '';
-
-    var t = n.type || '';
-    if (t.includes('offer_accepted')) {
-        icon = '💰'; iconClass = 'offer';
-        actions = '<button class="notif-btn primary" onclick="openPurchaseModal(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
-    } else if (t.includes('offer_rejected')) {
-        icon = '❌'; iconClass = 'offer';
-    } else if (t.includes('new_offer')) {
-        icon = '💰'; iconClass = 'offer';
-        actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=listings\'">View Offers</button>';
-    } else if (t.includes('offer_countered')) {
-        icon = '🔄'; iconClass = 'offer';
-        // 修复：点击后打开 offer 管理弹窗，显示 counter offer 详情
-        actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
-    } else if (t.includes('order')) {
-        icon = '📦'; iconClass = 'order';
-        actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">View Order</button>';
-    } else if (t.includes('review')) {
-        icon = '⭐'; iconClass = 'review';
-    } else if (t.includes('welcome')) {
-        icon = '🎉'; iconClass = 'welcome';
-        actions = '<button class="notif-btn primary" onclick="window.location.href=\'/edit_profile\'">Complete Profile</button>';
-    } else if (t.includes('freeze') || t.includes('block')) {
-        icon = '⚠️'; iconClass = 'system';
-    }
-
-    var unreadClass = !n.is_read ? 'unread' : '';
-    
-    return '<div class="notif-card ' + unreadClass + '" data-id="' + n.id + '" onclick="markSingleNotificationRead(' + n.id + ', this)">' +
-        '<div class="notif-icon ' + iconClass + '">' + icon + '</div>' +
-        '<div class="notif-body">' +
-            '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
-            '<div class="notif-time">' + formatDate(n.created_at) + '</div>' +
-            '<div class="notif-actions">' + actions + '</div>' +
-        '</div>' +
-        '</div>';
-}
-
-function markSingleNotificationRead(notifId, element) {
-    fetch('/api/notifications/mark-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notification_ids: [notifId] }),
-        credentials: 'same-origin'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            element.classList.remove('unread');
-            element.style.borderLeft = '';
-        }
-    });
-}
-
->>>>>>> keting/week10
-function filterNotifications(type) {
-    currentFilter = type;
-    document.querySelectorAll('.notif-tab').forEach(function(tab) { tab.classList.remove('active'); });
-    document.querySelector('.notif-tab[data-filter="' + type + '"]').classList.add('active');
-    renderNotifications();
-}
-
-function formatDate(dateStr) {
-    if (!dateStr) return '';
-    var d = new Date(dateStr);
-    var now = new Date();
-    var diffSeconds = Math.floor((now - d) / 1000);
-    
-    if (diffSeconds < 60) return 'just now';
-    if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + ' min ago';
-    if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + ' hours ago';
-    if (diffSeconds < 604800) return Math.floor(diffSeconds / 86400) + ' days ago';
-    return d.toLocaleDateString();
-}
-
-function escapeHtml(s) { 
-    return s ? s.replace(/[&<>]/g, function(m) { 
-        return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]; 
-    }) : ''; 
-}
-
-<<<<<<< HEAD
+// ========== 自定义确认弹窗（week11 功能） ==========
 function showConfirm(options) {
     return new Promise((resolve) => {
         const existing = document.querySelector('.custom-confirm-modal');
@@ -862,18 +512,30 @@ function showConfirm(options) {
     });
 }
 
-// ============================================================
-// 购买弹窗相关函数
-// ============================================================
-=======
-// ========== 日期时间选择功能 ==========
+// ========== Toast 消息 ==========
+function showToastMessage(message, type) {
+    var existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    
+    var container = document.createElement('div');
+    container.className = 'toast-container';
+    var toastDiv = document.createElement('div');
+    toastDiv.className = 'toast toast-' + type;
+    toastDiv.innerHTML = '<span>' + message + '</span>';
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    
+    setTimeout(function() { container.remove(); }, 3000);
+}
+
+// ========== 日期时间选择功能（week10 动态增删行） ==========
 function addDateTimeRow() {
-    var rows = document.querySelectorAll('#dateTimeInputs .date-time-row');
+    var rows = document.querySelectorAll('#purchaseDateInputs .date-time-row');
     if (rows.length >= 3) {
         showToastMessage('You can only select up to 3 dates.', 'error');
         return;
     }
-    var container = document.getElementById('dateTimeInputs');
+    var container = document.getElementById('purchaseDateInputs');
     var newRow = document.createElement('div');
     newRow.className = 'date-time-row';
     newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60">' +
@@ -889,7 +551,7 @@ function removeDateTimeRow(btn) {
 }
 
 function updateRemoveButtons() {
-    var rows = document.querySelectorAll('#dateTimeInputs .date-time-row');
+    var rows = document.querySelectorAll('#purchaseDateInputs .date-time-row');
     rows.forEach(function(row) {
         var removeBtn = row.querySelector('.remove-date-btn');
         if (removeBtn) {
@@ -899,7 +561,7 @@ function updateRemoveButtons() {
 }
 
 function getSelectedDates() {
-    var inputs = document.querySelectorAll('#dateTimeInputs .datetime-picker');
+    var inputs = document.querySelectorAll('#purchaseDateInputs .datetime-picker');
     var dates = [];
     for (var i = 0; i < inputs.length; i++) {
         if (inputs[i].value) dates.push(inputs[i].value);
@@ -907,8 +569,137 @@ function getSelectedDates() {
     return dates;
 }
 
+// ========== 加载通知 ==========
+function loadNotifications() {
+    fetch('/api/notifications/all', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        allNotifications = data || [];
+        renderNotifications();
+    })
+    .catch(function() {
+        document.getElementById('notifList').innerHTML = '<div class="notif-empty">Failed to load</div>';
+    });
+}
+
+function renderNotifications() {
+    var filtered = allNotifications;
+    if (currentFilter !== 'all') {
+        filtered = allNotifications.filter(function(n) {
+            var t = n.type || '';
+            if (currentFilter === 'offer') return t.includes('offer');
+            if (currentFilter === 'order') return t.includes('order');
+            if (currentFilter === 'system') return ['freeze', 'block', 'unblock', 'unfreeze', 'report', 'welcome'].some(function(k) { return t.includes(k); });
+            if (currentFilter === 'review') return t === 'review';
+            return true;
+        });
+    }
+    
+    var grouped = {};
+    filtered.forEach(function(n) {
+        var date = new Date(n.created_at).toLocaleDateString();
+        if (!grouped[date]) grouped[date] = [];
+        grouped[date].push(n);
+    });
+    
+    var html = '';
+    for (var date in grouped) {
+        html += '<div class="date-divider"><span>' + date + '</span></div>';
+        grouped[date].forEach(function(n) {
+            html += renderNotificationCard(n);
+        });
+    }
+    
+    if (filtered.length === 0) {
+        html = '<div class="notif-empty">📭 No notifications</div>';
+    }
+    document.getElementById('notifList').innerHTML = html;
+}
+
+function renderNotificationCard(n) {
+    var icon = '🔔';
+    var iconClass = 'system';
+    var actions = '';
+
+    var t = n.type || '';
+    if (t.includes('offer_accepted')) {
+        icon = '💰'; iconClass = 'offer';
+        actions = '<button class="notif-btn primary" onclick="openPurchaseModal(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
+    } else if (t.includes('offer_rejected')) {
+        icon = '❌'; iconClass = 'offer';
+    } else if (t.includes('new_offer')) {
+        icon = '💰'; iconClass = 'offer';
+        actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=listings\'">View Offers</button>';
+    } else if (t.includes('offer_countered')) {
+        icon = '🔄'; iconClass = 'offer';
+        actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
+    } else if (t.includes('order')) {
+        icon = '📦'; iconClass = 'order';
+        actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">View Order</button>';
+    } else if (t.includes('review')) {
+        icon = '⭐'; iconClass = 'review';
+    } else if (t.includes('welcome')) {
+        icon = '🎉'; iconClass = 'welcome';
+        actions = '<button class="notif-btn primary" onclick="window.location.href=\'/edit_profile\'">Complete Profile</button>';
+    } else if (t.includes('freeze') || t.includes('block')) {
+        icon = '⚠️'; iconClass = 'system';
+    }
+
+    var unreadClass = !n.is_read ? 'unread' : '';
+    
+    return '<div class="notif-card ' + unreadClass + '" data-id="' + n.id + '" onclick="markSingleNotificationRead(' + n.id + ', this)">' +
+        '<div class="notif-icon ' + iconClass + '">' + icon + '</div>' +
+        '<div class="notif-body">' +
+            '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
+            '<div class="notif-time">' + formatDate(n.created_at) + '</div>' +
+            '<div class="notif-actions">' + actions + '</div>' +
+        '</div>' +
+        '</div>';
+}
+
+function markSingleNotificationRead(notifId, element) {
+    fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification_ids: [notifId] }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            element.classList.remove('unread');
+            element.style.borderLeft = '';
+        }
+    });
+}
+
+function filterNotifications(type) {
+    currentFilter = type;
+    document.querySelectorAll('.notif-tab').forEach(function(tab) { tab.classList.remove('active'); });
+    document.querySelector('.notif-tab[data-filter="' + type + '"]').classList.add('active');
+    renderNotifications();
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    var now = new Date();
+    var diffSeconds = Math.floor((now - d) / 1000);
+    
+    if (diffSeconds < 60) return 'just now';
+    if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + ' min ago';
+    if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + ' hours ago';
+    if (diffSeconds < 604800) return Math.floor(diffSeconds / 86400) + ' days ago';
+    return d.toLocaleDateString();
+}
+
+function escapeHtml(s) { 
+    return s ? s.replace(/[&<>]/g, function(m) { 
+        return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]; 
+    }) : ''; 
+}
+
 // ========== 购买弹窗 ==========
->>>>>>> keting/week10
 function openPurchaseModal(offerId) {
     purchaseOfferId = offerId;
     selectedLocations = [];
@@ -947,8 +738,8 @@ function openPurchaseModal(offerId) {
             (data.product_image ? '<br><img src="' + data.product_image + '" style="width:80px;border-radius:8px;margin-top:8px;">' : '') +
             '<br><span style="font-size:11px; color:#205c30;">📍 Seller\'s Campus: ' + escapeHtml(sellerCampus || 'Not specified') + '</span>' +
             '</div>';
-<<<<<<< HEAD
         
+        // 构建地点选择网格
         var grid = document.getElementById('purchaseLocationGrid');
         grid.innerHTML = '';
         meetupLocations.forEach(function(loc) {
@@ -959,49 +750,19 @@ function openPurchaseModal(offerId) {
             grid.appendChild(btn);
         });
         
+        // 重置日期选择器
         var dateContainer = document.getElementById('purchaseDateInputs');
-        dateContainer.innerHTML = '<div class="date-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button></div>';
-        document.getElementById('addPurchaseDateBtn')?.addEventListener('click', function() {
-            var container = document.getElementById('purchaseDateInputs');
-            var rows = container.querySelectorAll('.date-row');
-            if (rows.length >= 3) {
-                showToastMessage('Maximum 3 dates allowed', 'error');
-                return;
-            }
-            var newRow = document.createElement('div');
-            newRow.className = 'date-row';
-            newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button>';
-            container.appendChild(newRow);
-        });
+        dateContainer.innerHTML = '<div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
+        updateRemoveButtons();
     })
     .catch(function() {
         document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Failed to load product details</div>';
-=======
-        buildLocationGrid('purchaseLocationGrid');
-        
-        // 重置日期选择器
-        var container = document.getElementById('dateTimeInputs');
-        container.innerHTML = '<div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
-        updateRemoveButtons();
->>>>>>> keting/week10
     });
 }
 
 function closePurchaseModal() {
     document.getElementById('purchaseModal').classList.remove('show');
     purchaseOfferId = null;
-}
-
-function buildLocationGrid(gridId) {
-    var grid = document.getElementById(gridId);
-    grid.innerHTML = '';
-    meetupLocations.forEach(function(loc) {
-        var btn = document.createElement('button');
-        btn.className = 'location-btn';
-        btn.innerHTML = '<img src="' + loc.image + '" alt="' + loc.name + '"><span>' + loc.name + '</span>';
-        btn.onclick = function() { toggleLocation(loc.name); };
-        grid.appendChild(btn);
-    });
 }
 
 function toggleLocation(name) {
@@ -1035,16 +796,6 @@ function updateLocationUI() {
 }
 
 document.getElementById('confirmPurchaseBtn')?.addEventListener('click', function() {
-<<<<<<< HEAD
-    if (selectedLocations.length === 0) { alert('Select locations'); return; }
-    var dateInputs = document.querySelectorAll('#purchaseDateInputs .datetime-picker');
-    var selectedDates = [];
-    for (var i = 0; i < dateInputs.length; i++) {
-        var val = dateInputs[i].value;
-        if (val) selectedDates.push(val);
-    }
-    if (selectedDates.length === 0) {
-=======
     if (selectedLocations.length === 0) {
         showToastMessage('Please select at least one location', 'error');
         return;
@@ -1052,55 +803,130 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
     
     var selectedDatesList = getSelectedDates();
     if (selectedDatesList.length === 0) {
->>>>>>> keting/week10
         showToastMessage('Please select at least one date and time', 'error');
         return;
     }
     
-<<<<<<< HEAD
-=======
     var confirmBtn = document.getElementById('confirmPurchaseBtn');
     confirmBtn.disabled = true;
     confirmBtn.textContent = 'Processing...';
     
->>>>>>> keting/week10
     fetch('/api/offer/' + purchaseOfferId + '/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             meetup_locations: selectedLocations,
-<<<<<<< HEAD
-            meeting_dates: selectedDates
-=======
             meeting_dates: selectedDatesList
->>>>>>> keting/week10
         }),
         credentials: 'same-origin'
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
-<<<<<<< HEAD
-        if (d.success) { 
+        if (d.success) {
             showToastMessage('Order created successfully!', 'success');
-            closePurchaseModal(); 
-            loadNotifications(); 
+            closePurchaseModal();
+            loadNotifications();
             if (typeof loadPurchases === 'function') loadPurchases();
             if (typeof loadOrders === 'function') loadOrders();
+        } else {
+            showToastMessage(d.error || 'Failed', 'error');
         }
-        else { showToastMessage(d.error || 'Failed', 'error'); }
-    });
+    })
+    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); })
+    .finally(function() { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Purchase'; });
 });
 
-// ============================================================
-// 卖家接受 offer 后的 checkout 弹窗函数（必须在 acceptOffer 之前定义）
-// ============================================================
-function openCheckoutForOffer(offerId) {
+// ========== 优惠管理弹窗 ==========
+function openOfferManageModal(offerId) {
+    manageOfferId = offerId;
+    document.getElementById('offerManageModal').classList.add('show');
+    document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail">Loading...</div>';
+    
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (!data.success) {
-                throw new Error(data.error);
+                document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ ' + (data.error || 'Failed to load') + '</div>';
+                return;
             }
+            
+            return fetch('/api/current-user-id', { credentials: 'same-origin' })
+                .then(function(r) { return r.json(); })
+                .then(function(userData) {
+                    var currentUserId = userData.user_id;
+                    var isSeller = (data.seller_id === currentUserId);
+                    var isBuyer = (data.buyer_id === currentUserId);
+                    
+                    var html = '<div class="offer-detail">' +
+                        '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
+                        '💰 Offer Price: RM ' + parseFloat(data.offer_price).toFixed(2);
+                    
+                    if (data.counter_price) {
+                        html += '<br>🔄 Counter Offer: RM ' + parseFloat(data.counter_price).toFixed(2);
+                    }
+                    
+                    html += '</div>';
+                    
+                    if (isSeller) {
+                        if (data.status === 'pending') {
+                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                            html += '<button class="notif-btn primary" onclick="acceptOffer(' + offerId + ')">✅ Accept Offer</button>';
+                            html += '<button class="notif-btn danger" onclick="rejectOffer(' + offerId + ')">❌ Reject Offer</button>';
+                            html += '<button class="notif-btn warning" onclick="openSellerCounterOfferModal(' + offerId + ', ' + parseFloat(data.offer_price).toFixed(2) + ')">💰 Counter Offer</button>';
+                            html += '</div>';
+                        } else if (data.status === 'countered') {
+                            html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#fff3cd; color:#856404;">⏳ Counter offer sent (RM ' + parseFloat(data.counter_price).toFixed(2) + '). Waiting for buyer response...</span></div>';
+                        } else if (data.status === 'accepted') {
+                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                            html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openCheckoutForOffer(' + offerId + ')">🛒 Proceed to Checkout</button>';
+                            html += '</div>';
+                        } else if (data.status === 'rejected') {
+                            html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#f0f0f0;">❌ Offer was rejected</span></div>';
+                        }
+                    } else if (isBuyer) {
+                        if (data.status === 'pending') {
+                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                            html += '<span class="notif-btn secondary" style="background:#f0f0f0;">⏳ Waiting for seller response...</span>';
+                            html += '<button class="notif-btn danger" onclick="cancelMyOffer(' + offerId + ')">🗑️ Cancel My Offer</button>';
+                            html += '</div>';
+                        } else if (data.status === 'countered') {
+                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                            html += '<button class="notif-btn primary" onclick="acceptCounterOfferFromModal(' + offerId + ')">✅ Accept Counter Offer (RM ' + parseFloat(data.counter_price).toFixed(2) + ')</button>';
+                            html += '<button class="notif-btn danger" onclick="rejectCounterOfferFromModal(' + offerId + ')">❌ Reject Counter Offer</button>';
+                            html += '</div>';
+                        } else if (data.status === 'accepted') {
+                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                            html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
+                            html += '</div>';
+                        } else if (data.status === 'rejected') {
+                            html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#f0f0f0;">❌ Your offer was rejected by seller</span></div>';
+                        } else if (data.status === 'cancelled') {
+                            html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#f0f0f0;">🗑️ Offer cancelled</span></div>';
+                        }
+                    } else {
+                        html += '<div class="offer-detail error">You are not involved in this offer</div>';
+                    }
+                    
+                    document.getElementById('offerManageContent').innerHTML = html;
+                });
+        })
+        .catch(function(err) {
+            console.error('Error:', err);
+            document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ Failed to load offer details</div>';
+        });
+}
+
+function closeOfferManageModal() {
+    document.getElementById('offerManageModal').classList.remove('show');
+    manageOfferId = null;
+}
+
+// ========== 卖家接受 offer 后的 checkout 弹窗 ==========
+function openCheckoutForOffer(offerId) {
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) throw new Error(data.error);
             
             window.checkoutSelectedLocations = [];
             
@@ -1134,9 +960,9 @@ function openCheckoutForOffer(offerId) {
                         <div style="margin: 16px 0;">
                             <label style="font-weight:600; display:block; margin-bottom:8px;">Select up to 3 preferred dates & times:</label>
                             <div id="dateTimeInputsForOffer" style="display: flex; flex-direction: column; gap: 10px;">
-                                <div class="date-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button></div>
+                                <div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button></div>
                             </div>
-                            <button type="button" id="addDateBtnForOffer" class="add-more-btn" style="margin-top:8px; background:#205c30; color:white; border:none; padding:5px 12px; border-radius:20px; cursor:pointer;">+ Add another date</button>
+                            <button type="button" id="addDateBtnForOffer" class="add-date-btn" style="margin-top:8px; background:#205c30; color:white; border:none; padding:5px 12px; border-radius:20px; cursor:pointer;">+ Add another date</button>
                         </div>
                         <div class="modal-buttons">
                             <button class="modal-cancel" onclick="closeCheckoutForOfferModal()">Cancel</button>
@@ -1191,13 +1017,13 @@ function openCheckoutForOffer(offerId) {
             
             document.getElementById('addDateBtnForOffer').addEventListener('click', function() {
                 var container = document.getElementById('dateTimeInputsForOffer');
-                var rows = container.querySelectorAll('.date-row');
+                var rows = container.querySelectorAll('.date-time-row');
                 if (rows.length >= 3) {
                     showToastMessage('Maximum 3 dates allowed', 'error');
                     return;
                 }
                 var newRow = document.createElement('div');
-                newRow.className = 'date-row';
+                newRow.className = 'date-time-row';
                 newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button>';
                 container.appendChild(newRow);
             });
@@ -1213,33 +1039,6 @@ function closeCheckoutForOfferModal() {
 }
 
 function submitOrderFromOfferAccept(offerId) {
-    console.log('=== submitOrderFromOfferAccept called ===');
-    console.log('offerId:', offerId);
-    console.log('window.checkoutSelectedLocations:', window.checkoutSelectedLocations);
-    console.log('window.checkoutSelectedLocations length:', window.checkoutSelectedLocations ? window.checkoutSelectedLocations.length : 'undefined');
-=======
-        if (d.success) {
-            showToastMessage('✅ Order created!', 'success');
-            closePurchaseModal();
-            loadNotifications();
-            setTimeout(function() {
-                window.location.href = '/my-profile?tab=orders';
-            }, 1500);
-        } else {
-            showToastMessage(d.error || 'Failed', 'error');
-        }
-    })
-    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); })
-    .finally(function() { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Purchase'; });
-});
-
-// ========== 优惠管理弹窗 ==========
-function openOfferManageModal(offerId) {
-    manageOfferId = offerId;
-    document.getElementById('offerManageModal').classList.add('show');
-    document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail">Loading...</div>';
->>>>>>> keting/week10
-    
     if (!window.checkoutSelectedLocations || window.checkoutSelectedLocations.length === 0) {
         showToastMessage('Please select at least one meetup location', 'error');
         return;
@@ -1251,7 +1050,6 @@ function openOfferManageModal(offerId) {
         var val = dateInputs[i].value;
         if (val) selectedDates.push(val);
     }
-    console.log('selectedDates:', selectedDates);
     
     if (selectedDates.length === 0) {
         showToastMessage('Please select at least one preferred date and time', 'error');
@@ -1271,7 +1069,6 @@ function openOfferManageModal(offerId) {
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        console.log('Response:', data);
         if (data.success) {
             showToastMessage('Order created successfully!', 'success');
             closeCheckoutForOfferModal();
@@ -1281,72 +1078,6 @@ function openOfferManageModal(offerId) {
         } else {
             throw new Error(data.error || 'Failed to create order');
         }
-<<<<<<< HEAD
-=======
-        
-        // 获取当前用户ID
-        return fetch('/api/current-user-id', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
-        .then(function(userData) {
-            var currentUserId = userData.user_id;
-            var isSeller = (data.seller_id === currentUserId);
-            var isBuyer = (data.buyer_id === currentUserId);
-            
-            var html = '<div class="offer-detail">' +
-                '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
-                '💰 Offer Price: RM ' + parseFloat(data.offer_price).toFixed(2);
-            
-            if (data.counter_price) {
-                html += '<br>🔄 Counter Offer: RM ' + parseFloat(data.counter_price).toFixed(2);
-            }
-            
-            html += '</div>';
-            
-            // 根据角色和状态显示不同的按钮
-            if (isSeller) {
-                if (data.status === 'pending') {
-                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                    html += '<button class="notif-btn primary" onclick="acceptOffer(' + offerId + ')">✅ Accept Offer</button>';
-                    html += '<button class="notif-btn danger" onclick="rejectOffer(' + offerId + ')">❌ Reject Offer</button>';
-                    html += '<button class="notif-btn warning" onclick="openSellerCounterOfferModal(' + offerId + ', ' + parseFloat(data.offer_price).toFixed(2) + ')">💰 Counter Offer</button>';
-                    html += '</div>';
-                } else if (data.status === 'countered') {
-                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                    html += '<button class="notif-btn primary" onclick="acceptCounterOffer(' + offerId + ')">✅ Accept Counter Offer</button>';
-                    html += '<button class="notif-btn danger" onclick="rejectCounterOffer(' + offerId + ')">❌ Reject Counter Offer</button>';
-                    html += '</div>';
-                } else if (data.status === 'accepted') {
-                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                    html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
-                    html += '</div>';
-                } else {
-                    html += '<div style="display:flex;gap:8px;margin-top:16px;"><span class="notif-btn secondary">Status: ' + data.status + '</span></div>';
-                }
-            } else if (isBuyer) {
-                if (data.status === 'pending') {
-                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                    html += '<span class="notif-btn secondary" style="background:#f0f0f0;">⏳ Waiting for seller response...</span>';
-                    html += '<button class="notif-btn danger" onclick="cancelMyOffer(' + offerId + ')">🗑️ Cancel My Offer</button>';
-                    html += '</div>';
-                } else if (data.status === 'countered') {
-                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                    html += '<button class="notif-btn primary" onclick="acceptCounterOffer(' + offerId + ')">✅ Accept Counter Offer (RM ' + parseFloat(data.counter_price).toFixed(2) + ')</button>';
-                    html += '<button class="notif-btn danger" onclick="rejectCounterOffer(' + offerId + ')">❌ Reject Counter Offer</button>';
-                    html += '</div>';
-                } else if (data.status === 'accepted') {
-                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                    html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
-                    html += '</div>';
-                } else if (data.status === 'rejected') {
-                    html += '<div style="display:flex;gap:8px;margin-top:16px;">';
-                    html += '<span class="notif-btn secondary" style="background:#f0f0f0;">❌ Your offer was rejected by seller</span>';
-                    html += '</div>';
-                }
-            }
-            
-            document.getElementById('offerManageContent').innerHTML = html;
-        });
->>>>>>> keting/week10
     })
     .catch(function(err) {
         console.error('Order creation error:', err);
@@ -1354,100 +1085,38 @@ function openOfferManageModal(offerId) {
     });
 }
 
-<<<<<<< HEAD
-// ============================================================
-// Offer 管理弹窗相关函数
-// ============================================================
-function openOfferManageModal(offerId) {
-    manageOfferId = offerId;
-    document.getElementById('offerManageModal').classList.add('show');
-    document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail">Loading...</div>';
+// ========== 卖家 Counter Offer（week10 功能） ==========
+function openSellerCounterOfferModal(offerId, currentOfferPrice) {
+    var counterPrice = prompt('Enter your counter offer price (RM):', currentOfferPrice);
+    if (!counterPrice || parseFloat(counterPrice) <= 0) {
+        showToastMessage('Please enter a valid price', 'error');
+        return;
+    }
     
-    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (!data.success) {
-                document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ ' + (data.error || 'Failed to load') + '</div>';
-                return;
-            }
-            
-            return fetch('/api/current-user-id', { credentials: 'same-origin' })
-                .then(function(r) { return r.json(); })
-                .then(function(userData) {
-                    var currentUserId = userData.user_id;
-                    var isSeller = (data.seller_id === currentUserId);
-                    var isBuyer = (data.buyer_id === currentUserId);
-                    
-                    var html = '<div class="offer-detail">' +
-                        '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
-                        '💰 Offer Price: RM ' + parseFloat(data.offer_price).toFixed(2);
-                    
-                    if (data.counter_price) {
-                        html += '<br>🔄 Counter Offer: RM ' + parseFloat(data.counter_price).toFixed(2);
-                    }
-                    
-                    html += '</div>';
-                    
-                    if (isSeller) {
-                        if (data.status === 'pending') {
-                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                            html += '<button class="notif-btn primary" onclick="acceptOffer(' + offerId + ')">✅ Accept Offer</button>';
-                            html += '<button class="notif-btn danger" onclick="rejectOffer(' + offerId + ')">❌ Reject Offer</button>';
-                            html += '<button class="notif-btn warning" onclick="openCounterOfferModal(' + offerId + ')">💰 Counter Offer</button>';
-                            html += '</div>';
-                        } else if (data.status === 'countered') {
-                            html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#fff3cd; color:#856404;">⏳ Counter offer sent (RM ' + parseFloat(data.counter_price).toFixed(2) + '). Waiting for buyer response...</span></div>';
-                        } else if (data.status === 'accepted') {
-                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                            html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openCheckoutForOffer(' + offerId + ')">🛒 Proceed to Checkout</button>';
-                            html += '</div>';
-                        } else if (data.status === 'rejected') {
-                            html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#f0f0f0;">❌ Offer was rejected</span></div>';
-                        }
-                    } else if (isBuyer) {
-                        if (data.status === 'pending') {
-                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                            html += '<span class="notif-btn secondary" style="background:#f0f0f0;">⏳ Waiting for seller response...</span>';
-                            html += '<button class="notif-btn danger" onclick="cancelMyOffer(' + offerId + ')">🗑️ Cancel My Offer</button>';
-                            html += '</div>';
-                        } else if (data.status === 'countered') {
-                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                            html += '<button class="notif-btn primary" onclick="acceptCounterOfferFromModal(' + offerId + ')">✅ Accept Counter Offer (RM ' + parseFloat(data.counter_price).toFixed(2) + ')</button>';
-                            html += '<button class="notif-btn danger" onclick="rejectCounterOfferFromModal(' + offerId + ')">❌ Reject Counter Offer</button>';
-                            html += '</div>';
-                        } else if (data.status === 'accepted') {
-                            html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
-                            html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
-                            html += '</div>';
-                        } else if (data.status === 'rejected') {
-                            html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#f0f0f0;">❌ Your offer was rejected by seller</span></div>';
-                        } else if (data.status === 'cancelled') {
-                            html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#f0f0f0;">🗑️ Offer cancelled</span></div>';
-                        }
-                    } else {
-                        html += '<div class="offer-detail error">You are not involved in this offer</div>';
-                    }
-                    
-                    document.getElementById('offerManageContent').innerHTML = html;
-                });
-        })
-        .catch(function(err) {
-            console.error('Error:', err);
-            document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ Failed to load offer details</div>';
-        });
+    showToastMessage('Sending counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ counter_price: parseFloat(counterPrice) })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer sent!', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
+        } else {
+            throw new Error(data.error || 'Failed to send counter offer');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
 }
 
-=======
->>>>>>> keting/week10
-function closeOfferManageModal() {
-    document.getElementById('offerManageModal').classList.remove('show');
-    manageOfferId = null;
-}
-
-<<<<<<< HEAD
-// ============================================================
-// 从弹窗接受/拒绝 counter offer（卖家端）
-// ============================================================
+// ========== 买家接受/拒绝 Counter Offer ==========
 async function acceptCounterOfferFromModal(offerId) {
     const confirmed = await showConfirm({
         title: 'Accept Counter Offer',
@@ -1460,40 +1129,23 @@ async function acceptCounterOfferFromModal(offerId) {
     if (!confirmed) return;
     
     showToastMessage('Accepting counter offer...', 'info');
-    
     fetch('/api/offer/' + offerId + '/accept-counter', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' }
     })
-    .then(function(r) { 
-        console.log('Response status:', r.status);
-        console.log('Response headers:', r.headers);
-        return r.text();  // 先获取原始文本
-    })
-    .then(function(text) {
-        console.log('Raw response:', text);
-        try {
-            var data = JSON.parse(text);
-            return data;
-        } catch(e) {
-            console.error('JSON parse error:', e);
-            throw new Error('Server returned invalid response');
-        }
-    })
+    .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
             showToastMessage('Counter offer accepted! Opening checkout...', 'success');
             closeOfferManageModal();
-            openCheckoutForOffer(offerId);
+            openPurchaseModal(offerId);
             loadNotifications();
-            if (typeof loadListings === 'function') loadListings();
         } else {
             showToastMessage('Error: ' + (data.error || 'Failed to accept'), 'error');
         }
     })
     .catch(function(err) {
-        console.error('Accept counter offer error:', err);
         showToastMessage('Error: ' + err.message, 'error');
     });
 }
@@ -1521,20 +1173,84 @@ async function rejectCounterOfferFromModal(offerId) {
             showToastMessage('Counter offer declined. Offer is now pending again.', 'success');
             closeOfferManageModal();
             loadNotifications();
-            if (typeof loadListings === 'function') loadListings();
         } else {
             showToastMessage('Error: ' + (data.error || 'Failed to decline'), 'error');
         }
     })
     .catch(function(err) {
-        console.error('Reject counter offer error:', err);
         showToastMessage('Error: ' + err.message, 'error');
     });
 }
 
-// ============================================================
-// 买家取消自己的 offer
-// ============================================================
+// ========== 卖家接受/拒绝普通 Offer ==========
+async function acceptOffer(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Accept Offer',
+        message: 'Are you sure you want to accept this offer?',
+        icon: '💰',
+        isAccept: true,
+        confirmText: 'Accept',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
+    
+    showToastMessage('Accepting offer...', 'info');
+    fetch('/api/offer/' + offerId + '/accept', { 
+        method: 'POST', 
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer accepted! Opening checkout...', 'success');
+            closeOfferManageModal();
+            openCheckoutForOffer(offerId);
+            loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
+        } else {
+            showToastMessage('Error: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Request failed: ' + err.message, 'error');
+    });
+}
+
+async function rejectOffer(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Reject Offer',
+        message: 'Are you sure you want to reject this offer?',
+        icon: '❌',
+        isReject: true,
+        confirmText: 'Reject',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
+    
+    showToastMessage('Rejecting offer...', 'info');
+    fetch('/api/offer/' + offerId + '/reject', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer rejected.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
+        } else {
+            showToastMessage('Error: ' + (data.error || 'Failed to reject'), 'error');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 买家取消自己的 Offer ==========
 async function cancelMyOffer(offerId) {
     const confirmed = await showConfirm({
         title: 'Cancel Offer',
@@ -1569,205 +1285,7 @@ async function cancelMyOffer(offerId) {
     });
 }
 
-// ============================================================
-// 买家端接受/拒绝 counter offer（通过通知中心）
-// ============================================================
-async function acceptCounterOffer(offerId) {
-    const confirmed = await showConfirm({
-        title: 'Accept Counter Offer',
-        message: 'Are you sure you want to accept this counter offer?',
-        icon: '💰',
-        isAccept: true,
-        confirmText: 'Accept',
-        cancelText: 'Cancel'
-    });
-    if (!confirmed) return;
-    
-    showToastMessage('Accepting counter offer...', 'info');
-    fetch('/api/offer/' + offerId + '/accept-counter', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Counter offer accepted! Opening checkout...', 'success');
-            closeOfferManageModal();
-            openPurchaseModal(offerId);
-            loadNotifications();
-            if (typeof loadPurchases === 'function') loadPurchases();
-        } else {
-            showToastMessage('Error: ' + (data.error || 'Failed to accept'), 'error');
-        }
-    })
-    .catch(function(err) {
-        console.error('Accept counter offer error:', err);
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-}
-
-async function rejectCounterOffer(offerId) {
-    const confirmed = await showConfirm({
-        title: 'Reject Counter Offer',
-        message: 'Are you sure you want to reject this counter offer? The original offer will remain pending.',
-        icon: '❌',
-        isReject: true,
-        confirmText: 'Reject',
-        cancelText: 'Cancel'
-    });
-    if (!confirmed) return;
-    
-    showToastMessage('Declining counter offer...', 'info');
-    fetch('/api/offer/' + offerId + '/reject-counter', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Counter offer declined. Offer is now pending again.', 'success');
-            closeOfferManageModal();
-            loadNotifications();
-            if (typeof loadPurchases === 'function') loadPurchases();
-            if (typeof loadListings === 'function') loadListings();
-        } else {
-            showToastMessage('Error: ' + (data.error || 'Failed to decline'), 'error');
-        }
-    })
-    .catch(function(err) {
-        console.error('Reject counter offer error:', err);
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-}
-
-// ============================================================
-// 卖家接受普通 offer（核心函数）
-// ============================================================
-async function acceptOffer(offerId) {
-    const confirmed = await showConfirm({
-        title: 'Accept Offer',
-        message: 'Are you sure you want to accept this offer?',
-        icon: '💰',
-        isAccept: true,
-        confirmText: 'Accept',
-        cancelText: 'Cancel'
-    });
-    if (!confirmed) return;
-    
-    showToastMessage('Accepting offer...', 'info');
-    
-    fetch('/api/offer/' + offerId + '/accept', { 
-        method: 'POST', 
-=======
-// ========== 卖家打开 Counter Offer 弹窗 ==========
-function openSellerCounterOfferModal(offerId, currentOfferPrice) {
-    var counterPrice = prompt('Enter your counter offer price (RM):', currentOfferPrice);
-    if (!counterPrice || parseFloat(counterPrice) <= 0) {
-        showToastMessage('Please enter a valid price', 'error');
-        return;
-    }
-    
-    showToastMessage('Sending counter offer...', 'info');
-    fetch('/api/offer/' + offerId + '/counter', {
-        method: 'POST',
->>>>>>> keting/week10
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ counter_price: parseFloat(counterPrice) })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-<<<<<<< HEAD
-            showToastMessage('Offer accepted! Opening checkout...', 'success');
-            closeOfferManageModal();
-            openCheckoutForOffer(offerId);
-            loadNotifications();
-            if (typeof loadListings === 'function') loadListings();
-        } else {
-            showToastMessage('Error: ' + (data.error || 'Unknown error'), 'error');
-        }
-    })
-    .catch(function(err) {
-        console.error('Fetch error:', err);
-        showToastMessage('Request failed: ' + err.message, 'error');
-    });
-}
-
-// ============================================================
-// 卖家拒绝普通 offer
-// ============================================================
-async function rejectOffer(offerId) {
-    const confirmed = await showConfirm({
-        title: 'Reject Offer',
-        message: 'Are you sure you want to reject this offer?',
-        icon: '❌',
-        isReject: true,
-        confirmText: 'Reject',
-        cancelText: 'Cancel'
-    });
-    if (!confirmed) return;
-    
-    showToastMessage('Rejecting offer...', 'info');
-    fetch('/api/offer/' + offerId + '/reject', {
-=======
-            showToastMessage('Counter offer sent!', 'success');
-            closeOfferManageModal();
-            loadNotifications();
-        } else {
-            throw new Error(data.error || 'Failed to send counter offer');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-}
-
-// ========== 接受/拒绝 Counter Offer ==========
-function acceptCounterOffer(offerId) {
-    if (!confirm('Accept this counter offer?')) return;
-    
-    showToastMessage('Accepting counter offer...', 'info');
-    fetch('/api/offer/' + offerId + '/accept-counter', {
->>>>>>> keting/week10
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-<<<<<<< HEAD
-            showToastMessage('Offer rejected.', 'success');
-            closeOfferManageModal();
-            loadNotifications();
-            if (typeof loadListings === 'function') loadListings();
-        } else {
-            showToastMessage('Error: ' + (data.error || 'Failed to reject'), 'error');
-        }
-    })
-    .catch(function(err) {
-        console.error('Reject offer error:', err);
-=======
-            showToastMessage('Counter offer accepted! You can now checkout.', 'success');
-            closeOfferManageModal();
-            loadNotifications();
-        } else {
-            throw new Error(data.error || 'Failed to accept');
-        }
-    })
-    .catch(function(err) {
->>>>>>> keting/week10
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-}
-
-<<<<<<< HEAD
-// ============================================================
-// Counter Offer 弹窗相关
-// ============================================================
+// ========== Counter Offer 弹窗 ==========
 function openCounterOfferModal(offerId) {
     pendingCounterOfferId = offerId;
     document.getElementById('counterOfferModal').classList.add('show');
@@ -1812,21 +1330,10 @@ document.getElementById('sendCounterOfferBtn')?.addEventListener('click', functi
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ counter_price: parseFloat(newPrice) })
-=======
-function rejectCounterOffer(offerId) {
-    if (!confirm('Reject this counter offer?')) return;
-    
-    showToastMessage('Declining counter offer...', 'info');
-    fetch('/api/offer/' + offerId + '/reject-counter', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
->>>>>>> keting/week10
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-<<<<<<< HEAD
             showToastMessage('Counter offer sent!', 'success');
             closeCounterOfferModal();
             loadNotifications();
@@ -1836,98 +1343,11 @@ function rejectCounterOffer(offerId) {
         }
     })
     .catch(function(err) {
-        console.error('Send counter offer error:', err);
         showToastMessage('Error: ' + err.message, 'error');
     });
 });
-=======
-            showToastMessage('Counter offer declined.', 'info');
-            closeOfferManageModal();
-            loadNotifications();
-        } else {
-            throw new Error(data.error || 'Failed to decline');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-}
 
-// ========== 接受/拒绝普通 Offer ==========
-function acceptOffer(offerId) {
-    if (!confirm('Accept this offer?')) return;
-    
-    showToastMessage('Accepting offer...', 'info');
-    fetch('/api/offer/' + offerId + '/accept', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Offer accepted!', 'success');
-            closeOfferManageModal();
-            loadNotifications();
-        } else {
-            throw new Error(data.error || 'Failed to accept');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-}
-
-function rejectOffer(offerId) {
-    if (!confirm('Reject this offer?')) return;
-    
-    showToastMessage('Rejecting offer...', 'info');
-    fetch('/api/offer/' + offerId + '/reject', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Offer rejected.', 'info');
-            closeOfferManageModal();
-            loadNotifications();
-        } else {
-            throw new Error(data.error || 'Failed to reject');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-}
-
-// ========== 买家取消自己的 Offer ==========
-function cancelMyOffer(offerId) {
-    if (!confirm('Cancel your offer? This cannot be undone.')) return;
-    
-    showToastMessage('Cancelling offer...', 'info');
-    fetch('/api/offer/' + offerId + '/cancel', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Your offer has been cancelled.', 'success');
-            closeOfferManageModal();
-            loadNotifications();
-        } else {
-            throw new Error(data.error || 'Failed to cancel');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-}
->>>>>>> keting/week10
-
+// ========== 初始化 ==========
 loadNotifications();
 </script>
 {% endblock %}
