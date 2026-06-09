@@ -5,14 +5,11 @@
     padding: 20px 24px 100px;
 }
 
-.cart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-}
-
+/* Sticky back button – same style, now sticky */
 .back-btn {
+    position: sticky;
+    top: 20px;
+    z-index: 200;
     background: #f0f0f0;
     border: none;
     padding: 8px 20px;
@@ -20,38 +17,26 @@
     font-size: 0.9rem;
     cursor: pointer;
     transition: 0.2s;
+    margin-bottom: 20px;
 }
-
 .back-btn:hover {
     background: #e0e0e0;
-}
-
-.edit-mode-btn {
-    background: transparent;
-    border: 1px solid #ddd;
-    padding: 8px 20px;
-    border-radius: 40px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.edit-mode-btn.active {
-    background: #00381f;
-    color: white;
-    border-color: #00381f;
 }
 
 /* 3-column layout */
 .cart-layout {
     display: flex;
     gap: 30px;
+    align-items: flex-start;
 }
 
-/* LEFT SIDEBAR (vertical categories) */
+/* LEFT SIDEBAR – sticky, aligns with Edit button */
 .cart-sidebar-left {
     width: 200px;
     flex-shrink: 0;
+    position: sticky;
+    top: 100px;
+    align-self: flex-start;
 }
 
 .category-filters {
@@ -70,26 +55,34 @@
     cursor: pointer;
     transition: 0.2s;
 }
-
 .category-filter:hover {
     background: #e8e8e8;
 }
-
 .category-filter.active {
     background: #00381f;
     color: white;
 }
 
-/* MIDDLE MAIN */
+/* MIDDLE COLUMN – normal scrolling, no overflow restrictions */
 .cart-main {
     flex: 1;
     min-width: 0;
 }
 
-.cart-section {
-    margin-bottom: 40px;
+/* Sticky "Shopping Cart" title – no background */
+.cart-title-sticky {
+    position: sticky;
+    top: 20px;
+    background: transparent;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #00381f;
+    margin: 0 0 24px 0;
+    padding: 8px 0;
+    z-index: 150;
 }
 
+/* Only "Unavailable" title remains (available title removed) */
 .section-title {
     font-size: 1.2rem;
     font-weight: 600;
@@ -103,7 +96,74 @@
     gap: 16px;
 }
 
-/* Seller Group – full header clickable (except checkbox) */
+/* RIGHT SIDEBAR – sticky, with Edit button at the top */
+.cart-sidebar-right {
+    width: 180px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 100px;
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.edit-mode-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid #ddd;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: 0.2s;
+    text-align: center;
+}
+.edit-mode-btn.active {
+    background: #00381f;
+    color: white;
+    border-color: #00381f;
+}
+
+/* Action buttons group – hidden by default, shown in edit mode */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.action-btn {
+    padding: 12px 16px;
+    border-radius: 40px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.remove-btn {
+    background: #e74c3c;
+    color: white;
+}
+.remove-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+.remove-unavail-btn {
+    background: #f0f0f0;
+    color: #333;
+}
+.remove-unavail-btn:hover {
+    background: #e0e0e0;
+}
+.clear-cart-btn {
+    background: #e74c3c;
+    color: white;
+}
+.clear-cart-btn:hover {
+    background: #c0392b;
+}
+
+/* Seller Group – full header clickable (except checkbox) – unchanged */
 .seller-group {
     margin-bottom: 24px;
     border: 1px solid #eae7e0;
@@ -111,15 +171,12 @@
     background: white;
     overflow: hidden;
 }
-
 .seller-group-header {
     display: flex;
-    align-items: stretch;          /* makes checkbox and link full height */
+    align-items: stretch;
     background: #fafaf8;
     border-bottom: 1px solid #eae7e0;
 }
-
-/* Checkbox container – vertically centered, not part of link */
 .group-checkbox {
     display: flex;
     align-items: center;
@@ -129,7 +186,6 @@
     flex-shrink: 0;
     line-height: 1;
 }
-
 .group-checkbox input {
     width: 18px;
     height: 18px;
@@ -139,8 +195,6 @@
     vertical-align: middle;
     display: inline-block;
 }
-
-/* The actual link – takes all remaining space and full height */
 .seller-group-link {
     flex: 1;
     display: flex;
@@ -152,18 +206,15 @@
     background: #fafaf8;
     transition: background-color 0.2s;
 }
-
 .seller-group-link:hover {
     background-color: rgba(0, 56, 31, 0.05);
 }
-
 .seller-group-items {
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
-
 .seller-avatar-small {
     width: 32px;
     height: 32px;
@@ -175,24 +226,21 @@
     overflow: hidden;
     flex-shrink: 0;
 }
-
 .seller-avatar-small img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
-
 .seller-initials {
     font-weight: bold;
     font-size: 14px;
 }
-
 .seller-name {
     font-weight: 600;
     font-size: 0.9rem;
 }
 
-/* Individual Cart Item Card */
+/* Individual Cart Item Card – unchanged */
 .cart-item-card {
     background: white;
     border-radius: 16px;
@@ -204,29 +252,23 @@
     align-items: center;
     gap: 16px;
 }
-
 .cart-item-card.unavailable {
     opacity: 0.7;
 }
-
 .cart-item-card:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
-
-/* Item checkbox – bigger and centered */
 .item-checkbox {
     display: flex;
     align-items: center;
     flex-shrink: 0;
 }
-
 .item-checkbox input {
     width: 18px;
     height: 18px;
     margin: 0;
     cursor: pointer;
 }
-
 .cart-item-image {
     width: 80px;
     height: 80px;
@@ -236,13 +278,11 @@
     overflow: hidden;
     position: relative;
 }
-
 .cart-item-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
-
 .unavailable-overlay {
     position: absolute;
     top: 0;
@@ -258,32 +298,27 @@
     font-size: 0.8rem;
     backdrop-filter: blur(3px);
 }
-
 .cart-item-details {
     flex: 1;
     min-width: 0;
 }
-
 .cart-item-name {
     font-weight: 600;
     font-size: 0.95rem;
     margin-bottom: 4px;
     line-height: 1.4;
 }
-
 .cart-item-price {
     font-size: 1.1rem;
     font-weight: 700;
     color: #00381f;
     margin-bottom: 10px;
 }
-
 .cart-item-actions {
     display: flex;
     gap: 8px;
     flex-shrink: 0;
 }
-
 .offer-from-cart-btn,
 .offer-pending-btn,
 .offer-accepted-btn,
@@ -296,98 +331,47 @@
     border: none;
     transition: 0.2s;
 }
-
 .offer-from-cart-btn {
     background: transparent;
     border: 1px solid #00381f;
     color: #00381f;
 }
-
 .offer-from-cart-btn:hover:not(:disabled) {
     background: #00381f;
     color: white;
 }
-
 .offer-pending-btn {
     background: #f39c12;
     color: white;
     cursor: pointer;
 }
-
 .offer-accepted-btn {
     background: #27ae60;
     color: white;
     cursor: pointer;
 }
-
 .buy-from-cart-btn {
     background: #00381f;
     color: white;
 }
-
 .buy-from-cart-btn:hover:not(:disabled) {
     background: #1a5c3a;
 }
-
 .offer-from-cart-btn:disabled,
 .buy-from-cart-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* RIGHT SIDEBAR */
-.cart-sidebar-right {
-    width: 180px;
-    flex-shrink: 0;
-}
-
-.action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    position: sticky;
-    top: 100px;
-}
-
-.action-btn {
-    padding: 12px 16px;
-    border-radius: 40px;
-    border: none;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.remove-btn {
-    background: #e74c3c;
-    color: white;
-}
-
-.remove-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-}
-
-.remove-unavail-btn {
-    background: #f0f0f0;
-    color: #333;
-}
-
-.remove-unavail-btn:hover {
-    background: #e0e0e0;
-}
-
 .empty-cart-message {
     text-align: center;
     padding: 60px 20px;
 }
-
 .empty-icon {
     font-size: 64px;
     display: block;
     margin-bottom: 16px;
 }
-
 .continue-shopping-btn {
     display: inline-block;
     margin-top: 20px;
@@ -397,7 +381,6 @@
     border-radius: 40px;
     text-decoration: none;
 }
-
 .no-items-message {
     text-align: center;
     color: #999;
@@ -409,20 +392,18 @@
 .item-checkbox {
     display: none;
 }
-
 .edit-mode .group-checkbox,
 .edit-mode .item-checkbox {
     display: flex !important;
 }
 
-/* Product card link (entire card clickable) */
 .cart-item-card-link {
     display: block;
     text-decoration: none;
     color: inherit;
 }
 
-/* Responsive */
+/* Responsive – unchanged */
 @media (max-width: 768px) {
     .cart-layout {
         flex-direction: column;
@@ -432,6 +413,7 @@
         overflow-x: auto;
         white-space: nowrap;
         padding-bottom: 10px;
+        position: static;
     }
     .category-filters {
         flex-direction: row;

@@ -6,13 +6,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='product.css') }}">
 
 <div class="cart-page">
-    <div class="cart-header">
-        <button class="back-btn" onclick="goBack()">← Back</button>
-        <button class="edit-mode-btn" id="editModeBtn">✏️ Edit</button>
-    </div>
+    <!-- Sticky back button (left) -->
+    <button class="back-btn" onclick="goBack()">← Back</button>
 
     <div class="cart-layout">
-        <!-- LEFT: Category Filter -->
+        <!-- LEFT: Category Filter (sticky) -->
         <aside class="cart-sidebar-left" id="categorySidebar">
             <div class="category-filters">
                 <button class="category-filter active" data-category="all">📦 All</button>
@@ -20,16 +18,21 @@
             </div>
         </aside>
 
-        <!-- MIDDLE: Product Grid -->
+        <!-- MIDDLE: Sticky "Shopping Cart" header + scrollable products -->
         <main class="cart-main">
+            <h1 class="cart-title-sticky">🛒 Shopping Cart</h1>
+
+            <!-- "Available" section – title removed -->
             <div class="cart-section" id="availableSection">
-                <h3 class="section-title">Available</h3>
                 <div id="availableProducts" class="cart-grid"></div>
             </div>
+
+            <!-- Unavailable section (keeps its title) -->
             <div class="cart-section" id="unavailableSection" style="display: none;">
                 <h3 class="section-title">Unavailable</h3>
                 <div id="unavailableProducts" class="cart-grid"></div>
             </div>
+
             <div id="emptyCartMessage" class="empty-cart-message" style="display: none;">
                 <span class="empty-icon">🛒</span>
                 <p>Your cart is empty</p>
@@ -37,17 +40,35 @@
             </div>
         </main>
 
-        <!-- RIGHT: Action Buttons -->
+        <!-- RIGHT: Action Buttons (sticky) – Edit always visible, others appear only in edit mode -->
         <aside class="cart-sidebar-right" id="actionSidebar">
-            <div class="action-buttons">
+            <button class="edit-mode-btn" id="editModeBtn">✏️ Edit</button>
+            <div class="action-buttons" id="actionButtonsGroup" style="display: none;">
                 <button id="removeSelectedBtn" class="action-btn remove-btn" disabled>🗑️ Remove</button>
                 <button id="removeUnavailableBtn" class="action-btn remove-unavail-btn">📦 Remove Unavailable</button>
+                <button id="clearCartBtn" class="action-btn clear-cart-btn">🗑️ Clear Cart</button>
             </div>
         </aside>
     </div>
 </div>
 
-<!-- ========== OFFER MODAL (simple, same as product page) ========== -->
+<!-- Custom confirmation modal for clear cart -->
+<div id="clearCartConfirmModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <span class="close" onclick="closeClearCartConfirmModal()">&times;</span>
+        <div style="padding: 20px;">
+            <div style="font-size: 48px;">🗑️</div>
+            <h3>Clear Cart</h3>
+            <p>Are you sure you want to remove <strong>ALL items</strong> from your cart?<br>This action cannot be undone.</p>
+            <div class="modal-buttons" style="justify-content: center;">
+                <button class="modal-cancel" onclick="closeClearCartConfirmModal()">Cancel</button>
+                <button class="modal-send" id="confirmClearCartBtn">Yes, Clear Cart</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== OFFER MODAL (unchanged) ========== -->
 <div id="offerModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeOfferModal()">&times;</span>
@@ -65,7 +86,7 @@
     </div>
 </div>
 
-<!-- ========== DATE & TIME MODAL (exactly as product page) ========== -->
+<!-- ========== DATE & TIME MODAL (unchanged) ========== -->
 <div id="dateModal" class="modal">
     <div class="modal-content buy-modal-content" style="max-width: 1100px; width: 90%;">
         <span class="close" onclick="closeDateModal()">&times;</span>
@@ -105,7 +126,7 @@
     </div>
 </div>
 
-<!-- ========== BUY NOW MODAL – LOCATION SELECTION (exactly as product page) ========== -->
+<!-- ========== BUY NOW MODAL – LOCATION SELECTION (unchanged) ========== -->
 <div id="buyModal" class="modal">
     <div class="modal-content buy-modal-content">
         <span class="close" onclick="finalCancel()">&times;</span>
@@ -144,6 +165,7 @@
 </div>
 
 <script>
+// ======================== YOUR EXISTING JAVASCRIPT (copied from your file, with minimal changes) ========================
 let cartData = { available: [], unavailable: [] };
 let editMode = false;
 let currentFilter = 'all';
@@ -153,7 +175,7 @@ let currentBuyProductId = null;
 let selectedLocations = [];
 let selectedDates = [];
 
-// ======================== LOCATIONS DATA (same as product page) ========================
+// Locations data (unchanged)
 const cyberjayaLocations = [
     { name: "Library", image: "/static/uploads/library.jpg" },
     { name: "DTC", image: "/static/uploads/dtc.jpg" },
@@ -191,7 +213,7 @@ const melakaLocations = [
     { name: "Admin Building", image: "/static/uploads/chancellery.jpg" }
 ];
 
-// ======================== CART LOGIC (unchanged) ========================
+// ======================== CART LOGIC (unchanged except for “All” button fix) ========================
 function groupBySeller(items) {
     const groups = {};
     for (const item of items) {
@@ -247,10 +269,13 @@ function renderCategories() {
         btn.onclick = () => filterByCategory(cat);
         categoryList.appendChild(btn);
     });
+    // Fix "All" button: re-attach event listener to the original "All" button
     const allBtn = document.querySelector('.category-filter[data-category="all"]');
+    if (allBtn) {
+        allBtn.onclick = () => filterByCategory('all');
+    }
     const selectedBtn = document.querySelector(`.category-filter[data-category="${currentFilter}"]`);
-    if (allBtn) allBtn.classList.remove('active');
-    if (selectedBtn) selectedBtn.classList.add('active');
+    if (selectedBtn && currentFilter !== 'all') selectedBtn.classList.add('active');
     else if (allBtn && currentFilter === 'all') allBtn.classList.add('active');
 }
 
@@ -351,8 +376,7 @@ function renderCartItem(item, isUnavailable) {
         if (productImage && productImage.startsWith('/static/uploads//')) {
             productImage = productImage.replace('/static/uploads//', '/static/uploads/');
         }
-        // Check if user already has a pending/accepted offer for this product
-        const offerStatus = item.user_offer_status || null;  // we'll set this later
+        const offerStatus = item.user_offer_status || null;
         let offerButtonHtml = '';
         if (offerStatus && offerStatus !== 'rejected' && offerStatus !== 'cancelled') {
             let btnText = offerStatus === 'pending' ? '⏳ Offer Pending' : (offerStatus === 'accepted' ? '✅ Offer Accepted' : '💰 Offer');
@@ -396,7 +420,6 @@ function attachItemEvents() {
         btn.removeEventListener('click', handleOfferClick);
         btn.addEventListener('click', handleOfferClick);
     });
-    // Also handle offer-pending/accepted buttons: navigate to My Purchases
     document.querySelectorAll('.offer-pending-btn, .offer-accepted-btn').forEach(btn => {
         btn.removeEventListener('click', () => {});
         btn.addEventListener('click', (e) => {
@@ -448,13 +471,11 @@ async function sendOfferFromCart() {
         showToastMessage('Offer sent!', 'success');
         closeOfferModal();
 
-        // Update the button immediately
         btn.textContent = '⏳ Offer Pending';
         btn.classList.remove('offer-from-cart-btn');
         btn.classList.add('offer-pending-btn');
         btn.disabled = false;
 
-        // Make the button redirect to My Purchases when clicked
         btn.onclick = (e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -477,7 +498,6 @@ function handleBuyClick(e) {
     window.currentBuyProductPrice = parseFloat(btn.dataset.price);
     window.currentBuyProductImage = btn.dataset.image;
     window.currentBuyCondition = btn.dataset.condition || "Good";
-    // Fetch seller campus to decide location list
     fetch(`/api/product/${currentBuyProductId}/seller-campus`)
         .then(r => r.json())
         .then(data => {
@@ -490,7 +510,7 @@ function handleBuyClick(e) {
         });
 }
 
-// ======================== DATE & LOCATION MODAL FUNCTIONS (copied from product page) ========================
+// ======================== DATE & LOCATION MODAL FUNCTIONS (unchanged) ========================
 function getMeetupLocations() {
     if (window.currentBuySellerCampus && window.currentBuySellerCampus.includes('Cyberjaya')) {
         return cyberjayaLocations;
@@ -703,7 +723,6 @@ async function confirmPurchaseFromCart() {
         if (data.success) {
             showToastMessage('✅ Purchase reserved! Seller will confirm.', 'success');
             finalCancel();
-            // Remove the purchased item from cart (since it's now reserved)
             await removeCartItems([currentBuyProductId]);
             loadCart();
             setTimeout(() => window.location.href = '/my-profile?tab=orders', 2000);
@@ -747,20 +766,56 @@ async function removeUnavailable() {
     }
 }
 
+// Show custom confirmation modal
+function showClearCartConfirm() {
+    const modal = document.getElementById('clearCartConfirmModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+// Close custom confirmation modal
+function closeClearCartConfirmModal() {
+    const modal = document.getElementById('clearCartConfirmModal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Actually clear the cart after confirmation
+async function executeClearCart() {
+    closeClearCartConfirmModal();
+    showToastMessage('Clearing cart...', 'info');
+    try {
+        const resp = await fetch('/cart/clear', { method: 'POST', credentials: 'same-origin' });
+        const data = await resp.json();
+        if (data.success) {
+            showToastMessage('Cart cleared', 'success');
+            await loadCart();        // reload cart data
+            if (editMode) toggleEditMode();  // exit edit mode if active
+        } else {
+            showToastMessage('Failed to clear cart', 'error');
+        }
+    } catch (err) {
+        showToastMessage('Error clearing cart', 'error');
+    }
+}
+
+// Modified toggleEditMode: shows/hides action buttons group
 function toggleEditMode() {
     editMode = !editMode;
     const editBtn = document.getElementById('editModeBtn');
+    const actionGroup = document.getElementById('actionButtonsGroup');
     const removeBtn = document.getElementById('removeSelectedBtn');
     const cartMain = document.querySelector('.cart-main');
+
     if (editMode) {
         editBtn.textContent = 'Done';
         editBtn.classList.add('active');
         removeBtn.disabled = false;
+        actionGroup.style.display = 'flex';
         cartMain.classList.add('edit-mode');
     } else {
         editBtn.textContent = '✏️ Edit';
         editBtn.classList.remove('active');
         removeBtn.disabled = true;
+        actionGroup.style.display = 'none';
         cartMain.classList.remove('edit-mode');
         document.querySelectorAll('.group-select, .item-select').forEach(cb => cb.checked = false);
     }
@@ -841,7 +896,6 @@ document.getElementById('removeSelectedBtn').addEventListener('click', removeSel
 document.getElementById('removeUnavailableBtn').addEventListener('click', removeUnavailable);
 loadCart();
 
-// Make sure modals close when clicking outside
 window.onclick = function(event) {
     const dateModal = document.getElementById('dateModal');
     const buyModal = document.getElementById('buyModal');
@@ -850,5 +904,17 @@ window.onclick = function(event) {
     if (event.target === buyModal) closeBuyModal();
     if (event.target === offerModal) closeOfferModal();
 };
+
+// Attach clear cart button listeners
+const clearCartBtn = document.getElementById('clearCartBtn');
+const confirmClearBtn = document.getElementById('confirmClearCartBtn');
+if (clearCartBtn) {
+    clearCartBtn.removeEventListener('click', showClearCartConfirm);
+    clearCartBtn.addEventListener('click', showClearCartConfirm);
+}
+if (confirmClearBtn) {
+    confirmClearBtn.removeEventListener('click', executeClearCart);
+    confirmClearBtn.addEventListener('click', executeClearCart);
+}
 </script>
 {% endblock %}
