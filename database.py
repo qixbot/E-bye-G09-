@@ -245,6 +245,8 @@ def init_db():
         ''')
 
         # Orders table - with meeting_time field
+        
+        # Orders table - with meeting_time field (week11 版本)
         cur.execute('''
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
