@@ -3323,6 +3323,38 @@ def handle_report(report_id, action):
 # ============================================================
 # Chat Routes
 # ============================================================
+@app.route('/api/user/<int:user_id>/status')
+def get_user_status(user_id):
+    """获取用户在线状态和最后上线时间"""
+    if 'user_id' not in session:
+        return jsonify({'online': False, 'last_seen': None})
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    cur.execute('''
+        SELECT last_seen, 
+               CASE WHEN last_seen > NOW() - INTERVAL '5 minutes' THEN true ELSE false END as is_online
+        FROM users WHERE id = %s
+    ''', (user_id,))
+    user = cur.fetchone()
+    cur.close()
+    db.close()
+    
+    if user:
+        last_seen_str = None
+        if user['last_seen']:
+            if hasattr(user['last_seen'], 'isoformat'):
+                last_seen_str = user['last_seen'].isoformat()
+            else:
+                last_seen_str = str(user['last_seen'])
+        
+        return jsonify({
+            'online': user['is_online'] if user['is_online'] else False,
+            'last_seen': last_seen_str
+        })
+    return jsonify({'online': False, 'last_seen': None})
+
 @app.route('/chat/send', methods=['POST'])
 def chat_send():
     if 'user_id' not in session:
