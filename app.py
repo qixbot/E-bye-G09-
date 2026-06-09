@@ -1826,6 +1826,55 @@ def api_buy_now():
     
     return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
 
+@app.route('/add-to-cart/<int:product_id>', methods=['POST'])
+def add_to_cart(product_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Please login first'}), 401
+
+    db = get_db()
+    cur = db.cursor()
+
+    # Check product exists and is approved
+    cur.execute('SELECT id, status FROM products WHERE id = %s', (product_id,))
+    product = cur.fetchone()
+    if not product:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    if product['status'] != 'approved':
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Product is not available'}), 400
+
+    # Insert into cart (ignore duplicate)
+    try:
+        cur.execute('''
+            INSERT INTO cart_items (user_id, product_id) VALUES (%s, %s)
+        ''', (session['user_id'], product_id))
+        db.commit()
+        cur.close()
+        db.close()
+        return jsonify({'success': True, 'message': 'Added to cart'})
+    except Exception as e:
+        db.rollback()
+        cur.close()
+        db.close()
+        # Unique violation = already in cart
+        return jsonify({'success': False, 'error': 'Item already in cart'}), 400
+
+@app.route('/api/cart/check/<int:product_id>')
+def cart_check(product_id):
+    if 'user_id' not in session:
+        return jsonify({'in_cart': False})
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT 1 FROM cart_items WHERE user_id = %s AND product_id = %s', 
+                (session['user_id'], product_id))
+    exists = cur.fetchone() is not None
+    cur.close()
+    db.close()
+    return jsonify({'in_cart': exists})
+
 @app.route('/notifications')
 def notifications_page():
     if 'user_id' not in session:

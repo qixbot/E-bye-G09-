@@ -233,6 +233,17 @@ def init_db():
             )
         ''')
 
+        # Cart items table
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS cart_items (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, product_id)
+            )
+        ''')
+
         # Orders table - with meeting_time field
         cur.execute('''
             CREATE TABLE IF NOT EXISTS orders (
@@ -372,6 +383,14 @@ def test_connection():
         print(f"❌ Database connection failed: {e}")
         return False
 
+def get_cart_count(user_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT COUNT(*) FROM cart_items WHERE user_id = %s', (user_id,))
+    count = cur.fetchone()['count']
+    cur.close()
+    conn.close()
+    return count
 
 # 兼容性空函数
 def init_products():

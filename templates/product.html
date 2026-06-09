@@ -889,8 +889,8 @@
         document.body.appendChild(container);
         setTimeout(() => container.remove(), 3000);
     }
-    
-    // Add to Cart button handler
+
+    // Add to Cart button handler (real backend)
     const addToCartBtn = document.getElementById('addToCartBtn');
     if (addToCartBtn) {
         addToCartBtn.addEventListener('click', function() {
@@ -899,14 +899,52 @@
             this.textContent = 'Adding...';
             this.disabled = true;
 
-            // For now, just simulate success with toast (no backend yet)
-            // Later we will replace with actual fetch to /add-to-cart
-            setTimeout(() => {
-                showGlobalToast('🛒 Item added to cart!', 'success');
+            fetch('/add-to-cart/' + productId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showGlobalToast('🛒 Item added to cart!', 'success');
+                    // Update button to "In Cart" state
+                    const btn = document.getElementById('addToCartBtn');
+                    btn.textContent = '✓ In Cart';
+                    btn.disabled = true;
+                    btn.classList.add('in-cart');
+                } else {
+                    showGlobalToast(data.error || 'Failed to add to cart', 'error');
+                    // Re-enable button
+                    this.textContent = originalText;
+                    this.disabled = false;
+                }
+            })
+            .catch(error => {
+                showGlobalToast('Error adding to cart', 'error');
                 this.textContent = originalText;
                 this.disabled = false;
-            }, 500);
+            });
         });
+    }
+
+    // Check if product is already in cart
+    const productIdElement = document.getElementById('addToCartBtn');
+    if (productIdElement) {
+        const productId = productIdElement.dataset.productId;
+        fetch('/api/cart/check/' + productId, {
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.in_cart) {
+                const btn = document.getElementById('addToCartBtn');
+                btn.textContent = '✓ In Cart';
+                btn.disabled = true;
+                btn.classList.add('in-cart');
+            }
+        })
+        .catch(err => console.error('Cart check failed:', err));
     }
 </script>
 {% endblock %}

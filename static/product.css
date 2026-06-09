@@ -385,6 +385,16 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+.add-to-cart-btn.in-cart {
+    background: #e0e0e0;
+    border-color: #aaa;
+    color: #666;
+    cursor: default;
+}
+.add-to-cart-btn.in-cart:hover {
+    background: #e0e0e0;
+    color: #666;
+}
 .buy-btn {
     width: 100%;
     padding: 12px;
