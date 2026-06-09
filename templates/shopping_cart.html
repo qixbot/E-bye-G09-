@@ -428,6 +428,14 @@ async function sendOfferFromCart() {
         showToastMessage('Enter a valid amount', 'error');
         return;
     }
+
+    const btn = document.querySelector(`.offer-from-cart-btn[data-product-id="${currentOfferProductId}"]`);
+    if (!btn) return;
+
+    const originalText = btn.textContent;
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+
     const resp = await fetch(`/api/product/${currentOfferProductId}/offers/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -435,14 +443,27 @@ async function sendOfferFromCart() {
         credentials: 'same-origin'
     });
     const data = await resp.json();
+
     if (data.success) {
         showToastMessage('Offer sent!', 'success');
         closeOfferModal();
-        // Do NOT remove item from cart. Instead, update the offer button.
-        // We'll reload cart to reflect offer status (requires backend to return user_offer_status)
-        loadCart();  // reload cart – will show the pending offer button
+
+        // Update the button immediately
+        btn.textContent = '⏳ Offer Pending';
+        btn.classList.remove('offer-from-cart-btn');
+        btn.classList.add('offer-pending-btn');
+        btn.disabled = false;
+
+        // Make the button redirect to My Purchases when clicked
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            window.location.href = '/my-profile?tab=purchases';
+        };
     } else {
         showToastMessage(data.error || 'Failed to send offer', 'error');
+        btn.textContent = originalText;
+        btn.disabled = false;
     }
 }
 document.getElementById('sendOfferBtn').onclick = sendOfferFromCart;

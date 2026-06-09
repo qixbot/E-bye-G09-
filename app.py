@@ -1888,15 +1888,13 @@ def api_get_cart():
         ORDER BY ci.added_at DESC
     ''', (session['user_id'],))
     items = cur.fetchall()
-    cur.close()
-    db.close()
-
+    
     available = []
     unavailable = []
     for item in items:
         item_dict = dict(item)
         
-        # Convert datetime to string (CRITICAL FIX)
+        # Convert datetime to string
         if item_dict.get('added_at'):
             item_dict['added_at'] = item_dict['added_at'].isoformat()
         else:
@@ -1939,10 +1937,23 @@ def api_get_cart():
         item_dict.pop('images_blob', None)
         item_dict.pop('images', None)
         
+        # Query offer status for this product (cursor is still open)
+        cur.execute('''
+            SELECT status FROM offers
+            WHERE product_id = %s AND buyer_id = %s
+            AND status IN ('pending', 'accepted')
+            ORDER BY created_at DESC LIMIT 1
+        ''', (item_dict['product_id'], session['user_id']))
+        offer_row = cur.fetchone()
+        item_dict['user_offer_status'] = offer_row['status'] if offer_row else None
+
         if item_dict['status'] == 'approved':
             available.append(item_dict)
         else:
             unavailable.append(item_dict)
+    
+    cur.close()
+    db.close()
 
     return jsonify({'available': available, 'unavailable': unavailable})
 
