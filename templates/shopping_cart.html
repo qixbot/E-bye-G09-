@@ -6,14 +6,13 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='product.css') }}">
 
 <div class="cart-page">
-    <!-- Back button (same as product page) -->
     <div class="cart-header">
         <button class="back-btn" onclick="goBack()">← Back</button>
         <button class="edit-mode-btn" id="editModeBtn">✏️ Edit</button>
     </div>
 
     <div class="cart-layout">
-        <!-- LEFT: Category Filter (vertical) -->
+        <!-- LEFT: Category Filter -->
         <aside class="cart-sidebar-left" id="categorySidebar">
             <div class="category-filters">
                 <button class="category-filter active" data-category="all">📦 All</button>
@@ -23,18 +22,14 @@
 
         <!-- MIDDLE: Product Grid -->
         <main class="cart-main">
-            <!-- Available products section -->
             <div class="cart-section" id="availableSection">
                 <h3 class="section-title">Available</h3>
                 <div id="availableProducts" class="cart-grid"></div>
             </div>
-
-            <!-- Unavailable products section (sold/reserved) -->
             <div class="cart-section" id="unavailableSection" style="display: none;">
                 <h3 class="section-title">Unavailable</h3>
                 <div id="unavailableProducts" class="cart-grid"></div>
             </div>
-
             <div id="emptyCartMessage" class="empty-cart-message" style="display: none;">
                 <span class="empty-icon">🛒</span>
                 <p>Your cart is empty</p>
@@ -52,7 +47,7 @@
     </div>
 </div>
 
-<!-- Offer Modal (reuse same as product page) -->
+<!-- ========== OFFER MODAL (simple, same as product page) ========== -->
 <div id="offerModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeOfferModal()">&times;</span>
@@ -70,28 +65,80 @@
     </div>
 </div>
 
-<!-- Buy Modal (reuse same as product page) -->
-<div id="buyModal" class="modal">
-    <div class="modal-content buy-modal-content">
-        <span class="close" onclick="closeBuyModal()">&times;</span>
+<!-- ========== DATE & TIME MODAL (exactly as product page) ========== -->
+<div id="dateModal" class="modal">
+    <div class="modal-content buy-modal-content" style="max-width: 1100px; width: 90%;">
+        <span class="close" onclick="closeDateModal()">&times;</span>
+
         <div class="buy-modal-two-columns">
             <div class="buy-modal-left">
-                <div class="product-image-preview" id="buyModalImage"></div>
-                <h3 id="buyModalProductName"></h3>
-                <p class="modal-product-price" id="buyModalPrice"></p>
+                <div class="product-image-preview" id="dateModalProductImage"></div>
+                <h3 class="modal-product-name" id="dateModalProductName"></h3>
+                <p class="modal-product-price" id="dateModalProductPrice"></p>
+                <p>
+                    <span class="condition-badge" id="dateModalCondition" style="background-color:#00381f; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; display:inline-block;"></span>
+                    <span class="campus-badge" id="dateModalCampus" style="display: inline-block; margin-left: 8px;"></span>
+                </p>
             </div>
+
             <div class="buy-modal-divider"></div>
+
             <div class="buy-modal-right">
                 <div class="location-header">
-                    <p class="location-instruction">Select meetup location(s) (max 3):</p>
-                    <div id="buySelectedLocationsInfo"></div>
+                    <p class="location-instruction">Select up to 3 preferred dates and times (all must be in the future).</p>
+                    <div id="selectedDatesInfo" class="selected-locations-info"></div>
                 </div>
-                <div class="location-grid" id="buyLocationGrid"></div>
+                <div id="dateTimeInputs" style="display: flex; flex-direction: column; gap: 15px; max-height: 360px; overflow-y: auto; padding-right: 8px;">
+                    <div class="date-row">
+                        <input type="datetime-local" class="datetime-picker" step="60">
+                        <button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button>
+                    </div>
+                </div>
+                <button type="button" id="addDateBtn" class="add-more-btn" style="margin-top: 16px; background: #00381f; color: white; border: none; padding: 10px 16px; border-radius: 30px; cursor: pointer; width: auto; align-self: flex-start;">+ Add another date</button>
             </div>
         </div>
-        <div class="modal-buttons">
-            <button class="modal-cancel" onclick="closeBuyModal()">Cancel</button>
-            <button class="modal-send" id="confirmBuyFromCartBtn">Confirm Purchase</button>
+
+        <div class="modal-buttons" style="margin-top: 20px; justify-content: flex-end;">
+            <button class="modal-cancel" onclick="closeDateModal()">Cancel</button>
+            <button class="modal-send" id="confirmDatesBtn">Confirm Dates</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== BUY NOW MODAL – LOCATION SELECTION (exactly as product page) ========== -->
+<div id="buyModal" class="modal">
+    <div class="modal-content buy-modal-content">
+        <span class="close" onclick="finalCancel()">&times;</span>
+
+        <div class="buy-modal-two-columns">
+            <div class="buy-modal-left">
+                <div class="product-image-preview" id="modalProductImage"></div>
+                <h3 class="modal-product-name" id="modalProductName"></h3>
+                <p class="modal-product-price" id="modalProductPrice"></p>
+                <p>
+                    <span class="condition-badge" id="modalCondition" style="background-color:#00381f; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; display:inline-block;"></span>
+                    <span class="campus-badge" id="modalCampus" style="display: inline-block; margin-left: 8px;"></span>
+                </p>
+            </div>
+
+            <div class="buy-modal-divider"></div>
+
+            <div class="buy-modal-right">
+                <div class="location-header">
+                    <p class="location-instruction" id="locationInstruction">
+                        Preferred meetup location(s) on
+                        <span id="sellerCampusName"></span>
+                        – seller will contact you for further confirmation
+                    </p>
+                    <div id="selectedLocationsInfo" class="selected-locations-info"></div>
+                </div>
+                <div class="location-grid" id="locationGrid"></div>
+            </div>
+        </div>
+
+        <div class="modal-buttons" style="margin-top: 20px; justify-content: flex-end;">
+            <button class="modal-cancel" onclick="goBackToDateModal()">Back</button>
+            <button class="modal-send" id="confirmBuyBtn">Confirm Purchase</button>
         </div>
     </div>
 </div>
@@ -104,8 +151,47 @@ let categoriesSet = new Set();
 let currentOfferProductId = null;
 let currentBuyProductId = null;
 let selectedLocations = [];
+let selectedDates = [];
 
-// Helper: group items by seller, each group contains seller info and items array, and maxAddedAt for sorting
+// ======================== LOCATIONS DATA (same as product page) ========================
+const cyberjayaLocations = [
+    { name: "Library", image: "/static/uploads/library.jpg" },
+    { name: "DTC", image: "/static/uploads/dtc.jpg" },
+    { name: "Starbees", image: "/static/uploads/starbees.jpg" },
+    { name: "CLC", image: "/static/uploads/clc.jpg" },
+    { name: "FCI", image: "/static/uploads/fci.jpg" },
+    { name: "FOM", image: "/static/uploads/fom.jpg" },
+    { name: "FAIE", image: "/static/uploads/faie.jpg" },
+    { name: "FCM", image: "/static/uploads/fcm.jpg" },
+    { name: "STC", image: "/static/uploads/stc.jpg" },
+    { name: "HB1", image: "/static/uploads/hb1.jpg" },
+    { name: "HB2", image: "/static/uploads/hb2.jpg" },
+    { name: "HB3", image: "/static/uploads/hb3.jpg" },
+    { name: "HB4", image: "/static/uploads/hb4.jpg" },
+    { name: "Masjid", image: "/static/uploads/masjid.jpg" },
+    { name: "Tekun Mart", image: "/static/uploads/tekun_mart.jpg" },
+    { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
+];
+const melakaLocations = [
+    { name: "Library (Melaka)", image: "/static/uploads/library.jpg" },
+    { name: "Dewan Tun Canselor", image: "/static/uploads/dtc.jpg" },
+    { name: "Cafeteria", image: "/static/uploads/starbees.jpg" },
+    { name: "Block A", image: "/static/uploads/clc.jpg" },
+    { name: "Block B", image: "/static/uploads/fci.jpg" },
+    { name: "Block C", image: "/static/uploads/fom.jpg" },
+    { name: "Block D", image: "/static/uploads/faie.jpg" },
+    { name: "Block E", image: "/static/uploads/fcm.jpg" },
+    { name: "Sports Complex", image: "/static/uploads/stc.jpg" },
+    { name: "Hostel 1", image: "/static/uploads/hb1.jpg" },
+    { name: "Hostel 2", image: "/static/uploads/hb2.jpg" },
+    { name: "Hostel 3", image: "/static/uploads/hb3.jpg" },
+    { name: "Hostel 4", image: "/static/uploads/hb4.jpg" },
+    { name: "Surau", image: "/static/uploads/masjid.jpg" },
+    { name: "Mini Mart", image: "/static/uploads/tekun_mart.jpg" },
+    { name: "Admin Building", image: "/static/uploads/chancellery.jpg" }
+];
+
+// ======================== CART LOGIC (unchanged) ========================
 function groupBySeller(items) {
     const groups = {};
     for (const item of items) {
@@ -123,9 +209,7 @@ function groupBySeller(items) {
         groups[sid].items.push(item);
         if (item.added_at) {
             const itemDate = new Date(item.added_at);
-            if (itemDate > groups[sid].maxAddedAt) {
-                groups[sid].maxAddedAt = itemDate;
-            }
+            if (itemDate > groups[sid].maxAddedAt) groups[sid].maxAddedAt = itemDate;
         }
     }
     let groupsArray = Object.values(groups);
@@ -133,7 +217,6 @@ function groupBySeller(items) {
     return groupsArray;
 }
 
-// Load cart data
 async function loadCart() {
     const response = await fetch('/api/cart', { credentials: 'same-origin' });
     const data = await response.json();
@@ -142,16 +225,11 @@ async function loadCart() {
     renderCart();
 }
 
-// Render category filters (vertical) - only categories from available products
 function renderCategories() {
     categoriesSet.clear();
-    cartData.available.forEach(item => {
-        if (item.category) categoriesSet.add(item.category);
-    });
-    
+    cartData.available.forEach(item => { if (item.category) categoriesSet.add(item.category); });
     const categoryList = document.getElementById('categoryList');
     categoryList.innerHTML = '';
-    
     const sorted = Array.from(categoriesSet).sort();
     sorted.forEach(cat => {
         const btn = document.createElement('button');
@@ -169,29 +247,21 @@ function renderCategories() {
         btn.onclick = () => filterByCategory(cat);
         categoryList.appendChild(btn);
     });
-    
-    // Update active state based on currentFilter
     const allBtn = document.querySelector('.category-filter[data-category="all"]');
     const selectedBtn = document.querySelector(`.category-filter[data-category="${currentFilter}"]`);
-    
     if (allBtn) allBtn.classList.remove('active');
     if (selectedBtn) selectedBtn.classList.add('active');
     else if (allBtn && currentFilter === 'all') allBtn.classList.add('active');
 }
 
-// Filter products by category
 function filterByCategory(category) {
     currentFilter = category;
-    document.querySelectorAll('.category-filter').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.getAttribute('data-category') === category) {
-            btn.classList.add('active');
-        }
-    });
+    document.querySelectorAll('.category-filter').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.querySelector(`.category-filter[data-category="${category}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
     renderCart();
 }
 
-// Main render: group and display
 function renderCart() {
     const availableContainer = document.getElementById('availableProducts');
     const unavailableContainer = document.getElementById('unavailableProducts');
@@ -212,7 +282,6 @@ function renderCart() {
     }
     emptyMessage.style.display = 'none';
 
-    // Group available items
     const availableGroups = groupBySeller(filteredAvailable);
     if (availableGroups.length === 0) {
         availableContainer.innerHTML = '<div class="no-items-message">No items in this category</div>';
@@ -220,7 +289,6 @@ function renderCart() {
         availableContainer.innerHTML = availableGroups.map(group => renderSellerGroup(group, false)).join('');
     }
 
-    // Group unavailable items
     const unavailableGroups = groupBySeller(cartData.unavailable);
     if (unavailableGroups.length === 0) {
         unavailableSection.style.display = 'none';
@@ -233,7 +301,6 @@ function renderCart() {
     attachGroupCheckboxEvents();
 }
 
-// Render a seller group (header + items)
 function renderSellerGroup(group, isUnavailable) {
     try {
         const groupId = `seller-${group.seller_id}`;
@@ -272,7 +339,6 @@ function renderSellerGroup(group, isUnavailable) {
     }
 }
 
-// Render a single cart item card
 function renderCartItem(item, isUnavailable) {
     try {
         const statusClass = item.status === 'approved' ? '' : 'unavailable';
@@ -282,9 +348,18 @@ function renderCartItem(item, isUnavailable) {
         const productName = item.product_name || 'Product';
         const price = item.price ? parseFloat(item.price).toFixed(2) : '0.00';
         let productImage = item.product_image || '/static/uploads/placeholder.jpg';
-        
         if (productImage && productImage.startsWith('/static/uploads//')) {
             productImage = productImage.replace('/static/uploads//', '/static/uploads/');
+        }
+        // Check if user already has a pending/accepted offer for this product
+        const offerStatus = item.user_offer_status || null;  // we'll set this later
+        let offerButtonHtml = '';
+        if (offerStatus && offerStatus !== 'rejected' && offerStatus !== 'cancelled') {
+            let btnText = offerStatus === 'pending' ? '⏳ Offer Pending' : (offerStatus === 'accepted' ? '✅ Offer Accepted' : '💰 Offer');
+            let btnClass = offerStatus === 'pending' ? 'offer-pending-btn' : (offerStatus === 'accepted' ? 'offer-accepted-btn' : 'offer-from-cart-btn');
+            offerButtonHtml = `<button class="${btnClass}" data-product-id="${item.product_id}" data-price="${item.price}" ${disabledAttr} data-offer-status="${offerStatus}">${btnText}</button>`;
+        } else {
+            offerButtonHtml = `<button class="offer-from-cart-btn" data-product-id="${item.product_id}" data-price="${item.price}" ${disabledAttr}>💰 Offer</button>`;
         }
 
         return `
@@ -300,8 +375,12 @@ function renderCartItem(item, isUnavailable) {
                         <div class="cart-item-price">RM ${price}</div>
                     </div>
                     <div class="cart-item-actions">
-                        <button class="offer-from-cart-btn" data-product-id="${item.product_id}" data-price="${item.price}" ${disabledAttr}>💰 Offer</button>
-                        <button class="buy-from-cart-btn" data-product-id="${item.product_id}" data-name="${escapeHtml(productName)}" data-price="${item.price}" data-image="${productImage}" ${disabledAttr}>🛒 Buy Now</button>
+                        ${offerButtonHtml}
+                        <button class="buy-from-cart-btn" data-product-id="${item.product_id}" 
+                            data-name="${escapeHtml(productName)}" 
+                            data-price="${item.price}" 
+                            data-image="${productImage}"
+                            data-condition="${item.condition || 'Good'}" ${disabledAttr}>🛒 Buy Now</button>
                     </div>
                 </div>
             </a>
@@ -312,61 +391,23 @@ function renderCartItem(item, isUnavailable) {
     }
 }
 
-// Attach events for individual item buttons (offer, buy, etc.)
 function attachItemEvents() {
     document.querySelectorAll('.offer-from-cart-btn').forEach(btn => {
         btn.removeEventListener('click', handleOfferClick);
         btn.addEventListener('click', handleOfferClick);
     });
+    // Also handle offer-pending/accepted buttons: navigate to My Purchases
+    document.querySelectorAll('.offer-pending-btn, .offer-accepted-btn').forEach(btn => {
+        btn.removeEventListener('click', () => {});
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            window.location.href = '/my-profile?tab=purchases';
+        });
+    });
     document.querySelectorAll('.buy-from-cart-btn').forEach(btn => {
         btn.removeEventListener('click', handleBuyClick);
         btn.addEventListener('click', handleBuyClick);
-    });
-}
-
-// After rendering the cart, attach listeners to item checkboxes to update group checkbox state
-function attachItemCheckboxEvents() {
-    document.querySelectorAll('.item-select').forEach(itemChk => {
-        itemChk.removeEventListener('change', handleItemCheckboxChange);
-        itemChk.addEventListener('change', handleItemCheckboxChange);
-    });
-}
-
-// When an individual item checkbox changes, update the corresponding group checkbox
-function handleItemCheckboxChange(e) {
-    const itemChk = e.target;
-    const sellerId = itemChk.dataset.sellerId;
-    const groupDiv = document.querySelector(`.seller-group[data-seller-id="${sellerId}"]`);
-    if (!groupDiv) return;
-    
-    const groupChk = groupDiv.querySelector('.group-select');
-    const allItemCheckboxes = groupDiv.querySelectorAll('.item-select');
-    const allChecked = Array.from(allItemCheckboxes).every(chk => chk.checked);
-    
-    if (groupChk) {
-        groupChk.checked = allChecked;
-    }
-}
-
-// Modify the existing attachGroupCheckboxEvents to also call attachItemCheckboxEvents
-// Replace your current attachGroupCheckboxEvents function with this:
-function attachGroupCheckboxEvents() {
-    document.querySelectorAll('.group-select').forEach(groupChk => {
-        groupChk.removeEventListener('change', handleGroupCheckboxChange);
-        groupChk.addEventListener('change', handleGroupCheckboxChange);
-    });
-    attachItemCheckboxEvents();  // <-- add this line
-}
-
-function handleGroupCheckboxChange(e) {
-    const groupChk = e.target;
-    const sellerId = groupChk.dataset.sellerId;
-    const isChecked = groupChk.checked;
-    const groupDiv = document.querySelector(`.seller-group[data-seller-id="${sellerId}"]`);
-    if (!groupDiv) return;
-    const itemCheckboxes = groupDiv.querySelectorAll('.item-select');
-    itemCheckboxes.forEach(itemChk => {
-        itemChk.checked = isChecked;
     });
 }
 
@@ -381,90 +422,7 @@ function handleOfferClick(e) {
     document.getElementById('offerModal').style.display = 'flex';
 }
 
-function handleBuyClick(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    const btn = e.currentTarget;
-    currentBuyProductId = parseInt(btn.dataset.productId);
-    const name = btn.dataset.name;
-    const price = parseFloat(btn.dataset.price);
-    const imageUrl = btn.dataset.image;
-    
-    document.getElementById('buyModalProductName').innerText = name;
-    document.getElementById('buyModalPrice').innerText = `RM ${price.toFixed(2)}`;
-    
-    const modalImageContainer = document.getElementById('buyModalImage');
-    if (imageUrl && imageUrl !== '/static/uploads/placeholder.jpg') {
-        if (imageUrl.startsWith('data:')) {
-            modalImageContainer.innerHTML = `<img src="${imageUrl}" style="width:100%;height:100%;object-fit:cover;">`;
-        } else {
-            modalImageContainer.innerHTML = `<img src="${imageUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='/static/uploads/placeholder.jpg'">`;
-        }
-    } else {
-        modalImageContainer.innerHTML = '<div style="font-size:40px;">📦</div>';
-    }
-    
-    loadBuyLocations(currentBuyProductId);
-    document.getElementById('buyModal').style.display = 'flex';
-}
-
-async function loadBuyLocations(productId) {
-    const resp = await fetch(`/api/product/${productId}/seller-campus`, { credentials: 'same-origin' });
-    const data = await resp.json();
-    const campus = data.campus || 'Cyberjaya';
-    const locations = campus.includes('Cyber') ? cyberjayaLocations : melakaLocations;
-    renderLocationButtons(locations);
-}
-
-function renderLocationButtons(locations) {
-    const grid = document.getElementById('buyLocationGrid');
-    grid.innerHTML = '';
-    selectedLocations = [];
-    locations.forEach(loc => {
-        const btn = document.createElement('button');
-        btn.className = 'location-btn';
-        btn.innerHTML = `<img src="${loc.image}" class="location-btn-img"><div class="location-btn-label">${loc.name}</div>`;
-        btn.onclick = () => toggleBuyLocation(loc.name);
-        grid.appendChild(btn);
-    });
-    updateBuyLocationUI();
-}
-
-function toggleBuyLocation(locName) {
-    const idx = selectedLocations.indexOf(locName);
-    if (idx !== -1) {
-        selectedLocations.splice(idx, 1);
-    } else {
-        if (selectedLocations.length >= 3) {
-            showToastMessage('Maximum 3 locations allowed', 'error');
-            return;
-        }
-        selectedLocations.push(locName);
-    }
-    updateBuyLocationUI();
-}
-
-function updateBuyLocationUI() {
-    const infoDiv = document.getElementById('buySelectedLocationsInfo');
-    if (selectedLocations.length === 0) {
-        infoDiv.innerHTML = '⚠️ Select 1-3 meetup locations';
-        infoDiv.style.color = '#e74c3c';
-    } else {
-        infoDiv.innerHTML = `✓ Selected: ${selectedLocations.join(', ')}`;
-        infoDiv.style.color = '#2ecc71';
-    }
-    document.querySelectorAll('#buyLocationGrid .location-btn').forEach(btn => {
-        const label = btn.querySelector('.location-btn-label').innerText;
-        if (selectedLocations.includes(label)) {
-            btn.classList.add('selected');
-        } else {
-            btn.classList.remove('selected');
-        }
-    });
-}
-
-// Send offer
-document.getElementById('sendOfferBtn').onclick = async () => {
+async function sendOfferFromCart() {
     const amount = parseFloat(document.getElementById('offerAmount').value);
     if (!amount || amount <= 0) {
         showToastMessage('Enter a valid amount', 'error');
@@ -480,40 +438,271 @@ document.getElementById('sendOfferBtn').onclick = async () => {
     if (data.success) {
         showToastMessage('Offer sent!', 'success');
         closeOfferModal();
-        await removeCartItems([currentOfferProductId]);
-        loadCart();
+        // Do NOT remove item from cart. Instead, update the offer button.
+        // We'll reload cart to reflect offer status (requires backend to return user_offer_status)
+        loadCart();  // reload cart – will show the pending offer button
     } else {
         showToastMessage(data.error || 'Failed to send offer', 'error');
     }
-};
+}
+document.getElementById('sendOfferBtn').onclick = sendOfferFromCart;
 
-// Buy now from cart
-document.getElementById('confirmBuyFromCartBtn').onclick = async () => {
-    if (selectedLocations.length === 0) {
-        showToastMessage('Select meetup locations', 'error');
+function handleBuyClick(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    const btn = e.currentTarget;
+    currentBuyProductId = parseInt(btn.dataset.productId);
+    window.currentBuyProductName = btn.dataset.name;
+    window.currentBuyProductPrice = parseFloat(btn.dataset.price);
+    window.currentBuyProductImage = btn.dataset.image;
+    window.currentBuyCondition = btn.dataset.condition || "Good";
+    // Fetch seller campus to decide location list
+    fetch(`/api/product/${currentBuyProductId}/seller-campus`)
+        .then(r => r.json())
+        .then(data => {
+            window.currentBuySellerCampus = data.campus || "Cyberjaya Campus";
+            openDateModal();
+        })
+        .catch(() => {
+            window.currentBuySellerCampus = "Cyberjaya Campus";
+            openDateModal();
+        });
+}
+
+// ======================== DATE & LOCATION MODAL FUNCTIONS (copied from product page) ========================
+function getMeetupLocations() {
+    if (window.currentBuySellerCampus && window.currentBuySellerCampus.includes('Cyberjaya')) {
+        return cyberjayaLocations;
+    } else {
+        return melakaLocations;
+    }
+}
+
+function openDateModal() {
+    if (!currentBuyProductId) return;
+    document.getElementById('dateModalProductName').innerText = window.currentBuyProductName;
+    document.getElementById('dateModalProductPrice').innerText = `RM ${window.currentBuyProductPrice.toFixed(2)}`;
+    document.getElementById('dateModalCondition').innerText = window.currentBuyCondition;
+    const campusSpan = document.getElementById('dateModalCampus');
+    if (window.currentBuySellerCampus) {
+        campusSpan.innerText = window.currentBuySellerCampus.replace(' Campus', '');
+        campusSpan.className = `campus-badge ${window.currentBuySellerCampus.includes('Cyberjaya') ? 'cyber' : 'mlk'}`;
+    }
+    const modalImage = document.getElementById('dateModalProductImage');
+    if (window.currentBuyProductImage && window.currentBuyProductImage.startsWith('data:')) {
+        modalImage.innerHTML = `<img src="${window.currentBuyProductImage}" style="width:100%;height:100%;object-fit:cover;">`;
+    } else if (window.currentBuyProductImage) {
+        modalImage.innerHTML = `<img src="${window.currentBuyProductImage}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='/static/uploads/placeholder.jpg'">`;
+    } else {
+        modalImage.innerHTML = '<div style="font-size:40px;">📦</div>';
+    }
+    resetDateModal();
+    document.getElementById('dateModal').style.display = 'flex';
+}
+
+function closeDateModal(preserve = false) {
+    document.getElementById('dateModal').style.display = 'none';
+    if (!preserve) {
+        resetDateModal();
+        selectedDates = [];
+        selectedLocations = [];
+        updateLocationUI();
+    }
+}
+
+function resetDateModal() {
+    const container = document.getElementById('dateTimeInputs');
+    container.innerHTML = '<div class="date-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
+    selectedDates = [];
+    updateRemoveButtons();
+}
+
+function addDateTimeRow() {
+    const rows = document.querySelectorAll('#dateTimeInputs .date-row');
+    if (rows.length >= 3) {
+        showToastMessage('You can only select up to 3 dates.', 'error');
         return;
     }
-    const resp = await fetch('/api/buy-now', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            product_id: currentBuyProductId,
-            meetup_locations: selectedLocations,
-            meeting_dates: []
-        }),
-        credentials: 'same-origin'
+    const container = document.getElementById('dateTimeInputs');
+    const newRow = document.createElement('div');
+    newRow.className = 'date-row';
+    newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="removeDateTimeRow(this)">✕</button>';
+    container.appendChild(newRow);
+    updateRemoveButtons();
+}
+
+function removeDateTimeRow(btn) {
+    const row = btn.closest('.date-row');
+    row.remove();
+    updateRemoveButtons();
+}
+
+function updateRemoveButtons() {
+    const rows = document.querySelectorAll('#dateTimeInputs .date-row');
+    rows.forEach(row => {
+        const removeBtn = row.querySelector('.remove-date-btn');
+        removeBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
     });
-    const data = await resp.json();
-    if (data.success) {
-        showToastMessage('Order created! Redirecting...', 'success');
-        closeBuyModal();
-        await removeCartItems([currentBuyProductId]);
-        loadCart();
-        setTimeout(() => window.location.href = '/my-profile?tab=orders', 1500);
-    } else {
-        showToastMessage(data.error || 'Failed to create order', 'error');
+}
+
+function validateAndProceed() {
+    const rows = document.querySelectorAll('#dateTimeInputs .date-row');
+    if (rows.length === 0) {
+        showToastMessage('Please select at least one date and time.', 'error');
+        return;
     }
-};
+    const selected = [];
+    const now = new Date();
+    now.setSeconds(0, 0);
+    for (let i = 0; i < rows.length; i++) {
+        const input = rows[i].querySelector('.datetime-picker');
+        const val = input.value;
+        if (!val) {
+            showToastMessage(`Please fill all date/time fields (row ${i+1}).`, 'error');
+            return;
+        }
+        const dt = new Date(val);
+        if (dt <= now) {
+            showToastMessage(`Date/time must be in the future (row ${i+1}).`, 'error');
+            return;
+        }
+        selected.push(val);
+    }
+    selectedDates = selected;
+    closeDateModal(true);
+    openBuyModal(true);
+}
+
+function openBuyModal(preserve = false) {
+    if (!currentBuyProductId) return;
+    document.getElementById('modalProductName').innerText = window.currentBuyProductName;
+    document.getElementById('modalProductPrice').innerText = `RM ${window.currentBuyProductPrice.toFixed(2)}`;
+    document.getElementById('modalCondition').innerText = window.currentBuyCondition;
+    const campusSpan = document.getElementById('modalCampus');
+    if (window.currentBuySellerCampus) {
+        campusSpan.innerText = window.currentBuySellerCampus.replace(' Campus', '');
+        campusSpan.className = `campus-badge ${window.currentBuySellerCampus.includes('Cyberjaya') ? 'cyber' : 'mlk'}`;
+    }
+    document.getElementById('sellerCampusName').innerText = window.currentBuySellerCampus || "Seller's Campus";
+    const modalImage = document.getElementById('modalProductImage');
+    if (window.currentBuyProductImage && window.currentBuyProductImage.startsWith('data:')) {
+        modalImage.innerHTML = `<img src="${window.currentBuyProductImage}" style="width:100%;height:100%;object-fit:cover;">`;
+    } else if (window.currentBuyProductImage) {
+        modalImage.innerHTML = `<img src="${window.currentBuyProductImage}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='/static/uploads/placeholder.jpg'">`;
+    } else {
+        modalImage.innerHTML = '<div style="font-size:40px;">📦</div>';
+    }
+    if (!preserve) selectedLocations = [];
+    generateLocationButtons();
+    updateLocationUI();
+    document.getElementById('buyModal').style.display = 'flex';
+}
+
+function generateLocationButtons() {
+    const grid = document.getElementById('locationGrid');
+    grid.innerHTML = '';
+    const locations = getMeetupLocations();
+    locations.forEach(loc => {
+        const btn = document.createElement('button');
+        btn.className = 'location-btn';
+        btn.setAttribute('data-location', loc.name);
+        btn.innerHTML = `<img src="${loc.image}" class="location-btn-img"><div class="location-btn-label">${loc.name}</div>`;
+        btn.onclick = (function(locationName) {
+            return function() { toggleLocation(locationName); };
+        })(loc.name);
+        grid.appendChild(btn);
+    });
+}
+
+function toggleLocation(locationName) {
+    const index = selectedLocations.indexOf(locationName);
+    if (index !== -1) {
+        selectedLocations.splice(index, 1);
+    } else {
+        if (selectedLocations.length >= 3) {
+            showToastMessage('You can select up to 3 locations.', 'error');
+            return;
+        }
+        selectedLocations.push(locationName);
+    }
+    updateLocationUI();
+}
+
+function updateLocationUI() {
+    document.querySelectorAll('#locationGrid .location-btn').forEach(btn => {
+        const locName = btn.querySelector('.location-btn-label').innerText;
+        if (selectedLocations.includes(locName)) btn.classList.add('selected');
+        else btn.classList.remove('selected');
+    });
+    const infoDiv = document.getElementById('selectedLocationsInfo');
+    if (selectedLocations.length === 0) {
+        infoDiv.innerHTML = '⚠️ No locations selected. Please choose 1‑3 locations.';
+        infoDiv.style.color = '#e74c3c';
+    } else {
+        infoDiv.innerHTML = `✓ Selected: ${selectedLocations.join(', ')} (${selectedLocations.length}/3)`;
+        infoDiv.style.color = '#2ecc71';
+    }
+}
+
+function finalCancel() {
+    closeBuyModal();
+    resetDateModal();
+    selectedDates = [];
+    selectedLocations = [];
+    closeDateModal();
+}
+
+function goBackToDateModal() {
+    closeBuyModal();
+    openDateModal(true);
+}
+
+async function confirmPurchaseFromCart() {
+    if (selectedLocations.length === 0) {
+        showToastMessage('Please select at least one meetup location.', 'error');
+        return;
+    }
+    const confirmBtn = document.getElementById('confirmBuyBtn');
+    const originalText = confirmBtn.textContent;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Processing...';
+
+    try {
+        const resp = await fetch('/api/buy-now', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                product_id: currentBuyProductId,
+                meetup_locations: selectedLocations,
+                meeting_dates: selectedDates
+            }),
+            credentials: 'same-origin'
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToastMessage('✅ Purchase reserved! Seller will confirm.', 'success');
+            finalCancel();
+            // Remove the purchased item from cart (since it's now reserved)
+            await removeCartItems([currentBuyProductId]);
+            loadCart();
+            setTimeout(() => window.location.href = '/my-profile?tab=orders', 2000);
+        } else {
+            throw new Error(data.error || 'Failed to process purchase');
+        }
+    } catch (err) {
+        showToastMessage('❌ Error: ' + err.message, 'error');
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalText;
+    }
+}
+
+document.getElementById('confirmDatesBtn').addEventListener('click', validateAndProceed);
+document.getElementById('addDateBtn').addEventListener('click', addDateTimeRow);
+document.getElementById('confirmBuyBtn').addEventListener('click', confirmPurchaseFromCart);
+
+function closeBuyModal() { document.getElementById('buyModal').style.display = 'none'; }
+function closeOfferModal() { document.getElementById('offerModal').style.display = 'none'; currentOfferProductId = null; }
 
 async function removeCartItems(productIds) {
     const resp = await fetch('/cart/remove', {
@@ -523,18 +712,11 @@ async function removeCartItems(productIds) {
         credentials: 'same-origin'
     });
     const data = await resp.json();
-    if (data.success) {
-        showToastMessage('Removed from cart', 'success');
-    } else {
-        showToastMessage('Failed to remove', 'error');
-    }
+    if (!data.success) showToastMessage('Failed to remove item', 'error');
 }
 
 async function removeUnavailable() {
-    const resp = await fetch('/cart/remove-unavailable', {
-        method: 'POST',
-        credentials: 'same-origin'
-    });
+    const resp = await fetch('/cart/remove-unavailable', { method: 'POST', credentials: 'same-origin' });
     const data = await resp.json();
     if (data.success) {
         showToastMessage('Unavailable items removed', 'success');
@@ -544,13 +726,11 @@ async function removeUnavailable() {
     }
 }
 
-// Edit mode toggle
 function toggleEditMode() {
     editMode = !editMode;
     const editBtn = document.getElementById('editModeBtn');
     const removeBtn = document.getElementById('removeSelectedBtn');
     const cartMain = document.querySelector('.cart-main');
-
     if (editMode) {
         editBtn.textContent = 'Done';
         editBtn.classList.add('active');
@@ -561,11 +741,8 @@ function toggleEditMode() {
         editBtn.classList.remove('active');
         removeBtn.disabled = true;
         cartMain.classList.remove('edit-mode');
-        // Uncheck all checkboxes
         document.querySelectorAll('.group-select, .item-select').forEach(cb => cb.checked = false);
     }
-    
-    // Re‑render the cart to include checkboxes in the HTML
     renderCart();
 }
 
@@ -582,21 +759,8 @@ async function removeSelected() {
 }
 
 function goBack() {
-    if (document.referrer && document.referrer !== "") {
-        window.location.href = document.referrer;
-    } else {
-        window.location.href = "{{ url_for('home') }}";
-    }
-}
-
-function closeOfferModal() {
-    document.getElementById('offerModal').style.display = 'none';
-    currentOfferProductId = null;
-}
-
-function closeBuyModal() {
-    document.getElementById('buyModal').style.display = 'none';
-    currentBuyProductId = null;
+    if (document.referrer && document.referrer !== "") window.location.href = document.referrer;
+    else window.location.href = "{{ url_for('home') }}";
 }
 
 function showToastMessage(message, type) {
@@ -617,60 +781,53 @@ function escapeHtml(str) {
     return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
 }
 
-// Locations data
-const cyberjayaLocations = [
-    { name: "Library", image: "/static/uploads/library.jpg" },
-    { name: "DTC", image: "/static/uploads/dtc.jpg" },
-    { name: "Starbees", image: "/static/uploads/starbees.jpg" },
-    { name: "CLC", image: "/static/uploads/clc.jpg" },
-    { name: "FCI", image: "/static/uploads/fci.jpg" },
-    { name: "FOM", image: "/static/uploads/fom.jpg" },
-    { name: "FAIE", image: "/static/uploads/faie.jpg" },
-    { name: "FCM", image: "/static/uploads/fcm.jpg" },
-    { name: "STC", image: "/static/uploads/stc.jpg" },
-    { name: "HB1", image: "/static/uploads/hb1.jpg" },
-    { name: "HB2", image: "/static/uploads/hb2.jpg" },
-    { name: "HB3", image: "/static/uploads/hb3.jpg" },
-    { name: "HB4", image: "/static/uploads/hb4.jpg" },
-    { name: "Masjid", image: "/static/uploads/masjid.jpg" },
-    { name: "Tekun Mart", image: "/static/uploads/tekun_mart.jpg" },
-    { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
-];
-const melakaLocations = [
-    { name: "Library (Melaka)", image: "/static/uploads/library.jpg" },
-    { name: "Dewan Tun Canselor", image: "/static/uploads/dtc.jpg" },
-    { name: "Cafeteria", image: "/static/uploads/starbees.jpg" },
-    { name: "Block A", image: "/static/uploads/clc.jpg" },
-    { name: "Block B", image: "/static/uploads/fci.jpg" },
-    { name: "Block C", image: "/static/uploads/fom.jpg" },
-    { name: "Block D", image: "/static/uploads/faie.jpg" },
-    { name: "Block E", image: "/static/uploads/fcm.jpg" },
-    { name: "Sports Complex", image: "/static/uploads/stc.jpg" },
-    { name: "Hostel 1", image: "/static/uploads/hb1.jpg" },
-    { name: "Hostel 2", image: "/static/uploads/hb2.jpg" },
-    { name: "Hostel 3", image: "/static/uploads/hb3.jpg" },
-    { name: "Hostel 4", image: "/static/uploads/hb4.jpg" },
-    { name: "Surau", image: "/static/uploads/masjid.jpg" },
-    { name: "Mini Mart", image: "/static/uploads/tekun_mart.jpg" },
-    { name: "Admin Building", image: "/static/uploads/chancellery.jpg" }
-];
-
-// Setup "All" button click handler
-function setupAllButton() {
-    const allBtn = document.querySelector('.category-filter[data-category="all"]');
-    if (allBtn) {
-        const newBtn = allBtn.cloneNode(true);
-        allBtn.parentNode.replaceChild(newBtn, allBtn);
-        newBtn.addEventListener('click', () => filterByCategory('all'));
-    }
+function attachGroupCheckboxEvents() {
+    document.querySelectorAll('.group-select').forEach(groupChk => {
+        groupChk.removeEventListener('change', (e) => {
+            const sellerId = e.target.dataset.sellerId;
+            const isChecked = e.target.checked;
+            const groupDiv = document.querySelector(`.seller-group[data-seller-id="${sellerId}"]`);
+            if (groupDiv) {
+                groupDiv.querySelectorAll('.item-select').forEach(itemChk => itemChk.checked = isChecked);
+            }
+        });
+        groupChk.addEventListener('change', (e) => {
+            const sellerId = e.target.dataset.sellerId;
+            const isChecked = e.target.checked;
+            const groupDiv = document.querySelector(`.seller-group[data-seller-id="${sellerId}"]`);
+            if (groupDiv) {
+                groupDiv.querySelectorAll('.item-select').forEach(itemChk => itemChk.checked = isChecked);
+            }
+        });
+    });
+    document.querySelectorAll('.item-select').forEach(itemChk => {
+        itemChk.removeEventListener('change', () => {});
+        itemChk.addEventListener('change', (e) => {
+            const sellerId = e.target.dataset.sellerId;
+            const groupDiv = document.querySelector(`.seller-group[data-seller-id="${sellerId}"]`);
+            if (groupDiv) {
+                const allItemCheckboxes = groupDiv.querySelectorAll('.item-select');
+                const allChecked = Array.from(allItemCheckboxes).every(chk => chk.checked);
+                const groupChk = groupDiv.querySelector('.group-select');
+                if (groupChk) groupChk.checked = allChecked;
+            }
+        });
+    });
 }
 
-// Initialize event listeners
 document.getElementById('editModeBtn').addEventListener('click', toggleEditMode);
 document.getElementById('removeSelectedBtn').addEventListener('click', removeSelected);
 document.getElementById('removeUnavailableBtn').addEventListener('click', removeUnavailable);
-setupAllButton();
 loadCart();
-</script>
 
+// Make sure modals close when clicking outside
+window.onclick = function(event) {
+    const dateModal = document.getElementById('dateModal');
+    const buyModal = document.getElementById('buyModal');
+    const offerModal = document.getElementById('offerModal');
+    if (event.target === dateModal) closeDateModal();
+    if (event.target === buyModal) closeBuyModal();
+    if (event.target === offerModal) closeOfferModal();
+};
+</script>
 {% endblock %}

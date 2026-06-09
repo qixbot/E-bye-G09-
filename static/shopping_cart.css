@@ -103,7 +103,7 @@
     gap: 16px;
 }
 
-/* Seller Group */
+/* Seller Group – full header clickable (except checkbox) */
 .seller-group {
     margin-bottom: 24px;
     border: 1px solid #eae7e0;
@@ -114,12 +114,12 @@
 
 .seller-group-header {
     display: flex;
-    align-items: stretch;
+    align-items: stretch;          /* makes checkbox and link full height */
     background: #fafaf8;
     border-bottom: 1px solid #eae7e0;
 }
 
-/* Checkbox container – perfectly centered */
+/* Checkbox container – vertically centered, not part of link */
 .group-checkbox {
     display: flex;
     align-items: center;
@@ -140,7 +140,7 @@
     display: inline-block;
 }
 
-/* Link that fills the rest of the header */
+/* The actual link – takes all remaining space and full height */
 .seller-group-link {
     flex: 1;
     display: flex;
@@ -284,7 +284,10 @@
     flex-shrink: 0;
 }
 
-.offer-from-cart-btn, .buy-from-cart-btn {
+.offer-from-cart-btn,
+.offer-pending-btn,
+.offer-accepted-btn,
+.buy-from-cart-btn {
     padding: 6px 16px;
     border-radius: 30px;
     font-size: 0.8rem;
@@ -305,6 +308,18 @@
     color: white;
 }
 
+.offer-pending-btn {
+    background: #f39c12;
+    color: white;
+    cursor: pointer;
+}
+
+.offer-accepted-btn {
+    background: #27ae60;
+    color: white;
+    cursor: pointer;
+}
+
 .buy-from-cart-btn {
     background: #00381f;
     color: white;
@@ -314,7 +329,8 @@
     background: #1a5c3a;
 }
 
-.offer-from-cart-btn:disabled, .buy-from-cart-btn:disabled {
+.offer-from-cart-btn:disabled,
+.buy-from-cart-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -389,7 +405,8 @@
 }
 
 /* Hide checkboxes by default, show only in edit mode */
-.group-checkbox, .item-checkbox {
+.group-checkbox,
+.item-checkbox {
     display: none;
 }
 
