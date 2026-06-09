@@ -2011,6 +2011,18 @@ def cart_remove_unavailable():
     db.close()
     return jsonify({'success': True})
 
+@app.route('/cart/clear', methods=['POST'])
+def cart_clear():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('DELETE FROM cart_items WHERE user_id = %s', (session['user_id'],))
+    db.commit()
+    cur.close()
+    db.close()
+    return jsonify({'success': True})
+
 @app.route('/api/product/<int:product_id>/seller-campus')
 def api_product_seller_campus(product_id):
     db = get_db()
@@ -4483,77 +4495,6 @@ def api_user_other_listings(user_id):
         listings.append(item)
 
     return jsonify(listings)
-
-@app.route('/debug/cart-check')
-def debug_cart_check():
-    if 'user_id' not in session:
-        return "Please login first", 401
-    
-    db = get_db()
-    cur = db.cursor()
-    output = []
-    
-    # 1. Check if cart_items table exists
-    try:
-        cur.execute("SELECT to_regclass('public.cart_items')")
-        row = cur.fetchone()
-        table_exists = row[0] is not None
-        output.append(f"📌 cart_items table exists: {table_exists}")
-    except Exception as e:
-        output.append(f"❌ Error checking table: {e}")
-        table_exists = False
-    
-    # 2. Create table if missing
-    if not table_exists:
-        try:
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS cart_items (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-                    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(user_id, product_id)
-                )
-            ''')
-            db.commit()
-            output.append("✅ cart_items table created")
-        except Exception as e:
-            output.append(f"❌ Failed to create table: {e}")
-    
-    # 3. Now check current cart items
-    try:
-        cur.execute("SELECT product_id FROM cart_items WHERE user_id = %s", (session['user_id'],))
-        items = cur.fetchall()
-        output.append(f"🛒 Items in your cart: {len(items)}")
-        for item in items:
-            output.append(f"   - product_id: {item['product_id']}")
-            cur.execute("SELECT id, name, status FROM products WHERE id = %s", (item['product_id'],))
-            p = cur.fetchone()
-            if p:
-                output.append(f"     → Product '{p['name']}' status: {p['status']}")
-            else:
-                output.append(f"     → Product not found!")
-    except Exception as e:
-        output.append(f"❌ Error reading cart_items: {e}")
-    
-    cur.close()
-    db.close()
-    
-    return "<br>".join(output)
-
-@app.route('/debug/cart-items')
-def debug_cart_items():
-    if 'user_id' not in session:
-        return "Please login", 401
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT product_id FROM cart_items WHERE user_id = %s", (session['user_id'],))
-    items = cur.fetchall()
-    cur.close()
-    db.close()
-    if not items:
-        return "Your cart is empty."
-    return f"Cart has {len(items)} item(s): " + ", ".join(str(i['product_id']) for i in items)
 
 if __name__ == '__main__':
     app.run(debug=True)
