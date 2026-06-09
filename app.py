@@ -1716,9 +1716,9 @@ def cancel_offer(offer_id):
     db = get_db()
     cur = db.cursor()
     
-<<<<<<< HEAD
+    # 检查 offer 是否存在且属于当前买家，状态为 pending
     cur.execute('SELECT * FROM offers WHERE id = %s AND buyer_id = %s AND status = %s', 
-                (offer_id, session['user_id'], 'pending'))  # ✅ 单引号
+                (offer_id, session['user_id'], 'pending'))
     offer = cur.fetchone()
     
     if not offer:
@@ -1726,127 +1726,72 @@ def cancel_offer(offer_id):
         db.close()
         return jsonify({'success': False, 'error': 'Offer not found or cannot be cancelled'}), 404
     
-    cur.execute('UPDATE offers SET status = %s WHERE id = %s', ('cancelled', offer_id))  # ✅ 单引号
-    
-    # ... 其余代码保持不变
-
-@app.route('/api/offer/<int:offer_id>/cancel-counter', methods=['POST'])
-def cancel_counter_offer(offer_id):
-    """Buyer cancels their own counter offer, reverts to pending"""
-=======
-    try:
-        # 先获取 offer 信息，不检查 status（先查出来再判断）
-        cur.execute('''
-            SELECT o.*, p.name as product_name, p.seller_id
-            FROM offers o
-            JOIN products p ON o.product_id = p.id
-            WHERE o.id = %s AND o.buyer_id = %s
-        ''', (offer_id, session['user_id']))
-        
-        offer = cur.fetchone()
-        
-        if not offer:
-            cur.close()
-            db.close()
-            return jsonify({'success': False, 'error': 'Offer not found'}), 404
-        
-        # 检查状态
-        if offer['status'] != 'countered':
-            cur.close()
-            db.close()
-            return jsonify({'success': False, 'error': 'Offer is not in countered status'}), 400
-        
-        # 将状态改回 pending，清除 counter_price
-        cur.execute("UPDATE offers SET status = 'pending', counter_price = NULL WHERE id = %s", (offer_id,))
-        
-        # 通知卖家
-        cur.execute('''
-            INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-            VALUES (%s, %s, NOW(), 'offer_rejected', %s, 0)
-        ''', (offer['seller_id'],
-              f"❌ Buyer rejected your counter offer of RM {offer['counter_price']:.2f} for \"{offer['product_name']}\". The original offer is still pending.",
-              offer_id))
-        
-        db.commit()
-        cur.close()
-        db.close()
-        
-        return jsonify({'success': True})
-        
-    except Exception as e:
-        print(f"Error in reject_counter_offer: {e}")
-        if db:
-            db.rollback()
-            cur.close()
-            db.close()
-        return jsonify({'success': False, 'error': str(e)}), 500
-    
-@app.route('/api/current-user-id')
-def api_current_user_id():
-    """获取当前登录用户ID"""
-    if 'user_id' not in session:
-        return jsonify({'user_id': None})
-    return jsonify({'user_id': session['user_id']})
-
-
-@app.route('/api/offer/<int:offer_id>/cancel', methods=['POST'])
-def api_cancel_offer(offer_id):
-    """买家取消自己的 offer"""
->>>>>>> keting/week10
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-    
-    db = get_db()
-    cur = db.cursor()
-    
-<<<<<<< HEAD
-    # Check if offer exists and belongs to the buyer, and is in 'countered' status
-    cur.execute('''
-        SELECT o.*, p.name as product_name, p.seller_id
-        FROM offers o
-        JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s AND o.buyer_id = %s AND o.status = 'countered'
-    ''', (offer_id, session['user_id']))
-    
-=======
-    cur.execute('SELECT * FROM offers WHERE id = %s AND buyer_id = %s AND status = "pending"', 
-                (offer_id, session['user_id']))
->>>>>>> keting/week10
-    offer = cur.fetchone()
-    
-    if not offer:
-        cur.close()
-        db.close()
-<<<<<<< HEAD
-        return jsonify({'success': False, 'error': 'Offer not found or cannot be cancelled'}), 404
-    
-    # Revert to pending status and clear counter_price
-    cur.execute("UPDATE offers SET status = 'pending', counter_price = NULL WHERE id = %s", (offer_id,))
-    
-    # Notify seller
-    cur.execute('''
-        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
-    ''', (offer['seller_id'],
-          f" Buyer cancelled their counter offer for \"{offer['product_name']}\". The original offer of RM {offer['offer_price']:.2f} is still pending.",
-          offer_id))
-=======
-        return jsonify({'success': False, 'error': 'Offer not found or cannot be cancelled'}), 400
-    
-    cur.execute('UPDATE offers SET status = "cancelled" WHERE id = %s', (offer_id,))
+    # 更新状态为 cancelled
+    cur.execute('UPDATE offers SET status = %s WHERE id = %s', ('cancelled', offer_id))
     
     # 通知卖家 offer 已取消
     cur.execute('''
-        INSERT INTO notifications (user_id, message, created_at, type, is_read)
-        VALUES (%s, %s, NOW(), 'system', 0)
-    ''', (offer['seller_id'], f'🗑️ Buyer cancelled their offer for your product.'))
->>>>>>> keting/week10
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'system', %s, 0)
+    ''', (offer['seller_id'], 
+          f'🗑️ Buyer cancelled their offer of RM {offer["offer_price"]:.2f} for your product.',
+          offer_id))
     
     db.commit()
     cur.close()
     db.close()
     
     return jsonify({'success': True})
+
+
+@app.route('/api/offer/<int:offer_id>/cancel-counter', methods=['POST'])
+def cancel_counter_offer(offer_id):
+    """买家取消自己的 counter offer，恢复为 pending 状态"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    # 检查 offer 是否存在且属于当前买家，状态为 countered
+    cur.execute('''
+        SELECT o.*, p.name as product_name, p.seller_id
+        FROM offers o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.id = %s AND o.buyer_id = %s AND o.status = %s
+    ''', (offer_id, session['user_id'], 'countered'))
+    
+    offer = cur.fetchone()
+    
+    if not offer:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Counter offer not found or cannot be cancelled'}), 404
+    
+    # 恢复到 pending 状态，清除 counter_price
+    cur.execute("UPDATE offers SET status = 'pending', counter_price = NULL WHERE id = %s", (offer_id,))
+    
+    # 通知卖家
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
+    ''', (offer['seller_id'],
+          f"❌ Buyer cancelled their counter offer for \"{offer['product_name']}\". The original offer of RM {offer['offer_price']:.2f} is still pending.",
+          offer_id))
+    
+    db.commit()
+    cur.close()
+    db.close()
+    
+    return jsonify({'success': True})
+
+
+@app.route('/api/current-user-id')
+def api_current_user_id():
+    """获取当前登录用户ID"""
+    if 'user_id' not in session:
+        return jsonify({'user_id': None})
+    return jsonify({'user_id': session['user_id']})
     
 @app.route('/api/offer/<int:offer_id>/create-order', methods=['POST'])
 def api_create_order_from_offer(offer_id):
