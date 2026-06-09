@@ -2046,32 +2046,16 @@ def api_buy_now():
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), 'order', %s, 0)
     ''', (product['seller_id'],
-<<<<<<< HEAD
           f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Go to My Orders to confirm.",
           'order_created', order_id))
-=======
-          f"🛒 NEW ORDER #{order_number}! {session['username']} wants to buy \"{product['name']}\" for RM {product['price']:.2f}. " +
-          f"Preferred locations: {', '.join(meetup_locations)}. " +
-          (f"Preferred times: {meeting_dates_str}" if meeting_dates else "") +
-          f" Go to My Orders to confirm or decline.",
-          order_id))
->>>>>>> keting/week10
     
     # 通知买家订单已创建
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), 'order', %s, 0)
     ''', (session['user_id'],
-<<<<<<< HEAD
           f"✅ Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. Meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Waiting for seller to confirm.",
           'order_created', order_id))
-=======
-          f"📋 Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. " +
-          f"Meetup: {', '.join(meetup_locations)}. " +
-          (f"Times: {meeting_dates_str}" if meeting_dates else "") +
-          f" Waiting for seller to confirm.",
-          order_id))
->>>>>>> keting/week10
     
     db.commit()
     cur.close()
