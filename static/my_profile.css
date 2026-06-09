@@ -2388,3 +2388,79 @@
     color: #00c896;
     text-decoration: underline;
 }
+
+/* 按钮容器 - 左对齐，增加左右内边距 */
+.offer-actions-row,
+.product-actions,
+.order-actions {
+    display: flex !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    margin-top: 8px !important;
+    margin-bottom: 4px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+}
+
+/* 所有操作按钮 - 适中大小 + 圆角 */
+.accept-offer-btn,
+.offer-action-btn.accept-counter-btn,
+.order-action-btn.confirm-btn,
+.checkout-btn,
+.reject-offer-btn,
+.offer-action-btn.reject-counter-btn,
+.offer-action-btn.cancel-counter-btn,
+.view-order-btn {
+    padding: 8px 20px !important;
+    border-radius: 40px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+/* 绿色按钮 - 白色字体 */
+.accept-offer-btn,
+.offer-action-btn.accept-counter-btn,
+.order-action-btn.confirm-btn,
+.checkout-btn {
+    background: linear-gradient(135deg, #1a7a48, #0d5a30) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.accept-offer-btn:hover,
+.offer-action-btn.accept-counter-btn:hover,
+.order-action-btn.confirm-btn:hover,
+.checkout-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 18px rgba(26, 122, 72, 0.4) !important;
+}
+
+/* 红色/取消按钮 */
+.reject-offer-btn,
+.offer-action-btn.reject-counter-btn,
+.offer-action-btn.cancel-counter-btn {
+    background: #f5f5f5 !important;
+    color: #d63c2c !important;
+    border: 1px solid #e0c9c6 !important;
+}
+
+.reject-offer-btn:hover,
+.offer-action-btn.reject-counter-btn:hover,
+.offer-action-btn.cancel-counter-btn:hover {
+    background: #ffe0e0 !important;
+    transform: translateY(-2px) !important;
+}
+
+/* View Order 按钮 */
+.view-order-btn {
+    background: #e8e4dd !important;
+    color: #205c30 !important;
+    border: none !important;
+}
+
+.view-order-btn:hover {
+    background: #d4e8db !important;
+    transform: translateY(-2px) !important;
+}

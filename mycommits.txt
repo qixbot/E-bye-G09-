@@ -1,0 +1,172 @@
+7f511dab5f7001b627e569077ef47c8c7f61ea57 2026-06-07 add gunicorn
+2e79bd76d69c3a76cb2e4e92c02d3f8ca79f364f 2026-06-03 finish fixing with the accept counter offer issues.
+827ce33648b191c8360c11fae78df456718c66fd 2026-06-03 fixing issues with accept the counter offer final version
+38cd30b93d20de9eb3e4ed430e3ec647aaed4111 2026-06-03 Revert "fixing issues with counter offer for proceed to checkout"
+3520ef9f295154a9aaf94144f9c9699468ba92df 2026-06-03 fixing issues with counter offer for proceed to checkout
+cfb293cffbcc11c184b35e25187517d426b2d859 2026-06-03 fixing issues with counter offer
+60c5c90bac28c783c6d9a7045f73d6b9a17df04b 2026-06-03 fixing login error with double pop out message
+e8a0303709c7a92deeeb7365180d9676e67ce534 2026-06-03 fixing issues with accept counter offer and reject offer
+85e335ea1e4b05de0e019aa65b82faf1923807cf 2026-06-03 fixing issues with my profile
+af0f7cba3a4542bea3f50dadd4e7abcda2f622b6 2026-06-03 fixing  review system with check own avatar to my profile pa'ge
+51d25850e761aa5d84623e1cb99a4584dc8b88a0 2026-06-03 fixing  review system with check buyer avatar to user profile pa'ge
+c1f98848af543ec894bf650cea8a85d69dd97ccd 2026-06-03 fixing issues with my profile
+0e61a68841f557ce398726ac03713583273bb329 2026-06-03 feat: Week 10 - Campus field, Sold product handling, Counter-offer fixes & Admin modal
+7ece3cdc0d5cf76f85cc6e33292a4d51259dad51 2026-06-03 fixing issues counter offer issue
+c3287f7051e689cdefc2b80e5023da559aa641c4 2026-06-02 fixing issues
+3791900c0e240941e8bf29da423b6f8a88aac18b 2026-06-02 fixing issues
+d08638a00ba711426faecf44013feab4130a94e9 2026-06-02 fixing issues
+7ee8b4583c4388cf71f40c143e7fa619545cc0dc 2026-06-02 fixing issues with my profile and the database for neon exceed limitations
+5e2f83a3c7b01f573f3e3f72503d75c0edcf45a6 2026-06-02 Merge remote changes
+f74bc02a9eeea4c8fdd1e202010aadddaa077192 2026-06-02 fix: fix emoji display in offers modal header
+65f049f4e98a8fd4fbeaf84cd812549c1c60305c 2026-06-02 Week 10: Complete review system with star ratings, notifications, offer management, order tracking, purchases images, and avatar view modal
+0b8d1be396d108c0784aca8a7a1186aa2c82cf1b 2026-06-02 Week 10: Enhance my profile page with gradient buttons, avatar view modal, simplified rating display, purchases product images, and notification checkout modal
+718c5608bb78d82369550b378cb28219db26473e 2026-06-02 enhance the css design of the my profile page and add avatar view function
+d609b1a478262dfb3cd9ee14e96285cee788d01c 2026-06-02 fix: edit profile layout and campus field
+4eebdabdbcaf0238b97bf64b0e0ab81c06f4c616 2026-06-02 Week 10: campus field and rating system fixes
+2d18f7d1469068adc699946020e6fa4d7f026861 2026-06-02 chore: ignore uploads folder
+7112d1ebe319e66f372f329baa8440ff0d28d07d 2026-06-02 chore: ignore uploads folder
+f5273d36090378bcdc6af93d24d7b9ee74c69087 2026-06-02 chore: add gitignore for uploads folder
+11ea147918762f4a47315998f5a62bc917fb23ba 2026-06-02 feat: complete full review system update edit profile system and update css
+c1b823b940cc436e9a3cab72dc610017e5828649 2026-06-02 feat: 完善评分系统和订单管理功能，更新CSS样式
+0812b6db127fe3f246ebd56a354caaf8d7fb4ad5 2026-05-14 Update edit_profile template
+435a24b0e8609684de95b8399cd6bbdab7bae9a1 2026-05-14 fixing issues'“
+19ed26c9be1611343fdac291a62a5f0ba8c4fa97 2026-05-14 finally change supabase to neon and fixing issues'“
+bfe89bfec198c90f59f89c9ac3dd489f5ad77252 2026-05-13 fixing issues'“
+0504a9bd535eccb6e623adbcd2413cce7f89abc6 2026-05-13 fixing issues'“
+1f160a19d5614a5fd0fcf8814bebe7b4b4e28483 2026-05-13 fixing issues'“
+f27918bce40d78e02717cc669c82154e9097d289 2026-05-13 fixing issues'“
+bced434a97b657492d6d7f38d94f45e2bc564cdd 2026-05-13 fix issue'“
+d94117ec48153ed4df8fe3e4f69868c000545c83 2026-05-13 fix my order logic'“
+39526ab2adb1b571feb54767674f64208635f1fb 2026-05-13 do the my order system'“
+aa144f461c12f741d822d757e7e1339fcc533d1a 2026-05-12 upload new product'“
+cdb19a95a4c04293da38d0f1d801c3cae75e6502 2026-05-10 fixing problem'“
+6cbd47e0f09d4f8eef1d52040cfb366bdfab7389 2026-05-10 fixing notification in user_chatlist and offer button in my profile
+1cb64cf49cf0839aa10bc8c3ec6e8ae193d34aa9 2026-05-10 edit buy now and offer function'“
+07c0f42a7d0943f1d1222b51c69307faef8ae083 2026-05-10 feat: implement review system with:
+ff59f309257914757c6bc41c8b4d30b0e80c9a25 2026-05-10 add star rating button and comment section in my profile“
+61d93d677df185a1b27ae7f5958618c678bb6c18 2026-05-10 add star rating button and comment section in my profile“
+31745fbda9c2fdbbd124cfa64c52ba3960589243 2026-05-10 add complete order system and review system'“
+e7b8f28086051bbb0aa9b117e17612fb47f9c69f 2026-05-10 fixing postgresql app and database“
+8f8be0479cdceac1a5f49e2e2f0e704d0a3c93ae 2026-05-09 remain review system only“
+b827917c404dcda786233e165c85d8af264baf69 2026-05-09 api review systems and add order systems in the app.py
+b122716973c719ce30c02e3b36fb1f9ffc9c0363 2026-05-06 Update database.cpython-311.pyc
+7cb2cc71d85ddc345a5a76088dcb8959a18687aa 2026-05-06 fix:fix login logic
+8c25b979766885632c9e132337d99ca421f0a248 2026-05-06 fix: Add user existence check to prevent NoneType errors in profile pages
+25d0e2733a557832d10ca11b0e5c2bb03a9a0347 2026-05-06 Update database.py
+e51745f00df3ae8924bdc1606b6537ac87a443a0 2026-05-06 revert: Rollback to commit 009421d (Merge branch main into keting/week6)git add .
+174a1ade79c71e1e34da265d56f0ddf6ec27fa23 2026-05-06 fix: Fix database SSL connection issue
+8627524d9959aa324567729f305ec733b452c330 2026-05-06 fix: Fix database SSL connection timeout issue
+44feada1f94a9883ed2f662fe75624c3738653e9 2026-05-06 fixing issues“
+57041a079fbd8edcb80fb1b36809454fe0a47204 2026-05-06 fixing issues“
+4a7b04f4e7aee49fd0e3585e1c8dcfeb54f1413b 2026-05-06 fixing issues“
+aec46f578697269b6b679e04214b58045dc6f022 2026-05-06 fixing issue“
+955b5a3a4be3acf4eb1bb3d38367d196d75ec132 2026-05-06 fix:login def
+7269798040e7ef61a85d70be808a3f8d24efa67e 2026-05-06 fix: Fixed an indentation error in the login function and moved the remember_me handling to the correct code block.
+1696420888a9d6890d506a0d0e2592f17e54ca37 2026-05-04 delete picture'“
+2d0ba7fc9a283f84ffaa434d0393b1711e10cdb3 2026-05-04 delete picture'“
+a3aa56375e0f24fef36d7d761784c10bf96fb0fd 2026-05-03 fixing issue'“
+faaa609f85eb17d9fd92e7c1c47460b65e42b394 2026-05-03 switch to admin function is done and also complete the modal message frame for the confimation message'“
+35896fd1fbbd728153013b6815742b526964cddb 2026-05-03 fixing chat list profile link to edit profile avatar“
+497bb73df082b1e9d6736ef0fb7c3154e9c5c7d3 2026-05-03 fixing issues'“
+2ca89f4f47ec425f080e435a104a67cc21ee9abc 2026-05-03 fixing issues'“
+3c6e732778674337c5290efb500ac6611cf61000 2026-05-03 fixing issues'“
+56760e97a945968701f2bc2aaa9edee968b3d561 2026-05-03 fix: Resolve all merge conflicts and restore full functionality
+9644b9604f3e7babe551bead2125a52805a34a86 2026-05-03 fix: Clean up database.py merge conflicts
+88cea3ac8395ab8a015ef2bd44f3726b6e74c608 2026-05-03 feat: Fix my_profile product editing + add admin Remember Me
+71af2dedd3b7e1a62fa57c892f33ed57412eb1b0 2026-05-03 upgrade welcome page design
+5b9e2cadaaae85697735a979079a3a9e843ce99e 2026-05-03 fixing issues'“
+50cfe0da897db1598415dfdd796d2b7fe3439f01 2026-05-02 update my profile product click area and fixing issues'“
+08e9953536e0b5391d64cefc6b84b972d334244b 2026-05-01 fixing issues'“
+c3d1a731d084186c02ec213e0ab8958b655f4c70 2026-05-01 fixing member me issues and the welcome page issues'“
+10ce526d9c50d7e91d104e705f8dedaac29dadc4 2026-05-01 fixing welcome page and add route for it inside the app.py'“
+962e17976a5d977cde18d789e2c2d441b450e7c2 2026-05-01 done the ver1 welcome page with internal css design'“
+a4589ff80c8f49f58b8b851dc304ab0cf94d1cc0 2026-04-30 fix my_profile cover overlap issue
+a8128e696b4b5715dc6ab595f4b0812732d6a85c 2026-04-30 Revert "delete photo try whether system will let the picture gone or not'“"
+163459421553a7a4b9de89aaf7e142e69979ad05 2026-04-30 delete photo try whether system will let the picture gone or not'“
+4e32f40b0c526f98f38a1355d2aca78b14bbf43c 2026-04-30 fixing issues' response rate issue in my profile“
+869f9532f91884c4c56fd701974f8a29bbb6dc4b 2026-04-30 Update app.py
+bc04be05cca30e76f8ad871f95d266262b0d3757 2026-04-30 update app for trust score system synchronizations for the page my profile and edit profile“
+ac54ce41a309f625829e21b4098928fbda78c883 2026-04-30 Update navbar: custom navigation for edit_profile and my_profile pages
+1bef6e90e7228131b8f7007e5172df91700cb8fe 2026-04-29 fixing issues'“
+3e65a8da3d37635844e282b896ebfc5b70c8d31d 2026-04-29 finish edit profile and my profile part '“
+72dc251e1832f428a18c49a6628cccaecad028fe 2026-04-28 add fist pic for edit profile for the mylisting part '“
+4e2e6b9a1db881baa33dbcf37a9f6620c8a754f7 2026-04-28 fixing issues'“
+ca131d71373f3a1a46238af8daab48214b7d2412 2026-04-28 add my_profile css'“
+0b4d2de77a7c735e24452f4d557ff2f792436d11 2026-04-28 new my_profile html is added'“
+03338681df8c436e8457157dfbe1cb8d765ab692 2026-04-28 update for edit profile to edit product'“
+70ad3498e15fd544f397169938931d09dc39d70f 2026-04-28 update for edit profile to edit product'“
+65a6247f9b4b063b2b3c796295b9ca1ac9c5abe8 2026-04-28 edit profile status fixing“
+c258fe7dae5017c66cb9f09a9132218509712c0f 2026-04-28 Merge remote changes
+a6994d9a266a0e5e4e5130e67dc03785388f2ff1 2026-04-28 fix edit profile html“
+0d37eeff000c2a4822436d0f8420e6777f252c04 2026-04-28 fix edit profile html with missing code“
+59195c630f5516bbc3f77b03bb5f6567757b7ab4 2026-04-28 fix my missing local code“
+d974acf47c0aedff5df7597a7d0d69cd6ff47328 2026-04-27 restore my local code of Edit Profile page app and database
+0beba5dff9529c9d602f154b6aeff04d2c3814d5 2026-04-27 Delete avatar_2__Hyunjin.jpg
+2fb14847d8bf1136f7d90cf348703059023849a7 2026-04-27 Merge remote changes
+9ec5874fac4f6d257603fac75e6305f5623ee290 2026-04-27 check issues“
+02e47c0dd3fb18f9f344ccd71f0ac88d95c7dfd6 2026-04-27 update edit prodile html and app“
+871e898de3faba01fac2c8d0c1d46b9899e4d5cb 2026-04-27 check problem“
+d6020649edd77b4df6ed86b281a317e3ca9b81ce 2026-04-27 check problem“
+0806cf3cff6daba637343e029fb4e69c4e222bbb 2026-04-25 final user_profile css and html are finished , adding details to the app
+d5d5231a56172da6a6589e9ad54c79bcb93a4a2a 2026-04-25 user_profile css and html update , fix error for the app“
+44f680d9d6fc1b2b9dec99a24075ead44f852002 2026-04-25 user_profile css and html update , fix error for the app“
+d9842115f227d8eba9d832d08283ac192204a824 2026-04-25 user_profile css and html update , fix error for the app“
+3307ba3e23403c2d4270a5d5ee96eed931fb9336 2026-04-24 update user profile css and html“
+e700d1a439613b2fbc0b3753cf87c285d5f75bfd 2026-04-24 user_profile css and html update , fix error for the app“
+94b6315511486e19caa8cabc00e95b144331d563 2026-04-24 UPDATE database“
+fad29a5a68ab3c4e6c905e33d2de2ff8d67868f0 2026-04-24 Update edit_profile.css
+ee69ab1be45ce195b5d3e94bd9aef0cf5c8d20f1 2026-04-23 Complete edit_profile page: add cover photo upload, background switcher, account status, and modern UI
+e19da1e9ab27e42a1a3ee1fc440e7a90ad819976 2026-04-22 Create avatar_2_download.jpg
+0cd40813bf847c166a94e51a475d2987de6f86b5 2026-04-22 Fix duplicate flash message in login function
+79c85e2543016026ce4a2584d1b76ba41e6b0688 2026-04-22 Merge branch 'main' of https://github.com/qixbot/E-bye-G09-
+c07707aa985df24ef6e43c4d6d98f41b84b59229 2026-04-22 Fix base.html: clean up duplicate code, update chat link to /chatlist, fix profile links
+7291db6ad395ecec8e8db7e869b1db833ff49aef 2026-04-22 Update base.html navigation links
+5098bd862fc28f273a3a97daf4143baf7015e232 2026-04-22 Merge branch 'main' of https://github.com/qixbot/E-bye-G09-
+22b62ef95cf61fd758479db8cbecda8dec4768e3 2026-04-22 Create avatar_2__Hyunjin.jpg
+7ea505509d48cf683622cbb911ffba2c63d9c3da 2026-04-22 edit user profile
+2c3a243cf1521de411adc7e560c899194110f0bb 2026-04-22 Update login.html: add autocomplete attributes for better browser password saving
+a5b7644c548c3a4220cddc9205997235436f9e76 2026-04-22 fixing edit_profile.html and edit_profile.css
+82bacd94090c2e1906b5478696e8ab61d1adb4b0 2026-04-22 Fixing and paste the code of my missing part causes by the commit issues
+84b1ec979f5cf07b26f54c2673578abb2c16f11f 2026-04-22 Repair Update (because of merge issues, I use my soft copy) edit profile page and fix remember me functionality.
+18d7c54c122ef5e2b1cfa0613607b9c1b19c8cc4 2026-04-22 WIP: local changes before pull
+ec31d9ccec27fa93d1e54f92e3723477179207cf 2026-04-22 Update edit profile and css and upgrade auth pages,fixing database and app.py
+c4cec858ac795db394f18d74c82d791e823e446f 2026-04-19 Fix: case-insensitive email and username validation, improve login/register logic, ensure uniqueness of ID ,username and email, pop-up message upgrade, secret questions upgrade.
+aa2cc62353c681da1a8143711f3c71a0681db379 2026-04-19 Fix database schema: update、 security questions columns, update auth pages layout and styling. Fixing admin login issues
+445ab7b2fd37e622fb7058f796baae8420b16b98 2026-04-18 Create FETCH_HEAD
+e7488d50cc4e6520d3f8133e8a67521e0168cfbe 2026-04-18 Fix auth.css: restore card width and fix login/register page layout，increase secret answer with forgotpassword page and register page
+93ae1b150bdf05242ae92da853e56af25758a2b7 2026-04-16 Update auth.css: design with gradient left panel and ebee with motion and shadow effects
+3d0bd123c5d7724322469cfd71ba28a95a9b1afa 2026-04-16 auth.css update“
+65d4f4767652619f7106261744817d72bed11ad1 2026-04-16 Merge branch 'main' of https://github.com/qixbot/E-bye-G09-
+40d5abd81bf1f0315327dc79bf5c085d018577a0 2026-04-16 Merge and fix conflicts
+82c2480f25000a548f4f337c2aca1de8f29f8095 2026-04-16 Merge remote changes
+628b1282ae944ad408ed8ae7e33c071a5f2ed91f 2026-04-16 fixed the nav bar exist
+5af861d16b0113a652bcd5b0f1ea973f5e4dd289 2026-04-15 Merge branch 'main' of https://github.com/qixbot/E-bye-G09-
+4661bb50a20f6bffaaa7185498972a4241a5a75c 2026-04-15 Update ebyte.db
+845c9726269a11df1e5fdb23161deab9ab9ad164 2026-04-15 fixed the forgot password page with the password validation
+d4701d0bdfb56b32d9fce552a103f6def4dd89c2 2026-04-15 Merge conflicts resolved
+afd348ec59a26a6f7d72b08ff015d388e8fa92bc 2026-04-15 Update app.py
+6cde44ea8b5e74e75c968d478af6e817cfc31322 2026-04-15 latest ver for week3
+8b165e73f3f5b1cc94c68202503e84490a12e907 2026-04-15 Complete forgot password reset feature ver 1  with direct password update
+52fbfb2b388ef72f47bff07ee9cd6bc3994f3eb5 2026-04-13 add name field
+009f95d234ccb6f7e08011725074f84c21634720 2026-04-12 user_profile ver 2
+a0fee48d9e294188af3eac7f37b7a15a16e90f23 2026-04-12 Complete user_profile ver 1“
+d078fa303490f2b56c89fd9a213952384a9cff77 2026-04-12 Complete login, registration, and admin login system version 1
+e48afea20e8dd5d41f8e2989e04615dac857d277 2026-04-11 Complete first version login and register system
+4e4b37bb0da43002575eceeb4f48edd24159b674 2026-04-11 Complete login and register pages with unified layout, password strength validation, and Student ID validation
+f97ba6773f85221a314d648660d205d77e8ae872 2026-04-11 Update auth.css
+067e4b4982ab04fb60d26cdd93152f9cecfd2d0b 2026-04-11 Update login.html
+b1384af81e1e6d63d1dd0b0a38650de28c2c3b82 2026-04-11 Merge branch 'main' of https://github.com/qixbot/E-bye-G09-
+a43dd3d876e2ecf78ecf1ba37ac050c57bea2544 2026-04-11 Update app.py
+8cf84fad748a658bd6f81258511ff64a1d29f237 2026-04-11 Update database with student id、
+ba7de37b26519ac68008a824172d8b257574e43b 2026-04-11 update
+c0d801660407b66c33df5c15b364361e382387cb 2026-04-11 Update auth.css
+3eb6e7a11131be491b4275c058a8514fe76c4858 2026-04-11 Create hortlog -sne
+b2b1b82e34a0505d58d13da2fcda7f7d4a373185 2026-04-10 update
+3a41f90c6ed757960d0f9c1f1b5ae9d650c92b48 2026-04-10 Update register.html
+9f74a286f3ae12c2da4a91a5ad8e6db68c1bbf99 2026-04-10 Update app.py
+5a2425a7c2a000725798b2d2f4ac08619143380f 2026-04-10 Add E-Bye authentication system with login/register pages, database, and modern UI
+41d5e1b39b4f07efc20db1e69ac3a1a6e4d0a43b 2026-04-06 add: gitignore to exclude database file
+2de8a849158e320b186eee9db27d373bda1aaf67 2026-04-06 init: flask setup and database schema
+3cc0c0a54800b9eae5a75de2f28eb0e1e415fc8b 2026-04-06 init: flask setup and database schema with users table
+ecd6749fa0df43c9a21cfd1fa7f0a9792cacf200 2026-04-04 Create main.py
+3e5347f1a692d5597fe7008d422da7370e8127ab 2026-04-04 Initial commit for ebye
