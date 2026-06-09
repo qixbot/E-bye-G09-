@@ -114,14 +114,31 @@ async function loadCart() {
     renderCart();
 }
 
+// Add click handler for the static "All" button
+function setupAllButton() {
+    const allBtn = document.querySelector('.category-filter[data-category="all"]');
+    if (allBtn) {
+        // Remove any existing listener to avoid duplicates
+        const newAllBtn = allBtn.cloneNode(true);
+        allBtn.parentNode.replaceChild(newAllBtn, allBtn);
+        newAllBtn.addEventListener('click', () => filterByCategory('all'));
+    }
+}
+
+// Call this after initial load and whenever the DOM might change (like after renderCategories)
+// But renderCategories doesn't replace the All button, so we can call it once.
+setupAllButton();
+
 // Render category filters (vertical) - only categories from available products
 function renderCategories() {
     categoriesSet.clear();
     cartData.available.forEach(item => {
         if (item.category) categoriesSet.add(item.category);
     });
+    
     const categoryList = document.getElementById('categoryList');
     categoryList.innerHTML = '';
+    
     const sorted = Array.from(categoriesSet).sort();
     sorted.forEach(cat => {
         const btn = document.createElement('button');
@@ -139,17 +156,28 @@ function renderCategories() {
         btn.onclick = () => filterByCategory(cat);
         categoryList.appendChild(btn);
     });
+    
+    // Update active state based on currentFilter
+    const allBtn = document.querySelector('.category-filter[data-category="all"]');
+    const selectedBtn = document.querySelector(`.category-filter[data-category="${currentFilter}"]`);
+    
+    if (allBtn) allBtn.classList.remove('active');
+    if (selectedBtn) selectedBtn.classList.add('active');
+    else if (allBtn && currentFilter === 'all') allBtn.classList.add('active');
 }
 
 // Filter products by category
 function filterByCategory(category) {
     currentFilter = category;
+    
+    // Update button active states
     document.querySelectorAll('.category-filter').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.getAttribute('data-category') === category || (category === 'all' && btn.getAttribute('data-category') === 'all')) {
+        if (btn.getAttribute('data-category') === category) {
             btn.classList.add('active');
         }
     });
+    
     renderCart();
 }
 
@@ -225,7 +253,7 @@ function renderCartItem(item, isUnavailable) {
                     <div class="cart-item-price">RM ${parseFloat(item.price).toFixed(2)}</div>
                     <div class="cart-item-actions">
                         <button class="offer-from-cart-btn" data-product-id="${item.product_id}" data-price="${item.price}" ${disabledAttr}>💰 Offer</button>
-                        <button class="buy-from-cart-btn" data-product-id="${item.product_id}" data-name="${escapeHtml(item.product_name)}" data-price="${item.price}" ${disabledAttr}>🛒 Buy Now</button>
+                        <button class="buy-from-cart-btn" data-product-id="${item.product_id}" data-name="${escapeHtml(item.product_name)}" data-price="${item.price}" data-image="${item.product_image}" ${disabledAttr}>🛒 Buy Now</button>
                     </div>
                 </div>
             </div>
@@ -263,9 +291,24 @@ function handleBuyClick(e) {
     currentBuyProductId = parseInt(btn.dataset.productId);
     const name = btn.dataset.name;
     const price = parseFloat(btn.dataset.price);
+    const imageUrl = btn.dataset.image;  // Get the image URL from data-image
+    
     document.getElementById('buyModalProductName').innerText = name;
     document.getElementById('buyModalPrice').innerText = `RM ${price.toFixed(2)}`;
-    document.getElementById('buyModalImage').innerHTML = '<div style="font-size:40px;">📦</div>';
+    
+    // Set the product image
+    const modalImageContainer = document.getElementById('buyModalImage');
+    if (imageUrl && imageUrl !== '/static/uploads/placeholder.jpg') {
+        // If it's a base64 data URL or a path, display it
+        if (imageUrl.startsWith('data:')) {
+            modalImageContainer.innerHTML = `<img src="${imageUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+        } else {
+            modalImageContainer.innerHTML = `<img src="${imageUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='/static/uploads/placeholder.jpg'">`;
+        }
+    } else {
+        modalImageContainer.innerHTML = '<div style="font-size:40px;">📦</div>';
+    }
+    
     loadBuyLocations(currentBuyProductId);
     document.getElementById('buyModal').style.display = 'flex';
 }
@@ -517,6 +560,16 @@ document.getElementById('removeSelectedBtn').addEventListener('click', removeSel
 document.getElementById('removeUnavailableBtn').addEventListener('click', removeUnavailable);
 
 loadCart();
+// Ensure "All" button works
+(function() {
+    const allBtn = document.querySelector('.category-filter[data-category="all"]');
+    if (allBtn) {
+        // Replace with a fresh clone to clear any previous listeners
+        const newBtn = allBtn.cloneNode(true);
+        allBtn.parentNode.replaceChild(newBtn, allBtn);
+        newBtn.addEventListener('click', () => filterByCategory('all'));
+    }
+})();
 </script>
 
 {% endblock %}
