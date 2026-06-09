@@ -6,8 +6,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='product.css') }}">
 
 <div class="cart-page">
-    <!-- Sticky back button (left) -->
-    <button class="back-btn" onclick="goBack()">← Back</button>
+    <!-- Sticky header row with back button and title -->
+    <div class="cart-header-sticky">
+        <button class="back-btn" onclick="goBack()">← Back</button>
+        <h1 class="cart-title">🛒 Shopping Cart</h1>
+    </div>
 
     <div class="cart-layout">
         <!-- LEFT: Category Filter (sticky) -->
@@ -18,10 +21,8 @@
             </div>
         </aside>
 
-        <!-- MIDDLE: Sticky "Shopping Cart" header + scrollable products -->
+        <!-- MIDDLE: scrollable products (no title anymore) -->
         <main class="cart-main">
-            <h1 class="cart-title-sticky">🛒 Shopping Cart</h1>
-
             <!-- "Available" section – title removed -->
             <div class="cart-section" id="availableSection">
                 <div id="availableProducts" class="cart-grid"></div>

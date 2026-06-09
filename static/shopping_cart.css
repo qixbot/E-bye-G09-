@@ -7,9 +7,6 @@
 
 /* Sticky back button – same style, now sticky */
 .back-btn {
-    position: sticky;
-    top: 20px;
-    z-index: 200;
     background: #f0f0f0;
     border: none;
     padding: 8px 20px;
@@ -17,7 +14,7 @@
     font-size: 0.9rem;
     cursor: pointer;
     transition: 0.2s;
-    margin-bottom: 20px;
+    /* remove position: sticky; top: 20px; etc. */
 }
 .back-btn:hover {
     background: #e0e0e0;
@@ -70,16 +67,31 @@
 }
 
 /* Sticky "Shopping Cart" title – no background */
-.cart-title-sticky {
+.cart-header-sticky {
     position: sticky;
-    top: 20px;
-    background: transparent;
+    top: 0;
+    background: transparent;  /* no background – matches page */
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 0 20px 0;
+    z-index: 200;
+}
+
+/* Back button inside the sticky row */
+.cart-header-sticky .back-btn {
+    position: relative;   /* override any previous sticky on back-btn */
+    top: auto;
+    margin-bottom: 0;
+}
+
+/* Shopping Cart title – no background, aligns with button */
+.cart-title {
     font-size: 1.6rem;
     font-weight: 700;
     color: #00381f;
-    margin: 0 0 24px 0;
-    padding: 8px 0;
-    z-index: 150;
+    margin: 0;
+    line-height: 1.2;
 }
 
 /* Only "Unavailable" title remains (available title removed) */
