@@ -8,13 +8,10 @@ from werkzeug.security import generate_password_hash
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-<<<<<<< HEAD
 # ============================================================
 # Database Configuration
 # ============================================================
 
-=======
->>>>>>> keting/week10
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if not DATABASE_URL:
@@ -23,11 +20,7 @@ if not DATABASE_URL:
 
 
 def get_db():
-<<<<<<< HEAD
     """Get database connection"""
-=======
-    """快速获取数据库连接"""
->>>>>>> keting/week10
     try:
         conn = psycopg2.connect(
             DATABASE_URL,
@@ -44,8 +37,8 @@ def get_db():
         raise
 
 
-<<<<<<< HEAD
 def get_db_with_retry(retries=3, delay=2):
+    """带重试的连接函数"""
     for i in range(retries):
         try:
             return get_db()
@@ -54,10 +47,6 @@ def get_db_with_retry(retries=3, delay=2):
                 raise
             logger.warning(f"Connection attempt {i+1} failed, retrying in {delay}s: {e}")
             time.sleep(delay)
-=======
-def get_db_with_retry(retries=1, delay=0):
-    """快速连接，不重试"""
->>>>>>> keting/week10
     return get_db()
 
 
@@ -83,9 +72,8 @@ def execute_query(sql: str, params: tuple = None, fetch_one: bool = False, fetch
             conn.close()
 
 
-<<<<<<< HEAD
-=======
 def add_column_if_not_exists(table: str, column: str, column_def: str) -> bool:
+    """添加列（如果不存在）- 来自 week10"""
     try:
         execute_query(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {column_def}")
         logger.info(f"✅ Added column '{column}' to {table}")
@@ -95,44 +83,6 @@ def add_column_if_not_exists(table: str, column: str, column_def: str) -> bool:
         return False
 
 
-def add_missing_notification_columns():
-    conn = None
-    cur = None
-    try:
-        conn = get_db()
-        cur = conn.cursor()
-        
-        try:
-            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general'")
-            print("✅ Added 'type' column to notifications")
-        except Exception as e:
-            print(f"Note: type column already exists or error: {e}")
-        
-        try:
-            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS related_id INTEGER")
-            print("✅ Added 'related_id' column to notifications")
-        except Exception as e:
-            print(f"Note: related_id column already exists or error: {e}")
-        
-        try:
-            cur.execute("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0")
-            print("✅ Added 'is_read' column to notifications")
-        except Exception as e:
-            print(f"Note: is_read column already exists or error: {e}")
-        
-        conn.commit()
-        print("✅ Notification columns check completed")
-    except Exception as e:
-        logger.error(f"add_missing_notification_columns failed: {e}")
-        raise
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
-
-
->>>>>>> keting/week10
 def init_db():
     """初始化数据库（快速检查）"""
     conn = None
@@ -306,13 +256,8 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-<<<<<<< HEAD
-
-        # Orders table - with meeting_time field
-=======
         
-        # Orders table
->>>>>>> keting/week10
+        # Orders table - with meeting_time field (week11 版本)
         cur.execute('''
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
@@ -362,12 +307,8 @@ def init_db():
         raise
 
 
-<<<<<<< HEAD
 def add_missing_columns():
     """添加所有缺失的列"""
-=======
-def add_review_columns():
->>>>>>> keting/week10
     conn = None
     cur = None
     try:
@@ -438,34 +379,7 @@ def add_review_columns():
         conn.commit()
         print("✅ All missing columns added successfully")
     except Exception as e:
-<<<<<<< HEAD
         logger.error(f"add_missing_columns failed: {e}")
-=======
-        logger.error(f"add_review_columns failed: {e}")
-        raise
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
-
-
-def add_campus_column():
-    conn = None
-    cur = None
-    try:
-        conn = get_db()
-        cur = conn.cursor()
-        try:
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS campus TEXT DEFAULT NULL")
-            print("✅ Added 'campus' column to users table")
-        except Exception as e:
-            print(f"Note: campus column already exists or error: {e}")
-        conn.commit()
-        print("✅ Campus column check completed")
-    except Exception as e:
-        logger.error(f"add_campus_column failed: {e}")
->>>>>>> keting/week10
         raise
     finally:
         if cur:

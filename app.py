@@ -4658,8 +4658,4 @@ unfreeze_thread.daemon = True
 unfreeze_thread.start()
 
 if __name__ == '__main__':
-<<<<<<< HEAD
     app.run(debug=False)
-=======
-    app.run(debug=True, host='127.0.0.1', port=5000, threaded=True)
->>>>>>> keting/week10
