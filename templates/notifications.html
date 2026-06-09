@@ -210,11 +210,6 @@
         margin: 12px 0; 
         text-align: center;
     }
-    .counter-offer-price {
-        font-size: 28px;
-        font-weight: 700;
-        color: #e67e22;
-    }
     
     /* Toast 通知 */
     .toast-container {
@@ -318,6 +313,8 @@ var allNotifications = [];
 var currentFilter = 'all';
 var purchaseOfferId = null;
 var selectedLocations = [];
+var selectedDates = [];
+var manageOfferId = null;
 
 const meetupLocations = [
     { name: "Library", image: "/static/uploads/library.jpg" },
@@ -338,6 +335,23 @@ const meetupLocations = [
     { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
 ];
 
+// ========== TOAST MESSAGE ==========
+function showToastMessage(message, type) {
+    var existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    
+    var container = document.createElement('div');
+    container.className = 'toast-container';
+    var toastDiv = document.createElement('div');
+    toastDiv.className = 'toast toast-' + type;
+    toastDiv.innerHTML = '<span>' + message + '</span>';
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    
+    setTimeout(function() { container.remove(); }, 3000);
+}
+
+// ========== LOAD NOTIFICATIONS ==========
 function loadNotifications() {
     fetch('/api/notifications/all', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
@@ -400,7 +414,8 @@ function renderNotificationCard(n) {
         actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=listings\'">View Offers</button>';
     } else if (t.includes('offer_countered')) {
         icon = '🔄'; iconClass = 'offer';
-        actions = '<button class="notif-btn warning" onclick="openCounterOfferModal(' + n.related_id + ')">View Counter Offer</button>';
+        // 修复：点击后打开 offer 管理弹窗，显示 counter offer 详情
+        actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
     } else if (t.includes('order')) {
         icon = '📦'; iconClass = 'order';
         actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">View Order</button>';
@@ -467,19 +482,7 @@ function escapeHtml(s) {
     }) : ''; 
 }
 
-function showToastMessage(message, type) {
-    var existing = document.querySelector('.toast-container');
-    if (existing) existing.remove();
-    var container = document.createElement('div');
-    container.className = 'toast-container';
-    var toastDiv = document.createElement('div');
-    toastDiv.className = 'toast toast-' + type;
-    toastDiv.innerHTML = '<span>' + message + '</span>';
-    container.appendChild(toastDiv);
-    document.body.appendChild(container);
-    setTimeout(function() { container.remove(); }, 3000);
-}
-
+// ========== 日期时间选择功能 ==========
 function addDateTimeRow() {
     var rows = document.querySelectorAll('#dateTimeInputs .date-time-row');
     if (rows.length >= 3) {
@@ -520,6 +523,7 @@ function getSelectedDates() {
     return dates;
 }
 
+// ========== 购买弹窗 ==========
 function openPurchaseModal(offerId) {
     purchaseOfferId = offerId;
     selectedLocations = [];
@@ -549,53 +553,9 @@ function openPurchaseModal(offerId) {
     });
 }
 
-// 确认购买按钮点击事件
-document.getElementById('confirmPurchaseBtn')?.addEventListener('click', function() {
-    if (selectedLocations.length === 0) {
-        showToastMessage('Please select at least one location', 'error');
-        return;
-    }
-    
-    var selectedDatesList = getSelectedDates();
-    if (selectedDatesList.length === 0) {
-        showToastMessage('Please select at least one date and time', 'error');
-        return;
-    }
-    
-    var confirmBtn = document.getElementById('confirmPurchaseBtn');
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = 'Processing...';
-    
-    fetch('/api/offer/' + purchaseOfferId + '/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            meetup_locations: selectedLocations,
-            meeting_dates: selectedDatesList   // 传递时间数组
-        }),
-        credentials: 'same-origin'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.success) {
-            showToastMessage('✅ Order created!', 'success');
-            closePurchaseModal();
-            loadNotifications();
-            setTimeout(function() {
-                window.location.href = '/my-profile?tab=orders';
-            }, 1500);
-        } else {
-            showToastMessage(d.error || 'Failed', 'error');
-        }
-    })
-    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); })
-    .finally(function() { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Purchase'; });
-});
-
 function closePurchaseModal() {
     document.getElementById('purchaseModal').classList.remove('show');
     purchaseOfferId = null;
-    selectedLocations = [];
 }
 
 function buildLocationGrid(gridId) {
@@ -682,233 +642,248 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
     .finally(function() { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Purchase'; });
 });
 
-function openCounterOfferModal(offerId) {
-    console.log('Opening counter offer modal for offer ID:', offerId);
+// ========== 优惠管理弹窗 ==========
+function openOfferManageModal(offerId) {
+    manageOfferId = offerId;
+    document.getElementById('offerManageModal').classList.add('show');
+    document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail">Loading...</div>';
     
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
-    .then(function(r) { 
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json(); 
-    })
+    .then(function(r) { return r.json(); })
     .then(function(data) {
-        console.log('Offer details:', data);
-        
         if (!data.success) {
-            showToastMessage('Failed to load offer details: ' + (data.error || 'Unknown'), 'error');
+            document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ ' + (data.error || 'Failed to load') + '</div>';
             return;
         }
         
-        if (data.status !== 'countered') {
-            showToastMessage('This offer is not in countered status. Current status: ' + data.status, 'warning');
-            return;
-        }
-        
-        var counterPrice = parseFloat(data.counter_price);
-        if (isNaN(counterPrice)) {
-            counterPrice = parseFloat(data.offer_price);
-        }
-        
-        // 移除已存在的弹窗
-        var existingModal = document.getElementById('counterModal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-        
-        // 创建弹窗 HTML
-        var modalHtml = `
-        <div id="counterModal" class="modal-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10001; justify-content: center; align-items: center;">
-            <div style="background: white; border-radius: 20px; width: 90%; max-width: 450px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee;">
-                    <h3 style="margin: 0; font-size: 18px;">🔄 Counter Offer</h3>
-                    <button onclick="closeCounterOfferModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #888;">&times;</button>
-                </div>
-                <div style="padding: 20px;">
-                    <div style="font-weight: 600; margin-bottom: 16px; font-size: 16px;">${escapeHtml(data.product_name)}</div>
-                    <div style="background: #fff3e0; border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 20px;">
-                        <div style="color: #e67e22; margin-bottom: 8px;">💰 Seller's Counter Offer</div>
-                        <div style="font-size: 28px; font-weight: 700; color: #e67e22;">RM ${counterPrice.toFixed(2)}</div>
-                    </div>
-                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                        <button onclick="closeCounterOfferModal()" style="padding: 10px 20px; border-radius: 30px; border: 1px solid #ddd; background: white; cursor: pointer;">Cancel</button>
-                        <button onclick="acceptCounterOffer(${offerId})" style="padding: 10px 24px; border-radius: 30px; background: #205c30; color: white; border: none; cursor: pointer;">✅ Accept</button>
-                        <button onclick="rejectCounterOffer(${offerId})" style="padding: 10px 24px; border-radius: 30px; background: #e74c3c; color: white; border: none; cursor: pointer;">❌ Reject</button>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-        
-        // 添加到页面
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        console.log('Modal added to page');
-        
+        // 获取当前用户ID
+        return fetch('/api/current-user-id', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(userData) {
+            var currentUserId = userData.user_id;
+            var isSeller = (data.seller_id === currentUserId);
+            var isBuyer = (data.buyer_id === currentUserId);
+            
+            var html = '<div class="offer-detail">' +
+                '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
+                '💰 Offer Price: RM ' + parseFloat(data.offer_price).toFixed(2);
+            
+            if (data.counter_price) {
+                html += '<br>🔄 Counter Offer: RM ' + parseFloat(data.counter_price).toFixed(2);
+            }
+            
+            html += '</div>';
+            
+            // 根据角色和状态显示不同的按钮
+            if (isSeller) {
+                if (data.status === 'pending') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="acceptOffer(' + offerId + ')">✅ Accept Offer</button>';
+                    html += '<button class="notif-btn danger" onclick="rejectOffer(' + offerId + ')">❌ Reject Offer</button>';
+                    html += '<button class="notif-btn warning" onclick="openSellerCounterOfferModal(' + offerId + ', ' + parseFloat(data.offer_price).toFixed(2) + ')">💰 Counter Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'countered') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="acceptCounterOffer(' + offerId + ')">✅ Accept Counter Offer</button>';
+                    html += '<button class="notif-btn danger" onclick="rejectCounterOffer(' + offerId + ')">❌ Reject Counter Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'accepted') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
+                    html += '</div>';
+                } else {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;"><span class="notif-btn secondary">Status: ' + data.status + '</span></div>';
+                }
+            } else if (isBuyer) {
+                if (data.status === 'pending') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<span class="notif-btn secondary" style="background:#f0f0f0;">⏳ Waiting for seller response...</span>';
+                    html += '<button class="notif-btn danger" onclick="cancelMyOffer(' + offerId + ')">🗑️ Cancel My Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'countered') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="acceptCounterOffer(' + offerId + ')">✅ Accept Counter Offer (RM ' + parseFloat(data.counter_price).toFixed(2) + ')</button>';
+                    html += '<button class="notif-btn danger" onclick="rejectCounterOffer(' + offerId + ')">❌ Reject Counter Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'accepted') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
+                    html += '</div>';
+                } else if (data.status === 'rejected') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;">';
+                    html += '<span class="notif-btn secondary" style="background:#f0f0f0;">❌ Your offer was rejected by seller</span>';
+                    html += '</div>';
+                }
+            }
+            
+            document.getElementById('offerManageContent').innerHTML = html;
+        });
     })
     .catch(function(err) {
         console.error('Error:', err);
-        showToastMessage('Failed to load offer details: ' + err.message, 'error');
-    });
-}
-
-function closeCounterOfferModal() {
-    var modal = document.getElementById('counterModal');
-    if (modal) {
-        modal.remove();
-        console.log('Modal removed');
-    }
-}
-
-function acceptCounterOffer(offerId) {
-    console.log('Accepting counter offer:', offerId);
-    
-    var acceptBtn = document.querySelector('#counterModal button[onclick*="acceptCounterOffer"]');
-    if (acceptBtn) {
-        acceptBtn.textContent = 'Processing...';
-        acceptBtn.disabled = true;
-    }
-    
-    fetch('/api/offer/' + offerId + '/accept-counter', { 
-        method: 'POST', 
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.success) {
-            showToastMessage('✅ Counter offer accepted!', 'success');
-            closeCounterOfferModal();
-            loadNotifications();
-            setTimeout(function() {
-                window.location.href = '/my-profile?tab=orders';
-            }, 1500);
-        } else {
-            showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    })
-    .finally(function() {
-        if (acceptBtn) {
-            acceptBtn.textContent = '✅ Accept';
-            acceptBtn.disabled = false;
-        }
-    });
-}
-
-function rejectCounterOffer(offerId) {
-    console.log('Rejecting counter offer:', offerId);
-    
-    var rejectBtn = document.querySelector('#counterModal button[onclick*="rejectCounterOffer"]');
-    if (rejectBtn) {
-        rejectBtn.textContent = 'Processing...';
-        rejectBtn.disabled = true;
-    }
-    
-    fetch('/api/offer/' + offerId + '/reject-counter', { 
-        method: 'POST', 
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.success) {
-            showToastMessage('Counter offer rejected', 'info');
-            closeCounterOfferModal();
-            loadNotifications();
-        } else {
-            showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    })
-    .finally(function() {
-        if (rejectBtn) {
-            rejectBtn.textContent = '❌ Reject';
-            rejectBtn.disabled = false;
-        }
-    });
-}
-
-function closeCounterOfferModal() {
-    var modal = document.getElementById('counterModal');
-    if (modal) modal.remove();
-}
-
-function acceptCounterOffer(offerId) {
-    var btn = document.querySelector('#counterModal .notif-btn.primary');
-    if (btn) { btn.textContent = 'Processing...'; btn.disabled = true; }
-    
-    fetch('/api/offer/' + offerId + '/accept-counter', { 
-        method: 'POST', 
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.success) {
-            showToastMessage('✅ Counter offer accepted!', 'success');
-            closeCounterOfferModal();
-            loadNotifications();
-        } else {
-            showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
-        }
-    })
-    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); })
-    .finally(function() { if (btn) { btn.textContent = '✅ Accept'; btn.disabled = false; } });
-}
-
-function rejectCounterOffer(offerId) {
-    var btn = document.querySelector('#counterModal .notif-btn.danger');
-    if (btn) { btn.textContent = 'Processing...'; btn.disabled = true; }
-    
-    fetch('/api/offer/' + offerId + '/reject-counter', { 
-        method: 'POST', 
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.success) {
-            showToastMessage('Counter offer rejected', 'info');
-            closeCounterOfferModal();
-            loadNotifications();
-        } else {
-            showToastMessage('Error: ' + (d.error || 'Unknown'), 'error');
-        }
-    })
-    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); })
-    .finally(function() { if (btn) { btn.textContent = '❌ Reject'; btn.disabled = false; } });
-}
-
-function openOfferManageModal(offerId) {
-    document.getElementById('offerManageModal').classList.add('show');
-    
-    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (!data.success) {
-            document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail">Failed to load</div>';
-            return;
-        }
-        
-        document.getElementById('offerManageContent').innerHTML = `
-            <div class="offer-detail">
-                <strong>${escapeHtml(data.product_name)}</strong><br>
-                Price: RM ${parseFloat(data.product_price).toFixed(2)}<br>
-                Your offer: RM ${parseFloat(data.offer_price).toFixed(2)}
-            </div>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;">
-                <button class="notif-btn secondary" onclick="closeOfferManageModal()">Close</button>
-            </div>
-        `;
+        document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ Failed to load offer details</div>';
     });
 }
 
 function closeOfferManageModal() {
     document.getElementById('offerManageModal').classList.remove('show');
+    manageOfferId = null;
 }
 
+// ========== 卖家打开 Counter Offer 弹窗 ==========
+function openSellerCounterOfferModal(offerId, currentOfferPrice) {
+    var counterPrice = prompt('Enter your counter offer price (RM):', currentOfferPrice);
+    if (!counterPrice || parseFloat(counterPrice) <= 0) {
+        showToastMessage('Please enter a valid price', 'error');
+        return;
+    }
+    
+    showToastMessage('Sending counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ counter_price: parseFloat(counterPrice) })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer sent!', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to send counter offer');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 接受/拒绝 Counter Offer ==========
+function acceptCounterOffer(offerId) {
+    if (!confirm('Accept this counter offer?')) return;
+    
+    showToastMessage('Accepting counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/accept-counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer accepted! You can now checkout.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to accept');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+function rejectCounterOffer(offerId) {
+    if (!confirm('Reject this counter offer?')) return;
+    
+    showToastMessage('Declining counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/reject-counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer declined.', 'info');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to decline');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 接受/拒绝普通 Offer ==========
+function acceptOffer(offerId) {
+    if (!confirm('Accept this offer?')) return;
+    
+    showToastMessage('Accepting offer...', 'info');
+    fetch('/api/offer/' + offerId + '/accept', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer accepted!', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to accept');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+function rejectOffer(offerId) {
+    if (!confirm('Reject this offer?')) return;
+    
+    showToastMessage('Rejecting offer...', 'info');
+    fetch('/api/offer/' + offerId + '/reject', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer rejected.', 'info');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to reject');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 买家取消自己的 Offer ==========
+function cancelMyOffer(offerId) {
+    if (!confirm('Cancel your offer? This cannot be undone.')) return;
+    
+    showToastMessage('Cancelling offer...', 'info');
+    fetch('/api/offer/' + offerId + '/cancel', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Your offer has been cancelled.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to cancel');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== INIT ==========
 loadNotifications();
 </script>
-
 {% endblock %}
