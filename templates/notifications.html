@@ -18,24 +18,64 @@
     .notif-header h2 { font-size: 20px; margin: 0; flex: 1; }
     .notif-back { text-decoration: none; color: #205c30; font-size: 14px; font-weight: 600; }
 
-    .notif-tabs { display: flex; gap: 6px; padding: 8px 0 16px; overflow-x: auto; }
-    .notif-tab { padding: 8px 16px; border-radius: 20px; background: #f5f5f5; border: none; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+    /* 分类标签 */
+    .notif-tabs { 
+        display: flex; 
+        gap: 8px; 
+        padding: 8px 0 16px; 
+        overflow-x: auto;
+        flex-wrap: wrap;
+    }
+    .notif-tab { 
+        padding: 8px 16px; 
+        border-radius: 20px; 
+        background: #f5f5f5; 
+        border: none; 
+        font-size: 13px; 
+        font-weight: 500; 
+        cursor: pointer; 
+        white-space: nowrap; 
+        transition: 0.2s; 
+    }
     .notif-tab.active { background: #205c30; color: white; }
     .notif-tab .count { margin-left: 4px; font-size: 11px; }
 
+    /* 通知列表 */
     .notif-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 40px; }
-    .notif-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); display: flex; gap: 12px; transition: 0.2s; }
+    .notif-card { 
+        background: #fff; 
+        border-radius: 14px; 
+        padding: 16px; 
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04); 
+        display: flex; 
+        gap: 12px; 
+        transition: 0.2s; 
+        cursor: pointer;
+    }
     .notif-card.unread { border-left: 3px solid #e74c3c; background: #fff9f9; }
-    .notif-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .notif-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    
+    .notif-icon { 
+        width: 44px; 
+        height: 44px; 
+        border-radius: 14px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 22px; 
+        flex-shrink: 0; 
+    }
     .notif-icon.offer { background: #eaf4ed; }
     .notif-icon.system { background: #fff3cd; }
-    .notif-icon.announcement { background: #e8f0fe; }
     .notif-icon.review { background: #fef3e8; }
     .notif-icon.order { background: #e8f5e9; }
+    .notif-icon.welcome { background: #e3f2fd; }
+    
     .notif-body { flex: 1; min-width: 0; }
-    .notif-msg { font-size: 14px; line-height: 1.5; word-break: break-word; display: flex; align-items: flex-start; gap: 6px; }
+    .notif-msg { font-size: 14px; line-height: 1.5; word-break: break-word; }
     .notif-time { font-size: 11px; color: #aaa; margin-top: 6px; }
     .notif-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+<<<<<<< HEAD
     .notif-btn { 
         padding: 10px 16px; 
         border-radius: 30px; 
@@ -47,16 +87,27 @@
         white-space: normal;
         word-break: break-word;
         min-width: 100px;
+=======
+    
+    .notif-btn { 
+        padding: 7px 16px; 
+        border-radius: 20px; 
+        border: none; 
+        font-size: 12px; 
+        font-weight: 600; 
+        cursor: pointer; 
+        transition: 0.2s; 
+>>>>>>> keting/week10
     }
     .notif-btn.primary { background: #205c30; color: white; }
     .notif-btn.secondary { background: #e0e0e0; color: #333; }
     .notif-btn.warning { background: #e67e22; color: white; }
     .notif-btn.danger { background: #e74c3c; color: white; }
     .notif-btn.primary:hover { background: #154a23; transform: translateY(-1px); }
-    .notif-btn.secondary:hover { background: #d0d0d0; }
-    .notif-btn.warning:hover { background: #d35400; }
+    
     .notif-empty { text-align: center; padding: 60px 0; color: #bbb; }
 
+<<<<<<< HEAD
     /* 弹窗样式 - 修复按钮被截断问题 */
     .modal-overlay { 
         display: none; 
@@ -155,16 +206,79 @@
         max-height: 250px; 
         overflow-y: auto; 
         margin: 12px 0; 
+=======
+    /* 日期分割线 */
+    .date-divider {
+        text-align: center;
+        margin: 16px 0 12px;
+    }
+    .date-divider span {
+        background: rgba(0,0,0,0.06);
+        color: #666;
+        padding: 4px 14px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    /* 弹窗通用样式 */
+    .modal-overlay { 
+        display: none; 
+        position: fixed; 
+        inset: 0; 
+        background: rgba(0,0,0,0.6); 
+        backdrop-filter: blur(4px);
+        z-index: 10000; 
+        justify-content: center; 
+        align-items: center; 
+    }
+    .modal-overlay.show { display: flex; }
+    
+    .modal-box { 
+        background: #fff; 
+        border-radius: 20px; 
+        width: 90%; 
+        max-width: 500px; 
+        max-height: 85vh; 
+        overflow-y: auto; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .modal-box h3 { margin: 0 0 16px; font-size: 18px; }
+    .modal-close { 
+        float: right; 
+        background: none; 
+        border: none; 
+        font-size: 22px; 
+        cursor: pointer; 
+        color: #888;
+        padding: 0 8px;
+    }
+    .modal-close:hover { color: #333; }
+
+    /* 地点选择网格 */
+    .location-grid { 
+        display: grid; 
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 10px; 
+        max-height: 300px; 
+        overflow-y: auto; 
+        margin: 16px 0; 
+>>>>>>> keting/week10
     }
     .location-btn { 
         display: flex; 
         flex-direction: column; 
         align-items: center; 
+<<<<<<< HEAD
         padding: 8px; 
+=======
+        padding: 10px; 
+>>>>>>> keting/week10
         border: 1px solid #ddd; 
         border-radius: 12px; 
         cursor: pointer; 
         font-size: 12px; 
+<<<<<<< HEAD
     }
     .location-btn.selected { 
         background: #205c3033; 
@@ -322,6 +436,89 @@
             transform: scale(1);
         }
     }
+=======
+        transition: all 0.2s;
+        background: white;
+    }
+    .location-btn:hover { border-color: #205c30; }
+    .location-btn.selected { background: #205c3033; border-color: #205c30; }
+    .location-btn img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-bottom: 6px; }
+    .location-btn span { font-size: 11px; font-weight: 500; }
+
+    /* 时间选择行 */
+    .date-time-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .datetime-picker {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        font-size: 13px;
+    }
+    .remove-date-btn {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 11px;
+    }
+    .add-date-btn {
+        background: #205c30;
+        color: white;
+        border: none;
+        border-radius: 30px;
+        padding: 10px 16px;
+        cursor: pointer;
+        font-size: 13px;
+        margin-top: 8px;
+        width: 100%;
+    }
+
+    /* 优惠详情弹窗 */
+    .offer-detail { 
+        background: #f9faf9; 
+        border-radius: 12px; 
+        padding: 16px; 
+        margin: 12px 0; 
+        text-align: center;
+    }
+    
+    /* Toast 通知 */
+    .toast-container {
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 11000;
+        pointer-events: none;
+    }
+    .toast {
+        background: #333;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideDown 0.3s ease;
+    }
+    .toast-success { background: #205c30; }
+    .toast-error { background: #e74c3c; }
+    .toast-info { background: #3498db; }
+    .toast-warning { background: #e67e22; }
+    
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .bottom-nav-spacer { display: block; height: 70px; }
+>>>>>>> keting/week10
 </style>
 
 <div class="notif-page">
@@ -331,11 +528,10 @@
     </div>
 
     <div class="notif-tabs">
-        <button class="notif-tab active" data-filter="all" onclick="filterNotifications('all')">All</button>
+        <button class="notif-tab active" data-filter="all" onclick="filterNotifications('all')">📋 All</button>
         <button class="notif-tab" data-filter="offer" onclick="filterNotifications('offer')">💰 Offers</button>
         <button class="notif-tab" data-filter="order" onclick="filterNotifications('order')">📦 Orders</button>
         <button class="notif-tab" data-filter="system" onclick="filterNotifications('system')">⚙️ System</button>
-        <button class="notif-tab" data-filter="announcement" onclick="filterNotifications('announcement')">📢 Announcements</button>
         <button class="notif-tab" data-filter="review" onclick="filterNotifications('review')">⭐ Reviews</button>
     </div>
 
@@ -346,6 +542,7 @@
     <div class="bottom-nav-spacer"></div>
 </div>
 
+<<<<<<< HEAD
 <div class="modal-overlay" id="purchaseModal">
     <div class="modal-box">
         <button class="modal-close" onclick="closePurchaseModal()">✕</button>
@@ -362,17 +559,52 @@
         </div>
         <p id="purchaseLocationInfo" style="font-size:12px;color:#e74c3c;"></p>
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+=======
+<!-- 确认购买弹窗 -->
+<div id="purchaseModal" class="modal-overlay">
+    <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee;">
+            <h3 style="margin: 0;">📦 Confirm Purchase</h3>
+            <button class="modal-close" onclick="closePurchaseModal()">✕</button>
+        </div>
+        <div style="padding: 20px;" id="purchaseProductInfo"></div>
+        
+        <div style="padding: 0 20px;">
+            <p style="font-size:13px; color:#888; margin-bottom:8px;">📍 Select meetup locations (max 3):</p>
+            <div class="location-grid" id="purchaseLocationGrid"></div>
+            
+            <p style="font-size:13px; color:#888; margin-top:16px; margin-bottom:8px;">⏰ Select preferred dates/times (max 3):</p>
+            <div id="dateTimeInputs" style="margin-bottom: 12px;">
+                <div class="date-time-row">
+                    <input type="datetime-local" class="datetime-picker" step="60" id="dateTime1">
+                    <button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button>
+                </div>
+            </div>
+            <button type="button" id="addDateBtn" class="add-date-btn" onclick="addDateTimeRow()">+ Add another date</button>
+            
+            <p id="purchaseLocationInfo" style="font-size:12px; color:#e74c3c; margin-top:16px;"></p>
+        </div>
+        
+        <div style="display:flex; gap:10px; justify-content:flex-end; padding: 16px 20px; border-top: 1px solid #eee; margin-top: 16px;">
+>>>>>>> keting/week10
             <button class="notif-btn secondary" onclick="closePurchaseModal()">Cancel</button>
-            <button class="notif-btn primary" id="confirmPurchaseBtn">Confirm</button>
+            <button class="notif-btn primary" id="confirmPurchaseBtn">Confirm Purchase</button>
         </div>
     </div>
 </div>
 
+<<<<<<< HEAD
 <div class="modal-overlay" id="offerManageModal">
+=======
+<!-- 优惠管理弹窗 -->
+<div id="offerManageModal" class="modal-overlay">
+>>>>>>> keting/week10
     <div class="modal-box">
-        <button class="modal-close" onclick="closeOfferManageModal()">✕</button>
-        <h3>💰 Offer Details</h3>
-        <div id="offerManageContent">Loading...</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee;">
+            <h3 style="margin: 0;">💰 Offer Details</h3>
+            <button class="modal-close" onclick="closeOfferManageModal()">✕</button>
+        </div>
+        <div id="offerManageContent" style="padding: 20px;">Loading...</div>
     </div>
 </div>
 
@@ -397,6 +629,7 @@ var allNotifications = [];
 var currentFilter = 'all';
 var purchaseOfferId = null;
 var selectedLocations = [];
+var selectedDates = [];
 var manageOfferId = null;
 var pendingCounterOfferId = null;
 
@@ -419,6 +652,10 @@ const meetupLocations = [
     { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
 ];
 
+<<<<<<< HEAD
+=======
+// ========== TOAST MESSAGE ==========
+>>>>>>> keting/week10
 function showToastMessage(message, type) {
     var existing = document.querySelector('.toast-container');
     if (existing) existing.remove();
@@ -434,6 +671,10 @@ function showToastMessage(message, type) {
     setTimeout(function() { container.remove(); }, 3000);
 }
 
+<<<<<<< HEAD
+=======
+// ========== LOAD NOTIFICATIONS ==========
+>>>>>>> keting/week10
 function loadNotifications() {
     fetch('/api/notifications/all', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
@@ -453,58 +694,94 @@ function renderNotifications() {
             var t = n.type || '';
             if (currentFilter === 'offer') return t.includes('offer');
             if (currentFilter === 'order') return t.includes('order');
-            if (currentFilter === 'system') return ['freeze', 'block', 'unblock', 'unfreeze', 'report'].some(function(k) { return t.includes(k); });
-            if (currentFilter === 'announcement') return t === 'announcement';
+            if (currentFilter === 'system') return ['freeze', 'block', 'unblock', 'unfreeze', 'report', 'welcome'].some(function(k) { return t.includes(k); });
             if (currentFilter === 'review') return t === 'review';
             return true;
         });
     }
-
+    
+    var grouped = {};
+    filtered.forEach(function(n) {
+        var date = new Date(n.created_at).toLocaleDateString();
+        if (!grouped[date]) grouped[date] = [];
+        grouped[date].push(n);
+    });
+    
     var html = '';
+    for (var date in grouped) {
+        html += '<div class="date-divider"><span>' + date + '</span></div>';
+        grouped[date].forEach(function(n) {
+            html += renderNotificationCard(n);
+        });
+    }
+    
     if (filtered.length === 0) {
         html = '<div class="notif-empty">📭 No notifications</div>';
-    }
-    for (var i = 0; i < filtered.length; i++) {
-        var n = filtered[i];
-        var icon = '🔔';
-        var iconClass = 'system';
-        var actions = '';
-
-        var t = n.type || '';
-        if (t.includes('offer_accepted')) {
-            icon = '💰'; iconClass = 'offer';
-            actions = '<button class="notif-btn primary" onclick="openPurchaseModal(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
-        } else if (t.includes('offer_rejected')) {
-            icon = '❌'; iconClass = 'offer';
-        } else if (t.includes('new_offer')) {
-            icon = '💰'; iconClass = 'offer';
-            actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=listings\'">View Offers</button>';
-        } else if (t.includes('offer_countered')) {
-            icon = '🔄'; iconClass = 'offer';
-            actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
-        } else if (t.includes('order')) {
-            icon = '📦'; iconClass = 'order';
-            actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">View Order</button>';
-        } else if (t.includes('review')) {
-            icon = '⭐'; iconClass = 'review';
-        } else if (t.includes('announcement')) {
-            icon = '📢'; iconClass = 'announcement';
-        } else if (t.includes('freeze') || t.includes('block')) {
-            icon = '⚠️'; iconClass = 'system';
-        }
-
-        html += '<div class="notif-card ' + (!n.is_read ? 'unread' : '') + '" data-id="' + n.id + '">' +
-            '<div class="notif-icon ' + iconClass + '">' + icon + '</div>' +
-            '<div class="notif-body">' +
-                '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
-                '<div class="notif-time">' + formatDate(n.created_at) + '</div>' +
-                '<div class="notif-actions">' + actions + '</div>' +
-            '</div>' +
-            '</div>';
     }
     document.getElementById('notifList').innerHTML = html;
 }
 
+<<<<<<< HEAD
+=======
+function renderNotificationCard(n) {
+    var icon = '🔔';
+    var iconClass = 'system';
+    var actions = '';
+
+    var t = n.type || '';
+    if (t.includes('offer_accepted')) {
+        icon = '💰'; iconClass = 'offer';
+        actions = '<button class="notif-btn primary" onclick="openPurchaseModal(' + n.related_id + ')">🛒 Proceed to Checkout</button>';
+    } else if (t.includes('offer_rejected')) {
+        icon = '❌'; iconClass = 'offer';
+    } else if (t.includes('new_offer')) {
+        icon = '💰'; iconClass = 'offer';
+        actions = '<button class="notif-btn primary" onclick="window.location.href=\'/my-profile?tab=listings\'">View Offers</button>';
+    } else if (t.includes('offer_countered')) {
+        icon = '🔄'; iconClass = 'offer';
+        // 修复：点击后打开 offer 管理弹窗，显示 counter offer 详情
+        actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
+    } else if (t.includes('order')) {
+        icon = '📦'; iconClass = 'order';
+        actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=orders\'">View Order</button>';
+    } else if (t.includes('review')) {
+        icon = '⭐'; iconClass = 'review';
+    } else if (t.includes('welcome')) {
+        icon = '🎉'; iconClass = 'welcome';
+        actions = '<button class="notif-btn primary" onclick="window.location.href=\'/edit_profile\'">Complete Profile</button>';
+    } else if (t.includes('freeze') || t.includes('block')) {
+        icon = '⚠️'; iconClass = 'system';
+    }
+
+    var unreadClass = !n.is_read ? 'unread' : '';
+    
+    return '<div class="notif-card ' + unreadClass + '" data-id="' + n.id + '" onclick="markSingleNotificationRead(' + n.id + ', this)">' +
+        '<div class="notif-icon ' + iconClass + '">' + icon + '</div>' +
+        '<div class="notif-body">' +
+            '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
+            '<div class="notif-time">' + formatDate(n.created_at) + '</div>' +
+            '<div class="notif-actions">' + actions + '</div>' +
+        '</div>' +
+        '</div>';
+}
+
+function markSingleNotificationRead(notifId, element) {
+    fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification_ids: [notifId] }),
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            element.classList.remove('unread');
+            element.style.borderLeft = '';
+        }
+    });
+}
+
+>>>>>>> keting/week10
 function filterNotifications(type) {
     currentFilter = type;
     document.querySelectorAll('.notif-tab').forEach(function(tab) { tab.classList.remove('active'); });
@@ -522,12 +799,16 @@ function formatDate(dateStr) {
     if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + ' min ago';
     if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + ' hours ago';
     if (diffSeconds < 604800) return Math.floor(diffSeconds / 86400) + ' days ago';
-    
     return d.toLocaleDateString();
 }
 
-function escapeHtml(s) { return s ? s.replace(/[&<>]/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]; }) : ''; }
+function escapeHtml(s) { 
+    return s ? s.replace(/[&<>]/g, function(m) { 
+        return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]; 
+    }) : ''; 
+}
 
+<<<<<<< HEAD
 function showConfirm(options) {
     return new Promise((resolve) => {
         const existing = document.querySelector('.custom-confirm-modal');
@@ -584,9 +865,55 @@ function showConfirm(options) {
 // ============================================================
 // 购买弹窗相关函数
 // ============================================================
+=======
+// ========== 日期时间选择功能 ==========
+function addDateTimeRow() {
+    var rows = document.querySelectorAll('#dateTimeInputs .date-time-row');
+    if (rows.length >= 3) {
+        showToastMessage('You can only select up to 3 dates.', 'error');
+        return;
+    }
+    var container = document.getElementById('dateTimeInputs');
+    var newRow = document.createElement('div');
+    newRow.className = 'date-time-row';
+    newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60">' +
+        '<button type="button" class="remove-date-btn" onclick="removeDateTimeRow(this)">✕</button>';
+    container.appendChild(newRow);
+    updateRemoveButtons();
+}
+
+function removeDateTimeRow(btn) {
+    var row = btn.closest('.date-time-row');
+    row.remove();
+    updateRemoveButtons();
+}
+
+function updateRemoveButtons() {
+    var rows = document.querySelectorAll('#dateTimeInputs .date-time-row');
+    rows.forEach(function(row) {
+        var removeBtn = row.querySelector('.remove-date-btn');
+        if (removeBtn) {
+            removeBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+        }
+    });
+}
+
+function getSelectedDates() {
+    var inputs = document.querySelectorAll('#dateTimeInputs .datetime-picker');
+    var dates = [];
+    for (var i = 0; i < inputs.length; i++) {
+        if (inputs[i].value) dates.push(inputs[i].value);
+    }
+    return dates;
+}
+
+// ========== 购买弹窗 ==========
+>>>>>>> keting/week10
 function openPurchaseModal(offerId) {
     purchaseOfferId = offerId;
     selectedLocations = [];
+    selectedDates = [];
+    
     document.getElementById('purchaseModal').classList.add('show');
     
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
@@ -620,6 +947,7 @@ function openPurchaseModal(offerId) {
             (data.product_image ? '<br><img src="' + data.product_image + '" style="width:80px;border-radius:8px;margin-top:8px;">' : '') +
             '<br><span style="font-size:11px; color:#205c30;">📍 Seller\'s Campus: ' + escapeHtml(sellerCampus || 'Not specified') + '</span>' +
             '</div>';
+<<<<<<< HEAD
         
         var grid = document.getElementById('purchaseLocationGrid');
         grid.innerHTML = '';
@@ -648,6 +976,14 @@ function openPurchaseModal(offerId) {
     })
     .catch(function() {
         document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Failed to load product details</div>';
+=======
+        buildLocationGrid('purchaseLocationGrid');
+        
+        // 重置日期选择器
+        var container = document.getElementById('dateTimeInputs');
+        container.innerHTML = '<div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
+        updateRemoveButtons();
+>>>>>>> keting/week10
     });
 }
 
@@ -662,7 +998,7 @@ function buildLocationGrid(gridId) {
     meetupLocations.forEach(function(loc) {
         var btn = document.createElement('button');
         btn.className = 'location-btn';
-        btn.innerHTML = '<img src="' + loc.image + '" alt=""><span>' + loc.name + '</span>';
+        btn.innerHTML = '<img src="' + loc.image + '" alt="' + loc.name + '"><span>' + loc.name + '</span>';
         btn.onclick = function() { toggleLocation(loc.name); };
         grid.appendChild(btn);
     });
@@ -670,9 +1006,13 @@ function buildLocationGrid(gridId) {
 
 function toggleLocation(name) {
     var idx = selectedLocations.indexOf(name);
-    if (idx !== -1) { selectedLocations.splice(idx, 1); }
-    else {
-        if (selectedLocations.length >= 3) { alert('Max 3 locations'); return; }
+    if (idx !== -1) {
+        selectedLocations.splice(idx, 1);
+    } else {
+        if (selectedLocations.length >= 3) {
+            showToastMessage('Max 3 locations', 'warning');
+            return;
+        }
         selectedLocations.push(name);
     }
     updateLocationUI();
@@ -681,13 +1021,21 @@ function toggleLocation(name) {
 function updateLocationUI() {
     document.querySelectorAll('#purchaseLocationGrid .location-btn').forEach(function(btn) {
         var name = btn.querySelector('span').innerText;
-        btn.classList.toggle('selected', selectedLocations.includes(name));
+        if (selectedLocations.includes(name)) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
     });
-    document.getElementById('purchaseLocationInfo').innerText = selectedLocations.length > 0 ? 
-        '✓ Selected: ' + selectedLocations.join(', ') : '⚠️ Please select 1-3 locations';
+    var infoDiv = document.getElementById('purchaseLocationInfo');
+    if (infoDiv) {
+        infoDiv.innerText = selectedLocations.length > 0 ? 
+            '✓ Selected: ' + selectedLocations.join(', ') : '⚠️ Please select 1-3 locations';
+    }
 }
 
 document.getElementById('confirmPurchaseBtn')?.addEventListener('click', function() {
+<<<<<<< HEAD
     if (selectedLocations.length === 0) { alert('Select locations'); return; }
     var dateInputs = document.querySelectorAll('#purchaseDateInputs .datetime-picker');
     var selectedDates = [];
@@ -696,21 +1044,42 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
         if (val) selectedDates.push(val);
     }
     if (selectedDates.length === 0) {
+=======
+    if (selectedLocations.length === 0) {
+        showToastMessage('Please select at least one location', 'error');
+        return;
+    }
+    
+    var selectedDatesList = getSelectedDates();
+    if (selectedDatesList.length === 0) {
+>>>>>>> keting/week10
         showToastMessage('Please select at least one date and time', 'error');
         return;
     }
     
+<<<<<<< HEAD
+=======
+    var confirmBtn = document.getElementById('confirmPurchaseBtn');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Processing...';
+    
+>>>>>>> keting/week10
     fetch('/api/offer/' + purchaseOfferId + '/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             meetup_locations: selectedLocations,
+<<<<<<< HEAD
             meeting_dates: selectedDates
+=======
+            meeting_dates: selectedDatesList
+>>>>>>> keting/week10
         }),
         credentials: 'same-origin'
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
+<<<<<<< HEAD
         if (d.success) { 
             showToastMessage('Order created successfully!', 'success');
             closePurchaseModal(); 
@@ -848,6 +1217,28 @@ function submitOrderFromOfferAccept(offerId) {
     console.log('offerId:', offerId);
     console.log('window.checkoutSelectedLocations:', window.checkoutSelectedLocations);
     console.log('window.checkoutSelectedLocations length:', window.checkoutSelectedLocations ? window.checkoutSelectedLocations.length : 'undefined');
+=======
+        if (d.success) {
+            showToastMessage('✅ Order created!', 'success');
+            closePurchaseModal();
+            loadNotifications();
+            setTimeout(function() {
+                window.location.href = '/my-profile?tab=orders';
+            }, 1500);
+        } else {
+            showToastMessage(d.error || 'Failed', 'error');
+        }
+    })
+    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); })
+    .finally(function() { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Purchase'; });
+});
+
+// ========== 优惠管理弹窗 ==========
+function openOfferManageModal(offerId) {
+    manageOfferId = offerId;
+    document.getElementById('offerManageModal').classList.add('show');
+    document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail">Loading...</div>';
+>>>>>>> keting/week10
     
     if (!window.checkoutSelectedLocations || window.checkoutSelectedLocations.length === 0) {
         showToastMessage('Please select at least one meetup location', 'error');
@@ -890,6 +1281,72 @@ function submitOrderFromOfferAccept(offerId) {
         } else {
             throw new Error(data.error || 'Failed to create order');
         }
+<<<<<<< HEAD
+=======
+        
+        // 获取当前用户ID
+        return fetch('/api/current-user-id', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(userData) {
+            var currentUserId = userData.user_id;
+            var isSeller = (data.seller_id === currentUserId);
+            var isBuyer = (data.buyer_id === currentUserId);
+            
+            var html = '<div class="offer-detail">' +
+                '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
+                '💰 Offer Price: RM ' + parseFloat(data.offer_price).toFixed(2);
+            
+            if (data.counter_price) {
+                html += '<br>🔄 Counter Offer: RM ' + parseFloat(data.counter_price).toFixed(2);
+            }
+            
+            html += '</div>';
+            
+            // 根据角色和状态显示不同的按钮
+            if (isSeller) {
+                if (data.status === 'pending') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="acceptOffer(' + offerId + ')">✅ Accept Offer</button>';
+                    html += '<button class="notif-btn danger" onclick="rejectOffer(' + offerId + ')">❌ Reject Offer</button>';
+                    html += '<button class="notif-btn warning" onclick="openSellerCounterOfferModal(' + offerId + ', ' + parseFloat(data.offer_price).toFixed(2) + ')">💰 Counter Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'countered') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="acceptCounterOffer(' + offerId + ')">✅ Accept Counter Offer</button>';
+                    html += '<button class="notif-btn danger" onclick="rejectCounterOffer(' + offerId + ')">❌ Reject Counter Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'accepted') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
+                    html += '</div>';
+                } else {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;"><span class="notif-btn secondary">Status: ' + data.status + '</span></div>';
+                }
+            } else if (isBuyer) {
+                if (data.status === 'pending') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<span class="notif-btn secondary" style="background:#f0f0f0;">⏳ Waiting for seller response...</span>';
+                    html += '<button class="notif-btn danger" onclick="cancelMyOffer(' + offerId + ')">🗑️ Cancel My Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'countered') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="acceptCounterOffer(' + offerId + ')">✅ Accept Counter Offer (RM ' + parseFloat(data.counter_price).toFixed(2) + ')</button>';
+                    html += '<button class="notif-btn danger" onclick="rejectCounterOffer(' + offerId + ')">❌ Reject Counter Offer</button>';
+                    html += '</div>';
+                } else if (data.status === 'accepted') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
+                    html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
+                    html += '</div>';
+                } else if (data.status === 'rejected') {
+                    html += '<div style="display:flex;gap:8px;margin-top:16px;">';
+                    html += '<span class="notif-btn secondary" style="background:#f0f0f0;">❌ Your offer was rejected by seller</span>';
+                    html += '</div>';
+                }
+            }
+            
+            document.getElementById('offerManageContent').innerHTML = html;
+        });
+>>>>>>> keting/week10
     })
     .catch(function(err) {
         console.error('Order creation error:', err);
@@ -897,6 +1354,7 @@ function submitOrderFromOfferAccept(offerId) {
     });
 }
 
+<<<<<<< HEAD
 // ============================================================
 // Offer 管理弹窗相关函数
 // ============================================================
@@ -979,11 +1437,14 @@ function openOfferManageModal(offerId) {
         });
 }
 
+=======
+>>>>>>> keting/week10
 function closeOfferManageModal() {
     document.getElementById('offerManageModal').classList.remove('show');
     manageOfferId = null;
 }
 
+<<<<<<< HEAD
 // ============================================================
 // 从弹窗接受/拒绝 counter offer（卖家端）
 // ============================================================
@@ -1199,12 +1660,27 @@ async function acceptOffer(offerId) {
     
     fetch('/api/offer/' + offerId + '/accept', { 
         method: 'POST', 
+=======
+// ========== 卖家打开 Counter Offer 弹窗 ==========
+function openSellerCounterOfferModal(offerId, currentOfferPrice) {
+    var counterPrice = prompt('Enter your counter offer price (RM):', currentOfferPrice);
+    if (!counterPrice || parseFloat(counterPrice) <= 0) {
+        showToastMessage('Please enter a valid price', 'error');
+        return;
+    }
+    
+    showToastMessage('Sending counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/counter', {
+        method: 'POST',
+>>>>>>> keting/week10
         credentials: 'same-origin',
-        headers: {'Content-Type': 'application/json'}
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ counter_price: parseFloat(counterPrice) })
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
+<<<<<<< HEAD
             showToastMessage('Offer accepted! Opening checkout...', 'success');
             closeOfferManageModal();
             openCheckoutForOffer(offerId);
@@ -1236,6 +1712,26 @@ async function rejectOffer(offerId) {
     
     showToastMessage('Rejecting offer...', 'info');
     fetch('/api/offer/' + offerId + '/reject', {
+=======
+            showToastMessage('Counter offer sent!', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to send counter offer');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 接受/拒绝 Counter Offer ==========
+function acceptCounterOffer(offerId) {
+    if (!confirm('Accept this counter offer?')) return;
+    
+    showToastMessage('Accepting counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/accept-counter', {
+>>>>>>> keting/week10
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' }
@@ -1243,6 +1739,7 @@ async function rejectOffer(offerId) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
+<<<<<<< HEAD
             showToastMessage('Offer rejected.', 'success');
             closeOfferManageModal();
             loadNotifications();
@@ -1253,10 +1750,21 @@ async function rejectOffer(offerId) {
     })
     .catch(function(err) {
         console.error('Reject offer error:', err);
+=======
+            showToastMessage('Counter offer accepted! You can now checkout.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to accept');
+        }
+    })
+    .catch(function(err) {
+>>>>>>> keting/week10
         showToastMessage('Error: ' + err.message, 'error');
     });
 }
 
+<<<<<<< HEAD
 // ============================================================
 // Counter Offer 弹窗相关
 // ============================================================
@@ -1304,10 +1812,21 @@ document.getElementById('sendCounterOfferBtn')?.addEventListener('click', functi
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ counter_price: parseFloat(newPrice) })
+=======
+function rejectCounterOffer(offerId) {
+    if (!confirm('Reject this counter offer?')) return;
+    
+    showToastMessage('Declining counter offer...', 'info');
+    fetch('/api/offer/' + offerId + '/reject-counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+>>>>>>> keting/week10
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
+<<<<<<< HEAD
             showToastMessage('Counter offer sent!', 'success');
             closeCounterOfferModal();
             loadNotifications();
@@ -1321,6 +1840,93 @@ document.getElementById('sendCounterOfferBtn')?.addEventListener('click', functi
         showToastMessage('Error: ' + err.message, 'error');
     });
 });
+=======
+            showToastMessage('Counter offer declined.', 'info');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to decline');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 接受/拒绝普通 Offer ==========
+function acceptOffer(offerId) {
+    if (!confirm('Accept this offer?')) return;
+    
+    showToastMessage('Accepting offer...', 'info');
+    fetch('/api/offer/' + offerId + '/accept', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer accepted!', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to accept');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+function rejectOffer(offerId) {
+    if (!confirm('Reject this offer?')) return;
+    
+    showToastMessage('Rejecting offer...', 'info');
+    fetch('/api/offer/' + offerId + '/reject', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer rejected.', 'info');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to reject');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ========== 买家取消自己的 Offer ==========
+function cancelMyOffer(offerId) {
+    if (!confirm('Cancel your offer? This cannot be undone.')) return;
+    
+    showToastMessage('Cancelling offer...', 'info');
+    fetch('/api/offer/' + offerId + '/cancel', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Your offer has been cancelled.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+        } else {
+            throw new Error(data.error || 'Failed to cancel');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+>>>>>>> keting/week10
 
 loadNotifications();
 </script>

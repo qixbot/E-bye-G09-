@@ -374,47 +374,65 @@
     }
 
     function sendOffer() {
-        const offerInput = document.getElementById('offerAmount');
-        const offerAmount = parseFloat(offerInput.value);
-        const productId = {{ product.id }};
-        
-        if (!offerAmount || offerAmount <= 0) {
-            showGlobalToast("Please enter a valid offer amount.", "error");
-            return;
-        }
-        
-        const sendBtn = document.querySelector('#offerModal .modal-send');
-        const originalText = sendBtn.textContent;
-        sendBtn.textContent = 'Sending...';
-        sendBtn.disabled = true;
-        
-        fetch('/api/product/' + productId + '/offers/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                offer_price: offerAmount,
-                message: "Offer of RM " + offerAmount.toFixed(2)
-            }),
-            credentials: 'same-origin'
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                showGlobalToast("✓ Offer sent to seller!", "success");
-                offerInput.value = '';
-                closeOfferModal();
-            } else {
-                throw new Error(data.error || 'Failed to send offer');
-            }
-        })
-        .catch(function(err) {
-            showGlobalToast("❌ Error: " + err.message, "error");
-        })
-        .finally(function() {
-            sendBtn.textContent = originalText;
-            sendBtn.disabled = false;
-        });
+    const offerInput = document.getElementById('offerAmount');
+    let offerAmount = parseFloat(offerInput.value);
+    const productId = {{ product.id }};
+    
+    // 验证输入
+    if (isNaN(offerAmount) || offerAmount <= 0) {
+        showGlobalToast("Please enter a valid offer amount (positive number).", "error");
+        return;
     }
+    
+    // 限制小数位数为2位
+    offerAmount = Math.round(offerAmount * 100) / 100;
+    
+    const sendBtn = document.querySelector('#offerModal .modal-send');
+    const originalText = sendBtn.textContent;
+    sendBtn.textContent = 'Sending...';
+    sendBtn.disabled = true;
+    
+    fetch('/api/product/' + productId + '/offers/send', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            offer_price: offerAmount,
+            message: "Offer of RM " + offerAmount.toFixed(2)
+        }),
+        credentials: 'same-origin'  // 关键：添加这行！
+    })
+    .then(function(response) { 
+        // 先检查响应状态
+        if (!response.ok) {
+            // 尝试解析错误信息
+            return response.json().then(function(errData) {
+                throw new Error(errData.error || 'Server error (HTTP ' + response.status + ')');
+            }).catch(function() {
+                throw new Error('Server error (HTTP ' + response.status + ')');
+            });
+        }
+        return response.json(); 
+    })
+    .then(function(data) {
+        if (data.success) {
+            showGlobalToast("✓ Offer sent to seller!", "success");
+            offerInput.value = '';
+            closeOfferModal();
+        } else {
+            throw new Error(data.error || 'Failed to send offer');
+        }
+    })
+    .catch(function(err) {
+        console.error('Offer error:', err);
+        showGlobalToast("❌ " + err.message, "error");
+    })
+    .finally(function() {
+        sendBtn.textContent = originalText;
+        sendBtn.disabled = false;
+    });
+}
 
     function goBack() {
         if (document.referrer && document.referrer !== "") {
