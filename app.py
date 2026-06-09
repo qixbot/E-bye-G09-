@@ -1785,13 +1785,6 @@ def cancel_counter_offer(offer_id):
     
     return jsonify({'success': True})
 
-
-@app.route('/api/current-user-id')
-def api_current_user_id():
-    """获取当前登录用户ID"""
-    if 'user_id' not in session:
-        return jsonify({'user_id': None})
-    return jsonify({'user_id': session['user_id']})
     
 @app.route('/api/offer/<int:offer_id>/create-order', methods=['POST'])
 def api_create_order_from_offer(offer_id):
