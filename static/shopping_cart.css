@@ -430,6 +430,42 @@
     padding: 40px;
 }
 
+.empty-search-message {
+    text-align: center;
+    padding: 60px 20px;
+    background: transparent;
+    border-radius: 16px;
+}
+
+.empty-search-message .empty-icon {
+    font-size: 64px;
+    display: block;
+    margin-bottom: 16px;
+}
+
+.empty-search-message p {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.search-on-main-btn {
+    background: #00381f;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 40px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.search-on-main-btn:hover {
+    background: #1a5c3a;
+    transform: translateY(-2px);
+}
+
 /* Hide checkboxes by default, show only in edit mode */
 .group-checkbox,
 .item-checkbox {

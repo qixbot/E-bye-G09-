@@ -43,6 +43,13 @@
                 <p>Your cart is empty</p>
                 <a href="{{ url_for('home') }}" class="continue-shopping-btn">Continue Shopping →</a>
             </div>
+
+            <!-- Empty search results message -->
+            <div id="emptySearchResults" class="empty-search-message" style="display: none;">
+                <span class="empty-icon">🔍</span>
+                <p>No products match "<span id="emptySearchKeyword"></span>"</p>
+                <button id="searchOnMainBtn" class="search-on-main-btn">Search on main page →</button>
+            </div>
         </main>
 
         <!-- RIGHT: Action Buttons (sticky) – Edit always visible, others appear only in edit mode -->
@@ -936,50 +943,72 @@ function filterCartBySearch() {
     const searchTerm = document.getElementById('cartSearchInput').value.toLowerCase().trim();
     cartSearchTerm = searchTerm;
 
+    // Get containers
+    const emptyCartMessage = document.getElementById('emptyCartMessage');
+    const emptySearchMsg = document.getElementById('emptySearchResults');
+    const availableContainer = document.getElementById('availableProducts');
+    const unavailableSection = document.getElementById('unavailableSection');
+
     if (searchTerm === '') {
-        // Show everything
+        // Show all groups, hide empty search message
         document.querySelectorAll('.seller-group').forEach(group => group.style.display = '');
         document.querySelectorAll('.cart-item-card').forEach(card => card.style.display = '');
+        if (emptySearchMsg) emptySearchMsg.style.display = 'none';
+        
+        // Also handle the normal empty cart case
+        if (cartData.available.length === 0 && cartData.unavailable.length === 0) {
+            emptyCartMessage.style.display = 'block';
+            availableContainer.innerHTML = '';
+            unavailableSection.style.display = 'none';
+        } else {
+            emptyCartMessage.style.display = 'none';
+        }
         return;
     }
 
-    // Iterate over each seller group
+    // Track if any product is visible after filtering
+    let anyVisible = false;
+
     document.querySelectorAll('.seller-group').forEach(group => {
-        // Get seller name from the header link
         const sellerNameElem = group.querySelector('.seller-group-link .seller-name');
         const sellerName = sellerNameElem ? sellerNameElem.innerText.toLowerCase() : '';
 
-        // If seller name matches the search term → show all items in this group
+        // If seller name matches → show whole group
         if (sellerName.includes(searchTerm)) {
             group.style.display = '';
             group.querySelectorAll('.cart-item-card').forEach(card => card.style.display = '');
+            anyVisible = true;
             return;
         }
 
-        // Otherwise, filter individual product cards
-        let anyVisible = false;
+        // Otherwise filter individual product cards
+        let anyInGroupVisible = false;
         const cards = group.querySelectorAll('.cart-item-card');
         cards.forEach(card => {
             const productNameElem = card.querySelector('.cart-item-name');
             const productName = productNameElem ? productNameElem.innerText.toLowerCase() : '';
             if (productName.includes(searchTerm)) {
-                card.style.display = '';   // show
+                card.style.display = '';
+                anyInGroupVisible = true;
                 anyVisible = true;
             } else {
-                card.style.display = 'none'; // hide
+                card.style.display = 'none';
             }
         });
-
-        // Show/hide the entire group based on whether any product is visible
-        group.style.display = anyVisible ? '' : 'none';
+        group.style.display = anyInGroupVisible ? '' : 'none';
     });
 
-    // Handle "no items in this category" message
-    const availableContainer = document.getElementById('availableProducts');
-    const visibleGroups = Array.from(availableContainer.querySelectorAll('.seller-group')).filter(g => g.style.display !== 'none');
-    const noItemsMsg = availableContainer.querySelector('.no-items-message');
-    if (noItemsMsg) {
-        noItemsMsg.style.display = visibleGroups.length === 0 ? 'block' : 'none';
+    // Show/hide empty search message
+    if (emptySearchMsg) {
+        if (!anyVisible) {
+            // Show empty search message
+            emptySearchMsg.style.display = 'block';
+            document.getElementById('emptySearchKeyword').innerText = searchTerm;
+            // Hide normal empty cart message
+            if (emptyCartMessage) emptyCartMessage.style.display = 'none';
+        } else {
+            emptySearchMsg.style.display = 'none';
+        }
     }
 }
 
@@ -988,5 +1017,16 @@ const cartSearchInput = document.getElementById('cartSearchInput');
 if (cartSearchInput) {
     cartSearchInput.addEventListener('input', filterCartBySearch);
 }
+
+// Redirect to main search page with keyword and current category
+document.getElementById('searchOnMainBtn')?.addEventListener('click', function() {
+    const keyword = document.getElementById('cartSearchInput').value.trim();
+    const currentCategory = currentFilter !== 'all' ? currentFilter : '';
+    let url = `/search?q=${encodeURIComponent(keyword)}`;
+    if (currentCategory) {
+        url += `&category=${encodeURIComponent(currentCategory)}`;
+    }
+    window.location.href = url;
+});
 </script>
 {% endblock %}
