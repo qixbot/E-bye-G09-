@@ -35,6 +35,7 @@
 }
 
 .cart-search-wrapper {
+    margin-left: 410px;
     position: relative;
     width: 260px;      /* default width – you can adjust this */
 }
