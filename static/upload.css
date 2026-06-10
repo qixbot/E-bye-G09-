@@ -77,6 +77,11 @@
     color: #9ca3af;
 }
 
+.upload-dropzone.drag-over .dropzone-label {
+    border-color: #00381f;
+    background-color: #eef5ea;
+}
+
 /* --- Dynamic Dropzone States --- */
 .upload-dropzone {
     position: relative;
