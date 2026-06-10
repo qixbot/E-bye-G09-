@@ -320,9 +320,6 @@ def login():
             session['username'] = user['username']
             session['student_id'] = user['student_id']
 
-            # ✅ 只调用一次 flash 消息
-            flash('Login successful!', 'success')
-
             if remember_me:
                 token = secrets.token_urlsafe(64)
                 db = get_db()
@@ -333,6 +330,7 @@ def login():
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', token, max_age=30*24*60*60, httponly=True, secure=False)
+                flash('Login successful!', 'success')
                 return response
             else:
                 db = get_db()
@@ -343,6 +341,7 @@ def login():
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', '', expires=0)
+                flash('Login successful!', 'success')
                 return response
         else:
             flash('Invalid email or password', 'error')
@@ -1181,8 +1180,7 @@ def api_confirm_order(order_id):
     
     db = get_db()
     cur = db.cursor()
-    
-    # ✅ 修复：seller_id = s 改为 seller_id = %s
+     # 获取订单信息，包括产品ID（只查询 pending 状态的订单）
     cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s AND status = %s', 
                 (order_id, session['user_id'], 'pending'))
     order = cur.fetchone()
@@ -1563,6 +1561,7 @@ def accept_counter_offer(offer_id):
         db = get_db()
         cur = db.cursor()
         
+        # 获取 offer 信息 - 使用参数化查询，不要用双引号
         cur.execute('''
             SELECT o.*, p.name as product_name, p.seller_id, p.price as product_price,
                    u.username as seller_name
@@ -1581,6 +1580,7 @@ def accept_counter_offer(offer_id):
         
         agreed_price = float(offer['counter_price'])
         
+        # 更新 offer 状态
         cur.execute('''
             UPDATE offers 
             SET offer_price = %s, status = %s, counter_price = NULL
@@ -1595,12 +1595,12 @@ def accept_counter_offer(offer_id):
               f"🎉 Buyer accepted your counter offer of RM {agreed_price:.2f} for \"{offer['product_name']}\". Waiting for checkout.",
               'offer_accepted', offer_id))
         
-        # 添加：通知买家（自己）
+        # 通知买家
         cur.execute('''
             INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
             VALUES (%s, %s, NOW(), %s, %s, 0)
         ''', (session['user_id'],
-              f"Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' to confirm your order.",
+              f"✅ Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' to confirm your order.",
               'offer_accepted', offer_id))
         
         db.commit()
@@ -1611,6 +1611,8 @@ def accept_counter_offer(offer_id):
         
     except Exception as e:
         print(f"Error in accept_counter_offer: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
     
 @app.route('/api/offer/<int:offer_id>/reject-counter', methods=['POST'])
@@ -1818,11 +1820,12 @@ def api_create_order_from_offer(offer_id):
     db = get_db()
     cur = db.cursor()
     
+    # 先不限 status 查，给出准确错误信息
     cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id, p.price as product_price
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s AND o.buyer_id = %s AND o.status = 'accepted'
+        WHERE o.id = %s AND o.buyer_id = %s
     ''', (offer_id, session['user_id']))
     
     offer = cur.fetchone()
@@ -1830,7 +1833,17 @@ def api_create_order_from_offer(offer_id):
     if not offer:
         cur.close()
         db.close()
-        return jsonify({'success': False, 'error': 'Offer not found or not accepted'}), 404
+        return jsonify({'success': False, 'error': 'Offer not found or you are not the buyer'}), 404
+    
+    if offer['status'] == 'ordered':
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Order has already been placed for this offer'}), 400
+    
+    if offer['status'] != 'accepted':
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': f'Offer is not ready for checkout (status: {offer["status"]})'}), 400
     
     order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
     
@@ -2675,6 +2688,15 @@ def api_delete_product(product_id):
         db.close()
         return jsonify({'success': False, 'error': 'Sold products cannot be deleted'}), 400
     
+    # 先删关联数据，避免 FK constraint 报错
+    cur.execute('DELETE FROM cart_items WHERE product_id = %s', (product_id,))
+    cur.execute('DELETE FROM notifications WHERE product_id = %s', (product_id,))
+    cur.execute('''
+        DELETE FROM notifications WHERE related_id IN (
+            SELECT id FROM offers WHERE product_id = %s
+        )
+    ''', (product_id,))
+    cur.execute('DELETE FROM offers WHERE product_id = %s', (product_id,))
     cur.execute('DELETE FROM products WHERE id = %s', (product_id,))
     db.commit()
     cur.close()
@@ -3189,11 +3211,13 @@ def logout():
         db.commit()
         cur.close()
         db.close()
+        session.clear()
+        flash('Logged out', 'info')
         response = redirect(url_for('login'))
         response.set_cookie('remember_token', '', expires=0)
-    
+        return response
+
     session.clear()
-    flash('Logged out', 'info')
     return redirect(url_for('login'))
 
 # ============================================================

@@ -376,28 +376,44 @@
     <div class="bottom-nav-spacer"></div>
 </div>
 
-<!-- 确认购买弹窗 -->
+<!-- 确认购买弹窗 - 两步式 -->
 <div id="purchaseModal" class="modal-overlay">
-    <div class="modal-box">
-        <button class="modal-close" onclick="closePurchaseModal()">✕</button>
-        <h3>📦 Confirm Purchase</h3>
-        <div id="purchaseProductInfo"></div>
-        <p style="font-size:13px;color:#888;">Select meetup locations (max 3):</p>
-        <div class="location-grid" id="purchaseLocationGrid"></div>
-        <div style="margin: 16px 0;">
-            <label style="font-weight:600; display:block; margin-bottom:8px;">Select up to 3 preferred dates & times:</label>
-            <div id="purchaseDateInputs" style="display: flex; flex-direction: column; gap: 10px;">
-                <div class="date-time-row">
-                    <input type="datetime-local" class="datetime-picker" step="60">
-                    <button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button>
+    <div class="modal-box" style="max-width:540px; padding:0; overflow:hidden;">
+        <button class="modal-close" onclick="closePurchaseModal()" style="position:absolute;top:16px;right:16px;z-index:10;">✕</button>
+
+        <!-- Step 1: 产品信息 + 时间选择 -->
+        <div id="purchaseStep1">
+            <div id="purchaseProductInfo" style="padding:24px 24px 0;"></div>
+            <div style="padding:0 24px 20px;">
+                <label style="font-weight:600; display:block; margin-bottom:10px; font-size:14px;">📅 Select up to 3 preferred dates &amp; times (all must be in the future).</label>
+                <div id="purchaseDateInputs" style="display:flex;flex-direction:column;gap:10px;">
+                    <div class="date-time-row">
+                        <input type="datetime-local" class="datetime-picker" step="60" style="flex:1;">
+                        <button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button>
+                    </div>
+                </div>
+                <button type="button" id="addPurchaseDateBtn" class="add-date-btn" onclick="addDateTimeRow()" style="margin-top:10px;">+ Add another date</button>
+                <div style="display:flex;gap:10px;margin-top:20px;">
+                    <button class="notif-btn secondary" style="flex:1;" onclick="closePurchaseModal()">Cancel</button>
+                    <button class="notif-btn primary" style="flex:1;" onclick="goToPurchaseStep2()">Next →</button>
                 </div>
             </div>
-            <button type="button" id="addPurchaseDateBtn" class="add-date-btn" onclick="addDateTimeRow()">+ Add another date</button>
         </div>
-        <p id="purchaseLocationInfo" style="font-size:12px;color:#e74c3c;"></p>
-        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
-            <button class="notif-btn secondary" onclick="closePurchaseModal()">Cancel</button>
-            <button class="notif-btn primary" id="confirmPurchaseBtn">Confirm Purchase</button>
+
+        <!-- Step 2: 地点选择 -->
+        <div id="purchaseStep2" style="display:none;">
+            <div style="padding:20px 24px 0;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <button onclick="goToPurchaseStep1()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:0;">←</button>
+                    <h3 style="margin:0;font-size:16px;">📍 Preferred meetup location(s)</h3>
+                </div>
+                <p id="purchaseLocationInfo" style="font-size:12px;color:#e74c3c;margin:4px 0 12px;">⚠️ No locations selected. Please choose 1-3 locations.</p>
+                <div class="location-grid" id="purchaseLocationGrid" style="max-height:340px;overflow-y:auto;"></div>
+            </div>
+            <div style="padding:16px 24px 24px;display:flex;gap:10px;">
+                <button class="notif-btn secondary" style="flex:1;" onclick="goToPurchaseStep1()">Back</button>
+                <button class="notif-btn primary" style="flex:1;" id="confirmPurchaseBtn">Confirm Purchase</button>
+            </div>
         </div>
     </div>
 </div>
@@ -634,6 +650,7 @@ function renderNotificationCard(n) {
         icon = '🔄'; iconClass = 'offer';
         actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
     } else if (t.includes('offer_cancelled')) {
+        // ========== 新增：处理取消 offer 的通知 ==========
         icon = '🗑️'; 
         iconClass = 'offer';
         actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=purchases\'">📋 View My Offers</button>';
@@ -704,80 +721,124 @@ function escapeHtml(s) {
 }
 
 // ========== 购买弹窗 ==========
+var _purchaseMeetupLocations = [];
+
 function openPurchaseModal(offerId) {
     purchaseOfferId = offerId;
     selectedLocations = [];
     selectedDates = [];
+    _purchaseMeetupLocations = [];
     
+    // 重置到 step1，隐藏 step2
+    document.getElementById('purchaseStep1').style.display = '';
+    document.getElementById('purchaseStep2').style.display = 'none';
     document.getElementById('purchaseModal').classList.add('show');
+    document.getElementById('purchaseProductInfo').innerHTML = '<div style="padding:8px;color:#888;">Loading...</div>';
     
+    // 重置日期选择器
+    var dateContainer = document.getElementById('purchaseDateInputs');
+    dateContainer.innerHTML = '<div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60" style="flex:1;"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
+    updateRemoveButtons();
+
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (!data.success) {
-            document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Error loading product details</div>';
+            document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail" style="color:#e74c3c;">Error loading product details</div>';
             return;
         }
-        
+
+        // 状态检查
+        if (data.status === 'ordered') {
+            document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail" style="color:#e67e22;">⚠️ An order has already been placed for this offer.</div>';
+            document.getElementById('purchaseStep1').querySelector('button.notif-btn.primary').style.display = 'none';
+            return;
+        }
+        if (data.status !== 'accepted') {
+            document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail" style="color:#e74c3c;">⚠️ This offer is not ready for checkout (status: ' + data.status + ').</div>';
+            document.getElementById('purchaseStep1').querySelector('button.notif-btn.primary').style.display = 'none';
+            return;
+        }
+        document.getElementById('purchaseStep1').querySelector('button.notif-btn.primary').style.display = '';
+
         var sellerCampus = data.seller_campus || '';
-        var meetupLocations = [];
-        
+
+        // 产品信息 - 像截图那样：左边大图，右边信息
+        var imgHtml = '';
+        if (data.product_image) {
+            imgHtml = '<img src="' + data.product_image + '" style="width:100%;height:160px;object-fit:cover;border-radius:12px;margin-bottom:12px;" onerror="this.style.display=\'none\'">';
+        }
+        document.getElementById('purchaseProductInfo').innerHTML =
+            imgHtml +
+            '<div style="margin-bottom:16px;">' +
+            '<div style="font-size:16px;font-weight:700;margin-bottom:4px;">' + escapeHtml(data.product_name) + '</div>' +
+            '<div style="font-size:20px;font-weight:800;color:#205c30;">RM ' + parseFloat(data.offer_price).toFixed(2) + '</div>' +
+            '<div style="font-size:12px;color:#888;margin-top:4px;">📍 Seller\'s Campus: ' + escapeHtml(sellerCampus || 'Not specified') + '</div>' +
+            '</div>';
+
+        // 地点列表
         if (sellerCampus.includes('Cyberjaya') || sellerCampus.includes('Cyber')) {
-            meetupLocations = [
-                "Library", "DTC", "Starbees", "CLC", "FCI", "FOM", "FAIE", "FCM",
-                "STC", "HB1", "HB2", "HB3", "HB4", "Masjid", "Tekun Mart", "Chancellery Building"
+            _purchaseMeetupLocations = [
+                'Library', 'DTC', 'Starbees', 'CLC', 'FCI', 'FOM', 'FAIE', 'FCM',
+                'STC', 'HB1', 'HB2', 'HB3', 'HB4', 'Masjid', 'Tekun Mart', 'Chancellery Building'
             ];
         } else {
-            meetupLocations = [
-                "Library (Melaka)", "Dewan Tun Canselor", "Cafeteria", "Block A", "Block B",
-                "Block C", "Block D", "Block E", "Sports Complex", "Hostel 1", "Hostel 2",
-                "Hostel 3", "Hostel 4", "Surau", "Mini Mart", "Admin Building"
+            _purchaseMeetupLocations = [
+                'Library (Melaka)', 'Dewan Tun Canselor', 'Cafeteria', 'Block A', 'Block B',
+                'Block C', 'Block D', 'Block E', 'Sports Complex', 'Hostel 1', 'Hostel 2',
+                'Hostel 3', 'Hostel 4', 'Surau', 'Mini Mart', 'Admin Building'
             ];
-        }
-        
-        document.getElementById('purchaseProductInfo').innerHTML = 
-            '<div class="offer-detail">' +
-            '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
-            'Price: RM ' + parseFloat(data.offer_price).toFixed(2) +
-            (data.product_image ? '<br><img src="' + data.product_image + '" style="width:80px;border-radius:8px;margin-top:8px;">' : '') +
-            '<br><span style="font-size:11px; color:#205c30;">📍 Seller\'s Campus: ' + escapeHtml(sellerCampus || 'Not specified') + '</span>' +
-            '</div>';
-        
-        // 构建地点选择网格
-        var grid = document.getElementById('purchaseLocationGrid');
-        grid.innerHTML = '';
-        for (var i = 0; i < meetupLocations.length; i++) {
-            var loc = meetupLocations[i];
-            var btn = document.createElement('button');
-            btn.className = 'location-btn';
-            btn.setAttribute('data-location', loc);
-            btn.innerHTML = '<img src="/static/uploads/placeholder.jpg" alt=""><span>' + loc + '</span>';
-            btn.onclick = (function(locationName) {
-                return function() { toggleLocation(locationName); };
-            })(loc);
-            grid.appendChild(btn);
-        }
-        
-        // 重置日期选择器
-        var dateContainer = document.getElementById('purchaseDateInputs');
-        dateContainer.innerHTML = '<div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
-        updateRemoveButtons();
-        
-        // 重置 location info
-        var infoDiv = document.getElementById('purchaseLocationInfo');
-        if (infoDiv) {
-            infoDiv.innerText = '⚠️ Please select 1-3 locations';
-            infoDiv.style.color = '#e74c3c';
         }
     })
     .catch(function() {
-        document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Failed to load product details</div>';
+        document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail" style="color:#e74c3c;">Failed to load product details</div>';
     });
+}
+
+function goToPurchaseStep2() {
+    var dates = getSelectedDates();
+    if (dates.length === 0) {
+        showToastMessage('Please select at least one date and time', 'error');
+        return;
+    }
+    // 验证时间必须在未来
+    var now = new Date();
+    for (var i = 0; i < dates.length; i++) {
+        if (new Date(dates[i]) <= now) {
+            showToastMessage('All dates must be in the future', 'error');
+            return;
+        }
+    }
+
+    // 构建地点网格
+    selectedLocations = [];
+    var grid = document.getElementById('purchaseLocationGrid');
+    grid.innerHTML = '';
+    _purchaseMeetupLocations.forEach(function(loc) {
+        var btn = document.createElement('button');
+        btn.className = 'location-btn';
+        btn.setAttribute('data-location', loc);
+        btn.innerHTML = '<span style="font-size:13px;font-weight:500;">' + loc + '</span>';
+        btn.onclick = function() { toggleLocation(loc); };
+        grid.appendChild(btn);
+    });
+    updateLocationUI();
+
+    document.getElementById('purchaseStep1').style.display = 'none';
+    document.getElementById('purchaseStep2').style.display = '';
+}
+
+function goToPurchaseStep1() {
+    document.getElementById('purchaseStep2').style.display = 'none';
+    document.getElementById('purchaseStep1').style.display = '';
 }
 
 function closePurchaseModal() {
     document.getElementById('purchaseModal').classList.remove('show');
     purchaseOfferId = null;
+    // Reset step1 next button
+    var nextBtn = document.querySelector('#purchaseStep1 button.notif-btn.primary');
+    if (nextBtn) nextBtn.style.display = '';
 }
 
 function toggleLocation(name) {
@@ -795,25 +856,22 @@ function toggleLocation(name) {
 }
 
 function updateLocationUI() {
-    var btns = document.querySelectorAll('#purchaseLocationGrid .location-btn');
-    for (var i = 0; i < btns.length; i++) {
-        var btn = btns[i];
-        var name = btn.querySelector('span').innerText;
-        if (selectedLocations.indexOf(name) !== -1) {
+    document.querySelectorAll('#purchaseLocationGrid .location-btn').forEach(function(btn) {
+        var name = btn.getAttribute('data-location') || btn.querySelector('span').innerText;
+        if (selectedLocations.includes(name)) {
             btn.classList.add('selected');
         } else {
             btn.classList.remove('selected');
         }
-    }
-    
+    });
     var infoDiv = document.getElementById('purchaseLocationInfo');
     if (infoDiv) {
         if (selectedLocations.length === 0) {
-            infoDiv.innerText = '⚠️ Please select 1-3 locations';
+            infoDiv.innerText = '⚠️ No locations selected. Please choose 1-3 locations.';
             infoDiv.style.color = '#e74c3c';
         } else {
             infoDiv.innerText = '✓ Selected: ' + selectedLocations.join(', ');
-            infoDiv.style.color = '#2ecc71';
+            infoDiv.style.color = '#205c30';
         }
     }
 }
@@ -855,14 +913,8 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
             showToastMessage(d.error || 'Failed', 'error');
         }
     })
-    .catch(function(err) { 
-        console.error('Order creation error:', err);
-        showToastMessage('Error: ' + err.message, 'error'); 
-    })
-    .finally(function() { 
-        confirmBtn.disabled = false; 
-        confirmBtn.textContent = 'Confirm Purchase'; 
-    });
+    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); })
+    .finally(function() { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Purchase'; });
 });
 
 // ========== 优惠管理弹窗 ==========
@@ -1114,7 +1166,7 @@ function submitOrderFromOfferAccept(offerId) {
     });
 }
 
-// ========== 卖家 Counter Offer ==========
+// ========== 卖家 Counter Offer（week10 功能） ==========
 function openSellerCounterOfferModal(offerId, currentOfferPrice) {
     var counterPrice = prompt('Enter your counter offer price (RM):', currentOfferPrice);
     if (!counterPrice || parseFloat(counterPrice) <= 0) {
