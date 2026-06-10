@@ -10,6 +10,10 @@
     <div class="cart-header-sticky">
         <button class="back-btn" onclick="goBack()">← Back</button>
         <h1 class="cart-title">🛒 Shopping Cart</h1>
+        <div class="cart-search-wrapper">
+            <span class="cart-search-icon">🔍</span>
+            <input type="text" id="cartSearchInput" class="cart-search-input" placeholder="Search in cart...">
+        </div>
     </div>
 
     <div class="cart-layout">
@@ -916,6 +920,52 @@ if (clearCartBtn) {
 if (confirmClearBtn) {
     confirmClearBtn.removeEventListener('click', executeClearCart);
     confirmClearBtn.addEventListener('click', executeClearCart);
+}
+
+// ======================== SEARCH IN CART ========================
+let cartSearchTerm = '';
+
+function filterCartBySearch() {
+    const searchTerm = document.getElementById('cartSearchInput').value.toLowerCase().trim();
+    cartSearchTerm = searchTerm;
+
+    // Get all seller groups (both available and unavailable sections)
+    const allSellerGroups = document.querySelectorAll('.seller-group');
+    
+    allSellerGroups.forEach(group => {
+        // Get seller name (from .seller-name inside the header link)
+        const sellerNameElem = group.querySelector('.seller-group-link .seller-name');
+        const sellerName = sellerNameElem ? sellerNameElem.innerText.toLowerCase() : '';
+        
+        // Get all product names in this group
+        const productNames = Array.from(group.querySelectorAll('.cart-item-name')).map(el => el.innerText.toLowerCase());
+        
+        // Check if search term matches seller name or any product name
+        let matches = false;
+        if (searchTerm === '') {
+            matches = true;
+        } else {
+            if (sellerName.includes(searchTerm)) matches = true;
+            if (!matches && productNames.some(pname => pname.includes(searchTerm))) matches = true;
+        }
+        
+        // Show/hide the group based on match
+        group.style.display = matches ? '' : 'none';
+    });
+    
+    // Also handle the "no items in this category" message visibility
+    const availableContainer = document.getElementById('availableProducts');
+    const visibleGroups = Array.from(availableContainer.querySelectorAll('.seller-group')).filter(g => g.style.display !== 'none');
+    const noItemsMsg = availableContainer.querySelector('.no-items-message');
+    if (noItemsMsg) {
+        noItemsMsg.style.display = visibleGroups.length === 0 ? 'block' : 'none';
+    }
+}
+
+// Attach event listener to search input
+const cartSearchInput = document.getElementById('cartSearchInput');
+if (cartSearchInput) {
+    cartSearchInput.addEventListener('input', filterCartBySearch);
 }
 </script>
 {% endblock %}

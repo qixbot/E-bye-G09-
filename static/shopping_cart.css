@@ -19,6 +19,52 @@
     background: #e0e0e0;
 }
 
+/* Search bar inside cart header */
+.cart-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.cart-title-sticky {
+    margin-bottom: 0;  /* remove extra bottom margin */
+    flex-shrink: 0;
+}
+
+.cart-search-wrapper {
+    position: relative;
+    width: 260px;      /* default width – you can adjust this */
+}
+
+.cart-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: #aaa;
+    pointer-events: none;
+}
+
+.cart-search-input {
+    width: 100%;
+    padding: 8px 12px 8px 32px;
+    border: 1px solid #ddd;
+    border-radius: 40px;
+    font-size: 0.85rem;
+    background: #fff;
+    transition: 0.2s;
+    outline: none;
+}
+
+.cart-search-input:focus {
+    border-color: #00381f;
+    box-shadow: 0 0 0 2px rgba(0, 56, 31, 0.1);
+}
+
 /* 3-column layout */
 .cart-layout {
     display: flex;
@@ -401,6 +447,13 @@
 
 /* Responsive – unchanged */
 @media (max-width: 768px) {
+        .cart-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .cart-search-wrapper {
+        width: 100%;
+    }
     .cart-layout {
         flex-direction: column;
     }
