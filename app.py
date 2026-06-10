@@ -1847,6 +1847,13 @@ def api_create_order_from_offer(offer_id):
           offer['offer_price'], ','.join(meetup_locations), meeting_dates_str))
     
     order_id = cur.fetchone()['id']
+
+    # Mark product as reserved (added by Xingru)
+    cur.execute("UPDATE products SET status = 'reserved' WHERE id = %s", (offer['product_id'],))
+
+    # ✅ Remove the purchased product from cart (added by Xingru)
+    cur.execute('DELETE FROM cart_items WHERE user_id = %s AND product_id = %s', 
+                (session['user_id'], offer['product_id']))
     
     cur.execute("UPDATE offers SET status = 'ordered' WHERE id = %s", (offer_id,))
     
@@ -1921,6 +1928,13 @@ def api_create_order_from_accept(offer_id):
           offer['offer_price'], ','.join(meetup_locations), meeting_dates_str))
     
     order_id = cur.fetchone()['id']
+    
+    # Mark product as reserved (added by Xingru)
+    cur.execute("UPDATE products SET status = 'reserved' WHERE id = %s", (offer['product_id'],))
+
+    # ✅ Remove the purchased product from the buyer's cart (added by Xingru)
+    cur.execute('DELETE FROM cart_items WHERE user_id = %s AND product_id = %s', 
+                (offer['buyer_id'], offer['product_id']))
     
     cur.execute("UPDATE offers SET status = 'ordered' WHERE id = %s", (offer_id,))
     cur.execute("UPDATE products SET status = 'sold' WHERE id = %s", (offer['product_id'],))
@@ -2048,6 +2062,13 @@ def api_buy_now():
           product['price'], ','.join(meetup_locations), meeting_dates_str))
     
     order_id = cur.fetchone()['id']
+
+    # Mark product as reserved immediately (added by Xingru)
+    cur.execute("UPDATE products SET status = 'reserved' WHERE id = %s", (product_id,))
+
+    # Delete from cart if it was there (added by Xingru)
+    cur.execute('DELETE FROM cart_items WHERE user_id = %s AND product_id = %s', 
+            (session['user_id'], product_id))
     
     # 重要：不要改变产品状态！保持 'approved'
     # 只有当卖家确认订单后，产品才应该变为 'reserved' 或 'sold'
@@ -2068,7 +2089,7 @@ def api_buy_now():
     ''', (session['user_id'],
           f"✅ Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. Meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Waiting for seller to confirm.",
           'order_created', order_id))
-    
+
     db.commit()
     cur.close()
     db.close()
