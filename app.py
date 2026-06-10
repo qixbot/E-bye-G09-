@@ -320,6 +320,9 @@ def login():
             session['username'] = user['username']
             session['student_id'] = user['student_id']
 
+            # ✅ 只调用一次 flash 消息
+            flash('Login successful!', 'success')
+
             if remember_me:
                 token = secrets.token_urlsafe(64)
                 db = get_db()
@@ -330,7 +333,6 @@ def login():
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', token, max_age=30*24*60*60, httponly=True, secure=False)
-                flash('Login successful!', 'success')
                 return response
             else:
                 db = get_db()
@@ -341,7 +343,6 @@ def login():
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', '', expires=0)
-                flash('Login successful!', 'success')
                 return response
         else:
             flash('Invalid email or password', 'error')

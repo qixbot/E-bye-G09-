@@ -748,13 +748,14 @@ function openPurchaseModal(offerId) {
         var grid = document.getElementById('purchaseLocationGrid');
         grid.innerHTML = '';
         meetupLocations.forEach(function(loc) {
-            var btn = document.createElement('button');
-            btn.className = 'location-btn';
-            btn.innerHTML = '<img src="/static/uploads/placeholder.jpg" alt=""><span>' + loc + '</span>';
-            btn.onclick = function() { toggleLocation(loc); };
-            grid.appendChild(btn);
-        });
-        
+        var btn = document.createElement('button');
+        btn.className = 'location-btn';
+        btn.setAttribute('data-location', loc);  // ← 添加这一行
+        btn.innerHTML = '<img src="/static/uploads/placeholder.jpg" alt=""><span>' + loc + '</span>';
+        btn.onclick = function() { toggleLocation(loc); };
+        grid.appendChild(btn);
+    });
+
         // 重置日期选择器
         var dateContainer = document.getElementById('purchaseDateInputs');
         dateContainer.innerHTML = '<div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';

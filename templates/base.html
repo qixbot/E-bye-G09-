@@ -52,16 +52,6 @@
     
     <!-- TOP Navigation bar end -->
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="toast-container">
-                {% for category, message in messages %}
-                    <div class="toast toast-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
     {% block content %}{% endblock %}
     
     <!-- BOTTOM Navigation bar -->
