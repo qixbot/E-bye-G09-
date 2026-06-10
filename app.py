@@ -4497,6 +4497,10 @@ def api_update_order_status(order_id):
     elif new_status == 'cancelled':
         if order['status'] not in ['pending', 'confirmed']:
             return jsonify({'success': False, 'error': 'Cannot cancel order at this stage'}), 400
+        # ✅ Revert product status to approved (added by Xingru)
+        cur.execute("UPDATE products SET status = 'approved' WHERE id = %s", (order['product_id'],))
+        # ✅ Remove product from all carts (added by Xingru)
+        cur.execute("DELETE FROM cart_items WHERE product_id = %s", (order['product_id'],))
     else:
         return jsonify({'success': False, 'error': 'Invalid status transition'}), 400
     
