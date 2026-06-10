@@ -253,6 +253,16 @@ function groupBySeller(items) {
 
 async function loadCart() {
     const response = await fetch('/api/cart', { credentials: 'same-origin' });
+    if (!response.ok) {
+        const text = await response.text();
+        if (text.includes('login') || text.includes('Login')) {
+            showToastMessage('Session expired. Please login again.', 'error');
+            setTimeout(() => window.location.href = '/login', 2000);
+        } else {
+            showToastMessage('Failed to load cart. Please refresh.', 'error');
+        }
+        return;
+    }
     const data = await response.json();
     cartData = data;
     renderCategories();
@@ -738,6 +748,18 @@ async function confirmPurchaseFromCart() {
             }),
             credentials: 'same-origin'
         });
+        if (!resp.ok) {
+            const text = await resp.text();
+            console.error('Server error response:', text);
+            // If the response is HTML and contains "login", redirect to login
+            if (text.includes('login') || text.includes('Login')) {
+                showToastMessage('Your session has expired. Please login again.', 'error');
+                setTimeout(() => window.location.href = '/login', 2000);
+            } else {
+                showToastMessage('Server error. Please try again later.', 'error');
+            }
+            return;
+        }
         const data = await resp.json();
         if (data.success) {
             showToastMessage('✅ Purchase reserved! Seller will confirm.', 'success');

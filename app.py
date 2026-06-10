@@ -2088,15 +2088,15 @@ def api_buy_now():
     # 通知卖家有新的订单
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'order', %s, 0)
+        VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (product['seller_id'],
-          f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Go to My Orders to confirm.",
-          'order_created', order_id))
+        f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Go to My Orders to confirm.",
+        'order_created', order_id))
     
     # 通知买家订单已创建
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'order', %s, 0)
+        VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (session['user_id'],
           f"✅ Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. Meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Waiting for seller to confirm.",
           'order_created', order_id))
