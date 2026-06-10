@@ -1193,24 +1193,57 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
     }
     
     var modalHtml = '<div id="confirmOrderModal" class="custom-modal">';
-    modalHtml += '<div class="modal-card" style="max-width: 500px;">';
-    modalHtml += '<div class="modal-icon">📋</div>';
-    modalHtml += '<div class="modal-title">Confirm Order #' + escapeHtml(orderNumber) + '</div>';
-    modalHtml += '<div class="modal-message">Product: ' + escapeHtml(productName) + '</div>';
-    modalHtml += '<div style="margin: 16px 0;">';
-    modalHtml += '<label style="font-weight:600; display:block; margin-bottom:12px;">📍 Buyer\'s Preferred Location (select one):</label>';
-    modalHtml += '<div class="location-options" style="background:#f9f9f9; padding:12px; border-radius:12px;">';
-    modalHtml += locationHtml;
+    modalHtml += '<div class="modal-card" style="max-width:520px; padding:0; overflow:hidden;">';
+    // Header
+    modalHtml += '<div style="padding:20px 24px 16px; border-bottom:1px solid #eee;">';
+    modalHtml += '<div style="font-size:18px;font-weight:700;">✅ Confirm Order</div>';
+    modalHtml += '<div style="font-size:13px;color:#888;margin-top:2px;">#' + escapeHtml(orderNumber) + ' · ' + escapeHtml(productName) + '</div>';
+    modalHtml += '</div>';
+    // Body
+    modalHtml += '<div style="padding:20px 24px; max-height:60vh; overflow-y:auto;">';
+    // Location section
+    modalHtml += '<div style="margin-bottom:20px;">';
+    modalHtml += '<div style="font-weight:700; font-size:14px; margin-bottom:10px;">📍 Buyer\'s Preferred Locations <span style="font-weight:400;color:#888;font-size:12px;">(select one to confirm)</span></div>';
+    // Location chips
+    if (locations.length > 0) {
+        modalHtml += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+        for (var li = 0; li < locations.length; li++) {
+            var loc2 = locations[li].trim();
+            modalHtml += '<label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:2px solid #ddd;border-radius:30px;cursor:pointer;font-size:13px;font-weight:500;transition:0.2s;" onclick="this.style.borderColor=\'#205c30\';this.style.background=\'#eaf4ed\';document.querySelectorAll(\'.loc-radio\').forEach(function(r){r.closest(\'label\').style.borderColor=\'#ddd\';r.closest(\'label\').style.background=\'#fff\'});this.style.borderColor=\'#205c30\';this.style.background=\'#eaf4ed\'">';
+            modalHtml += '<input type="radio" name="selected_location" value="' + escapeHtml(loc2) + '" class="loc-radio" style="display:none;"> ';
+            modalHtml += '📍 ' + escapeHtml(loc2);
+            modalHtml += '</label>';
+        }
+        modalHtml += '</div>';
+    } else {
+        modalHtml += '<p style="color:#999;font-size:13px;">No location specified by buyer</p>';
+    }
+    modalHtml += '</div>';
+    // Time section
+    modalHtml += '<div>';
+    modalHtml += '<div style="font-weight:700; font-size:14px; margin-bottom:10px;">⏰ Buyer\'s Preferred Times <span style="font-weight:400;color:#888;font-size:12px;">(select one to confirm)</span></div>';
+    if (times.length > 0) {
+        modalHtml += '<div style="display:flex;flex-direction:column;gap:8px;">';
+        for (var ti = 0; ti < times.length; ti++) {
+            var t2 = times[ti].trim();
+            var displayTime2 = t2.includes('T') ? t2.replace('T', ' at ').replace(/-/g,'/') : t2;
+            modalHtml += '<label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid #ddd;border-radius:12px;cursor:pointer;font-size:13px;background:#fff;transition:0.2s;" onclick="document.querySelectorAll(\'.time-radio\').forEach(function(r){r.closest(\'label\').style.borderColor=\'#ddd\';r.closest(\'label\').style.background=\'#fff\'});this.style.borderColor=\'#205c30\';this.style.background=\'#eaf4ed\'">';
+            modalHtml += '<input type="radio" name="selected_time" value="' + escapeHtml(t2) + '" class="time-radio" style="accent-color:#205c30;"> ';
+            modalHtml += '<span>🕐 ' + escapeHtml(displayTime2) + '</span>';
+            modalHtml += '</label>';
+        }
+        modalHtml += '</div>';
+    } else {
+        modalHtml += '<p style="color:#999;font-size:13px;">No time specified by buyer</p>';
+    }
+    modalHtml += '</div>';
+    modalHtml += '</div>';
+    // Footer buttons
+    modalHtml += '<div style="padding:16px 24px; border-top:1px solid #eee; display:flex; gap:12px;">';
+    modalHtml += '<button style="flex:1;padding:12px;border-radius:30px;background:#f0f0f0;border:none;font-size:14px;font-weight:600;cursor:pointer;" onclick="closeConfirmOrderModal()">Cancel</button>';
+    modalHtml += '<button style="flex:1;padding:12px;border-radius:30px;background:#205c30;color:white;border:none;font-size:14px;font-weight:600;cursor:pointer;" onclick="submitOrderConfirmation(' + orderId + ')">✅ Confirm Order</button>';
+    modalHtml += '</div>';
     modalHtml += '</div></div>';
-    modalHtml += '<div style="margin: 16px 0;">';
-    modalHtml += '<label style="font-weight:600; display:block; margin-bottom:12px;">⏰ Buyer\'s Preferred Time (select one):</label>';
-    modalHtml += '<div class="time-options" style="background:#f9f9f9; padding:12px; border-radius:12px;">';
-    modalHtml += timeHtml;
-    modalHtml += '</div></div>';
-    modalHtml += '<div class="modal-buttons" style="display:flex; gap:12px; justify-content:flex-end; margin-top:20px;">';
-    modalHtml += '<button class="modal-cancel" style="padding:10px 20px; border-radius:30px; background:#f0f0f0; border:none; cursor:pointer;" onclick="closeConfirmOrderModal()">Cancel</button>';
-    modalHtml += '<button class="modal-confirm" style="padding:10px 20px; border-radius:30px; background:#205c30; color:white; border:none; cursor:pointer;" onclick="submitOrderConfirmation(' + orderId + ')">Confirm Order</button>';
-    modalHtml += '</div></div></div>';
     
     // 移除已有弹窗并添加
     var existingModal = document.getElementById('confirmOrderModal');

@@ -13,19 +13,18 @@
             
             <div id="toast-message" class="toast-message">You can only upload up to 12 photos!</div>
 
-            <div class="upload-dropzone" id="dropzone">
-                <input type="file" id="product_images" name="product_images" accept="image/png, image/jpeg, video/mp4, video/webm, video/quicktime" multiple style="display: none;">
+            <div id="dropzoneContainer" class="upload-dropzone">
+                <!-- Hidden file input – required for both click and programmatic access -->
+                <input type="file" id="product_images" name="product_images" multiple accept="image/*,video/*" style="display: none;">
                 
                 <label for="product_images" class="dropzone-label" id="empty-state" style="cursor: pointer; width: 100%;">
                     <div class="camera-icon">📸</div>
                     <div class="dropzone-text">Drag & drop photos here, or <span class="click-text" style="color: #00381f;">click to browse</span></div>
-                    <div class="dropzone-hint">Max 12 photos • JPG, PNG, MP4, WebM, MOV</div>
+                    <div class="dropzone-hint">Max 12 photos • JPG, PNG, WebP, MP4, WebM, MOV</div>
                 </label>
 
                 <div id="filled-state" class="dropzone-filled-state" style="display: none;">
-                    
                     <div class="file-grid-container" id="file-grid-container"></div>
-                    
                     <label for="product_images" class="add-more-btn" title="Add more images">
                         <span class="plus-icon">+</span>
                         <span class="add-text">Add more images</span>
@@ -109,13 +108,22 @@
     
     let selectedFiles = [];
 
-    // Trigger the popup animation
-    function showToast() {
+    // Generic toast function (replaces showToast)
+    function showToastMessage(message, type = 'error') {
+        toastMessage.textContent = message;
         toastMessage.classList.add('show');
-        // Wait 3 seconds, then remove the class to fade it out
         setTimeout(() => {
             toastMessage.classList.remove('show');
+            // Restore default message after hiding
+            if (type !== 'warning') {
+                toastMessage.textContent = "You can only upload up to 12 photos!";
+            }
         }, 3000);
+    }
+
+    // Original showToast (now just a wrapper for consistency)
+    function showToast() {
+        showToastMessage("You can only upload up to 12 photos!", 'error');
     }
 
     fileInput.addEventListener('change', function(event) {
@@ -128,13 +136,12 @@
                     selectedFiles.push(file);
                 }
             } else {
-                // If we hit 12, flag it so we know to show the warning
                 triggeredLimitWarning = true;
             }
         });
         
         if (triggeredLimitWarning) {
-            showToast();
+            showToastMessage('You can only upload up to 12 files!', 'error');
         }
         
         updateDisplayAndSync();
@@ -168,10 +175,9 @@
                 <button type="button" class="remove-file-btn" onclick="removeFile(${index})" title="Remove">✖</button>
             `;
             
-            // Free up memory once the image loads
             fileCard.querySelector('.file-card-img').onload = function() {
                 URL.revokeObjectURL(this.src);
-            }
+            };
             
             fileGridContainer.appendChild(fileCard);
         });
@@ -184,49 +190,100 @@
     }
 
     // --- Form Submission Validation ---
-    // Grab the form element
     const uploadForm = document.querySelector('.upload-form');
     
     if (uploadForm) {
         uploadForm.addEventListener('submit', function(event) {
-            // Check if they uploaded at least 1 image
             if (selectedFiles.length === 0) {
-                // STOP the form from publishing
                 event.preventDefault(); 
-                
-                // Change the toast text to warn them about the missing image
-                toastMessage.innerText = "Please upload at least one photo!";
-                showToast();
-                
-                // Change the text back to the 12-image warning after the popup fades
-                setTimeout(() => {
-                    toastMessage.innerText = "You can only upload up to 12 photos!";
-                }, 3500); 
-                
-                // Smoothly scroll them back to the top of the page so they see the image box
+                showToastMessage("Please upload at least one photo!", 'error');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
     }
 
+    // ======================== DRAG & DROP ========================
+    const dropzone = document.getElementById('dropzoneContainer');
+
+    if (dropzone) {
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Highlight dropzone when dragging over
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, highlight, false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropzone.classList.add('drag-over');
+        }
+        function unhighlight(e) {
+            dropzone.classList.remove('drag-over');
+        }
+
+        // Handle dropped files
+        dropzone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            const newFiles = Array.from(files);
+            let triggeredLimitWarning = false;
+            let addedCount = 0;
+
+            for (let file of newFiles) {
+                if (selectedFiles.length + addedCount < 12) {
+                    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
+                    if (!allowedTypes.includes(file.type)) {
+                        showToastMessage(`Unsupported file type: ${file.type}`, 'error');
+                        continue;
+                    }
+                    const duplicate = selectedFiles.some(f => f.name === file.name && f.size === file.size);
+                    if (!duplicate) {
+                        selectedFiles.push(file);
+                        addedCount++;
+                    }
+                } else {
+                    triggeredLimitWarning = true;
+                }
+            }
+
+            if (triggeredLimitWarning) {
+                showToastMessage('You can only upload up to 12 files!', 'error');
+            }
+            updateDisplayAndSync();
+        }
+    }
+
     // --- Price Auto-Formatting ---
-    const priceInput = document.getElementById('item_price'); // Updated to match your exact ID!
+    const priceInput = document.getElementById('item_price');
     
     if (priceInput) {
-        // The 'blur' event triggers when the user clicks or tabs away from the input
         priceInput.addEventListener('blur', function() {
-            // Only format if they actually typed something
             if (this.value) {
-                // Convert their text into a decimal number
                 const parsedPrice = parseFloat(this.value);
-                
-                // If it's a valid number, format it to exactly 2 decimal places
                 if (!isNaN(parsedPrice)) {
                     this.value = parsedPrice.toFixed(2);
                 }
             }
         });
     }
+    
     function limitPrice(input) {
         let val = parseFloat(input.value);
         if (val > 9999999) {

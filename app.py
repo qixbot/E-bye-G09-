@@ -321,9 +321,6 @@ def login():
             session['username'] = user['username']
             session['student_id'] = user['student_id']
 
-            # ✅ 只调用一次 flash 消息
-            flash('Login successful!', 'success')
-
             if remember_me:
                 token = secrets.token_urlsafe(64)
                 db = get_db()
@@ -334,6 +331,7 @@ def login():
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', token, max_age=30*24*60*60, httponly=True, secure=False)
+                flash('Login successful!', 'success')
                 return response
             else:
                 db = get_db()
@@ -344,6 +342,7 @@ def login():
                 db.close()
                 response = redirect(url_for('home'))
                 response.set_cookie('remember_token', '', expires=0)
+                flash('Login successful!', 'success')
                 return response
         else:
             flash('Invalid email or password', 'error')
@@ -1184,7 +1183,11 @@ def api_confirm_order(order_id):
     cur = db.cursor()
      # 获取订单信息，包括产品ID（只查询 pending 状态的订单）
     cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s AND status = %s', 
+<<<<<<< HEAD
             (order_id, session['user_id'], 'pending'))
+=======
+                (order_id, session['user_id'], 'pending'))
+>>>>>>> 8d0b62d8ca1b64ab6f4dd0e7be503299ff39a6ce
     order = cur.fetchone()
     
     if not order:
@@ -1823,11 +1826,12 @@ def api_create_order_from_offer(offer_id):
     db = get_db()
     cur = db.cursor()
     
+    # 先不限 status 查，给出准确错误信息
     cur.execute('''
         SELECT o.*, p.name as product_name, p.seller_id, p.price as product_price
         FROM offers o
         JOIN products p ON o.product_id = p.id
-        WHERE o.id = %s AND o.buyer_id = %s AND o.status = 'accepted'
+        WHERE o.id = %s AND o.buyer_id = %s
     ''', (offer_id, session['user_id']))
     
     offer = cur.fetchone()
@@ -1835,7 +1839,17 @@ def api_create_order_from_offer(offer_id):
     if not offer:
         cur.close()
         db.close()
-        return jsonify({'success': False, 'error': 'Offer not found or not accepted'}), 404
+        return jsonify({'success': False, 'error': 'Offer not found or you are not the buyer'}), 404
+    
+    if offer['status'] == 'ordered':
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Order has already been placed for this offer'}), 400
+    
+    if offer['status'] != 'accepted':
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': f'Offer is not ready for checkout (status: {offer["status"]})'}), 400
     
     order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
     
@@ -2080,15 +2094,15 @@ def api_buy_now():
     # 通知卖家有新的订单
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'order', %s, 0)
+        VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (product['seller_id'],
-          f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Go to My Orders to confirm.",
-          'order_created', order_id))
+        f"🛒 BUY NOW — Order #{order_number}! {session['username']} purchased \"{product['name']}\" for RM {product['price']:.2f}. Preferred meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Go to My Orders to confirm.",
+        'order_created', order_id))
     
     # 通知买家订单已创建
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'order', %s, 0)
+        VALUES (%s, %s, NOW(), %s, %s, 0)
     ''', (session['user_id'],
           f"✅ Order #{order_number} placed for \"{product['name']}\" at RM {product['price']:.2f}. Meetup: {', '.join(meetup_locations)}. Preferred times: {meeting_dates_str}. Waiting for seller to confirm.",
           'order_created', order_id))
@@ -2701,6 +2715,15 @@ def api_delete_product(product_id):
         db.close()
         return jsonify({'success': False, 'error': 'Sold products cannot be deleted'}), 400
     
+    # 先删关联数据，避免 FK constraint 报错
+    cur.execute('DELETE FROM cart_items WHERE product_id = %s', (product_id,))
+    cur.execute('DELETE FROM notifications WHERE product_id = %s', (product_id,))
+    cur.execute('''
+        DELETE FROM notifications WHERE related_id IN (
+            SELECT id FROM offers WHERE product_id = %s
+        )
+    ''', (product_id,))
+    cur.execute('DELETE FROM offers WHERE product_id = %s', (product_id,))
     cur.execute('DELETE FROM products WHERE id = %s', (product_id,))
     db.commit()
     cur.close()
@@ -3215,11 +3238,13 @@ def logout():
         db.commit()
         cur.close()
         db.close()
+        session.clear()
+        flash('Logged out', 'info')
         response = redirect(url_for('login'))
         response.set_cookie('remember_token', '', expires=0)
-    
+        return response
+
     session.clear()
-    flash('Logged out', 'info')
     return redirect(url_for('login'))
 
 # ============================================================
