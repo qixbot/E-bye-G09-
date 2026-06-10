@@ -1061,7 +1061,36 @@ function init() {
     setInterval(updateUnreadChatCount, 60000);
 }
 
-init();
+// ============================================================
+// 页面初始化 - 自动显示通知预览
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // 先执行主要初始化
+    init();
+    
+    // 延迟500ms后自动打开通知面板（显示最新通知）
+    setTimeout(function() {
+        var panel = document.getElementById('notificationsPanel');
+        
+        // 检查是否有未读通知
+        fetch('/api/notifications/unread', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(notifications) {
+            if (notifications && notifications.length > 0) {
+                // 有未读通知，自动展开面板
+                if (panel && panel.style.display !== 'block') {
+                    toggleNotificationsPreview();
+                }
+            } else {
+                console.log('No new notifications');
+            }
+        })
+        .catch(function(err) {
+            console.log('Failed to fetch notifications:', err);
+        });
+    }, 500);
+});
+
 </script>
 
 {% endblock %}

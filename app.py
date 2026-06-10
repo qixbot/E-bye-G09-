@@ -1183,11 +1183,7 @@ def api_confirm_order(order_id):
     cur = db.cursor()
      # 获取订单信息，包括产品ID（只查询 pending 状态的订单）
     cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s AND status = %s', 
-<<<<<<< HEAD
             (order_id, session['user_id'], 'pending'))
-=======
-                (order_id, session['user_id'], 'pending'))
->>>>>>> 8d0b62d8ca1b64ab6f4dd0e7be503299ff39a6ce
     order = cur.fetchone()
     
     if not order:
