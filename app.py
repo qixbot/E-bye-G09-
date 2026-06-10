@@ -154,22 +154,6 @@ def calculate_trust_score(user, listing_count):
     
     return trust_score
 
-def create_notification(user_id, message, notif_type='general', related_id=None, product_id=None):
-    """统一的创建通知函数"""
-    try:
-        db = get_db()
-        cur = db.cursor()
-        cur.execute('''
-            INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
-            VALUES (%s, %s, NOW(), %s, %s, %s, 0)
-        ''', (user_id, message, notif_type, related_id, product_id))
-        db.commit()
-        cur.close()
-        db.close()
-        return True
-    except Exception as e:
-        print(f"Create notification error: {e}")
-        return False
 
 @app.template_filter('time_since')
 def time_since(date):
@@ -216,6 +200,23 @@ def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
         return True
     except subprocess.CalledProcessError as e:
         print(f"FFmpeg error for {video_path}: {e.stderr}")
+        return False
+    
+def create_notification(user_id, message, notif_type='general', related_id=None, product_id=None):
+    """统一的创建通知函数"""
+    try:
+        db = get_db()
+        cur = db.cursor()
+        cur.execute('''
+            INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
+            VALUES (%s, %s, NOW(), %s, %s, %s, 0)
+        ''', (user_id, message, notif_type, related_id, product_id))
+        db.commit()
+        cur.close()
+        db.close()
+        return True
+    except Exception as e:
+        print(f"Create notification error: {e}")
         return False
 
 @app.template_filter('campus_abbr')
@@ -1182,8 +1183,8 @@ def api_confirm_order(order_id):
     db = get_db()
     cur = db.cursor()
      # 获取订单信息，包括产品ID（只查询 pending 状态的订单）
-    cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = s AND status = %s', 
-                (order_id, session['user_id'], 'pending'))
+    cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s AND status = %s', 
+            (order_id, session['user_id'], 'pending'))
     order = cur.fetchone()
     
     if not order:
@@ -1308,11 +1309,11 @@ def send_offer(product_id):
     new_offer_id = cur.fetchone()['id']
     
     cur.execute('''
-        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'new_offer', %s, 0)
-    ''', (product['seller_id'],
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
+        VALUES (%s, %s, NOW(), 'new_offer', %s, %s, 0)
+    ''', (product['seller_id'], 
           f"💰 New offer of RM {float(offer_price):.2f} on your listing \"{product['name']}\". Go to My Listings → Offers to accept or decline.",
-          new_offer_id))
+          new_offer_id, product_id))
     
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
@@ -1533,11 +1534,11 @@ def counter_offer(offer_id):
     ''', (float(counter_price), offer_id))
     
     cur.execute('''
-        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), %s, %s, 0)
-    ''', (offer['buyer_id'],
-          f"Counter offer received! Seller countered your offer for \"{offer['product_name']}\" with RM {float(counter_price):.2f}. Go to My Profile → Purchases to accept or decline.",
-          'offer_countered', offer_id))
+    INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
+    VALUES (%s, %s, NOW(), %s, %s, %s, 0)
+''', (offer['buyer_id'],
+      f"Counter offer received! Seller countered...",
+      'offer_countered', offer_id, offer['product_id']))
     
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
@@ -1719,7 +1720,7 @@ def cancel_offer(offer_id):
     
     # 通过 JOIN products 表获取 seller_id 和 product_name
     cur.execute('''
-        SELECT o.*, p.seller_id, p.name as product_name
+        SELECT o.*, p.seller_id, p.name as product_name, p.id as product_id
         FROM offers o
         JOIN products p ON o.product_id = p.id
         WHERE o.id = %s AND o.buyer_id = %s AND o.status = %s
@@ -1736,26 +1737,27 @@ def cancel_offer(offer_id):
     seller_id = offer['seller_id']
     buyer_id = session['user_id']
     product_name = offer['product_name']
+    product_id = offer['product_id']
     offer_price = float(offer['offer_price'])
     
     # 更新状态为 cancelled
     cur.execute('UPDATE offers SET status = %s WHERE id = %s', ('cancelled', offer_id))
     
-    # ========== 通知卖家 ==========
+    # ========== 通知卖家（添加 product_id） ==========
     cur.execute('''
-    INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-    VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
-''', (seller_id, 
-      f'🗑️ Buyer cancelled their offer of RM {offer_price:.2f} for "{product_name}".',
-      offer_id))
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
+        VALUES (%s, %s, NOW(), 'offer_cancelled', %s, %s, 0)
+    ''', (seller_id, 
+          f'🗑️ Buyer cancelled their offer of RM {offer_price:.2f} for "{product_name}".',
+          offer_id, product_id))
     
-    # ========== 通知买家（自己） ==========
+    # ========== 通知买家（自己），也添加 product_id ==========
     cur.execute('''
-        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'offer_cancelled', %s, 0)
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
+        VALUES (%s, %s, NOW(), 'offer_cancelled', %s, %s, 0)
     ''', (buyer_id,
           f'✅ You have cancelled your offer of RM {offer_price:.2f} for "{product_name}".',
-          offer_id))
+          offer_id, product_id))
     
     db.commit()
     cur.close()
@@ -2345,18 +2347,39 @@ def get_all_notifications():
     cur = db.cursor()
     
     cur.execute('''
-        SELECT * FROM notifications 
-        WHERE user_id = %s
-          AND created_at >= NOW() - INTERVAL '7 days'
-        ORDER BY created_at DESC
-        LIMIT 100
+        SELECT n.*, 
+               p.name as product_name, 
+               p.images_blob as product_images
+        FROM notifications n
+        LEFT JOIN products p ON n.product_id = p.id
+        WHERE n.user_id = %s
+          AND n.created_at >= NOW() - INTERVAL '30 days'
+        ORDER BY n.created_at DESC
+        LIMIT 200
     ''', (session['user_id'],))
     
     notifications = cur.fetchall()
     cur.close()
     db.close()
     
-    return jsonify([dict(n) for n in notifications])
+    result = []
+    for n in notifications:
+        n_dict = dict(n)
+        # 提取产品图片（第一张）
+        product_image = None
+        if n_dict.get('product_images'):
+            try:
+                import json
+                images = json.loads(n_dict['product_images']) if isinstance(n_dict['product_images'], str) else n_dict['product_images']
+                if images and len(images) > 0:
+                    product_image = images[0]
+            except:
+                pass
+        n_dict['product_image'] = product_image
+        n_dict.pop('product_images', None)
+        result.append(n_dict)
+    
+    return jsonify(result)
 
 @app.route('/api/notifications/mark-read', methods=['POST'])
 def mark_notifications_read():
