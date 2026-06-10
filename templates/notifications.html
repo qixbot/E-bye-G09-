@@ -634,7 +634,6 @@ function renderNotificationCard(n) {
         icon = '🔄'; iconClass = 'offer';
         actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
     } else if (t.includes('offer_cancelled')) {
-        // ========== 新增：处理取消 offer 的通知 ==========
         icon = '🗑️'; 
         iconClass = 'offer';
         actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=purchases\'">📋 View My Offers</button>';
@@ -747,18 +746,29 @@ function openPurchaseModal(offerId) {
         // 构建地点选择网格
         var grid = document.getElementById('purchaseLocationGrid');
         grid.innerHTML = '';
-        meetupLocations.forEach(function(loc) {
+        for (var i = 0; i < meetupLocations.length; i++) {
+            var loc = meetupLocations[i];
             var btn = document.createElement('button');
             btn.className = 'location-btn';
+            btn.setAttribute('data-location', loc);
             btn.innerHTML = '<img src="/static/uploads/placeholder.jpg" alt=""><span>' + loc + '</span>';
-            btn.onclick = function() { toggleLocation(loc); };
+            btn.onclick = (function(locationName) {
+                return function() { toggleLocation(locationName); };
+            })(loc);
             grid.appendChild(btn);
-        });
+        }
         
         // 重置日期选择器
         var dateContainer = document.getElementById('purchaseDateInputs');
         dateContainer.innerHTML = '<div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
         updateRemoveButtons();
+        
+        // 重置 location info
+        var infoDiv = document.getElementById('purchaseLocationInfo');
+        if (infoDiv) {
+            infoDiv.innerText = '⚠️ Please select 1-3 locations';
+            infoDiv.style.color = '#e74c3c';
+        }
     })
     .catch(function() {
         document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail">Failed to load product details</div>';
@@ -785,18 +795,26 @@ function toggleLocation(name) {
 }
 
 function updateLocationUI() {
-    document.querySelectorAll('#purchaseLocationGrid .location-btn').forEach(function(btn) {
+    var btns = document.querySelectorAll('#purchaseLocationGrid .location-btn');
+    for (var i = 0; i < btns.length; i++) {
+        var btn = btns[i];
         var name = btn.querySelector('span').innerText;
-        if (selectedLocations.includes(name)) {
+        if (selectedLocations.indexOf(name) !== -1) {
             btn.classList.add('selected');
         } else {
             btn.classList.remove('selected');
         }
-    });
+    }
+    
     var infoDiv = document.getElementById('purchaseLocationInfo');
     if (infoDiv) {
-        infoDiv.innerText = selectedLocations.length > 0 ? 
-            '✓ Selected: ' + selectedLocations.join(', ') : '⚠️ Please select 1-3 locations';
+        if (selectedLocations.length === 0) {
+            infoDiv.innerText = '⚠️ Please select 1-3 locations';
+            infoDiv.style.color = '#e74c3c';
+        } else {
+            infoDiv.innerText = '✓ Selected: ' + selectedLocations.join(', ');
+            infoDiv.style.color = '#2ecc71';
+        }
     }
 }
 
@@ -837,8 +855,14 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
             showToastMessage(d.error || 'Failed', 'error');
         }
     })
-    .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); })
-    .finally(function() { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Purchase'; });
+    .catch(function(err) { 
+        console.error('Order creation error:', err);
+        showToastMessage('Error: ' + err.message, 'error'); 
+    })
+    .finally(function() { 
+        confirmBtn.disabled = false; 
+        confirmBtn.textContent = 'Confirm Purchase'; 
+    });
 });
 
 // ========== 优惠管理弹窗 ==========
@@ -1090,7 +1114,7 @@ function submitOrderFromOfferAccept(offerId) {
     });
 }
 
-// ========== 卖家 Counter Offer（week10 功能） ==========
+// ========== 卖家 Counter Offer ==========
 function openSellerCounterOfferModal(offerId, currentOfferPrice) {
     var counterPrice = prompt('Enter your counter offer price (RM):', currentOfferPrice);
     if (!counterPrice || parseFloat(counterPrice) <= 0) {
