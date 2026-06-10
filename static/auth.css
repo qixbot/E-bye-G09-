@@ -1003,3 +1003,11 @@ body::after {
     .form-group select {padding: 11px 14px; font-size: 13px; }
     .btn-login { padding: 13px; font-size: 14px; }
 }
+
+/* 隐藏系统 flash 消息，使用自定义 Toast 代替 */
+.flash-messages, .flash, .alert, .flashes {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
