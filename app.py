@@ -1181,8 +1181,9 @@ def api_confirm_order(order_id):
     
     db = get_db()
     cur = db.cursor()
-     # 获取订单信息，包括产品ID（只查询 pending 状态的订单）
-    cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = s AND status = %s', 
+    
+    # ✅ 修复：seller_id = s 改为 seller_id = %s
+    cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s AND status = %s', 
                 (order_id, session['user_id'], 'pending'))
     order = cur.fetchone()
     
@@ -1562,7 +1563,6 @@ def accept_counter_offer(offer_id):
         db = get_db()
         cur = db.cursor()
         
-        # 获取 offer 信息 - 使用参数化查询，不要用双引号
         cur.execute('''
             SELECT o.*, p.name as product_name, p.seller_id, p.price as product_price,
                    u.username as seller_name
@@ -1581,7 +1581,6 @@ def accept_counter_offer(offer_id):
         
         agreed_price = float(offer['counter_price'])
         
-        # 更新 offer 状态
         cur.execute('''
             UPDATE offers 
             SET offer_price = %s, status = %s, counter_price = NULL
@@ -1596,12 +1595,12 @@ def accept_counter_offer(offer_id):
               f"🎉 Buyer accepted your counter offer of RM {agreed_price:.2f} for \"{offer['product_name']}\". Waiting for checkout.",
               'offer_accepted', offer_id))
         
-        # 通知买家
+        # 添加：通知买家（自己）
         cur.execute('''
             INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
             VALUES (%s, %s, NOW(), %s, %s, 0)
         ''', (session['user_id'],
-              f"✅ Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' to confirm your order.",
+              f"Counter offer accepted! RM {agreed_price:.2f} for \"{offer['product_name']}\". Click 'Proceed to Checkout' to confirm your order.",
               'offer_accepted', offer_id))
         
         db.commit()
@@ -1612,8 +1611,6 @@ def accept_counter_offer(offer_id):
         
     except Exception as e:
         print(f"Error in accept_counter_offer: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
     
 @app.route('/api/offer/<int:offer_id>/reject-counter', methods=['POST'])
