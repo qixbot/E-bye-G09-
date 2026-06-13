@@ -1,4 +1,9 @@
-<!-- Eileen part -->
+<!-- 
+  Eileen part - Admin Login Page
+  Extended from base.html template.
+  Overrides bottom_nav and navbar blocks to hide navigation bars on the admin authentication page.
+  Separate portal for system administrators with elevated privileges.
+-->
 
 {% extends "base.html" %}
 
@@ -11,25 +16,28 @@
 {% block content %}
 <div class="auth-page">
     <div class="auth-card">
-        <!-- Left Column -->
+        <!-- Left Column: Branding and admin portal description -->
         <div class="auth-left">
+            <!-- Top logo section displaying both MMU and E-Bye logos -->
             <div class="top-logos">
                 <img src="{{ url_for('static', filename='mmu-logo.png') }}" alt="MMU" class="mmu-logo-top">
                 <div class="logo-divider"></div>
                 <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-Bye" class="ebye-logo-top">
             </div>
             
+            <!-- Center brand mascot/icon -->
             <div class="logo-center">
                 <img src="{{ url_for('static', filename='ebee.png') }}" alt="E-Bye" class="ebee-center">
             </div>
             
+            <!-- Admin portal description and access warning -->
             <div class="admin-access-desc">
                 <p>🔐 Admin Access Only</p>
                 <span>Restricted to authorized personnel</span>
             </div>
         </div>
         
-        <!-- Flash Messages -->
+        <!-- Flash Messages Section - Displays server-side notifications -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="toast-container">
@@ -40,23 +48,26 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Right Column: Form -->
+        <!-- Right Column: Admin Login Form -->
         <div class="auth-right">
             <form method="POST" action="{{ url_for('admin_login') }}" id="admin-login-form" autocomplete="on">
                 <h2>🔑 Admin Portal</h2>
                 <p class="form-sub">Welcome back, administrator!</p>
 
+                <!-- Security warning information box -->
                 <div class="info-box">
                     <span class="info-ic">⚠️</span>
                     <span>This portal is for E-bye system administrators only. Only @student.mmu.edu.my accounts flagged as admin can log in here.</span>
                 </div>
 
+                <!-- Admin email input field -->
                 <div class="form-group">
                     <label>Admin Email</label>
                     <input type="email" name="email" id="admin-email" placeholder="admin@student.mmu.edu.my" required autocomplete="username">
                     <div class="form-error" id="admin-email-error" style="display: none;"></div>
                 </div>
 
+                <!-- Admin password input field with show/hide toggle button -->
                 <div class="form-group">
                     <label>Password</label>
                     <div class="input-wrap">
@@ -66,7 +77,7 @@
                     <div class="form-error" id="admin-password-error" style="display: none;"></div>
                 </div>
 
-                <!-- Remember Me Checkbox -->
+                <!-- Remember Me Checkbox - saves email only, not password -->
                 <div class="form-options">
                     <div class="remember-me">
                         <input type="checkbox" name="remember_me" id="remember_me" autocomplete="off">
@@ -74,6 +85,7 @@
                     </div>
                 </div>
 
+                <!-- Submit button and navigation back to user login -->
                 <button type="submit" class="btn-login">Admin Login</button>
                 <p class="switch-link">
                     <a href="{{ url_for('login') }}">← Back to User Login</a>
@@ -83,31 +95,45 @@
     </div>
 </div>
 
+<!-- Client-side validation and credential management for admin portal -->
 <script>
-    // Toggle password visibility
+    /**
+     * Toggles visibility of admin password field between text and password types.
+     * Provides visual feedback by changing the button icon.
+     * @param {HTMLElement} btn - The button element that triggered the toggle.
+     */
     function toggleAdminPassword(btn) {
         const input = document.getElementById('admin-password');
         if (input.type === 'password') {
             input.type = 'text';
-            btn.textContent = '🫣';
+            btn.textContent = '🫣';  // Eye with slash icon when password is visible
         } else {
             input.type = 'password';
-            btn.textContent = '👀';
+            btn.textContent = '👀';  // Regular eye icon when password is hidden
         }
     }
 
-    // Display error message
+    /**
+     * Displays an inline error message for admin form fields.
+     * @param {string} field - The field identifier ('email' or 'password').
+     * @param {string} message - The error message to display.
+     */
     function showAdminError(field, message) {
         const errorDiv = document.getElementById(`admin-${field}-error`);
         if (errorDiv) {
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
+            // Apply error styling to the corresponding input field
             const input = document.getElementById(`admin-${field}`);
             if (input) input.classList.add('field-error');
         }
     }
 
-    // Clear error message
+    /**
+     * Clears error messages and removes error styling for admin form fields.
+     * Called when user starts typing to provide real-time feedback.
+     * @param {string} field - The field identifier ('email' or 'password').
+     */
     function clearAdminError(field) {
         const errorDiv = document.getElementById(`admin-${field}-error`);
         if (errorDiv) errorDiv.style.display = 'none';
@@ -115,7 +141,12 @@
         if (input) input.classList.remove('field-error');
     }
 
-    // ✅ 修改：只保存邮箱，不保存密码
+    /**
+     * Saves only the admin email address to localStorage when "Remember me" is checked.
+     * IMPORTANT SECURITY NOTE: Passwords are NEVER stored in localStorage.
+     * Only the email is saved to pre-fill the form on next visit.
+     * @param {string} email - The admin email address to save.
+     */
     function saveAdminCredentials(email) {
         try {
             localStorage.setItem('adminSavedEmail', email);
@@ -126,15 +157,22 @@
         }
     }
 
-    // Clear admin credentials from localStorage
+    /**
+     * Clears all saved admin credentials from localStorage.
+     * Removes email, legacy password data, and timestamp for security.
+     */
     function clearAdminCredentials() {
         localStorage.removeItem('adminSavedEmail');
-        localStorage.removeItem('adminSavedPassword');  // 清除旧数据
+        localStorage.removeItem('adminSavedPassword');  // Clear legacy data if exists from previous versions
         localStorage.removeItem('adminSavedTimestamp');
         console.log('🗑️ Admin credentials cleared from localStorage');
     }
 
-    // ✅ 修改：只加载邮箱，不加载密码
+    /**
+     * Loads saved admin email from localStorage and pre-fills the email field.
+     * Automatically checks the "Remember me" checkbox if saved email exists.
+     * @returns {boolean} True if email was loaded, false otherwise.
+     */
     function loadAdminCredentials() {
         const savedEmail = localStorage.getItem('adminSavedEmail');
         const rememberCheckbox = document.getElementById('remember_me');
@@ -150,31 +188,48 @@
         return false;
     }
 
-    // Load credentials on page load
+    /**
+     * Initializes the admin login page by loading saved credentials on DOM load.
+     * Event listener fires when the page content is fully loaded and ready.
+     */
     document.addEventListener('DOMContentLoaded', function() {
         loadAdminCredentials();
     });
 
-    // Clear errors on input
+    /**
+     * Real-time error clearing for email field.
+     * Removes error indicators as soon as user starts typing.
+     */
     document.getElementById('admin-email').addEventListener('input', function() {
         clearAdminError('email');
     });
+
+    /**
+     * Real-time error clearing for password field.
+     * Provides immediate feedback when user begins entering password.
+     */
     document.getElementById('admin-password').addEventListener('input', function() {
         clearAdminError('password');
     });
 
-    // Handle form submission
+    /**
+     * Handles admin login form submission with comprehensive validation.
+     * Validates email format, domain, and password presence.
+     * Manages "Remember me" functionality by saving only the email address.
+     * Security: Passwords are only sent to backend, never stored client-side.
+     */
     document.getElementById('admin-login-form').addEventListener('submit', function(event) {
+        // Get form field values
         const email = document.getElementById('admin-email').value;
         const password = document.getElementById('admin-password').value;
         const rememberMe = document.getElementById('remember_me')?.checked || false;
         let hasError = false;
 
-        // Reset errors
+        // Reset all previous error messages and styling before re-validation
         document.querySelectorAll('.form-error').forEach(el => el.style.display = 'none');
         document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
 
-        // Validate email
+        // Validate email format and domain restrictions
         if (!email) {
             showAdminError('email', 'Email address is required.');
             hasError = true;
@@ -183,25 +238,31 @@
             hasError = true;
         }
 
-        // Validate password
+        // Validate password is not empty
         if (!password) {
             showAdminError('password', 'Password is required.');
             hasError = true;
         }
 
-        // ✅ 修改：只保存邮箱，密码只传给后端，不存 localStorage
+        /**
+         * SECURITY: Handle credential storage based on "Remember me" checkbox.
+         * Only the email address is saved to localStorage.
+         * Password is NEVER stored client-side - only transmitted to backend.
+         */
         if (!hasError) {
             if (rememberMe) {
-                saveAdminCredentials(email);  // 只保存邮箱
+                saveAdminCredentials(email);  // Save only email, never password
             } else {
                 clearAdminCredentials();
             }
         }
 
+        // Prevent form submission if validation failed
         if (hasError) {
             event.preventDefault();
         } else {
             console.log('📤 Admin form submitting with rememberMe =', rememberMe);
+            // Form will submit normally to server for authentication
         }
     });
 </script>

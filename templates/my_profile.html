@@ -1,6 +1,14 @@
+<!-- 
+  Eileen part - User Profile Page (My Profile)
+  Extended from base.html template.
+  Displays user's personal information, listings, purchases, and orders.
+  Includes modals for editing products, managing offers, viewing reviews, etc.
+-->
+
 {% extends "base.html" %}
 
 {% block navbar %}
+<!-- Custom navigation bar for profile page with logout button -->
 <nav class="top-navbar my-profile-nav">
     <a href="{{ url_for('home') }}" class="nav-site">
         <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-bye Logo" class="site-logo">
@@ -19,12 +27,16 @@
 {% endblock %}
 
 {% block content %}
+<!-- Google Fonts and custom CSS for profile page -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='my_profile.css') }}">
 
+<!-- Main profile page container -->
 <div class="pf-page">
+    <!-- Background layer that can be customized by user -->
     <div class="pf-bg-layer" id="pfBgLayer"></div>
 
+    <!-- Cover image section (profile banner) -->
     <div class="pf-cover">
         <div class="pf-cover-img" id="pfCoverImage"
              style="background: linear-gradient(135deg,#00c896 0%,#00381f 55%,#001a0e 100%);">
@@ -32,23 +44,29 @@
     </div>
 
     <div class="pf-wrap">
+        <!-- Profile card - displays user information and stats -->
         <div class="pf-card">
             <div class="pf-card-top">
+                <!-- Avatar image - clickable to open modal for larger view -->
                 <div class="pf-avatar" onclick="openAvatarModal()" style="cursor: pointer;">
                     <img src="{{ url_for('avatar_image') }}?t={{ range(1, 10000) | random }}" alt="Avatar"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div class="pf-avatar-init" style="display: none;">{{ user.username[0].upper() if user.username else 'U' }}</div>
                 </div>
+                <!-- User identity section: name, username, email -->
                 <div class="pf-identity">
                     <div class="pf-name">{{ user.full_name or user.username }}</div>
                     <div class="pf-handle">@{{ user.username }}</div>
                     <div class="pf-email">📧&nbsp;{{ user.email }}</div>
                 </div>
+                <!-- Edit profile button linking to edit profile page -->
                 <a class="pf-edit-btn" href="{{ url_for('edit_profile') }}">✏️ Edit Profile</a>
             </div>
 
+            <!-- User bio section -->
             <div class="pf-bio">{{ user.bio or '✨ No bio yet. Click edit to tell others about yourself!' }}</div>
 
+            <!-- Statistics row: listings count, sold count, trust score, response rate -->
             <div class="pf-stats-row">
                 <div class="pf-stat">
                     <span class="pf-stat-n" id="stat-listings">{{ listing_count }}</span>
@@ -68,6 +86,7 @@
                 </div>
             </div>
 
+            <!-- Detailed user information rows -->
             <div class="pf-details">
                 <div class="pf-detail-row">
                     <span class="pf-detail-icon">📞</span>
@@ -95,7 +114,7 @@
                 </div>
             </div>
             
-            <!-- Simplified rating area - only the "View all comments" button -->
+            <!-- Simplified rating area - button to view all seller reviews/comments -->
             <div id="sellerRatingContainer" class="pf-simple-rating" style="display: none;">
                 <button class="view-reviews-simple-btn" id="viewReviewsBtn" onclick="openReviewsModal()">
                     📖 View all comments (<span id="reviewCount">0</span>)
@@ -103,7 +122,9 @@
             </div>
         </div> <!-- End of pf-card -->
         
+        <!-- Bottom panel with tabs for Listings, Purchases, and Orders -->
         <div class="pf-panel">
+            <!-- Tab navigation buttons -->
             <div class="pf-tabs">
                 <button class="pf-tab on" id="tab-listings" onclick="switchTab('listings')">
                     📦 My Listings <span class="pf-tab-count" id="cnt-listings">0</span>
@@ -116,18 +137,21 @@
                 </button>
             </div>
 
+            <!-- Tab pane: My Listings - displays user's products for sale -->
             <div class="pf-pane on" id="pane-listings">
                 <div id="listings-grid">
                     <div class="loading-state">📦 Loading your listings...</div>
                 </div>
             </div>
 
+            <!-- Tab pane: My Purchases - displays user's purchase offers -->
             <div class="pf-pane" id="pane-purchases">
                 <div class="pf-list" id="purchases-list">
                     <div class="loading-state">🛍️ Loading your purchases...</div>
                 </div>
             </div>
 
+            <!-- Tab pane: My Orders - displays user's confirmed orders -->
             <div class="pf-pane" id="pane-orders">
                 <div class="pf-list" id="orders-list">
                     <div class="loading-state">📋 Loading your orders...</div>
@@ -135,7 +159,11 @@
             </div>
         </div> <!-- End of pf-panel -->
 
-        <!-- Edit Product Modal -->
+        <!-- ============================================================ -->
+        <!-- MODALS SECTION - Popup windows for various actions -->
+        <!-- ============================================================ -->
+
+        <!-- Edit Product Modal - Allows seller to edit product details -->
         <div id="editProductModal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -187,6 +215,7 @@
                         </div>
                     </div>
                     
+                    <!-- Media files section for product images and videos -->
                     <div class="form-group">
                         <label>Media Files (Images & Videos) - Max 12 files</label>
                         <div id="existing_media_container" class="existing-media"></div>
@@ -209,7 +238,7 @@
             </div>
         </div>
 
-        <!-- Offer Management Modal -->
+        <!-- Offer Management Modal - Displays all offers for a specific product -->
         <div id="offerModal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -222,7 +251,7 @@
             </div>
         </div>
 
-        <!-- Reviews Modal -->
+        <!-- Reviews Modal - Displays all seller reviews from buyers -->
         <div id="reviewsModal" class="modal" style="display:none;">
             <div class="modal-content reviews-modal">
                 <div class="modal-header">
@@ -236,11 +265,12 @@
             </div>
         </div>
 
+        <!-- Toast notification container for temporary messages -->
         <div class="pf-toast" id="pfToast"></div>
     </div> <!-- End of pf-wrap -->
 </div> <!-- End of pf-page -->
 
-<!-- Avatar View Modal - Pure view mode, placed outside pf-wrap -->
+<!-- Avatar View Modal - Displays profile picture in larger size -->
 <div id="avatarModal" class="modal" style="display: none;">
     <div class="modal-content avatar-modal">
         <div class="modal-header">
@@ -254,7 +284,7 @@
     </div>
 </div>
 
-<!-- Confirm Received Modal -->
+<!-- Confirm Received Modal - Buyer confirms receipt of item -->
 <div id="confirmReceivedModal" class="modal" style="display: none;">
     <div class="modal-content confirm-modal">
         <div class="modal-header">
@@ -277,14 +307,18 @@
     </div>
 </div>
 
+<!-- ============================================================ -->
+<!-- JAVASCRIPT SECTION - Client-side functionality -->
+<!-- ============================================================ -->
 <script>
 // ============================================================
-// various global constants and variables
+// Global constants and variables
 // ============================================================
-var MAX_MEDIA_FILES = 12;
-var CURRENT_USER_ID = {{ user.id }};
+var MAX_MEDIA_FILES = 12;      // Maximum number of media files per product
+var CURRENT_USER_ID = {{ user.id }};  // Current user's ID from server
+
 // ============================================================
-// LOAD BACKGROUND FROM SERVER
+// LOAD BACKGROUND FROM SERVER - Fetches user's custom background
 // ============================================================
 function restoreBackgroundFromServer() {
     fetch('/api/user/background', { credentials: 'same-origin' })
@@ -303,7 +337,7 @@ function restoreBackgroundFromServer() {
 }
 
 // ============================================================
-// LOAD COVER FROM SERVER
+// LOAD COVER FROM SERVER - Fetches user's custom cover image
 // ============================================================
 function loadCoverFromServer() {
     var coverDiv = document.getElementById('pfCoverImage');
@@ -316,7 +350,8 @@ function loadCoverFromServer() {
 }
 
 // ============================================================
-// TAB SWITCHING
+// TAB SWITCHING - Changes between Listings, Purchases, and Orders tabs
+// @param {string} name - Tab name ('listings', 'purchases', or 'orders')
 // ============================================================
 function switchTab(name) {
     document.querySelectorAll('.pf-tab').forEach(function(b) { b.classList.remove('on'); });
@@ -330,7 +365,9 @@ function switchTab(name) {
 }
 
 // ============================================================
-// ESCAPE HTML
+// ESCAPE HTML - Prevents XSS attacks by escaping special characters
+// @param {string} str - String to escape
+// @returns {string} Escaped HTML string
 // ============================================================
 function escapeHtml(str) {
     if (!str) return '';
@@ -343,7 +380,9 @@ function escapeHtml(str) {
 }
 
 // ============================================================
-// SHOW TOAST MESSAGE 
+// SHOW TOAST MESSAGE - Displays temporary notification
+// @param {string} message - Message to display
+// @param {string} type - Type ('success', 'error', or 'info')
 // ============================================================
 function showToastMessage(message, type) {
     var existing = document.querySelector('.toast-container');
@@ -361,7 +400,7 @@ function showToastMessage(message, type) {
 }
 
 // ============================================================
-// LOAD MY LISTINGS
+// LOAD MY LISTINGS - Fetches and displays user's product listings
 // ============================================================
 function loadListings() {
     var container = document.getElementById('listings-grid');
@@ -414,10 +453,12 @@ function loadListings() {
                 var offerBtn = '';
                 var editDeleteBtns = '';
                 
+                // Only show Offers button for approved products
                 if (item.status === 'approved') {
                     offerBtn = '<button class="offer-view-btn" onclick="event.stopPropagation();viewOffers(' + item.id + ', \'' + escapeHtml(item.name).replace(/\'/g,"\\\'") + '\')">💰 Offers</button>';
                 }
                 
+                // Show edit/delete buttons for non-sold products
                 if (item.status !== 'sold') {
                     editDeleteBtns = `
                         <button class="edit-product-btn" onclick="editListing(${item.id})">✏️ Edit</button>
@@ -469,7 +510,8 @@ function loadListings() {
 }
 
 // ============================================================
-// LOAD MY PURCHASES - with product image clickable & auto-checkout after accept
+// LOAD MY PURCHASES - Fetches and displays user's purchase offers
+// Includes product image clickable and auto-checkout after accept
 // ============================================================
 function loadPurchases() {
     var container = document.getElementById('purchases-list');
@@ -498,6 +540,7 @@ function loadPurchases() {
                 var isRejected = (item.status === 'rejected');
                 var isOrdered = (item.status === 'ordered');
                 
+                // Handle different offer statuses
                 if (isCountered) {
                     statusBadge = '<span class="offer-status countered">🔄 Counter Offer Received</span>';
                     var counterPrice = parseFloat(item.counter_price || item.offer_price).toFixed(2);
@@ -578,7 +621,8 @@ function loadPurchases() {
 }
 
 // ============================================================
-// 买家接受 counter offer - 成功后直接打开 checkout 弹窗
+// Buyer accepts counter offer - Opens checkout modal directly after acceptance
+// @param {number} offerId - The ID of the offer being accepted
 // ============================================================
 function acceptCounterOffer(offerId) {
     showToastMessage('Accepting counter offer...', 'info');
@@ -591,9 +635,9 @@ function acceptCounterOffer(offerId) {
     .then(function(data) {
         if (data.success) {
             showToastMessage('Counter offer accepted! Opening checkout...', 'success');
-            // 直接打开 checkout 弹窗（选择地点和日期）
+            // Directly open checkout modal (select location and date/time)
             createOrderFromOffer(offerId);
-            loadPurchases(); // 刷新列表
+            loadPurchases(); // Refresh the list
         } else {
             throw new Error(data.error || 'Failed to accept');
         }
@@ -604,7 +648,8 @@ function acceptCounterOffer(offerId) {
 }
 
 // ============================================================
-// 买家拒绝 counter offer
+// Buyer rejects counter offer - Shows confirmation modal before rejecting
+// @param {number} offerId - The ID of the counter offer to reject
 // ============================================================
 function rejectCounterOffer(offerId) {
     var modalHtml = `
@@ -644,7 +689,7 @@ function rejectCounterOffer(offerId) {
             if (data.success) {
                 showToastMessage('Counter offer declined. Offer is now pending again.', 'success');
                 loadPurchases();
-                // 刷新卖家端 listings 以便卖家看到 pending offer
+                // Refresh seller's listings so they see the pending offer
                 if (typeof loadListings === 'function') loadListings();
             } else {
                 throw new Error(data.error || 'Failed to decline');
@@ -657,7 +702,8 @@ function rejectCounterOffer(offerId) {
 }
 
 // ============================================================
-// 买家取消自己的 counter offer (恢复为 pending)
+// Buyer cancels their own counter offer (reverts to pending status)
+// @param {number} offerId - The ID of the counter offer to cancel
 // ============================================================
 function cancelCounterOffer(offerId) {
     var modalHtml = `
@@ -707,7 +753,8 @@ function cancelCounterOffer(offerId) {
     };
 }
 
-/// 从接受的 offer 创建订单（打开地点/时间选择）
+/// Creates an order from an accepted offer (opens location/date selection modal)
+/// @param {number} offerId - The ID of the accepted offer
 function createOrderFromOffer(offerId) {
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
@@ -716,10 +763,10 @@ function createOrderFromOffer(offerId) {
                 throw new Error(data.error);
             }
             
-            // 初始化全局变量
+            // Initialize global variable for selected locations
             window.checkoutSelectedLocations = [];
             
-            // 根据卖家 campus 选择地点列表
+            // Select location list based on seller's campus
             var locations = [];
             var sellerCampus = data.seller_campus || '';
             
@@ -729,7 +776,7 @@ function createOrderFromOffer(offerId) {
                     "STC", "HB1", "HB2", "HB3", "HB4", "Masjid", "Tekun Mart", "Chancellery Building"
                 ];
             } else {
-                // Melaka Campus 地点
+                // Melaka Campus locations
                 locations = [
                     "Library (Melaka)", "Dewan Tun Canselor", "Cafeteria", "Block A", "Block B",
                     "Block C", "Block D", "Block E", "Sports Complex", "Hostel 1", "Hostel 2",
@@ -774,7 +821,7 @@ function createOrderFromOffer(offerId) {
             if (existing) existing.remove();
             document.body.insertAdjacentHTML('beforeend', meetupHtml);
             
-            // 构建地点选项（按钮式，带高亮）
+            // Build location options (button-style with highlight)
             var grid = document.getElementById('checkoutLocationGrid');
             for (var i = 0; i < locations.length; i++) {
                 var loc = locations[i];
@@ -817,7 +864,7 @@ function createOrderFromOffer(offerId) {
                 grid.appendChild(btn);
             }
             
-            // 添加日期选择行
+            // Add date selection row handler
             document.getElementById('addDateBtnCheckout').addEventListener('click', function() {
                 var container = document.getElementById('dateTimeInputsCheckout');
                 var rows = container.querySelectorAll('.date-row');
@@ -836,13 +883,16 @@ function createOrderFromOffer(offerId) {
         });
 }
 
+// Closes the checkout meetup modal
 function closeCheckoutModal() {
     var modal = document.getElementById('checkoutMeetupModal');
     if (modal) modal.remove();
 }
 
+// Submits the order after selecting locations and dates
+// @param {number} offerId - The ID of the offer being converted to order
 function submitOrderFromOffer(offerId) {
-    // 使用全局变量 window.checkoutSelectedLocations
+    // Use global variable window.checkoutSelectedLocations
     if (!window.checkoutSelectedLocations || window.checkoutSelectedLocations.length === 0) {
         showToastMessage('Please select at least one meetup location', 'error');
         return;
@@ -887,7 +937,8 @@ function submitOrderFromOffer(offerId) {
 }
 
 // ============================================================
-// LOAD MY ORDERS - with product image clickable
+// LOAD MY ORDERS - Fetches and displays user's orders (both as buyer and seller)
+// Product images are clickable to view product details
 // ============================================================
 function loadOrders() {
     var container = document.getElementById('orders-list');
@@ -910,6 +961,7 @@ function loadOrders() {
 
             var html = '';
 
+            // Display orders where user is the seller (need to process)
             if(asSeller.length > 0) {
                 html += '<div class="orders-section"><h4>📦 Orders I need to Process</h4>';
                 for (var i = 0; i < asSeller.length; i++) {
@@ -918,6 +970,7 @@ function loadOrders() {
                 html += '</div>';
             }
 
+            // Display orders where user is the buyer (purchases)
             if(asBuyer.length > 0) {
                 html += '<div class="orders-section"><h4>🛒 My Purchases</h4>';
                 for (var j = 0; j < asBuyer.length; j++) {
@@ -934,6 +987,10 @@ function loadOrders() {
         });
 }
 
+// Renders a single order card based on role (buyer or seller)
+// @param {Object} order - Order data object
+// @param {string} role - Either 'buyer' or 'seller'
+// @returns {string} HTML for the order card
 function renderOrderCard(order, role) {
     var status = order.status;
     var statusText = getStatusText(status);
@@ -942,6 +999,7 @@ function renderOrderCard(order, role) {
     var actionButtons = '';
     var meetupInfo = '';
     
+    // Add meetup location and time info if available
     if (order.meeting_point) {
         meetupInfo = '<div>📍 Meetup: ' + escapeHtml(order.meeting_point) + '</div>';
     }
@@ -949,6 +1007,7 @@ function renderOrderCard(order, role) {
         meetupInfo += '<div>⏰ Preferred Time: ' + escapeHtml(order.meeting_time) + '</div>';
     }
     
+    // Determine action buttons based on role and order status
     if (role === 'seller') {
         if (status === 'pending') {
             actionButtons = '<button class="order-action-btn confirm-btn" onclick="openConfirmOrderModal(' + order.id + ', \'' + escapeHtml(order.order_number) + '\', \'' + escapeHtml(order.product_name) + '\', \'' + escapeHtml(order.meeting_point || '') + '\', \'' + escapeHtml(order.meeting_time || '') + '\')">✅ Confirm Order</button>';
@@ -962,7 +1021,7 @@ function renderOrderCard(order, role) {
             actionButtons = '<span class="order-status-badge cancelled">❌ Cancelled</span>';
         }
     } else if (role === 'buyer') {
-        // 买家端显示
+        // Buyer side display
         if (status === 'pending') {
             actionButtons = '<span class="order-status-badge waiting">⏳ Awaiting seller confirmation</span>';
         } else if (status === 'confirmed') {
@@ -978,7 +1037,7 @@ function renderOrderCard(order, role) {
         }
     }
     
-    // 产品图片可点击
+    // Product image with clickable link
     var productImage = order.product_image || '';
     var imageHtml = '';
     if (productImage) {
@@ -1011,6 +1070,9 @@ function renderOrderCard(order, role) {
         '</div>';
 }
 
+// Returns user-friendly status text for orders
+// @param {string} status - Order status code
+// @returns {string} Formatted status text with emoji
 function getStatusText(status) {
     switch(status) {
         case 'pending': return '⏳ Pending';
@@ -1022,6 +1084,9 @@ function getStatusText(status) {
     }
 }
 
+// Returns CSS class name for order status styling
+// @param {string} status - Order status code
+// @returns {string} CSS class name
 function getStatusClass(status) {
     switch(status) {
         case 'pending': return 'status-pending';
@@ -1033,6 +1098,10 @@ function getStatusClass(status) {
     }
 }
 
+// Updates the status of an order
+// @param {number} orderId - The order ID
+// @param {string} newStatus - New status to set
+// @param {Function} callback - Optional callback function after update
 function updateOrderStatus(orderId, newStatus, callback) {
     showToastMessage('Updating order status...', 'info');
     fetch('/api/order/' + orderId + '/status', {
@@ -1059,17 +1128,27 @@ function updateOrderStatus(orderId, newStatus, callback) {
     });
 }
 
+// Confirms order completion (wrapper function)
+// @param {number} orderId - The order ID
 function confirmOrderCompletion(orderId) {
     updateOrderStatus(orderId, 'completed');
 }
 
 // ============================================================
-// CONFIRM RECEIVED MODAL
+// CONFIRM RECEIVED MODAL - Buyer confirms they received the item
 // ============================================================
 var pendingConfirmOrderId = null;
+var pendingConfirmProductName = null;
+var pendingConfirmOrderNumber = null;
 
+// Opens the confirmation modal for received items
+// @param {number} orderId - The order ID
+// @param {string} productName - Name of the product
+// @param {string} orderNumber - Order number for reference
 function openConfirmReceivedModal(orderId, productName, orderNumber) {
     pendingConfirmOrderId = orderId;
+    pendingConfirmProductName = productName;
+    pendingConfirmOrderNumber = orderNumber;
     var modal = document.getElementById('confirmReceivedModal');
     var productInfo = document.getElementById('confirmProductInfo');
     
@@ -1082,6 +1161,7 @@ function openConfirmReceivedModal(orderId, productName, orderNumber) {
     modal.style.display = 'flex';
 }
 
+// Closes the confirmation received modal
 function closeConfirmReceivedModal() {
     var modal = document.getElementById('confirmReceivedModal');
     if (modal) modal.style.display = 'none';
@@ -1090,10 +1170,11 @@ function closeConfirmReceivedModal() {
     pendingConfirmOrderNumber = null;
 }
 
+// Event listener for confirm received button
 document.addEventListener('DOMContentLoaded', function() {
     var confirmBtn = document.getElementById('confirmReceivedBtn');
     if (confirmBtn) {
-        // 移除原有事件避免重复绑定
+        // Remove existing event to avoid duplicate binding
         var newBtn = confirmBtn.cloneNode(true);
         confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
         
@@ -1102,12 +1183,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 var orderId = pendingConfirmOrderId;
                 var productName = pendingConfirmProductName || 'this item';
                 
-                // 关闭弹窗
+                // Close modal
                 closeConfirmReceivedModal();
                 
-                // 更新订单状态为 completed
+                // Update order status to completed
                 updateOrderStatus(orderId, 'completed', function() {
-                    // 订单完成后，打开评价弹框
+                    // After order completion, open review modal
                     setTimeout(function() {
                         openReviewModal(orderId, productName);
                     }, 500);
@@ -1117,6 +1198,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Handles confirm received action
 function onConfirmReceived() {
     if (pendingConfirmOrderId) {
         var orderId = pendingConfirmOrderId;
@@ -1149,8 +1231,14 @@ function onConfirmReceived() {
     }
 }
 
+// Opens the seller's order confirmation modal (for seller to confirm order details)
+// @param {number} orderId - The order ID
+// @param {string} orderNumber - Order number
+// @param {string} productName - Product name
+// @param {string} meetupLocations - Comma-separated preferred locations
+// @param {string} meetingTimes - Comma-separated preferred times
 function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocations, meetingTimes) {
-    // 解析地点和时间数组
+    // Parse location and time arrays
     var locations = [];
     if (meetupLocations && meetupLocations !== '') {
         locations = meetupLocations.split(',');
@@ -1159,37 +1247,6 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
     var times = [];
     if (meetingTimes && meetingTimes !== '') {
         times = meetingTimes.split(',');
-    }
-    
-    // 生成地点选项 HTML
-    var locationHtml = '';
-    for (var i = 0; i < locations.length; i++) {
-        var loc = locations[i];
-        locationHtml += '<label class="radio-option" style="display:block; margin-bottom:8px; cursor:pointer;">';
-        locationHtml += '<input type="radio" name="selected_location" value="' + escapeHtml(loc) + '"> ';
-        locationHtml += '<span>' + escapeHtml(loc) + '</span>';
-        locationHtml += '</label>';
-    }
-    if (locations.length === 0) {
-        locationHtml = '<p class="no-data" style="color:#999;">No location specified</p>';
-    }
-    
-    // 生成时间选项 HTML
-    var timeHtml = '';
-    for (var j = 0; j < times.length; j++) {
-        var t = times[j];
-        // 格式化显示时间
-        var displayTime = t;
-        if (t && t.includes('T')) {
-            displayTime = t.replace('T', ' at ');
-        }
-        timeHtml += '<label class="radio-option" style="display:block; margin-bottom:8px; cursor:pointer;">';
-        timeHtml += '<input type="radio" name="selected_time" value="' + escapeHtml(t) + '"> ';
-        timeHtml += '<span>' + escapeHtml(displayTime) + '</span>';
-        timeHtml += '</label>';
-    }
-    if (times.length === 0) {
-        timeHtml = '<p class="no-data" style="color:#999;">No time specified</p>';
     }
     
     var modalHtml = '<div id="confirmOrderModal" class="custom-modal">';
@@ -1201,7 +1258,7 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
     modalHtml += '</div>';
     // Body
     modalHtml += '<div style="padding:20px 24px; max-height:60vh; overflow-y:auto;">';
-    // Location section
+    // Location selection section
     modalHtml += '<div style="margin-bottom:20px;">';
     modalHtml += '<div style="font-weight:700; font-size:14px; margin-bottom:10px;">📍 Buyer\'s Preferred Locations <span style="font-weight:400;color:#888;font-size:12px;">(select one to confirm)</span></div>';
     // Location chips
@@ -1219,7 +1276,7 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
         modalHtml += '<p style="color:#999;font-size:13px;">No location specified by buyer</p>';
     }
     modalHtml += '</div>';
-    // Time section
+    // Time selection section
     modalHtml += '<div>';
     modalHtml += '<div style="font-weight:700; font-size:14px; margin-bottom:10px;">⏰ Buyer\'s Preferred Times <span style="font-weight:400;color:#888;font-size:12px;">(select one to confirm)</span></div>';
     if (times.length > 0) {
@@ -1245,27 +1302,30 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
     modalHtml += '</div>';
     modalHtml += '</div></div>';
     
-    // 移除已有弹窗并添加
+    // Remove existing modal and add new one
     var existingModal = document.getElementById('confirmOrderModal');
     if (existingModal) existingModal.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
+// Closes the confirm order modal
 function closeConfirmOrderModal() {
     var modal = document.getElementById('confirmOrderModal');
     if (modal) modal.remove();
 }
 
+// Submits the order confirmation with selected location and time
+// @param {number} orderId - The order ID
 function submitOrderConfirmation(orderId) {
-    // 获取选中的地点 - 使用更精确的选择器
+    // Get selected location using precise selector
     var selectedLocationElem = document.querySelector('#confirmOrderModal input[name="selected_location"]:checked');
     var selectedLocation = selectedLocationElem ? selectedLocationElem.value : null;
     
-    // 获取选中的时间 - 使用更精确的选择器
+    // Get selected time using precise selector
     var selectedTimeElem = document.querySelector('#confirmOrderModal input[name="selected_time"]:checked');
     var selectedTime = selectedTimeElem ? selectedTimeElem.value : null;
     
-    // 调试输出 - 在浏览器控制台查看
+    // Debug output for console inspection
     console.log('=== Order Confirmation Debug ===');
     console.log('Order ID:', orderId);
     console.log('Selected location element:', selectedLocationElem);
@@ -1303,8 +1363,8 @@ function submitOrderConfirmation(orderId) {
         if (data.success) {
             showToastMessage('Order confirmed!', 'success');
             closeConfirmOrderModal();
-            loadOrders();  // 刷新订单列表
-            loadListings(); // 刷新商品列表
+            loadOrders();  // Refresh order list
+            loadListings(); // Refresh product list
         } else {
             throw new Error(data.error || 'Failed to confirm order');
         }
@@ -1316,10 +1376,13 @@ function submitOrderConfirmation(orderId) {
 }
 
 // ============================================================
-// OFFER SYSTEM FUNCTIONS
+// OFFER SYSTEM FUNCTIONS - For sellers to manage offers on their products
 // ============================================================
 var currentProductId = null;
 
+// Displays all offers for a specific product
+// @param {number} productId - The product ID
+// @param {string} productName - Name of the product
 function viewOffers(productId, productName) {
     currentProductId = productId;
     document.getElementById('offerProductName').innerText = productName;
@@ -1341,6 +1404,7 @@ function viewOffers(productId, productName) {
                 var statusBadge = '';
                 var actionButtons = '';
                 
+                // Determine UI based on offer status
                 if (offer.status === 'pending') {
                     statusBadge = '<span class="offer-status pending">⏳ Pending</span>';
                     actionButtons = `
@@ -1385,11 +1449,15 @@ function viewOffers(productId, productName) {
         });
 }
 
+// Closes the offer modal
 function closeOfferModal() {
     document.getElementById('offerModal').style.display = 'none';
     currentProductId = null;
 }
 
+// Seller responds to an offer (accept or reject)
+// @param {number} offerId - The offer ID
+// @param {string} action - Either 'accept' or 'reject'
 function respondToOffer(offerId, action) {
     showToastMessage((action === 'accept' ? 'Accepting' : 'Rejecting') + ' offer...', 'info');
     fetch('/api/offer/' + offerId + '/' + action, {
@@ -1410,6 +1478,8 @@ function respondToOffer(offerId, action) {
     .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); });
 }
 
+// Seller makes a counter offer to a buyer
+// @param {number} offerId - The original offer ID
 function makeCounterOffer(offerId) {
     var newPrice = prompt('Enter your counter offer price (RM):', '0');
     if (!newPrice || parseFloat(newPrice) <= 0) return;
@@ -1433,17 +1503,21 @@ function makeCounterOffer(offerId) {
     .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); });
 }
 
+// Redirects to chat page to contact buyer
+// @param {number} buyerId - The buyer's user ID
 function contactBuyer(buyerId) {
     window.location.href = '/chat/' + buyerId;
 }
 
 // ============================================================
-// EDIT PRODUCT MODAL FUNCTIONS
+// EDIT PRODUCT MODAL FUNCTIONS - For editing product listings
 // ============================================================
-var currentMediaFiles = [];   
-var newMediaFiles = [];        
-var mediaToDelete = [];        
+var currentMediaFiles = [];   // Existing media files
+var newMediaFiles = [];       // Newly added media files (File objects)
+var mediaToDelete = [];       // Indices of media to delete
 
+// Loads product data into edit modal
+// @param {number} productId - The product ID to edit
 function editListing(productId) {
     fetch('/api/product/' + productId, { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
@@ -1454,6 +1528,7 @@ function editListing(productId) {
             newMediaFiles = [];
             mediaToDelete = [];
             
+            // Populate form fields with product data
             document.getElementById('edit_product_id').value = product.id;
             document.getElementById('edit_name').value = product.name;
             document.getElementById('edit_price').value = product.price;
@@ -1461,6 +1536,7 @@ function editListing(productId) {
             document.getElementById('edit_condition').value = product.condition || 'good';
             document.getElementById('edit_category').value = product.category || 'others';
             
+            // Load existing media from images_blob
             if (product.images_blob) {
                 try {
                     if (typeof product.images_blob === 'string') {
@@ -1486,6 +1562,7 @@ function editListing(productId) {
                 }
             }
             
+            // Fallback: load from images field if images_blob is empty
             if (currentMediaFiles.length === 0 && product.images && typeof product.images === 'string' && product.images.trim()) {
                 var imagePaths = product.images.split(',');
                 for (var i = 0; i < imagePaths.length; i++) {
@@ -1510,10 +1587,13 @@ function editListing(productId) {
         });
 }
 
+// Calculates total media count after considering deletions and new additions
+// @returns {number} Total media count
 function getTotalMediaCount() {
     return (currentMediaFiles.length - mediaToDelete.length) + newMediaFiles.length;
 }
 
+// Updates upload button state based on media limit (max 12 files)
 function updateUploadButtonState() {
     var uploadBtn = document.getElementById('uploadBtn');
     var warning = document.getElementById('mediaLimitWarning');
@@ -1534,6 +1614,7 @@ function updateUploadButtonState() {
     }
 }
 
+// Renders existing media files in the edit modal
 function renderExistingMedia() {
     var container = document.getElementById('existing_media_container');
     if (!container) {
@@ -1550,6 +1631,7 @@ function renderExistingMedia() {
     for (var i = 0; i < currentMediaFiles.length; i++) {
         var media = currentMediaFiles[i];
         
+        // Detect if media is a video
         var isVideo = false;
         if (media) {
             if (media.startsWith('data:video/')) {
@@ -1585,6 +1667,8 @@ function renderExistingMedia() {
     container.innerHTML = html;
 }
 
+// Toggles whether a media file should be deleted
+// @param {number} index - Index of media in currentMediaFiles array
 function toggleMediaDeletion(index) {
     var idx = mediaToDelete.indexOf(index);
     if (idx !== -1) {
@@ -1596,6 +1680,8 @@ function toggleMediaDeletion(index) {
     updateUploadButtonState();
 }
 
+// Previews newly added media files before upload
+// @param {HTMLInputElement} input - File input element
 function previewNewMedia(input) {
     var preview = document.getElementById('new_media_preview');
     var files = Array.from(input.files);
@@ -1612,17 +1698,20 @@ function previewNewMedia(input) {
             continue;
         }
 
+        // Validate file type
         if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
             showToastMessage(file.name + ' is not a supported format', 'error');
             continue;
         }
 
+        // Validate file size (max 50MB)
         var maxSize = 50 * 1024 * 1024;
         if (file.size > maxSize) {
             showToastMessage(file.name + ' is too large (max 50MB)', 'error');
             continue;
         }
 
+        // Check for duplicate files
         var isDuplicate = false;
         for (var d = 0; d < newMediaFiles.length; d++) {
             if (newMediaFiles[d].name === file.name && newMediaFiles[d].size === file.size) {
@@ -1638,6 +1727,7 @@ function previewNewMedia(input) {
         newMediaFiles.push(file);
         addedCount++;
 
+        // Create preview using FileReader
         var reader = new FileReader();
         reader.onload = (function(f, filename) {
             return function(e) {
@@ -1671,6 +1761,9 @@ function previewNewMedia(input) {
     updateUploadButtonState();
 }
 
+// Removes a newly added media item from preview
+// @param {HTMLElement} btn - The remove button element
+// @param {string} filename - Name of the file to remove
 function removeNewMediaItem(btn, filename) {
     var container = btn.closest('.media-preview');
     if (container) container.remove();
@@ -1683,6 +1776,8 @@ function removeNewMediaItem(btn, filename) {
     updateUploadButtonState();
 }
 
+// Saves product changes (updates product data)
+// @param {Event} event - Form submit event
 function saveProductChanges(event) {
     event.preventDefault();
     var id = document.getElementById('edit_product_id').value;
@@ -1692,6 +1787,7 @@ function saveProductChanges(event) {
         return;
     }
     
+    // Filter out media marked for deletion
     var remainingMedia = [];
     for (var i = 0; i < currentMediaFiles.length; i++) {
         if (mediaToDelete.indexOf(i) === -1) {
@@ -1713,6 +1809,7 @@ function saveProductChanges(event) {
     
     showToastMessage('Updating product...', 'info');
     
+    // Handle new media files (convert to base64)
     if (newMediaFiles.length > 0) {
         var uploadPromises = [];
         for (var i = 0; i < newMediaFiles.length; i++) {
@@ -1764,6 +1861,7 @@ function saveProductChanges(event) {
             });
         });
     } else {
+        // No new media, just update existing media
         var imagesBlobJson = JSON.stringify(remainingMedia);
         
         var fd = new FormData();
@@ -1796,6 +1894,7 @@ function saveProductChanges(event) {
     }
 }
 
+// Closes the edit product modal
 function closeEditModal() {
     var modal = document.getElementById('editProductModal');
     if (modal) modal.style.display = 'none';
@@ -1804,6 +1903,9 @@ function closeEditModal() {
     mediaToDelete = [];
 }
 
+// Deletes a product listing after confirmation
+// @param {number} id - Product ID
+// @param {string} name - Product name for confirmation message
 function deleteListing(id, name) {
     var modalHtml = `
         <div id="deleteConfirmModal" class="custom-modal">
@@ -1860,7 +1962,7 @@ function deleteListing(id, name) {
 }
 
 // ============================================================
-// SELLER RATING BUTTON 
+// SELLER RATING BUTTON - Loads and displays seller reviews
 // ============================================================
 function loadSellerRating() {
     var userId = CURRENT_USER_ID;
@@ -1888,7 +1990,7 @@ function loadSellerRating() {
 }
 
 // ============================================================
-// Open reviews modal - show all buyer reviews with comments
+// Open reviews modal - Shows all buyer reviews with comments
 // ============================================================
 function openReviewsModal() {
     var userId = {{ user.id }}; 
@@ -1962,21 +2064,27 @@ function openReviewsModal() {
     });
 }
 
+// Closes the reviews modal
 function closeReviewsModal() {
     document.getElementById('reviewsModal').style.display = 'none';
 }
 
+// Formats review date for display
+// @param {string} dateStr - Date string
+// @returns {string} Formatted date
 function formatReviewDate(dateStr) {
     if (!dateStr) return 'Recently';
     var d = new Date(dateStr);
     return d.toLocaleDateString();
 }
 
+// Close modal when clicking outside
 window.onclick = function(event) {
     var modal = document.getElementById('reviewsModal');
     if (event.target === modal) closeReviewsModal();
 };
 
+// Handle URL parameters for tab navigation
 var urlParams = new URLSearchParams(window.location.search);
 var tabParam = urlParams.get('tab');
 if (tabParam && (tabParam === 'orders' || tabParam === 'listings' || tabParam === 'purchases')) {
@@ -1988,7 +2096,7 @@ if (tabParam === 'received-reviews') {
 }
 
 // ============================================================
-// Open review writing modal - from orders tab
+// Open review writing modal - From orders tab after confirming receipt
 // ============================================================
 function openReviewModal(orderId, productName) {
     window.pendingReviewOrderId = orderId;
@@ -2050,6 +2158,7 @@ function openReviewModal(orderId, productName) {
     if (existingModal) existingModal.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
+    // Attach click handlers for star ratings
     document.querySelectorAll('.rating-stars').forEach(function(container) {
         var stars = container.querySelectorAll('.rating-star');
         stars.forEach(function(star) {
@@ -2070,11 +2179,13 @@ function openReviewModal(orderId, productName) {
     });
 }
 
+// Closes the write review modal
 function closeWriteReviewModal() {
     var modal = document.getElementById('writeReviewModal');
     if (modal) modal.remove();
 }
 
+// Submits seller review to the server
 function submitSellerReview() {
     var orderId = window.pendingReviewOrderId;
     if (!orderId) {
@@ -2123,6 +2234,9 @@ function submitSellerReview() {
     });
 }
 
+// Generates star HTML for rating display
+// @param {number} rating - Rating value (0-5)
+// @returns {string} HTML string of stars
 function generateStarsHtml(rating) {
     var fullStars = Math.floor(rating);
     var halfStar = (rating - fullStars) >= 0.5;
@@ -2142,7 +2256,7 @@ function generateStarsHtml(rating) {
 }
 
 // ============================================================
-// AVATAR MODAL
+// AVATAR MODAL - Displays profile picture in larger view
 // ============================================================
 function openAvatarModal() {
     var modal = document.getElementById('avatarModal');
@@ -2165,11 +2279,13 @@ function openAvatarModal() {
     modal.style.display = 'flex';
 }
 
+// Closes the avatar modal
 function closeAvatarModal() {
     var modal = document.getElementById('avatarModal');
     modal.style.display = 'none';
 }
 
+// Close modals when clicking outside
 window.onclick = function(event) {
     var confirmModal = document.getElementById('confirmReceivedModal');
     if (event.target === confirmModal) closeConfirmReceivedModal();
@@ -2182,7 +2298,7 @@ window.onclick = function(event) {
 };
 
 // ============================================================
-// PAGE INITIALIZATION
+// PAGE INITIALIZATION - Loads all data when page loads
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
     restoreBackgroundFromServer();
@@ -2191,6 +2307,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadPurchases();
     loadSellerRating();
     
+    // Handle URL hash for direct tab navigation
     var hash = window.location.hash;
     if (hash === '#orders') {
         switchTab('orders');

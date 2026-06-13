@@ -1,4 +1,9 @@
-<!-- Eileen part -->
+<!-- 
+  Eileen part 
+  Extended from base.html template.
+  Overrides bottom_nav and navbar blocks to hide them on the auth page.
+-->
+
 {% extends "base.html" %}
 
 {% block bottom_nav %}
@@ -10,27 +15,30 @@
 {% block content %}
 <div class="auth-page">
     <div class="auth-card">
-        <!-- Left Column -->
+        <!-- Left Column: Branding and informational content -->
         <div class="auth-left">
             <div class="top-logos">
+                <!-- University logo -->
                 <img src="{{ url_for('static', filename='mmu-logo.png') }}" alt="MMU" class="mmu-logo-top">
                 <div class="logo-divider"></div>
+                <!-- Marketplace logo -->
                 <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-Bye" class="ebye-logo-top">
             </div>
             
             <div class="logo-center">
+                <!-- Central mascot / brand icon -->
                 <img src="{{ url_for('static', filename='ebee.png') }}" alt="E-Bye" class="ebee-center">
             </div>
             <div class="auth-desc p">
-            <p>🗿 Join E-Bye MMU's secondhand marketplace</p>
-            <p>to start your journey~Free to join.</p>
-            <p>Verified students only.Earn a Trusted Seller badge over time.</p>
+                <p>🗿 Join E-Bye MMU's secondhand marketplace</p>
+                <p>to start your journey~Free to join.</p>
+                <p>Verified students only.Earn a Trusted Seller badge over time.</p>
             </div>
         </div>
 
-        <!-- Right Column: Form -->
+        <!-- Right Column: Registration form -->
         <div class="auth-right">
-            <!-- Flash Messages as inline alerts -->
+            <!-- Flash messages displayed as inline alerts (e.g., success/error after redirect) -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     <div class="flash-messages">
@@ -41,11 +49,12 @@
                 {% endif %}
             {% endwith %}
 
+            <!-- Registration form submitted via POST to 'register' endpoint -->
             <form method="POST" action="{{ url_for('register') }}" id="register-form">
                 <h2>👤 Create Account</h2>
                 <p class="form-sub">Join E-Bye — MMU's second-hand marketplace</p>
                 
-                <!-- Details personal information: Form -->
+                <!-- Personal information section -->
                 <div class="form-group">
                     <label>Student ID</label>
                     <input type="text" name="student_id" id="student_id" placeholder="e.g., 252FC251H8" required>
@@ -65,35 +74,36 @@
                 </div>
                 
                 <div class="form-group">
-                <label>Gender</label>
-                <select name="gender" id="gender" class="form-input">
-                     <option value="" disabled selected>Select your gender</option>
-                     <option value="Female">Female</option>
-                     <option value="Male">Male</option>
-                     <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                <div class="form-error" id="gender-error" style="display: none;"></div>
+                    <label>Gender</label>
+                    <select name="gender" id="gender" class="form-input">
+                        <option value="" disabled selected>Select your gender</option>
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                    <div class="form-error" id="gender-error" style="display: none;"></div>
                 </div>
 
-                <!-- Details sequrity Questions: Form -->
-                 <div class ="security-section">
-                    <div class="sec-title">🔒 Security Questions <span style ="font-size: 10px;font-weight: 400;">-for password recovery</span></div>
-                   <div class="info-box">
-                   <span class="info-ic">💡</span>
-                            <span>You'll answer these questions if you ever forget your password.</span>
+                <!-- Security questions section for password recovery -->
+                <div class="security-section">
+                    <div class="sec-title">🔒 Security Questions <span style="font-size: 10px;font-weight: 400;">-for password recovery</span></div>
+                    <div class="info-box">
+                        <span class="info-ic">💡</span>
+                        <span>You'll answer these questions if you ever forget your password.</span>
                     </div>
                     <div class="sec-q-row">
                         <label>Question 1</label>
                         <select id="q1" name="q1" style="width:100%;padding:13px 18px;border-radius:28px;border:1.5px solid #d4d6d5;background:#f7f6f2;">
                             <option value="" disabled selected>Select a question...</option>
                             <option value="What is the name of your primary school?">What is the name of your primary school?</option>
-                            <option value="What is the your favourite movie?">What is the your favourite movie?</option>
+                            <option value="What is the your favourite movie?">What is your favourite movie?</option>
                             <option value="What city were you born in?">What city were you born in?</option>
                             <option value="What is your favourite song?">What is your favourite song?</option>
                         </select>
-                        <input type="text" id ="a1" name="a1" placeholder="Your answer" style = "margin-top:8px;">
+                        <input type="text" id="a1" name="a1" placeholder="Your answer" style="margin-top:8px;">
                         <div class="form-error" id="a1-error"></div>
-                        <div class="sec-q-row"></div>
+                    </div>
+                    <div class="sec-q-row">
                         <label>Question 2</label>
                         <select id="q2" name="q2" style="width:100%;padding:13px 18px;border-radius:28px;border:1.5px solid #d4d6d5;background:#f7f6f2;">
                             <option value="" disabled selected>Select a question...</option>
@@ -102,22 +112,21 @@
                             <option value="What is your most favourite food?">What is your most favourite food?</option>
                             <option value="Who is your crush?">Who is your crush?</option>
                         </select>
-                        <input type="text" id ="a2" name="a2" placeholder="Your answer" style = "margin-top:8px;">
+                        <input type="text" id="a2" name="a2" placeholder="Your answer" style="margin-top:8px;">
                         <div class="form-error" id="a2-error"></div>
                     </div>
-                 </div>
+                </div>
                 
-                 <!-- Password: Form -->
+                <!-- Password creation section with strength meter and requirements -->
                 <div class="form-group">
                     <label>Password</label>
                     <div class="input-wrap">
                         <input type="password" name="password" id="password" placeholder="Create a strong password" required oninput="checkPasswordStrength(); checkPasswordMatch()">
                         <button type="button" class="eye-btn" onclick="togglePassword('password', this)">👀</button>
                     </div>
-                    <div class="form-error" id="password-error">
-                    </div>
-                    <div class ="pw-strength-bar-wrap">
-                    <div class="pw-strength-bar" id="strength-bar"></div>
+                    <div class="form-error" id="password-error"></div>
+                    <div class="pw-strength-bar-wrap">
+                        <div class="pw-strength-bar" id="strength-bar"></div>
                     </div>
                     <div class="pw-strength-label" id="strength-label"></div>
                     <div class="password-requirements" id="password-requirements">
@@ -129,17 +138,19 @@
                     </div>
                 </div>
                 
+                <!-- Password confirmation field -->
                 <div class="form-group">
-                <label>Confirm password</label>
-                <div class="input-wrap">
-                <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter your password" required oninput="checkPasswordMatch()">
-                <button type="button" class="eye-btn" onclick="togglePassword('confirm_password', this)">👀</button>
+                    <label>Confirm password</label>
+                    <div class="input-wrap">
+                        <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter your password" required oninput="checkPasswordMatch()">
+                        <button type="button" class="eye-btn" onclick="togglePassword('confirm_password', this)">👀</button>
+                    </div>
+                    <div class="password-match" id="password-match"></div>
+                    <div class="form-error" id="confirm_password-error"></div>
                 </div>
-                <div class="password-match" id="password-match"></div>
-                <div class="form-error" id="confirm_password-error"></div>
-                </div>
+
+                <!-- Submit button and login link -->
                 <button type="submit" class="btn-login">Create account</button>
-                
                 <p class="switch-link">
                     Already have an account? <a href="{{ url_for('login') }}">Log in</a>
                 </p>
@@ -148,168 +159,202 @@
     </div>
 </div>
 
+<!-- Client-side validation and UI enhancement scripts -->
 <script>
-function togglePassword(inputID, btn) {
-      const input = document.getElementById(inputID);
-      if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = '🫣';
-      } else {
-        input.type = 'password';
-        btn.textContent = '👀';
-      }
-    }
+    //Toggles visibility of a password input field.
+    // @param {string} inputID - The id attribute of the input element.
+    // @param {HTMLElement} btn - The button element that triggered the toggle.
 
-    function checkPasswordStrength() {
-    const password = document.getElementById('password').value;
-    const  checks ={
-        len: password.length >= 8,
-        upper:/[A-Z]/.test(password),
-        lower:/[a-z]/.test(password),
-        number:/[0-9]/.test(password),
-        special:/[!@#$%^&*]/.test(password)
-    };
-    
-    const score=Object.values(checks).filter(Boolean).length;
-    const colors = ['', '#e74c3c', '#e67e22', '#f1c40f', '#27ae60', '#00c986'];
-    const labels = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
-    const widths = ['0%', '20%', '40%', '60%', '80%', '100%'];
-    const bar= document.getElementById('strength-bar');
-    if (bar){
-        bar.style.width= widths[score];
-        bar.style.background= colors[score];
-    }
-    const label=  document.getElementById('strength-label');
-    if (label) label.textContent = password ? `Password strength: ${labels[score]}` : '';
-
-    const reqs = ['req-length', 'req-upper', 'req-lower', 'req-number', 'req-special'];
-    const valid = [checks.len, checks.upper, checks.lower, checks.number, checks.special];
-    
-    reqs.forEach((id, i) => {
-        const el = document.getElementById(id);
-        if(el){
-        const icon= el.querySelector('.req-icon');
-        if (valid[i]) {
-            el.classList.remove('req-invalid');
-            el.classList.add('req-valid');
-            if (icon)icon.textContent='✓';
-         } else {
-            el.classList.remove('req-valid');
-            el.classList.add('req-invalid');
-            if (icon)icon.textContent='✗';
+    function togglePassword(inputID, btn) {
+        const input = document.getElementById(inputID);
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = '🫣';
+        } else {
+            input.type = 'password';
+            btn.textContent = '👀';
         }
     }
-   });
+
+    //Evaluates password strength and updates UI indicators (strength bar, requirements list).
+    //@returns {boolean} True if password meets all strength criteria, else false.
+
+    function checkPasswordStrength() {
+        const password = document.getElementById('password').value;
+        const checks = {
+            len: password.length >= 8,
+            upper: /[A-Z]/.test(password),
+            lower: /[a-z]/.test(password),
+            number: /[0-9]/.test(password),
+            special: /[!@#$%^&*]/.test(password)
+        };
+        
+        const score = Object.values(checks).filter(Boolean).length;
+        const colors = ['', '#e74c3c', '#e67e22', '#f1c40f', '#27ae60', '#00c986'];
+        const labels = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
+        const widths = ['0%', '20%', '40%', '60%', '80%', '100%'];
+        const bar = document.getElementById('strength-bar');
+        if (bar) {
+            bar.style.width = widths[score];
+            bar.style.background = colors[score];
+        }
+        const label = document.getElementById('strength-label');
+        if (label) label.textContent = password ? `Password strength: ${labels[score]}` : '';
+
+        // Update individual requirement icons (✓ / ✗)
+        const reqs = ['req-length', 'req-upper', 'req-lower', 'req-number', 'req-special'];
+        const valid = [checks.len, checks.upper, checks.lower, checks.number, checks.special];
+        
+        reqs.forEach((id, i) => {
+            const el = document.getElementById(id);
+            if (el) {
+                const icon = el.querySelector('.req-icon');
+                if (valid[i]) {
+                    el.classList.remove('req-invalid');
+                    el.classList.add('req-valid');
+                    if (icon) icon.textContent = '✓';
+                } else {
+                    el.classList.remove('req-valid');
+                    el.classList.add('req-invalid');
+                    if (icon) icon.textContent = '✗';
+                }
+            }
+        });
         return score === 5;
     }
 
-function checkPasswordMatch() {
-    const password = document.getElementById('password').value;
-    const confirm = document.getElementById('confirm_password').value;
-    const matchDiv = document.getElementById('password-match');
-    if (!matchDiv) return;
-    
-    if (!confirm) {
-        matchDiv.innerHTML = '';
-        matchDiv.className = 'password-match';
-        clearError('confirm_password'); 
-    } else if (password === confirm) {
-        matchDiv.innerHTML = '✓ Passwords match';
-        matchDiv.className = 'password-match match-valid';
-        clearError('confirm_password');
-    } else {
-        matchDiv.innerHTML = '✗ Passwords do not match';
-        matchDiv.className = 'password-match match-invalid';
-        showError('confirm_password', 'Passwords do not match');
-    }
-}
-
-
-function showError(field, message) {
-    const errorDiv = document.getElementById(`${field}-error`);
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        // Add error class to the input
-        const input = document.getElementById(field);
-        if (input) input.classList.add('field-error');
+    //Checks if password and confirmation password match, updates UI accordingly.
+    function checkPasswordMatch() {
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirm_password').value;
+        const matchDiv = document.getElementById('password-match');
+        if (!matchDiv) return;
+        
+        if (!confirm) {
+            matchDiv.innerHTML = '';
+            matchDiv.className = 'password-match';
+            clearError('confirm_password');
+        } else if (password === confirm) {
+            matchDiv.innerHTML = '✓ Passwords match';
+            matchDiv.className = 'password-match match-valid';
+            clearError('confirm_password');
+        } else {
+            matchDiv.innerHTML = '✗ Passwords do not match';
+            matchDiv.className = 'password-match match-invalid';
+            showError('confirm_password', 'Passwords do not match');
         }
     }
 
-function clearError(field) {
-    const errorDiv = document.getElementById(`${field}-error`);
-    if (errorDiv) errorDiv.style.display = 'none';
-    const input = document.getElementById(field);
-    if (input) input.classList.remove('field-error');
+    // Displays an inline error message for a specific form field and marks the field as invalid.
+    // @param {string} field - The field's id (used to construct error div id).
+    // @param {string} message - The error message to display.
+     
+    function showError(field, message) {
+        const errorDiv = document.getElementById(`${field}-error`);
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            const input = document.getElementById(field);
+            if (input) input.classList.add('field-error');
+        }
     }
 
+    //Clears the error message and invalid styling for a specific form field.
+    //@param {string} field - The field's id.
+    function clearError(field) {
+        const errorDiv = document.getElementById(`${field}-error`);
+        if (errorDiv) errorDiv.style.display = 'none';
+        const input = document.getElementById(field);
+        if (input) input.classList.remove('field-error');
+    }
 
-// Real-time validation for each field
-document.getElementById('password').addEventListener('input', function() {
-    checkPasswordStrength();
-    clearError('password');
-    checkPasswordMatch();
-});
+    // Attach real-time validation handlers for password fields
+    document.getElementById('password').addEventListener('input', function() {
+        checkPasswordStrength();
+        clearError('password');
+        checkPasswordMatch();
+    });
 
-document.getElementById('confirm_password').addEventListener('input', function() {
-     checkPasswordMatch();
-    clearError('confirm_password');
-});
+    document.getElementById('confirm_password').addEventListener('input', function() {
+        checkPasswordMatch();
+        clearError('confirm_password');
+    });
 
-   document.getElementById('student_id').addEventListener('input', function() { clearError('student_id'); });
-   document.getElementById('email').addEventListener('input', function() { clearError('email'); });
-   document.getElementById('username').addEventListener('input', function() { clearError('username'); });
-   document.getElementById('a1').addEventListener('input', function()  { clearError('a1'); });
-   document.getElementById('a2').addEventListener('input', function() { clearError('a2'); });
-   
-    //Form Submission
+    // Clear errors when user starts typing in other fields
+    document.getElementById('student_id').addEventListener('input', function() { clearError('student_id'); });
+    document.getElementById('email').addEventListener('input', function() { clearError('email'); });
+    document.getElementById('username').addEventListener('input', function() { clearError('username'); });
+    document.getElementById('a1').addEventListener('input', function() { clearError('a1'); });
+    document.getElementById('a2').addEventListener('input', function() { clearError('a2'); });
+    
+    //Final validation before form submission.
+    // Prevents submission if any required field is invalid.
     document.getElementById('register-form').addEventListener('submit', function(e) {
-    let hasError = false;
-    const studentId = document.getElementById('student_id').value;
-    const email= document.getElementById('email').value;
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    const confirm = document.getElementById('confirm_password').value;
-    const a1 = document.getElementById('a1').value;
-    const a2 = document.getElementById('a2').value;
-    const q1 = document.getElementById('q1').value;
-    const q2 = document.getElementById('q2').value;
+        let hasError = false;
+        const studentId = document.getElementById('student_id').value;
+        const email = document.getElementById('email').value;
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirm_password').value;
+        const a1 = document.getElementById('a1').value;
+        const a2 = document.getElementById('a2').value;
+        const q1 = document.getElementById('q1').value;
+        const q2 = document.getElementById('q2').value;
 
-    
-    // Clear all previous errors
-     document.querySelectorAll('.form-error').forEach(el => el.style.display = 'none');
-     document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
-    
-    // Validate Student ID - exactly 10 characters, only letters and numbers
-    if (!studentId) {showError('student_id', 'Student ID is required');
-       hasError = true;} 
-    else if (!/^[A-Za-z0-9]{10}$/.test(studentId)) {showError('student_id', 'Student ID must be exactly 10 letters/numbers (e.g., 252FC251H8)');
-    hasError = true;}
-    
-    // Validate Email
-    if (!email) {showError('email', 'Email address is required');
-        hasError = true;} 
-    else if (!email.endsWith('@student.mmu.edu.my')) {
-        showError('email', 'Only @student.mmu.edu.my email addresses are allowed');
-        hasError = true;
-    }
-    
-    // Validate Username
-    if (!username) {showError('username', 'Username is required');
-        hasError = true;
-    } else if (username.length < 3) {showError('username', 'Username must be at least 3 characters');
-        hasError = true;
-    }
+        // Reset previous error states
+        document.querySelectorAll('.form-error').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+        
+        // Validate Student ID: exactly 10 alphanumeric characters
+        if (!studentId) {
+            showError('student_id', 'Student ID is required');
+            hasError = true;
+        } else if (!/^[A-Za-z0-9]{10}$/.test(studentId)) {
+            showError('student_id', 'Student ID must be exactly 10 letters/numbers (e.g., 252FC251H8)');
+            hasError = true;
+        }
+        
+        // Validate Email: must end with @student.mmu.edu.my
+        if (!email) {
+            showError('email', 'Email address is required');
+            hasError = true;
+        } else if (!email.endsWith('@student.mmu.edu.my')) {
+            showError('email', 'Only @student.mmu.edu.my email addresses are allowed');
+            hasError = true;
+        }
+        
+        // Validate Username: at least 3 characters
+        if (!username) {
+            showError('username', 'Username is required');
+            hasError = true;
+        } else if (username.length < 3) {
+            showError('username', 'Username must be at least 3 characters');
+            hasError = true;
+        }
 
-    // for security questions
-    if (!q1 || !a1) { showError('a1', 'Please select a question and provide an answer'); hasError = true; }
-    if (!q2 || !a2) { showError('a2', 'Please select a question and provide an answer'); hasError = true; }
-    
-    const isStrong = checkPasswordStrength();
-    if (!isStrong) { showError('password', 'Please meet all password requirements'); hasError = true; }
-    if (password !== confirm) { showError('confirm_password', 'Passwords do not match'); hasError = true; }
+        // Security questions validation: both question and answer must be provided
+        if (!q1 || !a1) {
+            showError('a1', 'Please select a question and provide an answer');
+            hasError = true;
+        }
+        if (!q2 || !a2) {
+            showError('a2', 'Please select a question and provide an answer');
+            hasError = true;
+        }
+        
+        // Password strength and confirmation check
+        const isStrong = checkPasswordStrength();
+        if (!isStrong) {
+            showError('password', 'Please meet all password requirements');
+            hasError = true;
+        }
+        if (password !== confirm) {
+            showError('confirm_password', 'Passwords do not match');
+            hasError = true;
+        }
 
-    if (hasError) e.preventDefault();
-});
+        // If any validation failed, block form submission
+        if (hasError) e.preventDefault();
+    });
 </script>
 {% endblock %}

@@ -1,7 +1,9 @@
+<!-- Keting and Eileen part -->
 {% extends "base.html" %}
 
 {% block content %}
 <style>
+    /* ... CSS styles remain unchanged ... */
     .notif-page { 
         max-width: 700px; 
         margin: 0 auto; 
@@ -18,7 +20,6 @@
     .notif-header h2 { font-size: 20px; margin: 0; flex: 1; }
     .notif-back { text-decoration: none; color: #205c30; font-size: 14px; font-weight: 600; }
 
-    /* 分类标签 */
     .notif-tabs { 
         display: flex; 
         gap: 8px; 
@@ -40,7 +41,6 @@
     .notif-tab.active { background: #205c30; color: white; }
     .notif-tab .count { margin-left: 4px; font-size: 11px; }
 
-    /* 通知列表 */
     .notif-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 40px; }
     .notif-card { 
         background: #fff; 
@@ -95,7 +95,6 @@
     
     .notif-empty { text-align: center; padding: 60px 0; color: #bbb; }
 
-    /* 日期分割线 */
     .date-divider {
         text-align: center;
         margin: 16px 0 12px;
@@ -109,7 +108,6 @@
         font-weight: 500;
     }
 
-    /* 弹窗样式 */
     .modal-overlay { 
         display: none; 
         position: fixed; 
@@ -147,7 +145,6 @@
     }
     .modal-close:hover { color: #333; }
 
-    /* 地点选择网格 */
     .location-grid { 
         display: grid; 
         grid-template-columns: repeat(2, 1fr); 
@@ -173,7 +170,6 @@
     .location-btn img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-bottom: 6px; }
     .location-btn span { font-size: 11px; font-weight: 500; }
 
-    /* 时间选择行（动态增删） */
     .date-time-row {
         display: flex;
         align-items: center;
@@ -208,7 +204,6 @@
         width: 100%;
     }
 
-    /* 优惠详情弹窗 */
     .offer-detail { 
         background: #f9faf9; 
         border-radius: 12px; 
@@ -218,7 +213,6 @@
         word-break: break-word;
     }
     
-    /* 自定义确认弹窗 */
     .custom-confirm-modal {
         position: fixed;
         top: 0;
@@ -266,7 +260,6 @@
     .custom-confirm-danger { background: linear-gradient(135deg, #d63c2c, #c0392b); color: white; }
     .custom-confirm-danger:hover { background: linear-gradient(135deg, #c0392b, #a93226); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(214, 60, 44, 0.3); }
 
-    /* Checkout 弹窗 */
     .custom-modal {
         position: fixed;
         inset: 0;
@@ -310,7 +303,6 @@
     .modal-cancel { background: #f0f0f0; color: #666; }
     .modal-confirm { background: #205c30; color: white; }
 
-    /* Toast 通知 */
     .toast-container {
         position: fixed;
         top: 80px;
@@ -354,66 +346,59 @@
     
     .bottom-nav-spacer { display: block; height: 70px; }
 
-    /* 通知中的产品图片 */
-/* 通知卡片 - 图片在右边 */
-.notif-card {
-    background: #fff;
-    border-radius: 14px;
-    padding: 16px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    display: flex;
-    gap: 12px;
-    transition: 0.2s;
-    position: relative;
-    align-items: flex-start;
-}
+    .notif-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        display: flex;
+        gap: 12px;
+        transition: 0.2s;
+        position: relative;
+        align-items: flex-start;
+    }
 
-/* 产品图片 - 放在最右边 */
-.notif-product-img {
-    width: 55px;
-    height: 55px;
-    flex-shrink: 0;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #f5f5f5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    order: 3;  /* 让图片排到最后（右边） */
-    margin-left: auto;
-}
+    .notif-product-img {
+        width: 55px;
+        height: 55px;
+        flex-shrink: 0;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #f5f5f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        order: 3;
+        margin-left: auto;
+    }
 
-.notif-product-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+    .notif-product-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
 
-/* 图标容器 - 左边 */
-.notif-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    flex-shrink: 0;
-    order: 1;
-}
+    .notif-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+        order: 1;
+    }
 
-/* 内容区域 - 中间 */
-.notif-body {
-    flex: 1;
-    min-width: 0;
-    order: 2;
-}
+    .notif-body {
+        flex: 1;
+        min-width: 0;
+        order: 2;
+    }
 
-/* 未读卡片左边框 */
-.notif-card.unread {
-    border-left: 3px solid #e74c3c;
-}
-
+    .notif-card.unread {
+        border-left: 3px solid #e74c3c;
+    }
 </style>
 
 <div class="notif-page">
@@ -437,12 +422,12 @@
     <div class="bottom-nav-spacer"></div>
 </div>
 
-<!-- 确认购买弹窗 - 两步式 -->
+<!-- Eileen's part - Purchase confirmation modal (2 step) -->
 <div id="purchaseModal" class="modal-overlay">
     <div class="modal-box" style="max-width:540px; padding:0; overflow:hidden;">
         <button class="modal-close" onclick="closePurchaseModal()" style="position:absolute;top:16px;right:16px;z-index:10;">✕</button>
 
-        <!-- Step 1: 产品信息 + 时间选择 -->
+        <!-- Step 1: Product info + time selection -->
         <div id="purchaseStep1">
             <div id="purchaseProductInfo" style="padding:24px 24px 0;"></div>
             <div style="padding:0 24px 20px;">
@@ -461,7 +446,7 @@
             </div>
         </div>
 
-        <!-- Step 2: 地点选择 -->
+        <!-- Step 2: Location selection -->
         <div id="purchaseStep2" style="display:none;">
             <div style="padding:20px 24px 0;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
@@ -479,7 +464,7 @@
     </div>
 </div>
 
-<!-- 优惠管理弹窗 -->
+<!-- Eileen's part - Offer management modal -->
 <div id="offerManageModal" class="modal-overlay">
     <div class="modal-box">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee;">
@@ -490,7 +475,7 @@
     </div>
 </div>
 
-<!-- Counter Offer 弹窗 -->
+<!-- Eileen's part - Counter Offer modal -->
 <div class="modal-overlay" id="counterOfferModal">
     <div class="modal-box">
         <button class="modal-close" onclick="closeCounterOfferModal()">✕</button>
@@ -508,6 +493,9 @@
 </div>
 
 <script>
+// ============================================================
+// Eileen's part - Global variables
+// ============================================================
 var allNotifications = [];
 var currentFilter = 'all';
 var purchaseOfferId = null;
@@ -516,6 +504,7 @@ var selectedDates = [];
 var manageOfferId = null;
 var pendingCounterOfferId = null;
 
+// Eileen's part - Meetup locations data (for display purposes)
 const meetupLocations = [
     { name: "Library", image: "/static/uploads/library.jpg" },
     { name: "DTC", image: "/static/uploads/dtc.jpg" },
@@ -535,7 +524,10 @@ const meetupLocations = [
     { name: "Chancellery Building", image: "/static/uploads/chancellery.jpg" }
 ];
 
-// ========== 自定义确认弹窗（week11 功能） ==========
+// ============================================================
+// Eileen's part - Custom confirmation modal (week11 feature)
+// ============================================================
+// options: { title, message, confirmText, cancelText, isAccept, isReject, type }
 function showConfirm(options) {
     return new Promise((resolve) => {
         const existing = document.querySelector('.custom-confirm-modal');
@@ -550,7 +542,7 @@ function showConfirm(options) {
         if (options.type === 'cancel') icon = '🗑️';
         
         const confirmBtnClass = options.isReject ? 'custom-confirm-danger' : 'custom-confirm-confirm';
-        
+        // Build modal content
         modal.innerHTML = `
             <div class="custom-confirm-card">
                 <div class="custom-confirm-icon">${icon}</div>
@@ -589,7 +581,9 @@ function showConfirm(options) {
     });
 }
 
-// ========== Toast 消息 ==========
+// ============================================================
+// Keting's part - Toast notification
+// ============================================================
 function showToastMessage(message, type) {
     var existing = document.querySelector('.toast-container');
     if (existing) existing.remove();
@@ -605,7 +599,10 @@ function showToastMessage(message, type) {
     setTimeout(function() { container.remove(); }, 3000);
 }
 
-// ========== 日期时间选择功能（week10 动态增删行） ==========
+// ============================================================
+// Eileen's part - Date/Time selection functions 
+// ============================================================
+// Add a new date/time input row (max 3)
 function addDateTimeRow() {
     var rows = document.querySelectorAll('#purchaseDateInputs .date-time-row');
     if (rows.length >= 3) {
@@ -620,13 +617,13 @@ function addDateTimeRow() {
     container.appendChild(newRow);
     updateRemoveButtons();
 }
-
+// Remove a date/time input row
 function removeDateTimeRow(btn) {
     var row = btn.closest('.date-time-row');
     row.remove();
     updateRemoveButtons();
 }
-
+// Show/hide remove buttons based on number of rows
 function updateRemoveButtons() {
     var rows = document.querySelectorAll('#purchaseDateInputs .date-time-row');
     rows.forEach(function(row) {
@@ -646,7 +643,9 @@ function getSelectedDates() {
     return dates;
 }
 
-// ========== 加载通知 ==========
+// ============================================================
+// Keting's part - Load notifications from server
+// ============================================================
 function loadNotifications() {
     fetch('/api/notifications/all', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
@@ -659,6 +658,9 @@ function loadNotifications() {
     });
 }
 
+// ============================================================
+// Keting's part - Render notifications with filtering
+// ============================================================
 function renderNotifications() {
     var filtered = allNotifications;
     if (currentFilter !== 'all') {
@@ -672,6 +674,7 @@ function renderNotifications() {
         });
     }
     
+    // Group notifications by date
     var grouped = {};
     filtered.forEach(function(n) {
         var date = new Date(n.created_at).toLocaleDateString();
@@ -693,13 +696,16 @@ function renderNotifications() {
     document.getElementById('notifList').innerHTML = html;
 }
 
+// ============================================================
+// Keting's part - Render individual notification card
+// ============================================================
 function renderNotificationCard(n) {
     var icon = '🔔';
     var iconClass = 'system';
     var actions = '';
     var productImageHtml = '';
 
-    // 如果有产品图片，生成缩略图（放在右边）
+    // Add product image thumbnail (right side) if available
     if (n.product_image) {
         productImageHtml = `
             <div class="notif-product-img">
@@ -721,7 +727,6 @@ function renderNotificationCard(n) {
         icon = '🔄'; iconClass = 'offer';
         actions = '<button class="notif-btn warning" onclick="openOfferManageModal(' + n.related_id + ')">View Counter Offer</button>';
     } else if (t.includes('offer_cancelled')) {
-        // ========== 新增：处理取消 offer 的通知 ==========
         icon = '🗑️'; 
         iconClass = 'offer';
         actions = '<button class="notif-btn secondary" onclick="window.location.href=\'/my-profile?tab=purchases\'">📋 View My Offers</button>';
@@ -741,7 +746,6 @@ function renderNotificationCard(n) {
 
     var unreadClass = !n.is_read ? 'unread' : '';
     
-    // 注意：productImageHtml 放在最前面，但通过 CSS order:3 会移到右边
     return '<div class="notif-card ' + unreadClass + '" data-id="' + n.id + '" onclick="markSingleNotificationRead(' + n.id + ', this)">' +
         '<div class="notif-icon ' + iconClass + '">' + icon + '</div>' +
         '<div class="notif-body">' +
@@ -753,6 +757,9 @@ function renderNotificationCard(n) {
         '</div>';
 }
 
+// ============================================================
+// Keting's part - Mark single notification as read
+// ============================================================
 function markSingleNotificationRead(notifId, element) {
     fetch('/api/notifications/mark-read', {
         method: 'POST',
@@ -769,6 +776,9 @@ function markSingleNotificationRead(notifId, element) {
     });
 }
 
+// ============================================================
+// Keting's part - Filter notifications by type
+// ============================================================
 function filterNotifications(type) {
     currentFilter = type;
     document.querySelectorAll('.notif-tab').forEach(function(tab) { tab.classList.remove('active'); });
@@ -776,6 +786,9 @@ function filterNotifications(type) {
     renderNotifications();
 }
 
+// ============================================================
+// Keting's part - Format date for display (relative time)
+// ============================================================
 function formatDate(dateStr) {
     if (!dateStr) return '';
     var d = new Date(dateStr);
@@ -789,13 +802,18 @@ function formatDate(dateStr) {
     return d.toLocaleDateString();
 }
 
+// ============================================================
+// Keting's part - Escape HTML to prevent XSS
+// ============================================================
 function escapeHtml(s) { 
     return s ? s.replace(/[&<>]/g, function(m) { 
         return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]; 
     }) : ''; 
 }
 
-// ========== 购买弹窗 ==========
+// ============================================================
+// Eileen's part - Purchase modal functions
+// ============================================================
 var _purchaseMeetupLocations = [];
 
 function openPurchaseModal(offerId) {
@@ -804,13 +822,13 @@ function openPurchaseModal(offerId) {
     selectedDates = [];
     _purchaseMeetupLocations = [];
     
-    // 重置到 step1，隐藏 step2
+    // Reset to step 1, hide step 2
     document.getElementById('purchaseStep1').style.display = '';
     document.getElementById('purchaseStep2').style.display = 'none';
     document.getElementById('purchaseModal').classList.add('show');
     document.getElementById('purchaseProductInfo').innerHTML = '<div style="padding:8px;color:#888;">Loading...</div>';
     
-    // 重置日期选择器
+    // Reset date picker
     var dateContainer = document.getElementById('purchaseDateInputs');
     dateContainer.innerHTML = '<div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60" style="flex:1;"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
     updateRemoveButtons();
@@ -823,7 +841,7 @@ function openPurchaseModal(offerId) {
             return;
         }
 
-        // 状态检查
+        // Check offer status
         if (data.status === 'ordered') {
             document.getElementById('purchaseProductInfo').innerHTML = '<div class="offer-detail" style="color:#e67e22;">⚠️ An order has already been placed for this offer.</div>';
             document.getElementById('purchaseStep1').querySelector('button.notif-btn.primary').style.display = 'none';
@@ -838,7 +856,7 @@ function openPurchaseModal(offerId) {
 
         var sellerCampus = data.seller_campus || '';
 
-        // 产品信息 - 像截图那样：左边大图，右边信息
+        // Product info display
         var imgHtml = '';
         if (data.product_image) {
             imgHtml = '<img src="' + data.product_image + '" style="width:100%;height:160px;object-fit:cover;border-radius:12px;margin-bottom:12px;" onerror="this.style.display=\'none\'">';
@@ -851,7 +869,7 @@ function openPurchaseModal(offerId) {
             '<div style="font-size:12px;color:#888;margin-top:4px;">📍 Seller\'s Campus: ' + escapeHtml(sellerCampus || 'Not specified') + '</div>' +
             '</div>';
 
-        // 地点列表
+        // Set up location list based on seller's campus
         if (sellerCampus.includes('Cyberjaya') || sellerCampus.includes('Cyber')) {
             _purchaseMeetupLocations = [
                 'Library', 'DTC', 'Starbees', 'CLC', 'FCI', 'FOM', 'FAIE', 'FCM',
@@ -876,7 +894,7 @@ function goToPurchaseStep2() {
         showToastMessage('Please select at least one date and time', 'error');
         return;
     }
-    // 验证时间必须在未来
+    // Validate that all dates are in the future
     var now = new Date();
     for (var i = 0; i < dates.length; i++) {
         if (new Date(dates[i]) <= now) {
@@ -885,7 +903,7 @@ function goToPurchaseStep2() {
         }
     }
 
-    // 构建地点网格
+    // Build location grid
     selectedLocations = [];
     var grid = document.getElementById('purchaseLocationGrid');
     grid.innerHTML = '';
@@ -902,20 +920,20 @@ function goToPurchaseStep2() {
     document.getElementById('purchaseStep1').style.display = 'none';
     document.getElementById('purchaseStep2').style.display = '';
 }
-
+// Allow going back to step 1 to change dates
 function goToPurchaseStep1() {
     document.getElementById('purchaseStep2').style.display = 'none';
     document.getElementById('purchaseStep1').style.display = '';
 }
-
+// Close modal and reset all selections
 function closePurchaseModal() {
     document.getElementById('purchaseModal').classList.remove('show');
     purchaseOfferId = null;
-    // Reset step1 next button
+    // Reset step 1 next button
     var nextBtn = document.querySelector('#purchaseStep1 button.notif-btn.primary');
     if (nextBtn) nextBtn.style.display = '';
 }
-
+// Toggle location selection (max 3)
 function toggleLocation(name) {
     var idx = selectedLocations.indexOf(name);
     if (idx !== -1) {
@@ -929,7 +947,7 @@ function toggleLocation(name) {
     }
     updateLocationUI();
 }
-
+// Update location buttons UI based on selection
 function updateLocationUI() {
     document.querySelectorAll('#purchaseLocationGrid .location-btn').forEach(function(btn) {
         var name = btn.getAttribute('data-location') || btn.querySelector('span').innerText;
@@ -938,7 +956,7 @@ function updateLocationUI() {
         } else {
             btn.classList.remove('selected');
         }
-    });
+    });// Update info text
     var infoDiv = document.getElementById('purchaseLocationInfo');
     if (infoDiv) {
         if (selectedLocations.length === 0) {
@@ -951,18 +969,21 @@ function updateLocationUI() {
     }
 }
 
+// ============================================================
+// Eileen's part - Confirm purchase button handler
+// ============================================================
 document.getElementById('confirmPurchaseBtn')?.addEventListener('click', function() {
     if (selectedLocations.length === 0) {
         showToastMessage('Please select at least one location', 'error');
         return;
     }
-    
+    // Dates are already validated in step 1, just get the values
     var selectedDatesList = getSelectedDates();
     if (selectedDatesList.length === 0) {
         showToastMessage('Please select at least one date and time', 'error');
         return;
     }
-    
+    // Disable button to prevent multiple clicks
     var confirmBtn = document.getElementById('confirmPurchaseBtn');
     confirmBtn.disabled = true;
     confirmBtn.textContent = 'Processing...';
@@ -975,7 +996,7 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
             meeting_dates: selectedDatesList
         }),
         credentials: 'same-origin'
-    })
+    }) 
     .then(function(r) { return r.json(); })
     .then(function(d) {
         if (d.success) {
@@ -992,12 +1013,16 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
     .finally(function() { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Purchase'; });
 });
 
-// ========== 优惠管理弹窗 ==========
+// ============================================================
+// Eileen's part - Offer management modal
+// ============================================================
+// Open offer management modal and load offer details
 function openOfferManageModal(offerId) {
     manageOfferId = offerId;
     document.getElementById('offerManageModal').classList.add('show');
     document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail">Loading...</div>';
-    
+
+    // Fetch offer details to determine what actions to show
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -1005,7 +1030,7 @@ function openOfferManageModal(offerId) {
                 document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ ' + (data.error || 'Failed to load') + '</div>';
                 return;
             }
-            
+            // Get current user ID to determine if they are buyer or seller
             return fetch('/api/current-user-id', { credentials: 'same-origin' })
                 .then(function(r) { return r.json(); })
                 .then(function(userData) {
@@ -1022,7 +1047,8 @@ function openOfferManageModal(offerId) {
                     }
                     
                     html += '</div>';
-                    
+                    // Show different actions based on role and offer status
+                    // Seller actions
                     if (isSeller) {
                         if (data.status === 'pending') {
                             html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
@@ -1039,29 +1065,41 @@ function openOfferManageModal(offerId) {
                         } else if (data.status === 'rejected') {
                             html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#f0f0f0;">❌ Offer was rejected</span></div>';
                         }
+                        // No cancel option for seller, as they can just reject if they don't want to accept
                     } else if (isBuyer) {
                         if (data.status === 'pending') {
                             html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
                             html += '<span class="notif-btn secondary" style="background:#f0f0f0;">⏳ Waiting for seller response...</span>';
                             html += '<button class="notif-btn danger" onclick="cancelMyOffer(' + offerId + ')">🗑️ Cancel My Offer</button>';
-                            html += '</div>';
+                            html += '</div>'; 
+                            // Buyer can cancel while waiting, 
+                            // but cannot change offer price (would need to cancel and make new offer)
                         } else if (data.status === 'countered') {
                             html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
                             html += '<button class="notif-btn primary" onclick="acceptCounterOfferFromModal(' + offerId + ')">✅ Accept Counter Offer (RM ' + parseFloat(data.counter_price).toFixed(2) + ')</button>';
                             html += '<button class="notif-btn danger" onclick="rejectCounterOfferFromModal(' + offerId + ')">❌ Reject Counter Offer</button>';
-                            html += '</div>';
+                            html += '</div>'; 
+                            // Buyer can accept or reject counter offer, 
+                            // but cannot cancel at this stage (would need to reject to end negotiation)
                         } else if (data.status === 'accepted') {
                             html += '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">';
                             html += '<button class="notif-btn primary" onclick="closeOfferManageModal();openPurchaseModal(' + offerId + ')">🛒 Proceed to Checkout</button>';
-                            html += '</div>';
+                            html += '</div>'; 
+                            // Buyer can proceed to checkout, 
+                            // but cannot cancel or change offer at this stage 
+                            // (would need to contact seller to negotiate again)
                         } else if (data.status === 'rejected') {
                             html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#f0f0f0;">❌ Your offer was rejected by seller</span></div>';
+                            // Buyer can only see that offer was rejected,
+                            //  but cannot do anything else at this stage
                         } else if (data.status === 'cancelled') {
                             html += '<div style="margin-top:16px;"><span class="notif-btn secondary" style="background:#f0f0f0;">🗑️ Offer cancelled</span></div>';
-                        }
+                        } 
+                        // No countered status for buyer 
+                        // if they are not the one who made the counter offer, so we don't need to check that here
                     } else {
                         html += '<div class="offer-detail error">You are not involved in this offer</div>';
-                    }
+                    }// Common info for both roles
                     
                     document.getElementById('offerManageContent').innerHTML = html;
                 });
@@ -1077,18 +1115,196 @@ function closeOfferManageModal() {
     manageOfferId = null;
 }
 
-// ========== 卖家接受 offer 后的 checkout 弹窗 ==========
+// ============================================================
+// Eileen's part - Accept/Reject/Cancel offer functions
+// ============================================================
+// Accept offer (seller action)
+async function acceptOffer(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Accept Offer',
+        message: 'Are you sure you want to accept this offer?',
+        icon: '💰',
+        isAccept: true,
+        confirmText: 'Accept',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
+    // Proceed with accepting the offer
+    showToastMessage('Accepting offer...', 'info');
+    fetch('/api/offer/' + offerId + '/accept', { 
+        method: 'POST', 
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    }) 
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer accepted! Opening checkout...', 'success');
+            closeOfferManageModal();
+            openCheckoutForOffer(offerId);
+            loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
+        } else {
+            showToastMessage('Error: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Request failed: ' + err.message, 'error');
+    });
+    // Note: We don't automatically open the checkout modal here because 
+    // the seller might want to review the offer details or send a counter offer instead. 
+    // The seller can click "Proceed to Checkout" when they are ready.
+}
+
+// Reject offer (seller action)
+async function rejectOffer(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Reject Offer',
+        message: 'Are you sure you want to reject this offer?',
+        icon: '❌',
+        isReject: true,
+        confirmText: 'Reject',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
+    // Proceed with rejecting the offer
+    showToastMessage('Rejecting offer...', 'info');
+    fetch('/api/offer/' + offerId + '/reject', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Offer rejected.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
+        } else {
+            showToastMessage('Error: ' + (data.error || 'Failed to reject'), 'error');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+// Cancel offer (buyer action)
+async function cancelMyOffer(offerId) {
+    const confirmed = await showConfirm({
+        title: 'Cancel Offer',
+        message: 'Are you sure you want to cancel your offer? This cannot be undone.',
+        icon: '🗑️',
+        isReject: true,
+        type: 'cancel',
+        confirmText: 'Cancel Offer',
+        cancelText: 'Keep Offer'
+    });
+    if (!confirmed) return;
+
+    // Proceed with cancelling the offer
+    showToastMessage('Cancelling offer...', 'info');
+    fetch('/api/offer/' + offerId + '/cancel', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Your offer has been cancelled.', 'success');
+            closeOfferManageModal();
+            loadNotifications();
+            if (typeof loadPurchases === 'function') loadPurchases();
+        } else {
+            throw new Error(data.error || 'Failed to cancel');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+// ============================================================
+// Eileen's part - Counter Offer modal
+// ============================================================
+// Open counter offer modal with offer details
+function openCounterOfferModal(offerId) {
+    pendingCounterOfferId = offerId;
+    document.getElementById('counterOfferModal').classList.add('show');
+    document.getElementById('counterPriceInput').value = '';
+    // Load offer details to show current offer price and product name
+    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            document.getElementById('counterOfferContent').innerHTML = 
+                '<div class="offer-detail">' +
+                '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
+                '💰 Current Offer: RM ' + parseFloat(data.offer_price).toFixed(2) +
+                '</div>';
+        } else {
+            document.getElementById('counterOfferContent').innerHTML = 
+                '<div class="offer-detail error">Failed to load offer details</div>';
+        }
+    }) 
+    .catch(function(err) {
+        console.error('Load offer details error:', err);
+        document.getElementById('counterOfferContent').innerHTML = 
+            '<div class="offer-detail error">Error loading details</div>';
+    });
+}
+// Close counter offer modal and reset state
+function closeCounterOfferModal() {
+    document.getElementById('counterOfferModal').classList.remove('show');
+    pendingCounterOfferId = null;
+}
+// Send counter offer with new price
+document.getElementById('sendCounterOfferBtn')?.addEventListener('click', function() {
+    var newPrice = document.getElementById('counterPriceInput').value;
+    if (!newPrice || parseFloat(newPrice) <= 0) {
+        showToastMessage('Please enter a valid price', 'error');
+        return;
+    }
+    // Disable button to prevent multiple clicks
+    showToastMessage('Sending counter offer...', 'info');
+    fetch('/api/offer/' + pendingCounterOfferId + '/counter', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ counter_price: parseFloat(newPrice) })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Counter offer sent!', 'success');
+            closeCounterOfferModal();
+            loadNotifications();
+            if (typeof loadListings === 'function') loadListings();
+        } else {
+            showToastMessage('Error: ' + (data.error || 'Failed to send counter offer'), 'error');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+});
+
+// ============================================================
+// Eileen's part - Seller checkout after accepting offer
+// ============================================================
+// Open checkout modal for seller after accepting an offer
 function openCheckoutForOffer(offerId) {
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (!data.success) throw new Error(data.error);
-            
+            // Initialize selected locations array for this modal
             window.checkoutSelectedLocations = [];
-            
+            // Determine meetup locations based on seller's campus
             var locations = [];
             var sellerCampus = data.seller_campus || '';
-            
+            // For simplicity, we check if campus contains "Cyberjaya" or "Cyber" to determine the location list.
             if (sellerCampus.includes('Cyberjaya') || sellerCampus.includes('Cyber')) {
                 locations = [
                     "Library", "DTC", "Starbees", "CLC", "FCI", "FOM", "FAIE", "FCM",
@@ -1101,37 +1317,37 @@ function openCheckoutForOffer(offerId) {
                     "Hostel 3", "Hostel 4", "Surau", "Mini Mart", "Admin Building"
                 ];
             }
-            
+            // Build the meetup location selection grid and date/time inputs in the modal
             var meetupHtml = `
                 <div id="checkoutForOfferModal" class="custom-modal">
-                    <div class="modal-card" style="max-width: 500px;">
+                    <div class="modal-card" style="max-width: 500px;"> // We can reuse some styles from the purchase modal for consistency
                         <div class="modal-icon">📍</div>
-                        <div class="modal-title">Confirm Order: ${escapeHtml(data.product_name)}</div>
+                        <div class="modal-title">Confirm Order: ${escapeHtml(data.product_name)}</div> // Show agreed price for clarity
                         <div class="modal-message">Agreed Price: RM ${data.offer_price.toFixed(2)}</div>
                         <div style="margin: 16px 0;">
                             <label style="font-weight:600; display:block; margin-bottom:8px;">Select Meetup Location(s) (max 3):</label>
                             <div id="checkoutLocationGridForOffer" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
                             <div id="checkoutLocationInfoForOffer" style="font-size:12px; margin-top:8px; color:#e74c3c;">⚠️ Please select 1-3 locations</div>
                         </div>
-                        <div style="margin: 16px 0;">
+                        <div style="margin: 16px 0;"> // Date and time selection for meetup
                             <label style="font-weight:600; display:block; margin-bottom:8px;">Select up to 3 preferred dates & times:</label>
                             <div id="dateTimeInputsForOffer" style="display: flex; flex-direction: column; gap: 10px;">
                                 <div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button></div>
-                            </div>
+                            </div> // Add button to add more date/time inputs
                             <button type="button" id="addDateBtnForOffer" class="add-date-btn" style="margin-top:8px; background:#205c30; color:white; border:none; padding:5px 12px; border-radius:20px; cursor:pointer;">+ Add another date</button>
                         </div>
-                        <div class="modal-buttons">
+                        <div class="modal-buttons"> // Confirm and Cancel buttons
                             <button class="modal-cancel" onclick="closeCheckoutForOfferModal()">Cancel</button>
                             <button class="modal-confirm" onclick="submitOrderFromOfferAccept(${offerId})">Confirm Order</button>
                         </div>
                     </div>
                 </div>
             `;
-            
+            // Remove existing modal if any and add new modal to the DOM
             var existing = document.getElementById('checkoutForOfferModal');
             if (existing) existing.remove();
             document.body.insertAdjacentHTML('beforeend', meetupHtml);
-            
+            // Add event listeners for location buttons and date/time inputs
             var grid = document.getElementById('checkoutLocationGridForOffer');
             for (var i = 0; i < locations.length; i++) {
                 var loc = locations[i];
@@ -1170,7 +1386,7 @@ function openCheckoutForOffer(offerId) {
                 })(loc, btn);
                 grid.appendChild(btn);
             }
-            
+            // Add event listener for adding more date/time inputs
             document.getElementById('addDateBtnForOffer').addEventListener('click', function() {
                 var container = document.getElementById('dateTimeInputsForOffer');
                 var rows = container.querySelectorAll('.date-time-row');
@@ -1188,32 +1404,32 @@ function openCheckoutForOffer(offerId) {
             showToastMessage('Error: ' + err.message, 'error');
         });
 }
-
+// Close checkout modal and reset any temporary state
 function closeCheckoutForOfferModal() {
     var modal = document.getElementById('checkoutForOfferModal');
     if (modal) modal.remove();
 }
-
+// Get selected dates from the date/time inputs in the modal
 function submitOrderFromOfferAccept(offerId) {
     if (!window.checkoutSelectedLocations || window.checkoutSelectedLocations.length === 0) {
         showToastMessage('Please select at least one meetup location', 'error');
         return;
     }
-    
+    // Get selected dates from the date/time inputs
     var dateInputs = document.querySelectorAll('#dateTimeInputsForOffer .datetime-picker');
     var selectedDates = [];
     for (var i = 0; i < dateInputs.length; i++) {
         var val = dateInputs[i].value;
         if (val) selectedDates.push(val);
     }
-    
+    // Validate that at least one date is selected and all are in the future
     if (selectedDates.length === 0) {
         showToastMessage('Please select at least one preferred date and time', 'error');
         return;
     }
     
     showToastMessage('Creating order...', 'info');
-    
+    // Send POST request to create order from accepted offer with selected locations and dates
     fetch('/api/offer/' + offerId + '/create-order-from-accept', {
         method: 'POST',
         credentials: 'same-origin',
@@ -1241,14 +1457,18 @@ function submitOrderFromOfferAccept(offerId) {
     });
 }
 
-// ========== 卖家 Counter Offer（week10 功能） ==========
+// ============================================================
+// Eileen's part - Seller counter offer (prompt-based)
+// ============================================================
+// Open a prompt to enter counter offer price, then send it to the server
 function openSellerCounterOfferModal(offerId, currentOfferPrice) {
     var counterPrice = prompt('Enter your counter offer price (RM):', currentOfferPrice);
     if (!counterPrice || parseFloat(counterPrice) <= 0) {
         showToastMessage('Please enter a valid price', 'error');
         return;
     }
-    
+    // Optionally, we could add more validation here 
+    // (e.g., counter offer must be different from current offer, or within a certain range)
     showToastMessage('Sending counter offer...', 'info');
     fetch('/api/offer/' + offerId + '/counter', {
         method: 'POST',
@@ -1272,7 +1492,10 @@ function openSellerCounterOfferModal(offerId, currentOfferPrice) {
     });
 }
 
-// ========== 买家接受/拒绝 Counter Offer ==========
+// ============================================================
+// Eileen's part - Buyer accept/reject counter offer from modal
+// ============================================================
+// Accept counter offer (buyer action)
 async function acceptCounterOfferFromModal(offerId) {
     const confirmed = await showConfirm({
         title: 'Accept Counter Offer',
@@ -1283,7 +1506,7 @@ async function acceptCounterOfferFromModal(offerId) {
         cancelText: 'Cancel'
     });
     if (!confirmed) return;
-    
+    // Proceed with accepting the counter offer
     showToastMessage('Accepting counter offer...', 'info');
     fetch('/api/offer/' + offerId + '/accept-counter', {
         method: 'POST',
@@ -1305,7 +1528,7 @@ async function acceptCounterOfferFromModal(offerId) {
         showToastMessage('Error: ' + err.message, 'error');
     });
 }
-
+// Reject counter offer (buyer action)
 async function rejectCounterOfferFromModal(offerId) {
     const confirmed = await showConfirm({
         title: 'Reject Counter Offer',
@@ -1316,7 +1539,7 @@ async function rejectCounterOfferFromModal(offerId) {
         cancelText: 'Cancel'
     });
     if (!confirmed) return;
-    
+    // Proceed with rejecting the counter offer
     showToastMessage('Declining counter offer...', 'info');
     fetch('/api/offer/' + offerId + '/reject-counter', {
         method: 'POST',
@@ -1338,172 +1561,9 @@ async function rejectCounterOfferFromModal(offerId) {
     });
 }
 
-// ========== 卖家接受/拒绝普通 Offer ==========
-async function acceptOffer(offerId) {
-    const confirmed = await showConfirm({
-        title: 'Accept Offer',
-        message: 'Are you sure you want to accept this offer?',
-        icon: '💰',
-        isAccept: true,
-        confirmText: 'Accept',
-        cancelText: 'Cancel'
-    });
-    if (!confirmed) return;
-    
-    showToastMessage('Accepting offer...', 'info');
-    fetch('/api/offer/' + offerId + '/accept', { 
-        method: 'POST', 
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Offer accepted! Opening checkout...', 'success');
-            closeOfferManageModal();
-            openCheckoutForOffer(offerId);
-            loadNotifications();
-            if (typeof loadListings === 'function') loadListings();
-        } else {
-            showToastMessage('Error: ' + (data.error || 'Unknown error'), 'error');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Request failed: ' + err.message, 'error');
-    });
-}
-
-async function rejectOffer(offerId) {
-    const confirmed = await showConfirm({
-        title: 'Reject Offer',
-        message: 'Are you sure you want to reject this offer?',
-        icon: '❌',
-        isReject: true,
-        confirmText: 'Reject',
-        cancelText: 'Cancel'
-    });
-    if (!confirmed) return;
-    
-    showToastMessage('Rejecting offer...', 'info');
-    fetch('/api/offer/' + offerId + '/reject', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Offer rejected.', 'success');
-            closeOfferManageModal();
-            loadNotifications();
-            if (typeof loadListings === 'function') loadListings();
-        } else {
-            showToastMessage('Error: ' + (data.error || 'Failed to reject'), 'error');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-}
-
-// ========== 买家取消自己的 Offer ==========
-async function cancelMyOffer(offerId) {
-    const confirmed = await showConfirm({
-        title: 'Cancel Offer',
-        message: 'Are you sure you want to cancel your offer? This cannot be undone.',
-        icon: '🗑️',
-        isReject: true,
-        type: 'cancel',
-        confirmText: 'Cancel Offer',
-        cancelText: 'Keep Offer'
-    });
-    if (!confirmed) return;
-    
-    showToastMessage('Cancelling offer...', 'info');
-    fetch('/api/offer/' + offerId + '/cancel', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Your offer has been cancelled.', 'success');
-            closeOfferManageModal();
-            loadNotifications();
-            if (typeof loadPurchases === 'function') loadPurchases();
-        } else {
-            throw new Error(data.error || 'Failed to cancel');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-}
-
-// ========== Counter Offer 弹窗 ==========
-function openCounterOfferModal(offerId) {
-    pendingCounterOfferId = offerId;
-    document.getElementById('counterOfferModal').classList.add('show');
-    document.getElementById('counterPriceInput').value = '';
-    
-    fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            document.getElementById('counterOfferContent').innerHTML = 
-                '<div class="offer-detail">' +
-                '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
-                '💰 Current Offer: RM ' + parseFloat(data.offer_price).toFixed(2) +
-                '</div>';
-        } else {
-            document.getElementById('counterOfferContent').innerHTML = 
-                '<div class="offer-detail error">Failed to load offer details</div>';
-        }
-    })
-    .catch(function(err) {
-        console.error('Load offer details error:', err);
-        document.getElementById('counterOfferContent').innerHTML = 
-            '<div class="offer-detail error">Error loading details</div>';
-    });
-}
-
-function closeCounterOfferModal() {
-    document.getElementById('counterOfferModal').classList.remove('show');
-    pendingCounterOfferId = null;
-}
-
-document.getElementById('sendCounterOfferBtn')?.addEventListener('click', function() {
-    var newPrice = document.getElementById('counterPriceInput').value;
-    if (!newPrice || parseFloat(newPrice) <= 0) {
-        showToastMessage('Please enter a valid price', 'error');
-        return;
-    }
-    
-    showToastMessage('Sending counter offer...', 'info');
-    fetch('/api/offer/' + pendingCounterOfferId + '/counter', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ counter_price: parseFloat(newPrice) })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToastMessage('Counter offer sent!', 'success');
-            closeCounterOfferModal();
-            loadNotifications();
-            if (typeof loadListings === 'function') loadListings();
-        } else {
-            showToastMessage('Error: ' + (data.error || 'Failed to send counter offer'), 'error');
-        }
-    })
-    .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
-    });
-});
-
-// ========== 初始化 ==========
+// ============================================================
+// Initialization - Load notifications on page load
+// ============================================================
 loadNotifications();
 </script>
 {% endblock %}

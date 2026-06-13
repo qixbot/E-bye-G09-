@@ -1,3 +1,5 @@
+<!-- Eileen's part - Landing Page (Homepage) -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -223,7 +225,7 @@
             position: relative;
         }
 
-        /* 柔和光晕（无倒影） */
+        /*Soft halo (no reflection)  */
         .hero-image::before {
             content: '';
             position: absolute;
@@ -570,62 +572,93 @@
         }
     </style>
 </head>
+<!-- ============================================================ -->
+<!-- Eileen's part - Landing Page (Homepage)                        -->
+<!-- Purpose: Marketing/landing page for E-Bye marketplace         -->
+<!-- Features: Animated background, hero section, features grid,   -->
+<!--           step-by-step guide, call-to-action, and footer      -->
+<!-- ============================================================ -->
+
 <body>
 
-    <!-- animation background -->
+    <!-- ============================================================ -->
+    <!-- Animation Background - Decorative floating blobs           -->
+    <!-- Creates a dynamic, modern visual effect behind the content -->
+    <!-- ============================================================ -->
     <div class="bg-animation">
         <div class="bg-blob blob-1"></div>
         <div class="bg-blob blob-2"></div>
         <div class="bg-blob blob-3"></div>
     </div>
 
-    <!-- navigation bar -->
+    <!-- ============================================================ -->
+    <!-- Navigation Bar - Top navigation for unauthenticated users   -->
+    <!-- Contains logo and auth links (Login/Sign up)                -->
+    <!-- ============================================================ -->
     <nav class="navbar">
         <div class="logo">
+            <!-- Site logo image linking to home page -->
             <img src="{{ url_for('static', filename='ebye-logo.png') }}" alt="E-Bye">
             <span class="logo-text">E-bye</span>
         </div>
         <div class="nav-buttons">
+            <!-- Authentication links for non-logged-in users -->
             <a href="{{ url_for('login') }}" class="btn-outline">Log in</a>
             <a href="{{ url_for('register') }}" class="btn-primary">Sign up</a>
         </div>
     </nav>
 
-    <!-- hero area -->
+    <!-- ============================================================ -->
+    <!-- Hero Section - Main banner area                             -->
+    <!-- Captures user attention with value proposition and CTA      -->
+    <!-- Contains: headline, description, CTA button, and mascot image -->
+    <!-- ============================================================ -->
     <section class="hero">
         <div class="hero-content">
             <div class="hero-text">
+                <!-- Trust/verification badge -->
                 <div class="badge">✨ MMU Students Only</div>
+                <!-- Main headline with highlighted keywords -->
                 <h1>Say <span>Goodbye</span> to Old Stuff,<br>Say <span>Hello</span> to Great Deals</h1>
+                <!-- Value proposition description -->
                 <p>E-Bye is MMU's exclusive second-hand marketplace. Buy and sell textbooks, gadgets, dorm items, and more — safely within our campus community.</p>
+                <!-- Primary call-to-action button -->
                 <a href="{{ url_for('login') }}" class="btn-primary" style="display: inline-block; padding: 14px 36px; font-size: 16px;">Get Started →</a>
             </div>
             <div class="hero-image">
+                <!-- Mascot/Brand image (E-bee character) -->
                 <img src="{{ url_for('static', filename='ebee.landing.png') }}" alt="E-Bye Marketplace">
             </div>
         </div>
     </section>
 
-    <!-- features area -->
+    <!-- ============================================================ -->
+    <!-- Features Section - Highlights platform benefits             -->
+    <!-- 4 key selling points: exclusivity, safety, chat, bargaining -->
+    <!-- ============================================================ -->
     <section class="features">
         <h2 class="section-title">Why Choose E-Bye?</h2>
         <p class="section-subtitle">Built by MMU students, for MMU students</p>
         <div class="features-grid">
+            <!-- Feature 1: MMU Exclusivity -->
             <div class="feature-card">
                 <div class="feature-icon">🎓</div>
                 <h3>MMU Exclusive</h3>
                 <p>Only verified MMU students can join. No outsiders, no scammers.</p>
             </div>
+            <!-- Feature 2: Campus Meetups (Safety) -->
             <div class="feature-card">
                 <div class="feature-icon">📍</div>
                 <h3>Campus Meetups</h3>
                 <p>Pre-set safe meeting spots on campus — Library, DTC, Starbee, FX.</p>
             </div>
+            <!-- Feature 3: Built-in Chat -->
             <div class="feature-card">
                 <div class="feature-icon">💬</div>
                 <h3>Built-in Chat</h3>
                 <p>Message buyers and sellers directly on the platform.</p>
             </div>
+            <!-- Feature 4: Bargaining/Offer System -->
             <div class="feature-card">
                 <div class="feature-icon">💰</div>
                 <h3>Bargaining System</h3>
@@ -634,21 +667,27 @@
         </div>
     </section>
 
-    <!-- steps area -->
+    <!-- ============================================================ -->
+    <!-- How It Works Section - 3-step user guide                    -->
+    <!-- Explains the process from account creation to trade         -->
+    <!-- ============================================================ -->
     <section class="how-it-works">
         <h2 class="section-title">How It Works</h2>
         <p class="section-subtitle">Three simple steps to start trading</p>
         <div class="steps-grid">
+            <!-- Step 1: Account Creation -->
             <div class="step">
                 <div class="step-number">1</div>
                 <h3>Create Account</h3>
                 <p>Sign up with your MMU email. It's free and takes only a minute.</p>
             </div>
+            <!-- Step 2: List or Browse -->
             <div class="step">
                 <div class="step-number">2</div>
                 <h3>List or Browse</h3>
                 <p>Post items you want to sell, or find great deals from fellow students.</p>
             </div>
+            <!-- Step 3: Meet & Trade -->
             <div class="step">
                 <div class="step-number">3</div>
                 <h3>Meet & Trade</h3>
@@ -657,7 +696,10 @@
         </div>
     </section>
 
-    <!-- cta area -->
+    <!-- ============================================================ -->
+    <!-- Call-to-Action Section - Encourages user registration       -->
+    <!-- Final prompt before footer to convert visitors              -->
+    <!-- ============================================================ -->
     <section class="cta">
         <div class="cta-card">
             <h2>Ready to start your journey?</h2>
@@ -666,7 +708,10 @@
         </div>
     </section>
 
-    <!-- Footer -->
+    <!-- ============================================================ -->
+    <!-- Footer - Copyright and legal information                    -->
+    <!-- Static footer displayed at bottom of every landing page     -->
+    <!-- ============================================================ -->
     <footer class="footer">
         <p>© 2026 E-Bye — MMU Campus Second-hand Marketplace. All rights reserved.</p>
     </footer>
