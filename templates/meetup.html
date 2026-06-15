@@ -49,239 +49,183 @@
     // Cyberjaya locations (same as product modal)
     const cyberjayaLocations = [
         {
-            shortName: "Library",
-            fullName: "MMU Cyberjaya Library",
-            description: "The main library with study halls, computer labs, and group discussion rooms.",
-            images: ["/static/uploads/library.jpg", "/static/uploads/library2.jpg"], // add more images
-            mapUrl: "https://maps.app.goo.gl/GPzaCYDurzXkVeF87"
-        },
-        {
             shortName: "DTC",
             fullName: "Dewan Tun Canselor",
-            description: "The main administrative building for student services and support.",
-            images: ["/static/uploads/dtc.jpg"],
+            description: "The main hall for events, ceremonies, and large gatherings.",
+            images: ["/static/meetup-img/Cyber-dtc1.jpg", "/static/meetup-img/Cyber-dtc2.png"],
             mapUrl: "https://maps.app.goo.gl/cKFBKG4rzSg81agR6"
         },
         {
+            shortName: "Library",
+            fullName: "Siti Hasmah Digital Library",
+            description: "The central library of the Cyberjaya campus, offering a wide range of resources and study spaces. It includes 2 24-hour study rooms, a cafe, and 2 discussion rooms.",
+            images: ["/static/meetup-img/Cyber-Lib1.png", "/static/meetup-img/Cyber-Lib2.jpg", "/static/meetup-img/Cyber-Lib3.jpg", "/static/meetup-img/Cyber-Lib4.jpg"],
+            mapUrl: "https://maps.app.goo.gl/GPzaCYDurzXkVeF87"
+        },
+        {
             shortName: "Starbees",
-            fullName: "Starbees Café",
-            description: "A popular café offering a variety of beverages and light meals.",
-            images: ["/static/uploads/starbees.jpg"],
+            fullName: "Starbees Food Court",
+            description: "The main food court offering a variety of dining options for students.",
+            images: ["/static/meetup-img/Cyber-starbees1.png", "/static/meetup-img/Cyber-starbees2.png"],
             mapUrl: "https://maps.app.goo.gl/R3NwCDq4rUXMiTaz9"
         },
         {
             shortName: "CLC",
-            fullName: "Computer Lab Complex",
-            description: "A state-of-the-art facility with modern computer labs for learning and research.",
-            images: ["/static/uploads/clc.jpg"],
+            fullName: "Central Lecture Complex",
+            description: "Academic building for various departments, featuring 5 lecture halls and a multi-purpose hall.",
+            images: ["/static/meetup-img/Cyber-clc1.png", "/static/meetup-img/Cyber-clc2.png", "/static/meetup-img/Cyber-clc3.jpg"],
             mapUrl: "https://maps.app.goo.gl/DbAnFR2fQyNodfzC8"
         },
         {
             shortName: "FCI",
             fullName: "Faculty of Computing and Informatics",
             description: "The main building for the Faculty of Computing and Informatics.",
-            images: ["/static/uploads/fci.jpg"],
+            images: ["/static/meetup-img/Cyber-fci1.jpeg", "/static/meetup-img/Cyber-fci2.jpeg", "/static/meetup-img/Cyber-fci3.jpeg"],
             mapUrl: "https://maps.app.goo.gl/FQn29VDrRFD9CLKT9"
         },
         {
             shortName: "FOM",
             fullName: "Faculty of Management",
             description: "The main building for the Faculty of Management.",
-            images: ["/static/uploads/fom.jpg"],
+            images: ["/static/meetup-img/Cyber-fom1.jpeg", "/static/meetup-img/Cyber-fom2.jpeg", "/static/meetup-img/Cyber-fom3.jpeg"],
             mapUrl: "https://maps.app.goo.gl/fz4MkJzgfaYZedTQA"
         },
         {
             shortName: "FAIE",
-            fullName: "Faculty of Accountancy and Information Technology",
-            description: "The main building for the Faculty of Accountancy and Information Technology.",
-            images: ["/static/uploads/faie.jpg"],
+            fullName: "Faculty of Artificial Intelligence and Engineering",
+            description: "The main building for the Faculty of Artificial Intelligence and Engineering.",
+            images: ["/static/meetup-img/Cyber-faie1.jpeg", "/static/meetup-img/Cyber-faie2.jpeg", "/static/meetup-img/Cyber-faie3.jpeg"],
             mapUrl: "https://maps.app.goo.gl/J5sN7VugkJ9zwPAX8"
         },
         {
-            shortName: "FCM",
-            fullName: "Faculty of Creative Media",
-            description: "The main building for the Faculty of Creative Media.",
-            images: ["/static/uploads/fcm.jpg"],
+            shortName: "FCM / FAC / FCA",
+            fullName: "Faculty of Creative Multimedia / Faculty of Applied Communication / Faculty of Cinematic Arts",
+            description: "The main building for the creative faculties, including multimedia, communication, and cinematic arts.",
+            images: ["/static/meetup-img/Cyber-fcm1.jpeg", "/static/meetup-img/Cyber-fcm2.jpeg"],
             mapUrl: "https://maps.app.goo.gl/knEABSBBHNemUV3p9"
         },
         {
             shortName: "STC",
-            fullName: "Student Services Complex",
+            fullName: "Student Services Centre",
             description: "A facility providing various student services and support.",
-            images: ["/static/uploads/stc.jpg"],
+            images: ["/static/meetup-img/Cyber-stc1.png", "/static/meetup-img/Cyber-stc2.png"],
             mapUrl: "https://maps.app.goo.gl/PBjF6JkLednaVtXDA"
         },
         {
-            shortName: "HB1",
-            fullName: "Hostel Block 1",
-            description: "The first hostel block for student accommodation.",
-            images: ["/static/uploads/hb1.jpg"],
+            shortName: "Hostels",
+            fullName: "HB1, HB2, HB3, HB4",
+            description: "The hostel blocks for student accommodation.",
+            images: ["/static/meetup-img/Cyber-hostel1.jpeg", "/static/meetup-img/Cyber-hostel2.png"],
             mapUrl: "https://maps.app.goo.gl/8sqP8b8CmQ3hoUHb7"
         },
         {
-            shortName: "HB2",
-            fullName: "Hostel Block 2",
-            description: "The second hostel block for student accommodation.",
-            images: ["/static/uploads/hb2.jpg"],
-            mapUrl: "https://maps.app.goo.gl/Ty8zESUhX9ZYNmwV8"
-        },
-        {
-            shortName: "HB3",
-            fullName: "Hostel Block 3",
-            description: "The third hostel block for student accommodation.",
-            images: ["/static/uploads/hb3.jpg"],
-            mapUrl: "https://maps.app.goo.gl/PBtx144qeYEJ6yzx8"
-        },
-        {
-            shortName: "HB4",
-            fullName: "Hostel Block 4",
-            description: "The fourth hostel block for student accommodation.",
-            images: ["/static/uploads/hb4.jpg"],
-            mapUrl: "https://maps.app.goo.gl/jkmzK4BGx8mSwv127"
+            shortName: "Tekun Mart",
+            fullName: "Tekun Mart",
+            description: "A convenience store on campus for students to purchase snacks, beverages, and daily necessities.",
+            images: ["/static/meetup-img/Cyber-tekun1.png"],
+            mapUrl: "https://maps.app.goo.gl/6E5C6C7zyGpwjn6VA"
         },
         {
             shortName: "Masjid",
             fullName: "Main Mosque",
             description: "The main mosque on campus for religious activities.",
-            images: ["/static/uploads/masjid.jpg"],
+            images: ["/static/meetup-img/Cyber-masjid1.jpeg"],
             mapUrl: "https://maps.app.goo.gl/scchfN5JHGLY6K2f8"
-        },
-        {
-            shortName: "Tekun Mart",
-            fullName: "Tekun Mart",
-            description: "A convenience store offering daily necessities.",
-            images: ["/static/uploads/tekun_mart.jpg"],
-            mapUrl: "https://maps.app.goo.gl/6E5C6C7zyGpwjn6VA"
-        },
-        {
-            shortName: "Chancellery",
-            fullName: "Chancellery Building",
-            description: "The administrative center for university operations.",
-            images: ["/static/uploads/chancellery.jpg"],
-            mapUrl: "https://maps.app.goo.gl/KFPCssy95whKcpv29"
         }
     ];
 
     // Melaka locations (placeholders – replace names and images later)
     const melakaLocations = [
         {
-            shortName: "Library (Melaka)",
-            fullName: "MMU Melaka Library",
+            shortName: "Library",
+            fullName: "Siti Hasmah Digital Library",
             description: "Central library of Melaka campus.",
-            images: ["/static/uploads/library.jpg"],
+            images: ["/static/meetup-img/MLK-Lib1.jpg", "/static/meetup-img/MLK-Lib2.jpg", "/static/meetup-img/MLK-Lib3.jpg", "/static/meetup-img/MLK-Lib4.jpg"],
             mapUrl: "https://maps.google.com/?q=MMU+Melaka+Library"
         },
         {
-            shortName: "Dewan Tun Canselor",
-            fullName: "Dewan Tun Canselor",
+            shortName: "Main Hall",
+            fullName: "Main Hall",
             description: "The main auditorium for events and ceremonies.",
-            images: ["/static/uploads/dtc.jpg"],
+            images: ["/static/meetup-img/MLK-MainHall1.png", "/static/meetup-img/MLK-MainHall2.png"],
             mapUrl: "https://maps.google.com/?q=MMU+Melaka+Dewan+Tun+Canselor"
         },
         {
-            shortName: "Cafeteria",
-            fullName: "Cafeteria",
-            description: "A place to grab a quick bite or coffee.",
-            images: ["/static/uploads/starbees.jpg"],
-            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Cafeteria"
+            shortName: "Exam Hall",
+            fullName: "Exam Hall",
+            description: "A place for conducting examinations.",
+            images: ["/static/meetup-img/MLK-ExamHall1.png", "/static/meetup-img/MLK-ExamHall2.png"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Exam+Hall"
         },
         {
-            shortName: "Block A",
-            fullName: "Block A",
+            shortName: "CLC",
+            fullName: "Central Lecture Complex",
             description: "Academic building for various departments.",
-            images: ["/static/uploads/clc.jpg"],
+            images: ["/static/meetup-img/MLK-CLC1.png", "/static/meetup-img/MLK-CLC2.jpg"],
             mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+A"
         },
         {
-            shortName: "Block B",
-            fullName: "Block B",
-            description: "Another academic building for different programs.",
-            images: ["/static/uploads/fci.jpg"],
-            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+B"
+            shortName: "Masjid",
+            fullName: "Masjid Al-Irsyad",
+            description: "A place of worship for the university community.",
+            images: ["/static/meetup-img/MLK-Masjid1.png", "/static/meetup-img/MLK-Masjid2.png"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Masjid+Al-Irsyad"
         },
         {
-            shortName: "Block C",
-            fullName: "Block C",
-            description: "Support building for student services.",
-            images: ["/static/uploads/fom.jpg"],
+            shortName: "FOL / FAC",
+            fullName: "Faculty of Law and Faculty of Applied Communication",
+            description: "Academic building for law and communication-related programs.",
+            images: ["/static/meetup-img/MLK-FOL1.png", "/static/meetup-img/MLK-FOL2.png", "/static/meetup-img/MLK-FOL3.png"],
             mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+C"
         },
         {
-            shortName: "Block D",
-            fullName: "Block D",
-            description: "Facility for sports and physical activities.",
-            images: ["/static/uploads/faie.jpg"],
+            shortName: "FOB",
+            fullName: "Faculty of Business",
+            description: "Academic building for business-related programs.",
+            images: ["/static/meetup-img/MLK-FOB1.png", "/static/meetup-img/MLK-FOB2.png", "/static/meetup-img/MLK-FOB3.png"],
             mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+D"
         },
         {
-            shortName: "Block E",
-            fullName: "Block E",
-            description: "Another academic building for different programs.",
-            images: ["/static/uploads/fcm.jpg"],
+            shortName: "FET",
+            fullName: "Faculty of Engineering and Technology",
+            description: "Academic building for engineering and technology-related programs.",
+            images: ["/static/meetup-img/MLK-FET1.png", "/static/meetup-img/MLK-FET2.png", "/static/meetup-img/MLK-FET3.png"],
             mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+E"
         },
         {
-            shortName: "Sports Complex",
-            fullName: "Sports Complex",
-            description: "A facility for various sports and physical activities.",
-            images: ["/static/uploads/stc.jpg"],
-            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Sports+Complex"
+            shortName: "FIST",
+            fullName: "Faculty of Information Science and Technology",
+            description: "Academic building for information science and technology-related programs.",
+            images: ["/static/meetup-img/MLK-FIST1.jpg", "/static/meetup-img/MLK-FIST2.jpg", "/static/meetup-img/MLK-FIST3.png"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Block+F"
         },
         {
-            shortName: "Hostel 1",
-            fullName: "Hostel 1",
-            description: "Student accommodation for the first hostel.",
-            images: ["/static/uploads/hb1.jpg"],
-            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Hostel+1"
+            shortName: "Plaza Siswa",
+            fullName: "Plaza Siswa",
+            description: "The main food court offering a variety of dining options for students.",
+            images: ["/static/meetup-img/MLK-Plaza1.png", "/static/meetup-img/MLK-Plaza2.png"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Plaza+Siswa"
         },
         {
-            shortName: "Hostel 2",
-            fullName: "Hostel 2",
-            description: "Student accommodation for the second hostel.",
-            images: ["/static/uploads/hb2.jpg"],
-            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Hostel+2"
+            shortName: "Admin / IPS",
+            fullName: "Administrative Building / IPS",
+            description: "Also known as the President Square, this is the administrative center for university operations and student services.",
+            images: ["/static/meetup-img/MLK-Prez1.png", "/static/meetup-img/MLK-Prez2.png"],
+            mapUrl: "https://maps.google.com/?q=MMU+Melaka+President+Square"
         },
         {
-            shortName: "Hostel 3",
-            fullName: "Hostel 3",
-            description: "Student accommodation for the third hostel.",
-            images: ["/static/uploads/hb3.jpg"],
+            shortName: "Hostels",
+            fullName: "Hostel Buildings F1-4",
+            description: "The hostel blocks for student accommodation.",
+            images: ["/static/meetup-img/MLK-Hostel1.png", "/static/meetup-img/MLK-Hostel2.jpg"],
             mapUrl: "https://maps.google.com/?q=MMU+Melaka+Hostel+3"
-        },
-        {
-            shortName: "Hostel 4",
-            fullName: "Hostel 4",
-            description: "Student accommodation for the fourth hostel.",
-            images: ["/static/uploads/hb4.jpg"],
-            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Hostel+4"
-        },
-        {
-            shortName: "Surau",
-            fullName: "Surau",
-            description: "A place of worship for the Muslim community.",
-            images: ["/static/uploads/masjid.jpg"],
-            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Surau"
-        },
-        {
-            shortName: "Mini Mart",
-            fullName: "Mini Mart",
-            description: "A small convenience store for daily needs.",
-            images: ["/static/uploads/tekun_mart.jpg"],
-            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Mini+Mart"
-        },
-        {
-            shortName: "Admin Building",
-            fullName: "Admin Building",
-            description: "The administrative center for university operations.",
-            images: ["/static/uploads/chancellery.jpg"],
-            mapUrl: "https://maps.google.com/?q=MMU+Melaka+Admin+Building"
         }
     ];
 
     let currentCampus = 'cyberjaya';
     const campusImages = {
-        cyberjaya: "/static/uploads/cyberjaya_feature.jpg",   // change to your actual image file
-        melaka: "/static/uploads/melaka_feature.jpg"         // change to your actual image file
+        cyberjaya: "/static/meetup-img/Cyberjaya-Map.jpg",   // change to your actual image file
+        melaka: "/static/meetup-img/Melaka-Map.jpg"         // change to your actual image file
     };
 
     function renderLocations() {
