@@ -279,11 +279,26 @@
     ];
 
     let currentCampus = 'cyberjaya';
+    const campusImages = {
+        cyberjaya: "/static/uploads/cyberjaya_feature.jpg",   // change to your actual image file
+        melaka: "/static/uploads/melaka_feature.jpg"         // change to your actual image file
+    };
 
     function renderLocations() {
         const container = document.getElementById('locationsContainer');
         const locations = currentCampus === 'cyberjaya' ? cyberjayaLocations : melakaLocations;
         container.innerHTML = '';
+        
+        // 1) Create the big square image (will span 2x2 grid cells)
+        const featureDiv = document.createElement('div');
+        featureDiv.className = 'campus-feature';
+        const featureImg = document.createElement('img');
+        featureImg.src = campusImages[currentCampus];
+        featureImg.alt = currentCampus.toUpperCase() + ' Campus';
+        featureDiv.appendChild(featureImg);
+        container.appendChild(featureDiv);
+        
+        // 2) Add all location cards
         locations.forEach(loc => {
             const card = document.createElement('div');
             card.className = 'location-card';
