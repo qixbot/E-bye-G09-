@@ -22,32 +22,48 @@
             <!-- Slide 1 - Welcome -->
             <div class="hero-slide-item image-slide">
                 <picture>
-                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_1_mobile.jpg') }}">
-                    <img src="{{ url_for('static', filename='banner1.png') }}" alt="E-bye Welcome" class="hero-full-bleed-img">
+                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner1b.png') }}" fetchpriority="high" loading="eager">
+                    <img src="{{ url_for('static', filename='banner1.png') }}" 
+                        alt="E-bye Welcome" 
+                        class="hero-full-bleed-img" 
+                        fetchpriority="high"
+                        loading="eager">
                 </picture>
             </div>
 
-            <!-- Slide 2 - Books (clickable) -->
+            <!-- Slide 2 - Books -->
             <a href="{{ url_for('search', category='Books') }}" class="hero-slide-item image-slide hyperimage-slide">
                 <picture>
-                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_books_mobile.jpg') }}">
-                    <img src="{{ url_for('static', filename='banner_image_books.jpg') }}" alt="Browse Books" class="hero-full-bleed-img">
+                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_books_mobile.png') }}" fetchpriority="high" loading="eager">
+                    <img src="{{ url_for('static', filename='banner_image_books.png') }}" 
+                        alt="Browse Books" 
+                        class="hero-full-bleed-img" 
+                        fetchpriority="high"
+                        loading="eager">
                 </picture>
             </a>
 
-            <!-- Slide 3 - Gadgets (clickable) -->
+            <!-- Slide 3 - Gadgets -->
             <a href="{{ url_for('search', category='Electronics') }}" class="hero-slide-item image-slide hyperimage-slide">
                 <picture>
-                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_gadgets_mobile.jpg') }}">
-                    <img src="{{ url_for('static', filename='banner_image_gadgets.jpg') }}" alt="Explore Gadgets" class="hero-full-bleed-img">
+                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_gadgets_mobile.png') }}" fetchpriority="high" loading="eager">
+                    <img src="{{ url_for('static', filename='banner_image_gadgets.png') }}" 
+                        alt="Explore Gadgets" 
+                        class="hero-full-bleed-img" 
+                        fetchpriority="high"
+                        loading="eager">
                 </picture>
             </a>
 
-            <!-- Slide 4 - Clone of Slide 1 (for infinite loop) -->
+            <!-- Slide 4 - Clone of Slide 1 -->
             <div class="hero-slide-item image-slide clone-slide">
                 <picture>
-                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_1_mobile.jpg') }}">
-                    <img src="{{ url_for('static', filename='banner_image_1.jpg') }}" alt="E-bye Welcome" class="hero-full-bleed-img">
+                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner1b.png') }}" fetchpriority="high" loading="eager">
+                    <img src="{{ url_for('static', filename='banner1.png') }}" 
+                        alt="E-bye Welcome" 
+                        class="hero-full-bleed-img" 
+                        fetchpriority="high"
+                        loading="eager">
                 </picture>
             </div>
         </div>
@@ -124,6 +140,23 @@
 </div>
 
 <script>
+    // Preload all carousel images to prevent blank gaps on loop
+    (function preloadCarouselImages() {
+        const images = [
+            "{{ url_for('static', filename='banner1.png') }}",
+            "{{ url_for('static', filename='banner_image_books.png') }}",
+            "{{ url_for('static', filename='banner_image_gadgets.png') }}",
+            "{{ url_for('static', filename='banner1b.png') }}",
+            "{{ url_for('static', filename='banner_image_books_mobile.png') }}",
+            "{{ url_for('static', filename='banner_image_gadgets_mobile.png') }}"
+        ];
+        
+        images.forEach(function(src) {
+            const img = new Image();
+            img.src = src;
+        });
+    })();
+
     function toggleMoreCategories() {
         const moreContainer = document.getElementById('more-categories');
         
@@ -139,9 +172,7 @@
             }, 400); 
         }
     }
-</script>
 
-<script>
     document.querySelectorAll('.product-card').forEach(card => {
         const container = card.querySelector('.product-image-container');
         if (!container) return;
