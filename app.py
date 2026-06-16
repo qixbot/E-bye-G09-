@@ -3332,7 +3332,7 @@ def admin_products():
     db = get_db()
     cur = db.cursor()
     
-    # 1. 待审核 (pending)
+    # 1. 待审核
     cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p 
@@ -3342,7 +3342,7 @@ def admin_products():
     ''')
     pending = cur.fetchall()
     
-    # 2. 已通过 (approved)
+    # 2. 已通过
     cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p 
@@ -3352,7 +3352,7 @@ def admin_products():
     ''')
     approved = cur.fetchall()
     
-    # 3. 已拒绝 (rejected)
+    # 3. 已拒绝
     cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p 
@@ -3362,7 +3362,7 @@ def admin_products():
     ''')
     rejected = cur.fetchall()
     
-    # 4. 已售出 (sold) - 包含买家信息
+    # 4. 已售出 (包含买家信息)
     cur.execute('''
         SELECT p.*, u.username as seller_name,
                o.buyer_id, o.order_number, o.created_at as sold_at,
@@ -3376,7 +3376,7 @@ def admin_products():
     ''')
     sold = cur.fetchall()
     
-    # 5. 已预留 (reserved) - 包含买家信息
+    # 5. 已预留 (包含买家信息)
     cur.execute('''
         SELECT p.*, u.username as seller_name,
                o.buyer_id, o.order_number, o.created_at as reserved_at,
@@ -3390,7 +3390,6 @@ def admin_products():
     ''')
     reserved = cur.fetchall()
     
-    # 转换为 dict
     pending = [dict(row) for row in pending]
     approved = [dict(row) for row in approved]
     rejected = [dict(row) for row in rejected]
