@@ -5011,5 +5011,182 @@ unfreeze_thread = threading.Thread(target=run_unfreeze_check)
 unfreeze_thread.daemon = True
 unfreeze_thread.start()
 
+# ============================================================
+# 交易提醒功能 - 定时检查即将到来的交易
+# ============================================================
+
+import time as time_module
+
+# 存储已发送的提醒，防止重复发送
+_reminder_sent_cache = {}
+
+def send_meeting_reminder(order_id, user_id, message, reminder_type):
+    """发送交易提醒通知"""
+    try:
+        db = get_db()
+        cur = db.cursor()
+        
+        # 获取订单和产品信息
+        cur.execute('''
+            SELECT o.*, p.name as product_name, p.images_blob, p.id as product_id
+            FROM orders o
+            JOIN products p ON o.product_id = p.id
+            WHERE o.id = %s
+        ''', (order_id,))
+        order = cur.fetchone()
+        
+        if not order:
+            cur.close()
+            db.close()
+            return
+        
+        # 获取产品图片
+        product_image = None
+        if order.get('images_blob'):
+            try:
+                images = json.loads(order['images_blob']) if isinstance(order['images_blob'], str) else order['images_blob']
+                if images and len(images) > 0:
+                    product_image = images[0]
+            except:
+                pass
+        
+        # 构建通知消息，包含时间、地点和产品信息
+        meeting_time = order.get('meeting_time', '')
+        meeting_point = order.get('meeting_point', '')
+        product_name = order.get('product_name', 'Item')
+        order_number = order.get('order_number', '')
+        
+        # 格式化时间
+        try:
+            if meeting_time and 'T' in meeting_time:
+                dt = datetime.fromisoformat(meeting_time.replace('Z', '+00:00'))
+                formatted_time = dt.strftime('%Y-%m-%d %H:%M')
+            else:
+                formatted_time = meeting_time
+        except:
+            formatted_time = meeting_time
+        
+        # 不同时间点的提醒消息
+        reminder_messages = {
+            '1hour': f"⏰ [1 HOUR REMINDER] Your meetup for Order #{order_number} is in 1 hour!\n📍 Location: {meeting_point}\n⏱️ Time: {formatted_time}\n📦 Product: {product_name}",
+            '30min': f"⏰ [30 MIN REMINDER] Your meetup for Order #{order_number} is in 30 minutes!\n📍 Location: {meeting_point}\n⏱️ Time: {formatted_time}\n📦 Product: {product_name}",
+            '15min': f"⏰ [15 MIN REMINDER] Your meetup for Order #{order_number} is in 15 minutes!\n📍 Location: {meeting_point}\n⏱️ Time: {formatted_time}\n📦 Product: {product_name}"
+        }
+        
+        notif_message = reminder_messages.get(reminder_type, message)
+        
+        # 发送通知给用户
+        cur.execute('''
+            INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
+            VALUES (%s, %s, NOW(), 'meeting_reminder', %s, %s, 0)
+        ''', (user_id, notif_message, order_id, order.get('product_id')))
+        
+        db.commit()
+        cur.close()
+        db.close()
+        
+        print(f"✅ Reminder sent to user {user_id} for order {order_id} ({reminder_type})")
+    except Exception as e:
+        print(f"❌ Failed to send reminder: {e}")
+
+def check_upcoming_meetings_reminder():
+    """检查即将到来的交易并发送提醒"""
+    try:
+        db = get_db()
+        cur = db.cursor()
+        
+        # 获取所有已确认或已交付的订单（有 meeting_time）
+        cur.execute('''
+            SELECT o.id, o.order_number, o.meeting_point, o.meeting_time, 
+                   o.buyer_id, o.seller_id, o.product_id,
+                   p.name as product_name, p.images_blob
+            FROM orders o
+            JOIN products p ON o.product_id = p.id
+            WHERE o.status IN ('confirmed', 'delivered')
+              AND o.meeting_time IS NOT NULL
+              AND o.meeting_time != ''
+        ''')
+        orders = cur.fetchall()
+        cur.close()
+        db.close()
+        
+        now = datetime.now()
+        
+        for order in orders:
+            order_id = order['id']
+            meeting_time_str = order['meeting_time']
+            
+            if not meeting_time_str:
+                continue
+            
+            try:
+                # 解析时间
+                if isinstance(meeting_time_str, str):
+                    if 'T' in meeting_time_str:
+                        meeting_time = datetime.fromisoformat(meeting_time_str.replace('Z', '+00:00'))
+                    else:
+                        # 尝试多种格式
+                        try:
+                            meeting_time = datetime.strptime(meeting_time_str, '%Y-%m-%d %H:%M:%S')
+                        except:
+                            try:
+                                meeting_time = datetime.strptime(meeting_time_str, '%Y-%m-%d %H:%M')
+                            except:
+                                meeting_time = datetime.strptime(meeting_time_str, '%Y-%m-%dT%H:%M')
+                else:
+                    meeting_time = meeting_time_str
+                
+                # 移除时区信息
+                if hasattr(meeting_time, 'tzinfo') and meeting_time.tzinfo:
+                    meeting_time = meeting_time.replace(tzinfo=None)
+                
+                # 计算时间差（秒）
+                time_diff = (meeting_time - now).total_seconds()
+                
+                # 检查是否需要发送提醒（1小时、30分钟、15分钟）
+                reminder_checks = [
+                    ('1hour', 3600, 60),      # 1小时，允许60秒误差
+                    ('30min', 1800, 30),       # 30分钟，允许30秒误差
+                    ('15min', 900, 15)         # 15分钟，允许15秒误差
+                ]
+                
+                for reminder_type, target_seconds, tolerance in reminder_checks:
+                    if 0 <= time_diff - target_seconds <= tolerance:
+                        # 检查是否已经发送过这个提醒
+                        cache_key = f"{order_id}_{reminder_type}"
+                        if cache_key in _reminder_sent_cache:
+                            continue
+                        
+                        # 发送给买家
+                        send_meeting_reminder(order_id, order['buyer_id'], '', reminder_type)
+                        # 发送给卖家
+                        send_meeting_reminder(order_id, order['seller_id'], '', reminder_type)
+                        
+                        # 记录已发送
+                        _reminder_sent_cache[cache_key] = True
+                        print(f"📨 Sent {reminder_type} reminder for order {order_id}")
+                        
+            except Exception as e:
+                print(f"Error processing order {order_id}: {e}")
+                continue
+                
+    except Exception as e:
+        print(f"Error in check_upcoming_meetings_reminder: {e}")
+
+def reminder_scheduler():
+    """后台定时任务，每分钟执行一次"""
+    while True:
+        try:
+            check_upcoming_meetings_reminder()
+        except Exception as e:
+            print(f"Reminder scheduler error: {e}")
+        # 每分钟检查一次
+        time_module.sleep(60)
+
+# 启动后台提醒线程
+reminder_thread = threading.Thread(target=reminder_scheduler, daemon=True)
+reminder_thread.start()
+print("✅ Meeting reminder scheduler started")
+
 if __name__ == '__main__':
     app.run(debug=True)
