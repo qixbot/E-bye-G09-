@@ -15,7 +15,7 @@
 
     <!-- Location Detail Modal -->
     <div id="locationModal" class="modal" style="display: none;">
-        <div class="modal-content buy-modal-content" style="max-width: 1100px; width: 90%;">
+        <div class="modal-content buy-modal-content" style="max-width: 950px; width: 90%;">
             <span class="close" onclick="closeLocationModal()">&times;</span>
 
             <div class="buy-modal-two-columns">
@@ -28,17 +28,21 @@
                     <button class="media-nav-next" id="modalNextBtn" onclick="nextLocationImage()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer;">›</button>
                 </div>
 
-                <!-- RIGHT COLUMN – details -->
-                <div class="buy-modal-right" style="overflow-y: auto; max-height: 70vh;">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                        <button id="googleMapsBtn" class="map-icon-btn" onclick="openGoogleMaps()">
-                            <span style="font-size: 1.2rem;">🗺️</span>
+                <!-- RIGHT COLUMN – details (adjusted spacing) -->
+                <div class="buy-modal-right" style="overflow-y: auto; max-height: 70vh; padding: 0 8px;">
+                    <!-- More prominent Google Maps button -->
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                        <button id="googleMapsBtn" class="google-maps-btn" onclick="openGoogleMaps()">
+                            🗺️ Open in Google Maps
                         </button>
                         <span id="modalShortName" style="font-size: 0.9rem; color: #666;">Short name</span>
                     </div>
                     <h3 id="modalFullName" style="margin: 0 0 8px 0; font-size: 1.5rem;">Full Name</h3>
                     <hr style="margin: 12px 0;">
-                    <p id="modalDescription" style="color: #555; line-height: 1.5; font-size: 0.9rem;">Description goes here...</p>
+                    <!-- Description with constrained height -->
+                    <div style="max-height: 4.5em; overflow-y: auto; margin: 0 0 8px 0;">
+                        <p id="modalDescription" style="color: #555; line-height: 1.5; font-size: 0.9rem; margin: 0;">Description goes here...</p>
+                    </div>
                 </div>
             </div>
         </div>
