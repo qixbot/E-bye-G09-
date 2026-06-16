@@ -19,24 +19,38 @@
     
     <div class="hero-carousel-container">
         <div class="hero-carousel-track" id="heroTrack">
-        
-        <div class="hero-slide-item image-slide">
-            <img src="{{ url_for('static', filename='banner_image_1.jpg') }}" alt="E-bye Welcome" class="hero-full-bleed-img">
+            <!-- Slide 1 - Welcome -->
+            <div class="hero-slide-item image-slide">
+                <picture>
+                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_1_mobile.jpg') }}">
+                    <img src="{{ url_for('static', filename='banner1.png') }}" alt="E-bye Welcome" class="hero-full-bleed-img">
+                </picture>
+            </div>
+
+            <!-- Slide 2 - Books (clickable) -->
+            <a href="{{ url_for('search', category='Books') }}" class="hero-slide-item image-slide hyperimage-slide">
+                <picture>
+                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_books_mobile.jpg') }}">
+                    <img src="{{ url_for('static', filename='banner_image_books.jpg') }}" alt="Browse Books" class="hero-full-bleed-img">
+                </picture>
+            </a>
+
+            <!-- Slide 3 - Gadgets (clickable) -->
+            <a href="{{ url_for('search', category='Electronics') }}" class="hero-slide-item image-slide hyperimage-slide">
+                <picture>
+                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_gadgets_mobile.jpg') }}">
+                    <img src="{{ url_for('static', filename='banner_image_gadgets.jpg') }}" alt="Explore Gadgets" class="hero-full-bleed-img">
+                </picture>
+            </a>
+
+            <!-- Slide 4 - Clone of Slide 1 (for infinite loop) -->
+            <div class="hero-slide-item image-slide clone-slide">
+                <picture>
+                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_1_mobile.jpg') }}">
+                    <img src="{{ url_for('static', filename='banner_image_1.jpg') }}" alt="E-bye Welcome" class="hero-full-bleed-img">
+                </picture>
+            </div>
         </div>
-
-        <a href="{{ url_for('search', category='Books') }}" class="hero-slide-item image-slide hyperimage-slide">
-            <img src="{{ url_for('static', filename='banner_image_books.jpg') }}" alt="Browse Books" class="hero-full-bleed-img">
-        </a>
-
-        <a href="{{ url_for('search', category='Electronics') }}" class="hero-slide-item image-slide hyperimage-slide">
-            <img src="{{ url_for('static', filename='banner_image_gadgets.jpg') }}" alt="Explore Gadgets" class="hero-full-bleed-img">
-        </a>
-
-        <div class="hero-slide-item image-slide clone-slide">
-            <img src="{{ url_for('static', filename='banner_image_1.jpg') }}" alt="E-bye Welcome" class="hero-full-bleed-img">
-        </div>
-
-    </div>
 
         <button class="carousel-nav-btn prev-btn" id="heroPrevBtn" aria-label="Previous Slide">&#10094;</button>
         <button class="carousel-nav-btn next-btn" id="heroNextBtn" aria-label="Next Slide">&#10095;</button>
