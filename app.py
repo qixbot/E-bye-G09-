@@ -1182,7 +1182,6 @@ def api_confirm_order(order_id):
     db = get_db()
     cur = db.cursor()
     
-    # 获取订单信息，包括产品ID（只查询 pending 状态的订单）
     cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s AND status = %s', 
                 (order_id, session['user_id'], 'pending'))
     order = cur.fetchone()
@@ -1191,6 +1190,11 @@ def api_confirm_order(order_id):
         cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Order not found or already confirmed'}), 404
+    
+    # 获取产品名称
+    cur.execute('SELECT name FROM products WHERE id = %s', (order['product_id'],))
+    product = cur.fetchone()
+    product_name = product['name'] if product else 'Product'
     
     # 更新订单状态为 confirmed
     cur.execute('''
@@ -1202,11 +1206,6 @@ def api_confirm_order(order_id):
     # 当卖家确认订单后，将产品状态改为 'reserved'（已预留）
     cur.execute('UPDATE products SET status = %s WHERE id = %s', ('reserved', order['product_id']))
     
-    # 获取产品信息用于通知
-    cur.execute('SELECT name FROM products WHERE id = %s', (order['product_id'],))
-    product = cur.fetchone()
-    product_name = product['name'] if product else 'Product'
-    
     # 通知买家订单已确认
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
@@ -1215,13 +1214,14 @@ def api_confirm_order(order_id):
           f"✅ Order #{order['order_number']} has been CONFIRMED by seller! Meeting at: {meeting_point} on {meeting_time}. Product: {product_name}",
           order_id))
     
-    # 通知卖家（确认）
-    cur.execute('''
-        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
-        VALUES (%s, %s, NOW(), 'order', %s, 0)
-    ''', (session['user_id'],
-          f"✅ You have CONFIRMED Order #{order['order_number']}. Meeting arranged at: {meeting_point} on {meeting_time}",
-          order_id))
+    # 通知卖家产品已被预留
+    create_notification(
+        user_id=session['user_id'],
+        message=f'🟡 Your product "{product_name}" has been RESERVED for Order #{order["order_number"]}.',
+        notif_type='product_reserved',
+        related_id=order_id,
+        product_id=order['product_id']
+    )
     
     db.commit()
     cur.close()
@@ -2711,7 +2711,8 @@ def api_delete_product(product_id):
     db = get_db()
     cur = db.cursor()
     
-    cur.execute('SELECT id, status FROM products WHERE id = %s AND seller_id = %s', 
+    # 获取产品信息（包括名称，用于通知）
+    cur.execute('SELECT id, name, status, seller_id FROM products WHERE id = %s AND seller_id = %s', 
                 (product_id, session['user_id']))
     product = cur.fetchone()
     
@@ -2724,6 +2725,8 @@ def api_delete_product(product_id):
         cur.close()
         db.close()
         return jsonify({'success': False, 'error': 'Sold products cannot be deleted'}), 400
+    
+    product_name = product['name']
     
     # 先删关联数据，避免 FK constraint 报错
     cur.execute('DELETE FROM cart_items WHERE product_id = %s', (product_id,))
@@ -2738,6 +2741,13 @@ def api_delete_product(product_id):
     db.commit()
     cur.close()
     db.close()
+    
+    create_notification(
+        user_id=session['user_id'],
+        message=f'🗑️ You have deleted your product "{product_name}".',
+        notif_type='product_deleted',
+        product_id=product_id
+    )
     
     return jsonify({'success': True})
 
@@ -4602,18 +4612,22 @@ def api_update_order_status(order_id):
         cur.execute("UPDATE products SET status = 'approved' WHERE id = %s", (order['product_id'],))
         # 从购物车中移除
         cur.execute("DELETE FROM cart_items WHERE product_id = %s", (order['product_id'],))
+        
+        # ✅ 新增：订单取消通知卖家（产品已恢复）
+        create_notification(
+            user_id=order['seller_id'],
+            message=f'🔄 Order #{order["order_number"]} was cancelled. Your product "{order["product_name"]}" is now available again.',
+            notif_type='order_cancelled',
+            related_id=order_id,
+            product_id=order['product_id']
+        )
     else:
         return jsonify({'success': False, 'error': 'Invalid status transition'}), 400
     
     # 执行更新
     cur.execute('UPDATE orders SET status = %s, updated_at = NOW() WHERE id = %s', (new_status, order_id))
     
-    # 获取买家用户名
-    cur.execute('SELECT username FROM users WHERE id = %s', (order['buyer_id'],))
-    buyer = cur.fetchone()
-    buyer_name = buyer['username'] if buyer else 'Buyer'
-    
-    # 发送通知
+    # 发送通知（状态变更通知）
     notify_user_id = order['buyer_id'] if is_seller else order['seller_id']
     
     messages = {
@@ -4632,6 +4646,24 @@ def api_update_order_status(order_id):
     # 订单完成后更新产品状态为 'sold'
     if new_status == 'completed':
         cur.execute('UPDATE products SET status = %s WHERE id = %s', ('sold', order['product_id']))
+        
+        # 产品售出通知卖家
+        create_notification(
+            user_id=order['seller_id'],
+            message=f'💰 Your product "{order["product_name"]}" has been SOLD! Order #{order["order_number"]} is completed.',
+            notif_type='product_sold',
+            related_id=order_id,
+            product_id=order['product_id']
+        )
+        
+        # 评价提醒通知买家
+        create_notification(
+            user_id=order['buyer_id'],
+            message=f'⭐ Order #{order["order_number"]} is completed! Please leave a review for the seller.',
+            notif_type='review_reminder',
+            related_id=order_id,
+            product_id=order['product_id']
+        )
     
     db.commit()
     cur.close()

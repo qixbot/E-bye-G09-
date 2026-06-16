@@ -736,6 +736,9 @@ function getNotificationTargetUrl(notification) {
     var productId = notification.product_id;
     
     switch(type) {
+        case 'meeting_reminder':
+            if (relatedId) return '/my-profile?tab=orders';
+            break;
         case 'order':
         case 'order_created':
             if (relatedId) return '/my-profile?tab=orders';
