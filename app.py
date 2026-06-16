@@ -3342,7 +3342,7 @@ def admin_products():
     db = get_db()
     cur = db.cursor()
     
-    # 1. 待审核
+    # 1. 待审核 (pending)
     cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p 
@@ -3352,7 +3352,7 @@ def admin_products():
     ''')
     pending = cur.fetchall()
     
-    # 2. 已通过
+    # 2. 已通过 (approved)
     cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p 
@@ -3362,7 +3362,7 @@ def admin_products():
     ''')
     approved = cur.fetchall()
     
-    # 3. 已拒绝
+    # 3. 已拒绝 (rejected)
     cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p 
@@ -3372,7 +3372,7 @@ def admin_products():
     ''')
     rejected = cur.fetchall()
     
-    # 4. 已售出 (包含买家信息)
+    # 4. 已售出 (sold)
     cur.execute('''
         SELECT p.*, u.username as seller_name,
                o.buyer_id, o.order_number, o.created_at as sold_at,
@@ -3386,7 +3386,7 @@ def admin_products():
     ''')
     sold = cur.fetchall()
     
-    # 5. 已预留 (包含买家信息)
+    # 5. 已预留 (reserved)
     cur.execute('''
         SELECT p.*, u.username as seller_name,
                o.buyer_id, o.order_number, o.created_at as reserved_at,
@@ -3400,11 +3400,28 @@ def admin_products():
     ''')
     reserved = cur.fetchall()
     
+    # 被举报的产品 (reported)
+    cur.execute('''
+        SELECT DISTINCT p.*, u.username as seller_name,
+               COUNT(r.id) as report_count,
+               STRING_AGG(DISTINCT r.reason, ', ') as report_reasons,
+               STRING_AGG(DISTINCT CONCAT(rp.username, ' (', r.reason, ')'), ', ') as report_details
+        FROM products p
+        JOIN users u ON p.seller_id = u.id
+        JOIN reports r ON r.product_id = p.id
+        JOIN users rp ON r.reporter_id = rp.id
+        WHERE r.status = 'pending' AND p.status IN ('approved', 'reserved')
+        GROUP BY p.id, u.username
+        ORDER BY report_count DESC, p.created_at DESC
+    ''')
+    reported = cur.fetchall()
+    
     pending = [dict(row) for row in pending]
     approved = [dict(row) for row in approved]
     rejected = [dict(row) for row in rejected]
     sold = [dict(row) for row in sold]
     reserved = [dict(row) for row in reserved]
+    reported = [dict(row) for row in reported]
 
     cur.close()
     db.close()
@@ -3414,7 +3431,8 @@ def admin_products():
                            approved_list=approved,
                            rejected_list=rejected,
                            sold_list=sold,
-                           reserved_list=reserved)
+                           reserved_list=reserved,
+                           reported_list=reported)
 
 @app.route('/admin/product/approve/<int:pid>')
 def approve_product(pid):
@@ -3496,6 +3514,97 @@ def reject_product(pid):
 
     flash("Product rejected successfully", "success")
     return redirect(url_for('admin_products'))
+
+@app.route('/api/product/<int:product_id>/reports')
+def api_product_reports(product_id):
+    """获取产品的所有举报"""
+    if not session.get('admin_logged_in'):
+        return jsonify([]), 403
+    
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('''
+        SELECT r.*, u.username as reporter_name
+        FROM reports r
+        JOIN users u ON r.reporter_id = u.id
+        WHERE r.product_id = %s
+        ORDER BY r.created_at DESC
+    ''', (product_id,))
+    reports = cur.fetchall()
+    cur.close()
+    db.close()
+    
+    return jsonify([dict(r) for r in reports])
+
+
+@app.route('/admin/product/report/<int:report_id>/<action>', methods=['POST'])
+def handle_product_report(report_id, action):
+    """处理产品举报：下架或驳回"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    db = get_db()
+    cur = db.cursor()
+    
+    cur.execute('''
+        SELECT r.*, p.id as product_id, p.name as product_name, p.seller_id,
+               u.username as seller_name
+        FROM reports r
+        JOIN products p ON r.product_id = p.id
+        JOIN users u ON p.seller_id = u.id
+        WHERE r.id = %s
+    ''', (report_id,))
+    report = cur.fetchone()
+    
+    if not report:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Report not found'}), 404
+    
+    if action == 'reject':
+        # 驳回举报
+        cur.execute("UPDATE reports SET status = 'dismissed' WHERE id = %s", (report_id,))
+        
+        create_notification(
+            user_id=report['reporter_id'],
+            message=f'📋 Your report on "{report["product_name"]}" has been reviewed and DISMISSED. No action was taken.',
+            notif_type='report_dismissed',
+            product_id=report['product_id']
+        )
+        
+        db.commit()
+        cur.close()
+        db.close()
+        return jsonify({'success': True, 'message': 'Report dismissed'})
+        
+    elif action == 'remove':
+        # 下架产品
+        cur.execute("UPDATE products SET status = 'rejected', reject_reason = %s WHERE id = %s", 
+                    ('Reported and removed by admin', report['product_id']))
+        cur.execute("UPDATE reports SET status = 'resolved' WHERE id = %s", (report_id,))
+        
+        create_notification(
+            user_id=report['seller_id'],
+            message=f'🚫 Your product "{report["product_name"]}" has been REMOVED due to user reports. Please contact admin if you believe this is a mistake.',
+            notif_type='product_rejected',
+            product_id=report['product_id']
+        )
+        
+        create_notification(
+            user_id=report['reporter_id'],
+            message=f'✅ Your report on "{report["product_name"]}" has been verified. The product has been REMOVED. Thank you!',
+            notif_type='report_resolved',
+            product_id=report['product_id']
+        )
+        
+        db.commit()
+        cur.close()
+        db.close()
+        return jsonify({'success': True, 'message': 'Product removed'})
+    
+    cur.close()
+    db.close()
+    return jsonify({'success': False, 'error': 'Invalid action'}), 400
 
 @app.route('/admin/api/product/<int:pid>')
 def admin_get_product_info(pid):
@@ -4467,29 +4576,49 @@ def api_report_product(product_id):
     db = get_db()
     cur = db.cursor()
     
-    cur.execute('SELECT name, seller_id FROM products WHERE id = %s', (product_id,))
+    # 获取产品信息（包括卖家ID）
+    cur.execute('SELECT id, name, seller_id FROM products WHERE id = %s', (product_id,))
     product = cur.fetchone()
     
+    if not product:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # 检查是否已经举报过
     cur.execute('''
-        INSERT INTO reports (reporter_id, product_id, reason, details)
-        VALUES (%s, %s, %s, %s)
-    ''', (session['user_id'], product_id, reason, details))
+        SELECT id FROM reports 
+        WHERE reporter_id = %s AND product_id = %s AND status = 'pending'
+    ''', (session['user_id'], product_id))
+    existing = cur.fetchone()
+    
+    if existing:
+        cur.close()
+        db.close()
+        return jsonify({'success': False, 'error': 'You have already reported this product'}), 400
+    
+    # ✅ 插入举报记录，reported_user_id 使用卖家的 ID
+    cur.execute('''
+        INSERT INTO reports (reporter_id, reported_user_id, product_id, reason, details)
+        VALUES (%s, %s, %s, %s, %s)
+    ''', (session['user_id'], product['seller_id'], product_id, reason, details))
     db.commit()
     
-    if product:
-        create_notification(
-            user_id=session['user_id'],
-            message=f'📋 You reported product "{product["name"]}" for: {reason}. Admin will review within 1-3 business days.',
-            notif_type='report_submitted',
-            product_id=product_id
-        )
-        
-        create_notification(
-            user_id=product['seller_id'],
-            message=f'⚠️ Your product "{product["name"]}" received a report: {reason}. Please ensure your listing follows guidelines.',
-            notif_type='report_warning',
-            product_id=product_id
-        )
+    # 通知举报者
+    create_notification(
+        user_id=session['user_id'],
+        message=f'📋 You reported product "{product["name"]}" for: {reason}. Admin will review within 1-3 business days.',
+        notif_type='report_submitted',
+        product_id=product_id
+    )
+    
+    # 通知卖家
+    create_notification(
+        user_id=product['seller_id'],
+        message=f'⚠️ Your product "{product["name"]}" received a report: {reason}. Please ensure your listing follows guidelines.',
+        notif_type='report_warning',
+        product_id=product_id
+    )
     
     cur.close()
     db.close()

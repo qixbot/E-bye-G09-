@@ -65,6 +65,10 @@
         font-weight: 500;
     }
     
+    .badge-count.danger {
+        background: #e74c3c;
+    }
+    
     .search-filter-bar {
         display: flex;
         gap: 12px;
@@ -127,82 +131,6 @@
         word-break: break-word;
     }
     
-    /* 产品表格列宽 */
-    .admin-table th:nth-child(1),
-    .admin-table td:nth-child(1) {
-        width: 45px;
-        text-align: center;
-    }
-    
-    .admin-table th:nth-child(2),
-    .admin-table td:nth-child(2) {
-        width: 25%;
-    }
-    
-    .admin-table th:nth-child(3),
-    .admin-table td:nth-child(3) {
-        width: 12%;
-    }
-    
-    .admin-table th:nth-child(4),
-    .admin-table td:nth-child(4) {
-        width: 90px;
-        text-align: right;
-    }
-    
-    .admin-table th:nth-child(5),
-    .admin-table td:nth-child(5) {
-        width: 100px;
-    }
-    
-    .admin-table th:nth-child(6),
-    .admin-table td:nth-child(6) {
-        width: 140px;
-    }
-    
-    /* Sold/Reserved 表格列宽 */
-    .admin-table.sold-reserved th:nth-child(1),
-    .admin-table.sold-reserved td:nth-child(1) {
-        width: 45px;
-        text-align: center;
-    }
-    
-    .admin-table.sold-reserved th:nth-child(2),
-    .admin-table.sold-reserved td:nth-child(2) {
-        width: 20%;
-    }
-    
-    .admin-table.sold-reserved th:nth-child(3),
-    .admin-table.sold-reserved td:nth-child(3) {
-        width: 10%;
-    }
-    
-    .admin-table.sold-reserved th:nth-child(4),
-    .admin-table.sold-reserved td:nth-child(4) {
-        width: 10%;
-    }
-    
-    .admin-table.sold-reserved th:nth-child(5),
-    .admin-table.sold-reserved td:nth-child(5) {
-        width: 80px;
-        text-align: right;
-    }
-    
-    .admin-table.sold-reserved th:nth-child(6),
-    .admin-table.sold-reserved td:nth-child(6) {
-        width: 100px;
-    }
-    
-    .admin-table.sold-reserved th:nth-child(7),
-    .admin-table.sold-reserved td:nth-child(7) {
-        width: 100px;
-    }
-    
-    .admin-table.sold-reserved th:nth-child(8),
-    .admin-table.sold-reserved td:nth-child(8) {
-        width: 140px;
-    }
-    
     .admin-table td:first-child {
         text-align: center;
     }
@@ -244,6 +172,11 @@
     .status-badge.reserved {
         background: #fff3e0;
         color: #e67e22;
+    }
+    
+    .status-badge.reported {
+        background: #ffebee;
+        color: #c0392b;
     }
     
     .action-buttons {
@@ -335,7 +268,6 @@
         color: #888;
     }
     
-    /* Modal Styles */
     .modal-overlay {
         display: none;
         position: fixed;
@@ -380,6 +312,10 @@
         font-size: 24px;
         cursor: pointer;
         color: #888;
+    }
+    
+    .modal-close:hover {
+        color: #333;
     }
     
     .detail-image-area {
@@ -470,6 +406,75 @@
         font-size: 14px;
     }
     
+    .report-item {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        transition: background 0.2s;
+    }
+    
+    .report-item:hover {
+        background: #fafafa;
+    }
+    
+    .report-item:last-child {
+        border-bottom: none;
+    }
+    
+    .report-item.pending {
+        background: #fff9f9;
+    }
+    
+    .report-item .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+    }
+    
+    .report-item .report-reporter {
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .report-item .report-status {
+        font-size: 11px;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    
+    .report-item .report-status.pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .report-item .report-status.dismissed {
+        background: #e0e0e0;
+        color: #666;
+    }
+    
+    .report-item .report-status.resolved {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .report-item .report-reason {
+        font-size: 13px;
+        color: #555;
+        margin-bottom: 4px;
+    }
+    
+    .report-item .report-details {
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 4px;
+    }
+    
+    .report-item .report-time {
+        font-size: 11px;
+        color: #aaa;
+    }
+    
     @media (max-width: 768px) {
         .admin-wrapper {
             padding: 0 16px 40px;
@@ -511,6 +516,7 @@
             <option value="rejected">❌ Rejected</option>
             <option value="sold">💰 Sold</option>
             <option value="reserved">🟡 Reserved</option>
+            <option value="reported">🚨 Reported</option>
         </select>
     </div>
 
@@ -755,6 +761,52 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- 🚨 被举报商品 -->
+    <div class="product-section" data-status="reported" id="reportedSection">
+        <div class="section-header">
+            <h4>🚨 Reported Products</h4>
+            <span class="badge-count badge-count-danger">{{ reported_list|length if reported_list else 0 }}</span>
+        </div>
+        <div class="admin-table-container">
+            {% if reported_list and reported_list|length > 0 %}
+                <table class="admin-table sold-reserved">
+                    <thead>
+                        <tr>
+                            <th style="text-align:center;">#</th>
+                            <th>Product Name</th>
+                            <th>Seller</th>
+                            <th>Reports</th>
+                            <th>Reasons</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in reported_list %}
+                        <tr>
+                            <td style="text-align:center;">{{ loop.index }}</td>
+                            <td><strong>{{ item.name }}</strong></td>
+                            <td>{{ item.seller_name }}</td>
+                            <td><span class="status-badge reported">⚠️ {{ item.report_count }} report(s)</span></td>
+                            <td style="font-size:12px;max-width:150px;word-wrap:break-word;">{{ item.report_reasons }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button onclick="viewProductReports({{ item.id }}, '{{ item.name }}')" class="action-btn action-btn-primary">📋 View Reports</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <span class="empty-icon">✅</span>
+                    <div class="empty-title">No reported products</div>
+                    <div class="empty-sub">All products are clean!</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 <!-- 驳回弹窗 -->
@@ -794,6 +846,22 @@
     </div>
 </div>
 
+<!-- 举报详情弹窗 -->
+<div id="reportDetailModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+            <h4 id="reportDetailTitle">📋 Reports for Product</h4>
+            <button class="modal-close" onclick="closeReportDetailModal()">&times;</button>
+        </div>
+        <div id="reportDetailList" style="max-height:400px;overflow-y:auto;">
+            <div class="empty-state">Loading...</div>
+        </div>
+        <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:10px;">
+            <button class="action-btn action-btn-secondary" onclick="closeReportDetailModal()">Close</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentPid = 0, nowIndex = 0, pics = [];
 
@@ -804,7 +872,8 @@ function filterStatus() {
         'approved': document.getElementById('approvedSection'),
         'rejected': document.getElementById('rejectedSection'),
         'sold': document.getElementById('soldSection'),
-        'reserved': document.getElementById('reservedSection')
+        'reserved': document.getElementById('reservedSection'),
+        'reported': document.getElementById('reportedSection')
     };
     
     if (val === 'all') {
@@ -917,6 +986,114 @@ function closeDetailModal() {
     document.getElementById('detailModal').classList.remove('show');
 }
 
+// ============================================================
+// 举报详情功能
+// ============================================================
+
+function viewProductReports(productId, productName) {
+    document.getElementById('reportDetailTitle').innerHTML = '📋 Reports for "' + escapeHtml(productName) + '"';
+    document.getElementById('reportDetailList').innerHTML = '<div class="empty-state">Loading...</div>';
+    document.getElementById('reportDetailModal').style.display = 'flex';
+    
+    fetch('/api/product/' + productId + '/reports', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var container = document.getElementById('reportDetailList');
+        
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div class="empty-state">No reports found</div>';
+            return;
+        }
+        
+        var html = '';
+        data.forEach(function(report) {
+            var statusClass = report.status || 'pending';
+            var statusText = report.status || 'Pending';
+            
+            html += `
+                <div class="report-item ${statusClass}">
+                    <div class="report-header">
+                        <span class="report-reporter">👤 ${escapeHtml(report.reporter_name || 'Unknown')}</span>
+                        <span class="report-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="report-reason">📌 ${escapeHtml(report.reason)}</div>
+                    ${report.details ? '<div class="report-details">💬 ' + escapeHtml(report.details) + '</div>' : ''}
+                    <div class="report-time">📅 ${formatDate(report.created_at)}</div>
+                    ${statusClass === 'pending' ? `
+                        <div style="margin-top:10px;display:flex;gap:8px;">
+                            <button class="action-btn action-btn-success" onclick="handleProductReport(${report.id}, 'reject')">✅ Dismiss</button>
+                            <button class="action-btn action-btn-danger" onclick="handleProductReport(${report.id}, 'remove')">🚫 Remove Product</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    })
+    .catch(function(err) {
+        console.error('Error:', err);
+        document.getElementById('reportDetailList').innerHTML = '<div class="empty-state">Failed to load reports</div>';
+    });
+}
+
+function closeReportDetailModal() {
+    document.getElementById('reportDetailModal').style.display = 'none';
+}
+
+function handleProductReport(reportId, action) {
+    var actionText = action === 'reject' ? 'Dismiss this report? The product will remain approved.' : 'Remove this product? This will reject the product and notify the seller.';
+    if (!confirm('Are you sure you want to ' + actionText)) return;
+    
+    fetch('/admin/product/report/' + reportId + '/' + action, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToastMessage('Action completed!', 'success');
+            location.reload();
+        } else {
+            showToastMessage(data.error || 'Failed', 'error');
+        }
+    })
+    .catch(function(err) {
+        showToastMessage('Error: ' + err.message, 'error');
+    });
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    return d.toLocaleString();
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+function showToastMessage(message, type) {
+    var existing = document.querySelector('.toast-container');
+    if (existing) existing.remove();
+    
+    var container = document.createElement('div');
+    container.className = 'toast-container';
+    var toastDiv = document.createElement('div');
+    toastDiv.className = 'toast toast-' + type;
+    toastDiv.innerHTML = '<span>' + message + '</span>';
+    container.appendChild(toastDiv);
+    document.body.appendChild(container);
+    
+    setTimeout(function() { container.remove(); }, 3000);
+}
+
 // 搜索过滤
 document.getElementById('searchInput').addEventListener('input', function() {
     var v = this.value.toLowerCase();
@@ -931,12 +1108,15 @@ document.getElementById('detailModal').addEventListener('click', function(e) {
 document.getElementById('rejectModal').addEventListener('click', function(e) {
     if (e.target === this) closeRejectModal();
 });
+document.getElementById('reportDetailModal').addEventListener('click', function(e) {
+    if (e.target === this) closeReportDetailModal();
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const statusParam = urlParams.get('status');
     
-    if (statusParam && ['pending', 'approved', 'rejected', 'sold', 'reserved'].includes(statusParam)) {
+    if (statusParam && ['pending', 'approved', 'rejected', 'sold', 'reserved', 'reported'].includes(statusParam)) {
         const filterSelect = document.getElementById('statusFilter');
         if (filterSelect) {
             filterSelect.value = statusParam;
