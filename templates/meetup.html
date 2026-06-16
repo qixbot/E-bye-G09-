@@ -15,34 +15,35 @@
 
     <!-- Location Detail Modal -->
     <div id="locationModal" class="modal" style="display: none;">
-        <div class="modal-content buy-modal-content" style="max-width: 950px; width: 90%;">
-            <span class="close" onclick="closeLocationModal()">&times;</span>
+        <div class="modal-content vertical-modal-content">
+            <!-- Header with close button -->
+            <div class="vertical-modal-header">
+                <span class="modal-header-title">📍 Location</span>
+                <button class="modal-close-btn" onclick="closeLocationModal()">✕</button>
+            </div>
 
-            <div class="buy-modal-two-columns">
-                <!-- LEFT COLUMN – image carousel -->
-                <div class="buy-modal-left" style="position: relative;">
-                    <div class="product-image-preview" id="modalLocationImage">
-                        <img src="" alt="Location image" style="width:100%; height:100%; object-fit: cover;">
-                    </div>
-                    <button class="media-nav-prev" id="modalPrevBtn" onclick="prevLocationImage()" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer;">‹</button>
-                    <button class="media-nav-next" id="modalNextBtn" onclick="nextLocationImage()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer;">›</button>
+            <!-- Image carousel – fills the box -->
+            <div class="vertical-modal-image">
+                <div class="product-image-preview" id="modalLocationImage">
+                    <img src="" alt="Location image">
                 </div>
+                <button class="media-nav-prev" id="modalPrevBtn" onclick="prevLocationImage()">‹</button>
+                <button class="media-nav-next" id="modalNextBtn" onclick="nextLocationImage()">›</button>
+            </div>
 
-                <!-- RIGHT COLUMN – details (adjusted spacing) -->
-                <div class="buy-modal-right" style="overflow-y: auto; max-height: 70vh; padding: 0 8px;">
-                    <!-- More prominent Google Maps button -->
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                        <button id="googleMapsBtn" class="google-maps-btn" onclick="openGoogleMaps()">
-                            🗺️ Open in Google Maps
-                        </button>
-                        <span id="modalShortName" style="font-size: 0.9rem; color: #666;">Short name</span>
-                    </div>
-                    <h3 id="modalFullName" style="margin: 0 0 8px 0; font-size: 1.5rem;">Full Name</h3>
-                    <hr style="margin: 12px 0;">
-                    <!-- Description with constrained height -->
-                    <div style="max-height: 4.5em; overflow-y: auto; margin: 0 0 8px 0;">
-                        <p id="modalDescription" style="color: #555; line-height: 1.5; font-size: 0.9rem; margin: 0;">Description goes here...</p>
-                    </div>
+            <!-- Details below -->
+            <div class="vertical-modal-details">
+                <!-- Row: short name left, map button right -->
+                <div class="info-row">
+                    <span id="modalShortName" class="location-short-name">Short name</span>
+                    <button id="googleMapsBtn" class="google-maps-btn" onclick="openGoogleMaps()">
+                        🗺️ Open in Google Maps
+                    </button>
+                </div>
+                <h3 id="modalFullName" class="location-full-name">Full Name</h3>
+                <hr>
+                <div class="location-description-wrapper">
+                    <p id="modalDescription" class="location-description">Description goes here...</p>
                 </div>
             </div>
         </div>
@@ -77,7 +78,7 @@
             shortName: "CLC",
             fullName: "Central Lecture Complex",
             description: "Academic building for various departments, featuring 5 lecture halls and a multi-purpose hall.",
-            images: ["/static/meetup-img/Cyber-clc1.png", "/static/meetup-img/Cyber-clc2.png", "/static/meetup-img/Cyber-clc3.jpg"],
+            images: ["/static/meetup-img/Cyber-clc1.png", "/static/meetup-img/Cyber-clc2.png"],
             mapUrl: "https://maps.app.goo.gl/5HaLsUZyCewW6oGU7"
         },
         {
