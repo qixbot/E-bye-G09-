@@ -403,16 +403,24 @@ var selectedFiles = [];
 var lastMessageId = 0;
 
 // ============================================================
-// 时间格式化 - 显示准确时间
+// 时间格式化 - 显示本地时间（12小时制 AM/PM）
 // ============================================================
 function formatChatTime(dateStr) {
     if (!dateStr) return '';
     
+    // 将字符串转换为 Date，并加上时区偏移
     var d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
     
-    // 直接使用浏览器本地时区显示时间
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // 加上 8 小时（马来西亚时区 UTC+8）
+    var localTime = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+    
+    var hours = localTime.getHours();
+    var minutes = localTime.getMinutes().toString().padStart(2, '0');
+    var ampm = hours >= 12 ? 'PM' : 'AM';
+    var hours12 = hours % 12 || 12;
+    
+    return hours12 + ':' + minutes + ' ' + ampm;
 }
 
 function formatFullDateTime(dateStr) {
@@ -420,13 +428,13 @@ function formatFullDateTime(dateStr) {
     var d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
     
-    return d.toLocaleString([], { 
+    return d.toLocaleString('en-US', { 
         year: 'numeric', 
         month: '2-digit', 
         day: '2-digit',
-        hour: '2-digit', 
+        hour: 'numeric', 
         minute: '2-digit',
-        second: '2-digit'
+        hour12: true
     });
 }
 
@@ -445,7 +453,11 @@ function formatDateDivider(dateStr) {
     if (d.toDateString() === yesterday.toDateString()) {
         return 'Yesterday';
     }
-    return d.toLocaleDateString();
+    return d.toLocaleDateString('en-MY', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+    });
 }
 
 // ============================================================
@@ -719,27 +731,61 @@ function submitReport() {
 }
 
 // ============================================================
-// 在线状态 - 显示最后在线时间
-// ============================================================
-// ============================================================
 // 在线状态 - 显示准确的最后在线时间
 // ============================================================
 function updateUserStatus() {
     fetch('/api/user/' + otherId + '/status', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { 
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json(); 
+    })
     .then(function(data) {
+        console.log('Status data:', data);
         var statusEl = document.getElementById('userStatus');
-        if (data.online) {
-            statusEl.innerHTML = '🟢 Online';
+        
+        var isOnline = (data.online === true || data.online === 'true' || data.online === 1);
+        
+        if (isOnline) {
+            statusEl.innerHTML = '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27ae60;margin-right:6px;"></span> Online';
             statusEl.className = 'header-status online';
         } else {
-            var lastSeen = data.last_seen ? formatFullDateTime(data.last_seen) : 'Recently';
-            statusEl.innerHTML = 'Last seen: ' + lastSeen;
+            var lastSeenText = 'Offline';
+            if (data.last_seen) {
+                try {
+                    var lastSeenDate = new Date(data.last_seen);
+                    if (!isNaN(lastSeenDate.getTime())) {
+                        var now = new Date();
+                        var diffSeconds = Math.floor((now - lastSeenDate) / 1000);
+                        
+                        if (diffSeconds < 60) {
+                            lastSeenText = 'Last seen just now';
+                        } else if (diffSeconds < 3600) {
+                            var mins = Math.floor(diffSeconds / 60);
+                            lastSeenText = 'Last seen ' + mins + ' min ago';
+                        } else if (diffSeconds < 86400) {
+                            var hours = Math.floor(diffSeconds / 3600);
+                            lastSeenText = 'Last seen ' + hours + ' hours ago';
+                        } else if (diffSeconds < 604800) {
+                            var days = Math.floor(diffSeconds / 86400);
+                            lastSeenText = 'Last seen ' + days + ' days ago';
+                        } else {
+                            lastSeenText = 'Last seen ' + lastSeenDate.toLocaleDateString();
+                        }
+                    } else {
+                        lastSeenText = 'Last seen: ' + data.last_seen;
+                    }
+                } catch(e) {
+                    console.error('Date parse error:', e);
+                    lastSeenText = 'Offline';
+                }
+            }
+            statusEl.innerHTML = '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#888;margin-right:6px;"></span> ' + lastSeenText;
             statusEl.className = 'header-status offline';
         }
     })
     .catch(function(err) {
-        document.getElementById('userStatus').innerHTML = 'Last seen: Unknown';
+        console.error('Status fetch error:', err);
+        document.getElementById('userStatus').innerHTML = '● Offline';
     });
 }
 

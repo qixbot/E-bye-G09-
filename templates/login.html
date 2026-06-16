@@ -41,10 +41,23 @@
             </div>
         </div>
 
+        <!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="toast-container">
+            {% for category, message in messages %}
+                <div class="toast toast-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
         <!-- Right Column: Login Form -->
         <div class="auth-right">
           <!-- Note: Flash Messages have been removed; custom Toast messages are now used instead. -->
           <!-- Toast messages are displayed by the toast-container in base.html for better UX -->
+
+          
 
             <form method="POST" action="{{ url_for('login') }}" id="login-form" autocomplete="on">
                 <h2>👋 Welcome Back</h2>

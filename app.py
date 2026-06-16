@@ -1181,9 +1181,10 @@ def api_confirm_order(order_id):
     
     db = get_db()
     cur = db.cursor()
-     # 获取订单信息，包括产品ID（只查询 pending 状态的订单）
+    
+    # 获取订单信息，包括产品ID（只查询 pending 状态的订单）
     cur.execute('SELECT * FROM orders WHERE id = %s AND seller_id = %s AND status = %s', 
-            (order_id, session['user_id'], 'pending'))
+                (order_id, session['user_id'], 'pending'))
     order = cur.fetchone()
     
     if not order:
@@ -1201,19 +1202,32 @@ def api_confirm_order(order_id):
     # 当卖家确认订单后，将产品状态改为 'reserved'（已预留）
     cur.execute('UPDATE products SET status = %s WHERE id = %s', ('reserved', order['product_id']))
     
+    # 获取产品信息用于通知
+    cur.execute('SELECT name FROM products WHERE id = %s', (order['product_id'],))
+    product = cur.fetchone()
+    product_name = product['name'] if product else 'Product'
+    
     # 通知买家订单已确认
     cur.execute('''
         INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
         VALUES (%s, %s, NOW(), 'order', %s, 0)
     ''', (order['buyer_id'], 
-          f"✅ Order #{order['order_number']} has been CONFIRMED by seller! Meeting at: {meeting_point} on {meeting_time}",
+          f"✅ Order #{order['order_number']} has been CONFIRMED by seller! Meeting at: {meeting_point} on {meeting_time}. Product: {product_name}",
+          order_id))
+    
+    # 通知卖家（确认）
+    cur.execute('''
+        INSERT INTO notifications (user_id, message, created_at, type, related_id, is_read)
+        VALUES (%s, %s, NOW(), 'order', %s, 0)
+    ''', (session['user_id'],
+          f"✅ You have CONFIRMED Order #{order['order_number']}. Meeting arranged at: {meeting_point} on {meeting_time}",
           order_id))
     
     db.commit()
     cur.close()
     db.close()
     
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'message': 'Order confirmed successfully'})
 
 @app.route('/api/product/<int:product_id>/offers')
 def get_product_offers(product_id):
@@ -3317,30 +3331,71 @@ def admin_products():
 
     db = get_db()
     cur = db.cursor()
+    
+    # 1. 待审核 (pending)
     cur.execute('''
         SELECT p.*, u.username as seller_name
-        FROM products p JOIN users u ON p.seller_id = u.id
-        WHERE p.status = 'pending' ORDER BY p.created_at DESC
+        FROM products p 
+        JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'pending' 
+        ORDER BY p.created_at DESC
     ''')
     pending = cur.fetchall()
-
+    
+    # 2. 已通过 (approved)
     cur.execute('''
         SELECT p.*, u.username as seller_name
-        FROM products p JOIN users u ON p.seller_id = u.id
-        WHERE p.status = 'approved' ORDER BY p.created_at DESC
+        FROM products p 
+        JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'approved' 
+        ORDER BY p.created_at DESC
     ''')
     approved = cur.fetchall()
-
+    
+    # 3. 已拒绝 (rejected)
     cur.execute('''
         SELECT p.*, u.username as seller_name
-        FROM products p JOIN users u ON p.seller_id = u.id
-        WHERE p.status = 'rejected' ORDER BY p.created_at DESC
+        FROM products p 
+        JOIN users u ON p.seller_id = u.id
+        WHERE p.status = 'rejected' 
+        ORDER BY p.created_at DESC
     ''')
     rejected = cur.fetchall()
     
+    # 4. 已售出 (sold) - 包含买家信息
+    cur.execute('''
+        SELECT p.*, u.username as seller_name,
+               o.buyer_id, o.order_number, o.created_at as sold_at,
+               buyer.username as buyer_name, buyer.full_name as buyer_full_name
+        FROM products p 
+        JOIN users u ON p.seller_id = u.id
+        LEFT JOIN orders o ON o.product_id = p.id AND o.status = 'completed'
+        LEFT JOIN users buyer ON o.buyer_id = buyer.id
+        WHERE p.status = 'sold' 
+        ORDER BY o.created_at DESC NULLS LAST, p.created_at DESC
+    ''')
+    sold = cur.fetchall()
+    
+    # 5. 已预留 (reserved) - 包含买家信息
+    cur.execute('''
+        SELECT p.*, u.username as seller_name,
+               o.buyer_id, o.order_number, o.created_at as reserved_at,
+               buyer.username as buyer_name, buyer.full_name as buyer_full_name
+        FROM products p 
+        JOIN users u ON p.seller_id = u.id
+        LEFT JOIN orders o ON o.product_id = p.id AND o.status IN ('pending', 'confirmed', 'delivered')
+        LEFT JOIN users buyer ON o.buyer_id = buyer.id
+        WHERE p.status = 'reserved' 
+        ORDER BY o.created_at DESC NULLS LAST, p.created_at DESC
+    ''')
+    reserved = cur.fetchall()
+    
+    # 转换为 dict
     pending = [dict(row) for row in pending]
     approved = [dict(row) for row in approved]
     rejected = [dict(row) for row in rejected]
+    sold = [dict(row) for row in sold]
+    reserved = [dict(row) for row in reserved]
 
     cur.close()
     db.close()
@@ -3348,7 +3403,9 @@ def admin_products():
     return render_template("admin_product.html",
                            pending_list=pending,
                            approved_list=approved,
-                           rejected_list=rejected)
+                           rejected_list=rejected,
+                           sold_list=sold,
+                           reserved_list=reserved)
 
 @app.route('/admin/product/approve/<int:pid>')
 def approve_product(pid):
@@ -4503,7 +4560,7 @@ def api_update_order_status(order_id):
     cur = db.cursor()
     
     cur.execute('''
-        SELECT o.*, p.name as product_name, p.seller_id
+        SELECT o.*, p.name as product_name, p.seller_id, p.id as product_id
         FROM orders o
         JOIN products p ON o.product_id = p.id
         WHERE o.id = %s
@@ -4542,15 +4599,20 @@ def api_update_order_status(order_id):
     elif new_status == 'cancelled':
         if order['status'] not in ['pending', 'confirmed']:
             return jsonify({'success': False, 'error': 'Cannot cancel order at this stage'}), 400
-        # ✅ Revert product status to approved (added by Xingru)
+        # 取消订单时，将产品状态改回 approved
         cur.execute("UPDATE products SET status = 'approved' WHERE id = %s", (order['product_id'],))
-        # ✅ Remove product from all carts (added by Xingru)
+        # 从购物车中移除
         cur.execute("DELETE FROM cart_items WHERE product_id = %s", (order['product_id'],))
     else:
         return jsonify({'success': False, 'error': 'Invalid status transition'}), 400
     
     # 执行更新
     cur.execute('UPDATE orders SET status = %s, updated_at = NOW() WHERE id = %s', (new_status, order_id))
+    
+    # 获取买家用户名
+    cur.execute('SELECT username FROM users WHERE id = %s', (order['buyer_id'],))
+    buyer = cur.fetchone()
+    buyer_name = buyer['username'] if buyer else 'Buyer'
     
     # 发送通知
     notify_user_id = order['buyer_id'] if is_seller else order['seller_id']
@@ -4568,7 +4630,7 @@ def api_update_order_status(order_id):
             VALUES (%s, %s, NOW(), 'order', %s, 0)
         ''', (notify_user_id, messages[new_status], order_id))
     
-    # 订单完成后更新产品状态 - 使用单引号
+    # 订单完成后更新产品状态为 'sold'
     if new_status == 'completed':
         cur.execute('UPDATE products SET status = %s WHERE id = %s', ('sold', order['product_id']))
     
@@ -4576,7 +4638,7 @@ def api_update_order_status(order_id):
     cur.close()
     db.close()
     
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'message': f'Order status updated to {new_status}'})
 
 @app.route('/api/order/<int:order_id>/review', methods=['POST'])
 def api_submit_order_review(order_id):
