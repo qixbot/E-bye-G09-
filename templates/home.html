@@ -31,24 +31,24 @@
                 </picture>
             </div>
 
-            <!-- Slide 2 - Books -->
-            <a href="{{ url_for('search', category='Books') }}" class="hero-slide-item image-slide hyperimage-slide">
+            <!-- Slide 2 - Search -->
+            <a href="{{ url_for('search') }}" class="hero-slide-item image-slide hyperimage-slide">
                 <picture>
-                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_books_mobile.png') }}" fetchpriority="high" loading="eager">
-                    <img src="{{ url_for('static', filename='banner_image_books.png') }}" 
-                        alt="Browse Books" 
+                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner2b.png') }}" fetchpriority="high" loading="eager">
+                    <img src="{{ url_for('static', filename='banner2.png') }}" 
+                        alt="Browse All Products" 
                         class="hero-full-bleed-img" 
                         fetchpriority="high"
                         loading="eager">
                 </picture>
             </a>
 
-            <!-- Slide 3 - Gadgets -->
-            <a href="{{ url_for('search', category='Electronics') }}" class="hero-slide-item image-slide hyperimage-slide">
+            <!-- Slide 3 - Meetup Locations -->
+            <a href="{{ url_for('meetup_locations') }}" class="hero-slide-item image-slide hyperimage-slide">
                 <picture>
-                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner_image_gadgets_mobile.png') }}" fetchpriority="high" loading="eager">
-                    <img src="{{ url_for('static', filename='banner_image_gadgets.png') }}" 
-                        alt="Explore Gadgets" 
+                    <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='banner3b.png') }}" fetchpriority="high" loading="eager">
+                    <img src="{{ url_for('static', filename='banner3.png') }}" 
+                        alt="Explore Meetup Points" 
                         class="hero-full-bleed-img" 
                         fetchpriority="high"
                         loading="eager">
@@ -144,11 +144,11 @@
     (function preloadCarouselImages() {
         const images = [
             "{{ url_for('static', filename='banner1.png') }}",
-            "{{ url_for('static', filename='banner_image_books.png') }}",
-            "{{ url_for('static', filename='banner_image_gadgets.png') }}",
+            "{{ url_for('static', filename='banner2.png') }}",
+            "{{ url_for('static', filename='banner3.png') }}",
             "{{ url_for('static', filename='banner1b.png') }}",
-            "{{ url_for('static', filename='banner_image_books_mobile.png') }}",
-            "{{ url_for('static', filename='banner_image_gadgets_mobile.png') }}"
+            "{{ url_for('static', filename='banner2b.png') }}",
+            "{{ url_for('static', filename='banner3b.png') }}"
         ];
         
         images.forEach(function(src) {
