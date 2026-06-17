@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # Database Configuration
 # ============================================================
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
 
 if not DATABASE_URL:
     DATABASE_URL = "postgresql://neondb_owner:npg_6iyxMHpXf7ho@ep-odd-meadow-at6yas04-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require"
@@ -73,7 +73,7 @@ def execute_query(sql: str, params: tuple = None, fetch_one: bool = False, fetch
 
 
 def add_column_if_not_exists(table: str, column: str, column_def: str) -> bool:
-    """添加列（如果不存在）- 来自 week10"""
+    """添加列（如果不存在）"""
     try:
         execute_query(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {column_def}")
         logger.info(f"✅ Added column '{column}' to {table}")
@@ -91,7 +91,6 @@ def init_db():
         conn = get_db()
         cur = conn.cursor()
         
-        # 快速检查 users 表是否存在
         cur.execute("""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
@@ -109,7 +108,6 @@ def init_db():
         
         print("📦 Creating database tables...")
         
-        # Users table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -152,7 +150,6 @@ def init_db():
             )
         ''')
         
-        # Notifications table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS notifications (
                 id SERIAL PRIMARY KEY,
@@ -166,7 +163,6 @@ def init_db():
             )
         ''')
         
-        # Products table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS products (
                 id SERIAL PRIMARY KEY,
@@ -186,7 +182,6 @@ def init_db():
             )
         ''')
         
-        # Messages table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS messages (
                 id SERIAL PRIMARY KEY,
@@ -201,12 +196,12 @@ def init_db():
             )
         ''')
         
-        # Offers table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS offers (
                 id SERIAL PRIMARY KEY,
                 product_id INTEGER NOT NULL REFERENCES products(id),
                 buyer_id INTEGER NOT NULL REFERENCES users(id),
+                seller_id INTEGER REFERENCES users(id),
                 offer_price REAL NOT NULL,
                 original_price REAL,
                 message TEXT,
@@ -216,7 +211,6 @@ def init_db():
             )
         ''')
         
-        # Announcements table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS announcements (
                 id SERIAL PRIMARY KEY,
@@ -226,7 +220,6 @@ def init_db():
             )
         ''')
         
-        # Reviews table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS reviews (
                 id SERIAL PRIMARY KEY,
@@ -243,7 +236,6 @@ def init_db():
             )
         ''')
         
-        # Reports table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS reports (
                 id SERIAL PRIMARY KEY,
@@ -257,7 +249,6 @@ def init_db():
             )
         ''')
 
-        # Cart items table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS cart_items (
                 id SERIAL PRIMARY KEY,
@@ -268,9 +259,6 @@ def init_db():
             )
         ''')
 
-        # Orders table - with meeting_time field
-        
-        # Orders table - with meeting_time field (week11 版本)
         cur.execute('''
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
@@ -291,14 +279,12 @@ def init_db():
             )
         ''')
         
-        # 索引
         cur.execute("CREATE INDEX IF NOT EXISTS idx_products_status ON products(status)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_products_seller_id ON products(seller_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_seller_id ON orders(seller_id)")
         
-        # 管理员
         admin_email = 'admin@student.mmu.edu.my'
         admin_password = generate_password_hash('Admin123!')
         cur.execute("SELECT id FROM users WHERE email = %s", (admin_email,))
@@ -328,7 +314,6 @@ def add_missing_columns():
         conn = get_db()
         cur = conn.cursor()
         
-        # Users table columns
         user_columns = [
             ('avg_service_rating', 'DECIMAL(3,2) DEFAULT 0'),
             ('avg_shipping_rating', 'DECIMAL(3,2) DEFAULT 0'),
@@ -337,55 +322,44 @@ def add_missing_columns():
             ('total_reviews', 'INTEGER DEFAULT 0'),
             ('campus', 'TEXT'),
         ]
-        
         for col_name, col_def in user_columns:
             try:
                 cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-                print(f"✅ Added column {col_name} to users")
             except Exception as e:
                 print(f"Could not add {col_name}: {e}")
         
-        # Reviews table columns
         review_columns = [
             ('rating_service', 'INTEGER DEFAULT 0'),
             ('rating_shipping', 'INTEGER DEFAULT 0'),
             ('rating_quality', 'INTEGER DEFAULT 0'),
             ('rating_overall', 'INTEGER DEFAULT 0'),
         ]
-        
         for col_name, col_def in review_columns:
             try:
                 cur.execute(f"ALTER TABLE reviews ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-                print(f"✅ Added column {col_name} to reviews")
             except Exception as e:
                 print(f"Could not add {col_name}: {e}")
         
-        # Notifications table columns
         notif_columns = [
             ('type', "TEXT DEFAULT 'general'"),
             ('related_id', 'INTEGER'),
             ('is_read', 'INTEGER DEFAULT 0'),
             ('product_id', 'INTEGER'),
         ]
-        
         for col_name, col_def in notif_columns:
             try:
                 cur.execute(f"ALTER TABLE notifications ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-                print(f"✅ Added column {col_name} to notifications")
             except Exception as e:
                 print(f"Could not add {col_name}: {e}")
         
-        # Orders table columns
         order_columns = [
             ('meeting_time', 'TEXT'),
             ('updated_at', 'TIMESTAMP'),
             ('product_image', 'TEXT'),
         ]
-        
         for col_name, col_def in order_columns:
             try:
                 cur.execute(f"ALTER TABLE orders ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-                print(f"✅ Added column {col_name} to orders")
             except Exception as e:
                 print(f"Could not add {col_name}: {e}")
         
