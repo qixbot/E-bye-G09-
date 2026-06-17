@@ -238,18 +238,21 @@
             </div>
         </div>
 
-        <!-- Offer Management Modal - Displays all offers for a specific product -->
-        <div id="offerModal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>💰 Offers for <span id="offerProductName"></span></h2>
-                    <button class="modal-close" onclick="closeOfferModal()">&times;</button>
-                </div>
-                <div id="offersList" class="offers-list">
-                    <div class="loading-state">Loading offers...</div>
-                </div>
+<!-- Offer Management Modal - Displays all offers for a specific product -->
+<div id="offerModal" class="modal" style="display: none;">
+    <div class="modal-content" style="border-radius:20px; overflow:hidden; max-width:560px; width:95%;">
+        <div class="modal-header" style="padding:20px 24px 16px; border-bottom:1px solid #f0f2f0; background:#ffffff; display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+                <div style="font-size:12px; font-weight:600; color:#999; letter-spacing:0.5px; text-transform:uppercase;">💰 Offers</div>
+                <div style="font-size:17px; font-weight:700; color:#1a2e1a; margin-top:2px;" id="offerProductName">Product Name</div>
             </div>
+            <button class="modal-close" onclick="closeOfferModal()" style="background:none; border:none; font-size:24px; color:#ccc; cursor:pointer; padding:0 4px; transition:color 0.2s;" onmouseover="this.style.color='#555'" onmouseout="this.style.color='#ccc'">&times;</button>
         </div>
+        <div id="offersList" class="offers-list" style="padding:8px 20px 20px; max-height:55vh; overflow-y:auto;">
+            <div class="loading-state" style="text-align:center; padding:40px 0; color:#bbb;">Loading offers...</div>
+        </div>
+    </div>
+</div>
 
         <!-- Reviews Modal - Displays all seller reviews from buyers -->
         <div id="reviewsModal" class="modal" style="display:none;">
@@ -307,9 +310,7 @@
     </div>
 </div>
 
-<!-- ============================================================ -->
 <!-- JAVASCRIPT SECTION - Client-side functionality -->
-<!-- ============================================================ -->
 <script>
 // ============================================================
 // Global constants and variables
@@ -766,22 +767,49 @@ function createOrderFromOffer(offerId) {
             // Initialize global variable for selected locations
             window.checkoutSelectedLocations = [];
             
+            // 定义地点数据（包含图片）
+            var cyberjayaLocations = [
+                { name: "DTC", image: "/static/meetup-img/Cyber-dtc1.jpg" },
+                { name: "Library", image: "/static/meetup-img/Cyber-Lib1.png" },
+                { name: "Starbees", image: "/static/meetup-img/Cyber-starbees1.png" },
+                { name: "CLC", image: "/static/meetup-img/Cyber-clc1.png" },
+                { name: "FCI", image: "/static/meetup-img/Cyber-fci1.jpeg" },
+                { name: "FOM", image: "/static/meetup-img/Cyber-fom1.jpeg" },
+                { name: "FAIE", image: "/static/meetup-img/Cyber-faie1.jpeg" },
+                { name: "FCM", image: "/static/meetup-img/Cyber-fcm1.jpeg" },
+                { name: "STC", image: "/static/meetup-img/Cyber-stc1.png" },
+                { name: "HB1", image: "/static/meetup-img/Cyber-hostel1.jpeg" },
+                { name: "HB2", image: "/static/meetup-img/Cyber-hostel1.jpeg" },
+                { name: "HB3", image: "/static/meetup-img/Cyber-hostel1.jpeg" },
+                { name: "HB4", image: "/static/meetup-img/Cyber-hostel1.jpeg" },
+                { name: "Masjid", image: "/static/meetup-img/Cyber-masjid1.jpeg" },
+                { name: "Tekun Mart", image: "/static/meetup-img/Cyber-tekun1.png" },
+                { name: "Chancellery Building", image: "/static/meetup-img/Cyber-dtc1.jpg" }
+            ];
+
+            var melakaLocations = [
+                { name: "Library (Melaka)", image: "/static/meetup-img/MLK-Lib1.jpg" },
+                { name: "Main Hall", image: "/static/meetup-img/MLK-MainHall1.png" },
+                { name: "Exam Hall", image: "/static/meetup-img/MLK-ExamHall1.png" },
+                { name: "CLC", image: "/static/meetup-img/MLK-CLC1.png" },
+                { name: "Masjid", image: "/static/meetup-img/MLK-Masjid1.png" },
+                { name: "FOL / FAC", image: "/static/meetup-img/MLK-FOL1.png" },
+                { name: "FOB", image: "/static/meetup-img/MLK-FOB1.png" },
+                { name: "FET", image: "/static/meetup-img/MLK-FET1.png" },
+                { name: "FIST", image: "/static/meetup-img/MLK-FIST1.jpg" },
+                { name: "Plaza Siswa", image: "/static/meetup-img/MLK-Plaza1.png" },
+                { name: "Admin / IPS", image: "/static/meetup-img/MLK-Prez1.png" },
+                { name: "Hostels", image: "/static/meetup-img/MLK-Hostel1.png" }
+            ];
+            
             // Select location list based on seller's campus
             var locations = [];
             var sellerCampus = data.seller_campus || '';
             
             if (sellerCampus.includes('Cyberjaya') || sellerCampus.includes('Cyber')) {
-                locations = [
-                    "Library", "DTC", "Starbees", "CLC", "FCI", "FOM", "FAIE", "FCM",
-                    "STC", "HB1", "HB2", "HB3", "HB4", "Masjid", "Tekun Mart", "Chancellery Building"
-                ];
+                locations = cyberjayaLocations;
             } else {
-                // Melaka Campus locations
-                locations = [
-                    "Library (Melaka)", "Dewan Tun Canselor", "Cafeteria", "Block A", "Block B",
-                    "Block C", "Block D", "Block E", "Sports Complex", "Hostel 1", "Hostel 2",
-                    "Hostel 3", "Hostel 4", "Surau", "Mini Mart", "Admin Building"
-                ];
+                locations = melakaLocations;
             }
             
             var meetupHtml = `
@@ -794,7 +822,7 @@ function createOrderFromOffer(offerId) {
                         
                         <div style="margin: 16px 0;">
                             <label style="font-weight:600; display:block; margin-bottom:8px;">Select Meetup Location(s) (max 3):</label>
-                            <div id="checkoutLocationGrid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                            <div id="checkoutLocationGrid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;"></div>
                             <div id="checkoutLocationInfo" style="font-size:12px; margin-top:8px; color:#e74c3c;">⚠️ Please select 1-3 locations</div>
                         </div>
                         
@@ -821,31 +849,52 @@ function createOrderFromOffer(offerId) {
             if (existing) existing.remove();
             document.body.insertAdjacentHTML('beforeend', meetupHtml);
             
-            // Build location options (button-style with highlight)
+            // Build location options (with images)
             var grid = document.getElementById('checkoutLocationGrid');
             for (var i = 0; i < locations.length; i++) {
                 var loc = locations[i];
                 var btn = document.createElement('button');
-                btn.textContent = loc;
-                btn.style.cssText = 'padding:8px 12px; margin:4px; border:1px solid #ddd; border-radius:20px; background:#f5f5f5; cursor:pointer;';
+                btn.className = 'location-card-btn';
+                btn.setAttribute('data-location', loc.name);
+                btn.innerHTML = `
+                    <img src="${loc.image}" alt="${loc.name}" onerror="this.style.display='none'">
+                    <span>${loc.name}</span>
+                `;
+                btn.style.cssText = 'display:flex; flex-direction:column; align-items:center; padding:8px; border:2px solid #e8ece8; border-radius:12px; cursor:pointer; background:white; transition:all 0.2s;';
+                btn.onmouseover = function() { 
+                    if (!this.classList.contains('selected')) {
+                        this.style.borderColor = '#205c30'; 
+                        this.style.transform = 'translateY(-2px)';
+                        this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+                    }
+                };
+                btn.onmouseout = function() { 
+                    if (!this.classList.contains('selected')) {
+                        this.style.borderColor = '#e8ece8'; 
+                        this.style.transform = 'translateY(0)';
+                        this.style.boxShadow = 'none';
+                    }
+                };
                 
                 btn.onclick = (function(locationName, button) {
                     return function() {
                         var idx = window.checkoutSelectedLocations.indexOf(locationName);
                         if (idx !== -1) {
                             window.checkoutSelectedLocations.splice(idx, 1);
-                            button.style.background = '#f5f5f5';
-                            button.style.borderColor = '#ddd';
-                            button.style.color = '#333';
+                            button.classList.remove('selected');
+                            button.style.borderColor = '#e8ece8';
+                            button.style.background = 'white';
+                            button.style.boxShadow = 'none';
                         } else {
                             if (window.checkoutSelectedLocations.length >= 3) {
                                 showToastMessage('Maximum 3 locations allowed', 'error');
                                 return;
                             }
                             window.checkoutSelectedLocations.push(locationName);
-                            button.style.background = '#205c30';
+                            button.classList.add('selected');
                             button.style.borderColor = '#205c30';
-                            button.style.color = 'white';
+                            button.style.background = '#eaf4ed';
+                            button.style.boxShadow = '0 2px 8px rgba(32,92,48,0.12)';
                         }
                         
                         var infoDiv = document.getElementById('checkoutLocationInfo');
@@ -859,7 +908,17 @@ function createOrderFromOffer(offerId) {
                             }
                         }
                     };
-                })(loc, btn);
+                })(loc.name, btn);
+                
+                // 给图片添加样式
+                var img = btn.querySelector('img');
+                if (img) {
+                    img.style.cssText = 'width:100%; height:60px; object-fit:cover; border-radius:8px; margin-bottom:4px;';
+                }
+                var span = btn.querySelector('span');
+                if (span) {
+                    span.style.cssText = 'font-size:11px; font-weight:500; color:#2c3e2c; text-align:center;';
+                }
                 
                 grid.appendChild(btn);
             }
@@ -1237,6 +1296,12 @@ function onConfirmReceived() {
 // @param {string} productName - Product name
 // @param {string} meetupLocations - Comma-separated preferred locations
 // @param {string} meetingTimes - Comma-separated preferred times
+// Opens the seller's order confirmation modal (for seller to confirm order details)
+// @param {number} orderId - The order ID
+// @param {string} orderNumber - Order number
+// @param {string} productName - Product name
+// @param {string} meetupLocations - Comma-separated preferred locations
+// @param {string} meetingTimes - Comma-separated preferred times
 function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocations, meetingTimes) {
     // Parse location and time arrays
     var locations = [];
@@ -1248,6 +1313,36 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
     if (meetingTimes && meetingTimes !== '') {
         times = meetingTimes.split(',');
     }
+    
+    // 定义地点图片映射
+    var locationImages = {
+        "DTC": "/static/meetup-img/Cyber-dtc1.jpg",
+        "Library": "/static/meetup-img/Cyber-Lib1.png",
+        "Starbees": "/static/meetup-img/Cyber-starbees1.png",
+        "CLC": "/static/meetup-img/Cyber-clc1.png",
+        "FCI": "/static/meetup-img/Cyber-fci1.jpeg",
+        "FOM": "/static/meetup-img/Cyber-fom1.jpeg",
+        "FAIE": "/static/meetup-img/Cyber-faie1.jpeg",
+        "FCM": "/static/meetup-img/Cyber-fcm1.jpeg",
+        "STC": "/static/meetup-img/Cyber-stc1.png",
+        "HB1": "/static/meetup-img/Cyber-hostel1.jpeg",
+        "HB2": "/static/meetup-img/Cyber-hostel1.jpeg",
+        "HB3": "/static/meetup-img/Cyber-hostel1.jpeg",
+        "HB4": "/static/meetup-img/Cyber-hostel1.jpeg",
+        "Masjid": "/static/meetup-img/Cyber-masjid1.jpeg",
+        "Tekun Mart": "/static/meetup-img/Cyber-tekun1.png",
+        "Chancellery Building": "/static/meetup-img/Cyber-dtc1.jpg",
+        "Library (Melaka)": "/static/meetup-img/MLK-Lib1.jpg",
+        "Main Hall": "/static/meetup-img/MLK-MainHall1.png",
+        "Exam Hall": "/static/meetup-img/MLK-ExamHall1.png",
+        "FOL / FAC": "/static/meetup-img/MLK-FOL1.png",
+        "FOB": "/static/meetup-img/MLK-FOB1.png",
+        "FET": "/static/meetup-img/MLK-FET1.png",
+        "FIST": "/static/meetup-img/MLK-FIST1.jpg",
+        "Plaza Siswa": "/static/meetup-img/MLK-Plaza1.png",
+        "Admin / IPS": "/static/meetup-img/MLK-Prez1.png",
+        "Hostels": "/static/meetup-img/MLK-Hostel1.png"
+    };
     
     var modalHtml = '<div id="confirmOrderModal" class="custom-modal">';
     modalHtml += '<div class="modal-card" style="max-width:520px; padding:0; overflow:hidden;">';
@@ -1261,14 +1356,18 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
     // Location selection section
     modalHtml += '<div style="margin-bottom:20px;">';
     modalHtml += '<div style="font-weight:700; font-size:14px; margin-bottom:10px;">📍 Buyer\'s Preferred Locations <span style="font-weight:400;color:#888;font-size:12px;">(select one to confirm)</span></div>';
-    // Location chips
+    // Location chips with images
     if (locations.length > 0) {
-        modalHtml += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+        modalHtml += '<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">';
         for (var li = 0; li < locations.length; li++) {
             var loc2 = locations[li].trim();
-            modalHtml += '<label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:2px solid #ddd;border-radius:30px;cursor:pointer;font-size:13px;font-weight:500;transition:0.2s;" onclick="this.style.borderColor=\'#205c30\';this.style.background=\'#eaf4ed\';document.querySelectorAll(\'.loc-radio\').forEach(function(r){r.closest(\'label\').style.borderColor=\'#ddd\';r.closest(\'label\').style.background=\'#fff\'});this.style.borderColor=\'#205c30\';this.style.background=\'#eaf4ed\'">';
+            var imgSrc = locationImages[loc2] || '';
+            modalHtml += '<label style="display:flex;flex-direction:column;align-items:center;padding:10px;border:2px solid #ddd;border-radius:12px;cursor:pointer;transition:0.2s;background:#fff;" onclick="document.querySelectorAll(\'.loc-radio\').forEach(function(r){r.closest(\'label\').style.borderColor=\'#ddd\';r.closest(\'label\').style.background=\'#fff\'});this.style.borderColor=\'#205c30\';this.style.background=\'#eaf4ed\'">';
+            if (imgSrc) {
+                modalHtml += '<img src="' + imgSrc + '" style="width:100%;height:60px;object-fit:cover;border-radius:8px;margin-bottom:4px;" onerror="this.style.display=\'none\'">';
+            }
             modalHtml += '<input type="radio" name="selected_location" value="' + escapeHtml(loc2) + '" class="loc-radio" style="display:none;"> ';
-            modalHtml += '📍 ' + escapeHtml(loc2);
+            modalHtml += '<span style="font-size:12px;font-weight:500;text-align:center;">📍 ' + escapeHtml(loc2) + '</span>';
             modalHtml += '</label>';
         }
         modalHtml += '</div>';
@@ -1383,6 +1482,9 @@ var currentProductId = null;
 // Displays all offers for a specific product
 // @param {number} productId - The product ID
 // @param {string} productName - Name of the product
+// Displays all offers for a specific product
+// @param {number} productId - The product ID
+// @param {string} productName - Name of the product
 function viewOffers(productId, productName) {
     currentProductId = productId;
     document.getElementById('offerProductName').innerText = productName;
@@ -1393,7 +1495,13 @@ function viewOffers(productId, productName) {
         .then(function(data) {
             var container = document.getElementById('offersList');
             if (!data || data.length === 0) {
-                container.innerHTML = '<div class="empty-state"><span class="empty-icon">💬</span><div class="empty-title">No offers yet</div><div class="empty-sub">Buyers will make offers here</div></div>';
+                container.innerHTML = `
+                    <div class="empty-state" style="text-align:center; padding:40px 20px;">
+                        <div style="font-size:48px; margin-bottom:12px;">💬</div>
+                        <div style="font-size:16px; font-weight:600; color:#2c3e2c; margin-bottom:6px;">No offers yet</div>
+                        <div style="font-size:13px; color:#999;">Buyers will make offers here</div>
+                    </div>
+                `;
                 return;
             }
             
@@ -1445,7 +1553,7 @@ function viewOffers(productId, productName) {
             container.innerHTML = html;
         })
         .catch(function() {
-            document.getElementById('offersList').innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-title">Failed to load offers</div></div>';
+            document.getElementById('offersList').innerHTML = '<div class="empty-state" style="text-align:center; padding:40px 20px;"><span style="font-size:36px;">⚠️</span><div style="font-size:16px;font-weight:600;color:#2c3e2c;margin-top:8px;">Failed to load offers</div></div>';
         });
 }
 
