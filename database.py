@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if not DATABASE_URL:
-    DATABASE_URL = "postgresql://neondb_owner:npg_9GZaIxBEz2hp@ep-dawn-haze-aohd5pn2-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    DATABASE_URL = "postgresql://neondb_owner:npg_6iyxMHpXf7ho@ep-odd-meadow-at6yas04-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require"
     logger.info("Using default DATABASE_URL (Neon PostgreSQL)")
 
 
