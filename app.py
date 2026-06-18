@@ -475,6 +475,10 @@ def update_last_seen():
 
 @app.before_request
 def check_remember_me():
+    # ✅ 如果已经是 admin 模式，跳过普通用户自动登录
+    if session.get('admin_logged_in'):
+        return
+    
     if 'user_id' in session:
         return
     
@@ -3170,9 +3174,16 @@ def admin_login():
         db.close()
 
         if user and check_password_hash(user['password'], password):
+            # ✅ 清除所有普通用户 session
+            session.pop('user_id', None)
+            session.pop('username', None)
+            session.pop('student_id', None)
+            
+            # ✅ 设置 admin session
             session['admin_logged_in'] = True
             session['admin_email'] = user['email']
             session['admin_username'] = user['username']
+            session['admin_user_id'] = user['id']  # 添加 admin 用户 ID
             
             if remember_me:
                 token = secrets.token_urlsafe(64)
@@ -3202,7 +3213,7 @@ def admin_login():
             flash('Invalid admin credentials', 'error')
 
     return render_template('admin_login.html')
-    
+
 @app.before_request
 def check_admin_remember_me():
     if session.get('admin_logged_in'):
