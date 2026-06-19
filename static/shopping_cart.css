@@ -78,7 +78,7 @@
     width: 200px;
     flex-shrink: 0;
     position: sticky;
-    top: 140px;
+    top: 160px;
     align-self: flex-start;
 }
 
@@ -116,7 +116,7 @@
 /* Sticky "Shopping Cart" title – no background */
 .cart-header-sticky {
     position: sticky;
-    top: 100px; /* below navbar */
+    top: 110px; /* below navbar */
     background: transparent;  /* no background – matches page */
     display: flex;
     align-items: center;
@@ -161,7 +161,7 @@
     width: 180px;
     flex-shrink: 0;
     position: sticky;
-    top: 140px;
+    top: 160px;
     align-self: flex-start;
     display: flex;
     flex-direction: column;
