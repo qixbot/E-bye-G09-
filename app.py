@@ -880,35 +880,30 @@ def update_profile_avatar():
     if file.filename == '':
         return jsonify({'success': False, 'error': 'Empty filename'}), 400
 
-    # 上传到 Cloudinary
-    avatar_url = upload_avatar(file)
-    if not avatar_url:
-        return jsonify({'success': False, 'error': 'Upload failed'}), 500
+    image_data = file.read()
+
+    if len(image_data) > 2 * 1024 * 1024:
+        return jsonify({'success': False, 'error': 'Image too large (max 2MB)'}), 400
 
     db = get_db()
     cur = db.cursor()
-    cur.execute('UPDATE users SET avatar_url = %s WHERE id = %s', (avatar_url, session['user_id']))
+    cur.execute('UPDATE users SET avatar_blob = %s WHERE id = %s', (image_data, session['user_id']))
     db.commit()
     cur.close()
     db.close()
 
-    return jsonify({'success': True, 'avatar_url': avatar_url})
+    return jsonify({'success': True})
 
 @app.route('/user-avatar/<int:user_id>')
 def user_avatar(user_id):
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT avatar_url, avatar_blob FROM users WHERE id = %s', (user_id,))
+    cur.execute('SELECT avatar_blob FROM users WHERE id = %s', (user_id,))
     user = cur.fetchone()
     cur.close()
     db.close()
-
-    # 优先使用 Cloudinary URL
-    if user and user.get('avatar_url'):
-        return redirect(user['avatar_url'])
-
-    # 兼容旧数据：从 blob 读取
-    if user and user.get('avatar_blob'):
+    
+    if user and user['avatar_blob']:
         avatar_data = bytes(user['avatar_blob']) if hasattr(user['avatar_blob'], 'tobytes') else user['avatar_blob']
         response = make_response(avatar_data)
         response.headers.set('Content-Type', 'image/jpeg')
