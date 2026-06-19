@@ -414,16 +414,135 @@
     }
 }
 
-/* Mobile */
-@media (max-width: 480px) {
-    .toast {
-        padding: 12px 24px;
-        font-size: 13px;
+/* ============================================================
+   HOMEPAGE - MOBILE RESPONSIVE (Shopee‑inspired)
+   ============================================================ */
+
+@media (max-width: 768px) {
+    /* --- Wrapper --- */
+    .homepage-wrapper {
+        padding: 12px 12px 80px 12px;
     }
-    
-    .toast::before {
-        width: 24px;
-        height: 24px;
-        font-size: 16px;
+
+    /* --- HERO BANNER --- */
+    .hero-carousel-container {
+        height: auto;
+        aspect-ratio: 600 / 236;
+        max-height: 236px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .carousel-nav-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+    }
+
+    .carousel-dots-wrapper {
+        bottom: 8px;
+        gap: 4px;
+    }
+
+    .carousel-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    /* --- CATEGORIES SECTION --- */
+    .categories-section {
+        margin: 16px 0 24px 0;
+    }
+
+    .categories-header {
+        margin-bottom: 10px;
+    }
+
+    .categories-title {
+        font-size: 1.1rem;
+    }
+
+    .view-all-btn {
+        font-size: 0.75rem;
+        gap: 4px;
+    }
+
+    .view-all-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .categories-container {
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .category-pill {
+        padding: 8px 14px;
+        font-size: 0.75rem;
+        min-width: 80px;
+        flex: 0 1 auto;
+        border-radius: 30px;
+    }
+
+    .category-pill span {
+        font-size: 0.9rem;
+    }
+
+    .more-categories.show-more {
+        margin-top: 8px;
+    }
+
+    /* --- LATEST PRODUCTS SECTION --- */
+    .latest-products-section {
+        margin: 16px 0 0 0;
+    }
+
+    .section-header {
+        margin-bottom: 12px;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+    }
+
+    .view-all-link {
+        font-size: 0.8rem;
+    }
+
+    /* Bottom search link */
+    .bottom-search-link {
+        margin-top: 20px;
+    }
+
+    .bottom-search-link a {
+        font-size: 0.8rem;
+    }
+}
+
+/* --- Extra small phones (under 400px) --- */
+@media (max-width: 420px) {
+    .homepage-wrapper {
+        padding: 8px 8px 70px 8px;
+    }
+
+    .hero-carousel-container {
+        border-radius: 6px;
+        margin-bottom: 12px;
+    }
+
+    .categories-title {
+        font-size: 0.95rem;
+    }
+
+    .category-pill {
+        padding: 6px 10px;
+        font-size: 0.65rem;
+        min-width: 60px;
+    }
+
+    .section-title {
+        font-size: 0.95rem;
     }
 }
