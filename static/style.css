@@ -250,5 +250,141 @@ img.nav-icon {
     color: #ffffff;
 }
 
+/* ============================================================
+   MOBILE RESPONSIVE - NAVBARS & GLOBAL LAYOUT
+   ============================================================ */
 
-/* You can add other global styles here */
+@media (max-width: 768px) {
+    /* --- TOP NAVBAR --- */
+    .top-navbar {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 10px 14px;
+        gap: 6px;
+    }
+
+    /* Logo area */
+    .nav-site .site-logo {
+        height: 40px;
+    }
+
+    .nav-site .site-name {
+        font-size: 20px;
+    }
+
+    /* Search bar - full width on mobile, placed below logo */
+    .nav-search {
+        width: 100%;
+        order: 3;
+        height: 38px;
+        margin-top: 4px;
+    }
+
+    .search-input {
+        font-size: 14px;
+    }
+
+    .search-icon {
+        font-size: 16px;
+        margin-right: 8px;
+    }
+
+    /* Profile icons - smaller and tighter */
+    .nav-profile {
+        gap: 4px;
+    }
+
+    .nav-profile a:last-child {
+        margin-left: 0;
+    }
+
+    .nav-icon-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1.1rem;
+        margin-right: 2px;
+    }
+
+    .nav-icon-img {
+        height: 18px;
+    }
+
+    .nav-avatar,
+    .nav-avatar-img {
+        width: 32px;
+        height: 32px;
+    }
+
+    .nav-avatar {
+        font-size: 0.9rem;
+    }
+
+    /* --- BOTTOM NAVBAR --- */
+    .bottom-nav {
+        height: 54px;
+    }
+
+    .nav-item {
+        padding: 4px 8px;
+    }
+
+    .nav-icon {
+        font-size: 1rem;
+    }
+
+    .nav-text {
+        font-size: 0.6rem;
+    }
+
+    /* Elevated Post button - slightly smaller */
+    .post-btn-wrapper {
+        width: 52px;
+        height: 54px;
+    }
+
+    .post-btn {
+        width: 52px;
+        height: 64px;
+        padding-top: 8px;
+        border-radius: 14px 14px 0 0;
+    }
+
+    .post-btn .plus-icon {
+        font-size: 1.3rem;
+    }
+}
+
+/* Extra small phones (under 400px) */
+@media (max-width: 420px) {
+    .top-navbar {
+        padding: 8px 10px;
+    }
+
+    .nav-site .site-logo {
+        height: 34px;
+    }
+
+    .nav-site .site-name {
+        font-size: 17px;
+    }
+
+    .nav-search {
+        height: 34px;
+    }
+
+    .search-input {
+        font-size: 13px;
+    }
+
+    .nav-icon-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 1rem;
+    }
+
+    .nav-avatar,
+    .nav-avatar-img {
+        width: 28px;
+        height: 28px;
+    }
+}
