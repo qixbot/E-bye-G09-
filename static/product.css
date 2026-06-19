@@ -769,16 +769,47 @@
 @media (max-width: 768px) {
     /* --- Main Container --- */
     .product-page {
-        padding: 16px 14px;
-        margin: 0 0 20px 0;
+        padding: 12px 12px 100px 12px;
+        margin: 0;
         border-radius: 0;
         box-shadow: none;
+        background: white;
+        min-height: 100vh;
     }
 
     /* --- Layout: Stack vertically --- */
     .product-grid {
         grid-template-columns: 1fr;
-        gap: 24px;
+        gap: 16px;
+    }
+
+    /* --- Header: Back button + actions --- */
+    .product-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding: 0 0 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .back-btn {
+        padding: 6px 14px;
+        font-size: 0.8rem;
+        border-radius: 30px;
+        background: #f5f5f5;
+    }
+
+    .page-actions {
+        display: flex;
+        gap: 6px;
+    }
+
+    .action-icon {
+        width: 34px;
+        height: 34px;
+        font-size: 1rem;
+        border-radius: 50%;
     }
 
     /* --- Image Gallery --- */
@@ -787,109 +818,208 @@
     }
 
     .main-image {
-        padding-top: 100%; /* keeps 1:1 ratio */
+        padding-top: 100%;
         border-radius: 12px;
     }
 
-    /* Thumbnail strip - smaller thumbs on mobile */
+    .main-image-wrapper .media-nav-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 1.2rem;
+    }
+
+    .image-counter {
+        font-size: 0.65rem;
+        padding: 2px 8px;
+        bottom: 6px;
+        right: 6px;
+    }
+
+    /* Thumbnails */
     .thumbnail-list {
         gap: 6px;
+        margin-top: 8px;
     }
 
     .thumbnail,
     .thumbnail-video-wrap {
-        width: 60px;
-        height: 60px;
-        min-width: 60px;
+        width: 56px;
+        height: 56px;
+        min-width: 56px;
+        border-radius: 8px;
     }
 
     .thumb-canvas,
     .thumb-video {
-        width: 60px;
-        height: 60px;
+        width: 56px;
+        height: 56px;
     }
 
     /* --- Product Info --- */
+    .condition-badge {
+        font-size: 0.6rem;
+        padding: 3px 10px;
+        margin-bottom: 6px;
+    }
+
+    .campus-badge {
+        font-size: 0.6rem;
+        padding: 3px 10px;
+        margin-bottom: 6px;
+    }
+
     .product-name {
-        font-size: 1.4rem;
-        margin-top: 6px;
+        font-size: 1.2rem;
+        margin: 4px 0 6px 0;
+        line-height: 1.3;
     }
 
     .price {
-        font-size: 1.6rem;
-        margin: 10px 0;
+        font-size: 1.4rem;
+        margin: 6px 0;
     }
 
-    /* Seller info: wrap nicely */
+    .description {
+        font-size: 0.85rem;
+        line-height: 1.6;
+        margin: 12px 0;
+    }
+
+    /* --- Seller Info --- */
     .seller-info {
+        display: flex;
         flex-wrap: wrap;
-        gap: 12px;
-    }
-
-    .upload-date {
-        margin-left: 0;
-        width: 100%;
-        font-size: 0.75rem;
-        color: #999;
+        align-items: center;
+        gap: 8px 16px;
+        padding: 10px 0;
+        border-top: 1px solid #f0f0f0;
+        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 12px;
     }
 
     .seller-profile-btn {
-        padding: 6px 8px;
+        padding: 4px 6px;
+        border-radius: 14px;
     }
 
     .seller-avatar {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
     }
 
     .seller-fullname {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+    }
+
+    .seller-username {
+        font-size: 0.7rem;
     }
 
     .chat-icon-btn {
         width: 32px;
         height: 32px;
         font-size: 0.9rem;
+        background: #f5f5f5;
+        border-radius: 50%;
     }
 
-    /* --- Buttons (stack full-width) --- */
+    .upload-date {
+        margin-left: 0;
+        width: 100%;
+        font-size: 0.7rem;
+        color: #999;
+        text-align: left;
+    }
+
+    /* --- Action Buttons --- */
+    .action-buttons {
+        gap: 10px;
+        margin-top: 8px;
+    }
+
     .double-buttons {
+        display: flex;
         flex-direction: column;
         gap: 10px;
+        width: 100%;
     }
 
     .double-buttons .offer-btn,
     .double-buttons .add-to-cart-btn {
         flex: none;
         width: 100%;
-        padding: 14px;
-        font-size: 1rem;
+        padding: 14px 12px;
+        font-size: 0.95rem;
+        border-radius: 40px;
+        text-align: center;
     }
 
     .buy-btn {
         width: 100%;
-        padding: 14px;
+        padding: 14px 12px;
+        font-size: 0.95rem;
+        border-radius: 40px;
+        text-align: center;
+    }
+
+    /* --- Sold/Reserved notices --- */
+    .sold-notice,
+    .own-product-notice {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+        border-radius: 12px;
+    }
+
+    .sold-notice span {
+        font-size: 1.5rem;
+    }
+
+    .sold-notice p {
         font-size: 1rem;
     }
 
     /* --- Modals --- */
-    .modal-content {
-        padding: 20px 16px;
-        max-width: 98%;
-        width: 98%;
-        border-radius: 20px;
+    .modal {
+        align-items: flex-end;  /* slide up from bottom */
     }
 
-    /* Buy Modal (location & date picker) */
+    .modal-content {
+        padding: 20px 16px;
+        max-width: 100%;
+        width: 100%;
+        border-radius: 20px 20px 0 0;
+        max-height: 92vh;
+        overflow-y: auto;
+        margin: 0;
+    }
+
+    .modal-content h2 {
+        font-size: 1.2rem;
+        margin-bottom: 8px;
+    }
+
+    .modal-caption {
+        font-size: 0.85rem;
+        margin-bottom: 16px;
+    }
+
+    .close {
+        font-size: 24px;
+        top: 12px;
+        right: 16px;
+    }
+
+    /* --- Buy Modal --- */
     .buy-modal-content {
         padding: 16px 14px !important;
-        width: 98% !important;
-        max-width: 98% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 20px 20px 0 0 !important;
     }
 
     .buy-modal-two-columns {
         flex-direction: column;
-        gap: 18px;
+        gap: 16px;
         min-height: auto;
         max-height: none;
     }
@@ -902,7 +1032,18 @@
     }
 
     .product-image-preview {
-        max-height: 220px;
+        max-height: 180px;
+        border-radius: 12px;
+    }
+
+    .modal-product-name {
+        font-size: 1rem;
+        margin-top: 8px;
+    }
+
+    .modal-product-price {
+        font-size: 1.2rem;
+        margin: 4px 0;
     }
 
     .buy-modal-divider {
@@ -914,117 +1055,205 @@
         overflow: visible;
     }
 
-    .location-grid {
-        height: 260px; /* slightly shorter on mobile */
-        gap: 10px !important;
-        padding: 4px 2px !important;
+    .location-header {
+        padding-left: 0;
     }
 
-    /* Location buttons: 2 columns on mobile */
+    .location-instruction {
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+    }
+
+    .selected-locations-info {
+        font-size: 0.75rem;
+    }
+
+    /* Location grid - 2 columns, compact */
+    .location-grid {
+        height: auto;
+        max-height: 260px;
+        gap: 8px !important;
+        padding: 4px 0 !important;
+    }
+
     .location-btn {
-        flex: 0 0 calc(50% - 5px) !important;
-        max-width: calc(50% - 5px) !important;
+        flex: 0 0 calc(50% - 4px) !important;
+        max-width: calc(50% - 4px) !important;
         aspect-ratio: 1 / 1;
         padding: 6px;
+        border-radius: 12px;
+        border: 1.5px solid #e8ece8;
     }
 
     .location-btn-img {
-        height: calc(100% - 30px);
+        height: calc(100% - 28px);
+        border-radius: 8px;
+        object-fit: cover;
     }
 
     .location-btn-label {
-        height: 30px;
-        line-height: 30px;
-        font-size: 11px;
+        height: 28px;
+        line-height: 28px;
+        font-size: 10px;
+        font-weight: 600;
     }
 
     /* Date picker rows */
     .date-row {
         padding: 6px 10px;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
+        border-radius: 16px;
+        background: #f9f9f9;
     }
 
     .datetime-picker {
         font-size: 13px;
         padding: 8px 10px;
+        border-radius: 12px;
+        width: 100%;
+    }
+
+    .remove-date-btn {
+        font-size: 14px;
+        width: 28px;
+        height: 28px;
     }
 
     .add-more-btn {
         font-size: 12px;
         padding: 8px 14px;
+        border-radius: 30px;
+        width: 100%;
+        text-align: center;
+        justify-content: center;
     }
 
     /* Modal buttons */
     .modal-buttons {
+        display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
         margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid #f0f0f0;
     }
 
     .modal-buttons .modal-cancel,
     .modal-buttons .modal-send {
         width: 100%;
         padding: 12px;
-    }
-
-    /* --- Report Modal --- */
-    .report-reasons {
-        gap: 8px;
-    }
-
-    .reason-btn {
-        padding: 6px 14px;
-        font-size: 0.8rem;
-    }
-
-    .report-textarea {
-        font-size: 13px;
-        padding: 10px;
+        font-size: 0.95rem;
+        border-radius: 40px;
+        text-align: center;
     }
 
     /* --- Offer Modal --- */
     .offer-input {
         font-size: 1rem;
         padding: 12px 14px;
+        border-radius: 30px;
+    }
+
+    .offer-hint {
+        font-size: 0.65rem;
+    }
+
+    /* --- Report Modal --- */
+    .report-reasons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .reason-btn {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+        border-radius: 30px;
+    }
+
+    .report-textarea {
+        font-size: 13px;
+        padding: 10px;
+        border-radius: 12px;
     }
 }
 
-/* Extra small phones (under 400px) */
+/* --- Extra small phones (under 420px) --- */
 @media (max-width: 420px) {
     .product-page {
-        padding: 12px 10px;
+        padding: 10px 10px 90px 10px;
+    }
+
+    .product-name {
+        font-size: 1.1rem;
+    }
+
+    .price {
+        font-size: 1.2rem;
+    }
+
+    .description {
+        font-size: 0.8rem;
     }
 
     .thumbnail,
     .thumbnail-video-wrap {
-        width: 50px;
-        height: 50px;
-        min-width: 50px;
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
     }
 
-    .product-name {
-        font-size: 1.2rem;
-    }
-
-    .price {
-        font-size: 1.4rem;
+    .thumb-canvas,
+    .thumb-video {
+        width: 48px;
+        height: 48px;
     }
 
     .seller-fullname {
         font-size: 0.8rem;
     }
 
+    .double-buttons .offer-btn,
+    .double-buttons .add-to-cart-btn,
+    .buy-btn {
+        padding: 12px 10px;
+        font-size: 0.85rem;
+    }
+
     .location-grid {
-        height: 220px;
+        max-height: 200px;
+        gap: 6px !important;
     }
 
     .location-btn {
-        flex: 0 0 calc(50% - 4px) !important;
-        max-width: calc(50% - 4px) !important;
+        flex: 0 0 calc(50% - 3px) !important;
+        max-width: calc(50% - 3px) !important;
+        padding: 4px;
+        border-radius: 10px;
+    }
+
+    .location-btn-img {
+        height: calc(100% - 24px);
+    }
+
+    .location-btn-label {
+        height: 24px;
+        line-height: 24px;
+        font-size: 9px;
     }
 
     .modal-content {
         padding: 16px 12px;
+    }
+
+    .buy-modal-content {
+        padding: 12px 10px !important;
+    }
+
+    .modal-buttons .modal-cancel,
+    .modal-buttons .modal-send {
+        padding: 10px;
+        font-size: 0.85rem;
     }
 }
