@@ -117,7 +117,7 @@
 .cart-header-sticky {
     position: sticky;
     top: 110px; /* below navbar */
-    background: transparent;  /* no background – matches page */
+    background: #e8e8e8;
     display: flex;
     align-items: center;
     gap: 20px;
