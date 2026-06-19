@@ -505,12 +505,13 @@
         padding: 12px 12px 140px 12px;
     }
 
+    /* --- Sticky Header --- */
     .cart-header-sticky {
         flex-wrap: wrap;
         gap: 10px;
         padding: 8px 0 12px 0;
         position: sticky;
-        top: 88px;
+        top: 88px;  /* below navbar */
         background: #f7f6f2;
         z-index: 50;
     }
@@ -540,11 +541,13 @@
         border-radius: 30px;
     }
 
+    /* --- Layout: Stack vertically --- */
     .cart-layout {
         flex-direction: column;
         gap: 16px;
     }
 
+    /* --- LEFT SIDEBAR: Categories (horizontal scroll) --- */
     .cart-sidebar-left {
         width: 100%;
         position: static;
@@ -580,10 +583,12 @@
         color: white;
     }
 
+    /* --- MIDDLE: Main content --- */
     .cart-main {
         width: 100%;
     }
 
+    /* --- Seller Groups --- */
     .seller-group {
         border-radius: 12px;
         margin-bottom: 16px;
@@ -616,6 +621,7 @@
         gap: 6px;
     }
 
+    /* --- Cart Item Cards --- */
     .cart-item-card {
         flex-direction: row;
         flex-wrap: wrap;
@@ -677,7 +683,7 @@
         text-align: center;
     }
 
-    /* --- RIGHT SIDEBAR: Action Buttons - Fixed at bottom --- */
+    /* --- RIGHT SIDEBAR: Action Buttons --- */
     .cart-sidebar-right {
         width: 100%;
         position: fixed;
@@ -728,15 +734,18 @@
         white-space: nowrap;
     }
 
+    /* Show action buttons when edit mode is active */
     .edit-mode-btn.active + .action-buttons {
         display: flex !important;
     }
 
+    /* --- Unavailable section --- */
     .cart-section .section-title {
         font-size: 1rem;
         margin-bottom: 12px;
     }
 
+    /* --- Empty states --- */
     .empty-cart-message,
     .empty-search-message {
         padding: 40px 20px;
@@ -767,7 +776,7 @@
 /* --- Extra small phones (under 420px) --- */
 @media (max-width: 420px) {
     .cart-page {
-        padding: 8px 8px 130px 8px;
+        padding: 8px 8px 90px 8px;
     }
 
     .cart-header-sticky {
@@ -777,21 +786,6 @@
 
     .cart-title {
         font-size: 1rem;
-    }
-
-    .cart-sidebar-right {
-        bottom: 54px;
-        padding: 10px 12px;
-    }
-
-    .edit-mode-btn {
-        padding: 8px 14px;
-        font-size: 0.75rem;
-    }
-
-    .action-buttons .action-btn {
-        padding: 8px 6px;
-        font-size: 0.65rem;
     }
 
     .cart-item-card {
@@ -818,6 +812,16 @@
     .buy-from-cart-btn {
         font-size: 0.6rem;
         padding: 5px 8px;
+    }
+
+    .cart-sidebar-right {
+        padding: 10px 12px;
+        bottom: 54px;
+    }
+
+    .action-buttons .action-btn {
+        font-size: 0.6rem;
+        padding: 6px 6px;
     }
 
     .category-filter {
