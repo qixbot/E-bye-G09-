@@ -6,7 +6,7 @@ import os
 cloudinary.config(
     cloud_name="dqajjowkm",
     api_key="921829476574145",
-    api_secret=os.environ.get('CLOUDINARY_API_SECRET', 'Z3GKYx_A3NlxudHODYPECXcw8n4')
+    api_secret="Z3GKYx_A3NlxdHODYPECXcw8n4"  # 用完整正确的值
 )
 
 def upload_avatar(file):
