@@ -609,22 +609,6 @@
     padding: 8px 4px !important;
 }
 
-/* Desktop: 4 columns (each 25% minus gap) */
-@media (min-width: 768px) {
-    .location-btn {
-        flex: 0 0 calc(25% - 15px) !important;
-        max-width: calc(25% - 15px) !important;
-    }
-}
-
-/* Mobile: 2 columns */
-@media (max-width: 767px) {
-    .location-btn {
-        flex: 0 0 calc(50% - 10px) !important;
-        max-width: calc(50% - 10px) !important;
-    }
-}
-
 /* Button styles – square, upward shift on hover */
 .location-btn {
     aspect-ratio: 1 / 1;
@@ -670,20 +654,6 @@
     background-color: #e0e0e0;
     margin: 16px 0;
     align-self: stretch;
-}
-
-/* Responsive stack on small screens */
-@media (max-width: 700px) {
-    .buy-modal-two-columns {
-        flex-direction: column;
-        gap: 20px;
-    }
-    .buy-modal-divider {
-        display: none;
-    }
-    .location-grid {
-        height: 340px;
-    }
 }
 
 .product-card:hover .sold-overlay {
@@ -790,4 +760,271 @@
 .remove-date-btn:hover {
     background: #e74c3c;
     color: white;
+}
+
+/* ============================================================
+   PRODUCT PAGE - MOBILE RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+    /* --- Main Container --- */
+    .product-page {
+        padding: 16px 14px;
+        margin: 0 0 20px 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    /* --- Layout: Stack vertically --- */
+    .product-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    /* --- Image Gallery --- */
+    .main-image-wrapper {
+        max-width: 100%;
+    }
+
+    .main-image {
+        padding-top: 100%; /* keeps 1:1 ratio */
+        border-radius: 12px;
+    }
+
+    /* Thumbnail strip - smaller thumbs on mobile */
+    .thumbnail-list {
+        gap: 6px;
+    }
+
+    .thumbnail,
+    .thumbnail-video-wrap {
+        width: 60px;
+        height: 60px;
+        min-width: 60px;
+    }
+
+    .thumb-canvas,
+    .thumb-video {
+        width: 60px;
+        height: 60px;
+    }
+
+    /* --- Product Info --- */
+    .product-name {
+        font-size: 1.4rem;
+        margin-top: 6px;
+    }
+
+    .price {
+        font-size: 1.6rem;
+        margin: 10px 0;
+    }
+
+    /* Seller info: wrap nicely */
+    .seller-info {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .upload-date {
+        margin-left: 0;
+        width: 100%;
+        font-size: 0.75rem;
+        color: #999;
+    }
+
+    .seller-profile-btn {
+        padding: 6px 8px;
+    }
+
+    .seller-avatar {
+        width: 40px;
+        height: 40px;
+    }
+
+    .seller-fullname {
+        font-size: 0.9rem;
+    }
+
+    .chat-icon-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+
+    /* --- Buttons (stack full-width) --- */
+    .double-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .double-buttons .offer-btn,
+    .double-buttons .add-to-cart-btn {
+        flex: none;
+        width: 100%;
+        padding: 14px;
+        font-size: 1rem;
+    }
+
+    .buy-btn {
+        width: 100%;
+        padding: 14px;
+        font-size: 1rem;
+    }
+
+    /* --- Modals --- */
+    .modal-content {
+        padding: 20px 16px;
+        max-width: 98%;
+        width: 98%;
+        border-radius: 20px;
+    }
+
+    /* Buy Modal (location & date picker) */
+    .buy-modal-content {
+        padding: 16px 14px !important;
+        width: 98% !important;
+        max-width: 98% !important;
+    }
+
+    .buy-modal-two-columns {
+        flex-direction: column;
+        gap: 18px;
+        min-height: auto;
+        max-height: none;
+    }
+
+    .buy-modal-left {
+        flex: none;
+        width: 100%;
+        position: static;
+        overflow: visible;
+    }
+
+    .product-image-preview {
+        max-height: 220px;
+    }
+
+    .buy-modal-divider {
+        display: none;
+    }
+
+    .buy-modal-right {
+        width: 100%;
+        overflow: visible;
+    }
+
+    .location-grid {
+        height: 260px; /* slightly shorter on mobile */
+        gap: 10px !important;
+        padding: 4px 2px !important;
+    }
+
+    /* Location buttons: 2 columns on mobile */
+    .location-btn {
+        flex: 0 0 calc(50% - 5px) !important;
+        max-width: calc(50% - 5px) !important;
+        aspect-ratio: 1 / 1;
+        padding: 6px;
+    }
+
+    .location-btn-img {
+        height: calc(100% - 30px);
+    }
+
+    .location-btn-label {
+        height: 30px;
+        line-height: 30px;
+        font-size: 11px;
+    }
+
+    /* Date picker rows */
+    .date-row {
+        padding: 6px 10px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .datetime-picker {
+        font-size: 13px;
+        padding: 8px 10px;
+    }
+
+    .add-more-btn {
+        font-size: 12px;
+        padding: 8px 14px;
+    }
+
+    /* Modal buttons */
+    .modal-buttons {
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .modal-buttons .modal-cancel,
+    .modal-buttons .modal-send {
+        width: 100%;
+        padding: 12px;
+    }
+
+    /* --- Report Modal --- */
+    .report-reasons {
+        gap: 8px;
+    }
+
+    .reason-btn {
+        padding: 6px 14px;
+        font-size: 0.8rem;
+    }
+
+    .report-textarea {
+        font-size: 13px;
+        padding: 10px;
+    }
+
+    /* --- Offer Modal --- */
+    .offer-input {
+        font-size: 1rem;
+        padding: 12px 14px;
+    }
+}
+
+/* Extra small phones (under 400px) */
+@media (max-width: 420px) {
+    .product-page {
+        padding: 12px 10px;
+    }
+
+    .thumbnail,
+    .thumbnail-video-wrap {
+        width: 50px;
+        height: 50px;
+        min-width: 50px;
+    }
+
+    .product-name {
+        font-size: 1.2rem;
+    }
+
+    .price {
+        font-size: 1.4rem;
+    }
+
+    .seller-fullname {
+        font-size: 0.8rem;
+    }
+
+    .location-grid {
+        height: 220px;
+    }
+
+    .location-btn {
+        flex: 0 0 calc(50% - 4px) !important;
+        max-width: calc(50% - 4px) !important;
+    }
+
+    .modal-content {
+        padding: 16px 12px;
+    }
 }
