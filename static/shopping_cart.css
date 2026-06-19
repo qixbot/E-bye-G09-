@@ -113,11 +113,24 @@
     min-width: 0;
 }
 
+/* Fill the 20px gap above the header so products don't peek through */
+.cart-header-sticky::before {
+    content: '';
+    position: absolute;
+    top: -20px;        /* covers the gap from 90px to 110px */
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: #e8e8e8;  /* same as header background */
+    z-index: -1;       /* stays behind the content but covers the gap */
+    pointer-events: none;
+}
+
 /* Sticky "Shopping Cart" title – no background */
 .cart-header-sticky {
     position: sticky;
     top: 110px; /* below navbar */
-    background: transparent;
+    background: #e8e8e8;
     display: flex;
     align-items: center;
     gap: 20px;
