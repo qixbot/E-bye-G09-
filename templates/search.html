@@ -6,9 +6,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='search.css') }}">
 
 <!-- Search Mode Tab Buttons -->
-<div class="search-mode-tabs">
-    <button class="search-tab-btn active" id="tab-products" onclick="switchTab('products')">📦 Products</button>
-    <button class="search-tab-btn" id="tab-users" onclick="switchTab('users')">👤 Users</button>
+<div class="search-tabs-sticky" id="searchTabsSticky">
+    <div class="search-mode-tabs">
+        <button class="search-tab-btn active" id="tab-products" onclick="switchTab('products')">📦 Products</button>
+        <button class="search-tab-btn" id="tab-users" onclick="switchTab('users')">👤 Users</button>
+    </div>
 </div>
 
 <div class="search-page-wrapper">
