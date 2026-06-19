@@ -253,11 +253,6 @@
 .product-campus.mlk {
     color: #9B5A5A;
 }
-@media (max-width: 768px) {
-    .product-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
 /* Video thumbnail inside product card carousel */
 .carousel-video-thumb {
     flex: 0 0 100%;
@@ -374,4 +369,131 @@
 .sold-notice small {
     color: #868e96;
     font-size: 0.85rem;
+}
+
+/* ============================================================
+   PRODUCT CARD - MOBILE RESPONSIVE (shared across all pages)
+   ============================================================ */
+
+@media (max-width: 768px) {
+    /* --- Grid layout (2 columns) --- */
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    /* --- Individual card --- */
+    .product-card {
+        border-radius: 10px;
+        border: 1px solid #f0f0f0;
+        transition: none;
+    }
+
+    .product-card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .product-image-container {
+        border-radius: 10px 10px 0 0;
+        padding-top: 100%;
+    }
+
+    .condition-badge {
+        top: 6px;
+        left: 6px;
+        padding: 2px 8px;
+        font-size: 0.6rem;
+        border-radius: 16px;
+    }
+
+    .sold-overlay .sold-badge-large {
+        font-size: 0.7rem;
+        padding: 4px 12px;
+    }
+
+    .product-info {
+        padding: 10px 10px 12px 10px;
+        gap: 4px;
+    }
+
+    .product-name {
+        font-size: 0.8rem;
+        -webkit-line-clamp: 2;
+        line-height: 1.3;
+        margin-bottom: 4px;
+    }
+
+    .product-price {
+        font-size: 0.95rem;
+        margin-bottom: 2px;
+    }
+
+    .product-price .original-price-strikethrough {
+        font-size: 0.7rem;
+    }
+
+    .product-price .sold-label-card {
+        font-size: 0.55rem;
+        padding: 1px 6px;
+    }
+
+    .product-seller {
+        margin-top: 2px;
+        gap: 4px;
+    }
+
+    .seller-left {
+        gap: 4px;
+    }
+
+    .seller-icon-img,
+    .seller-icon-placeholder {
+        width: 14px;
+        height: 14px;
+        font-size: 0.5rem;
+    }
+
+    .seller-name {
+        font-size: 0.65rem;
+    }
+
+    .product-campus {
+        font-size: 0.6rem;
+        font-weight: 600;
+    }
+}
+
+/* --- Extra small phones (under 400px) --- */
+@media (max-width: 420px) {
+    .product-grid {
+        gap: 6px;
+    }
+
+    .product-info {
+        padding: 8px 8px 10px 8px;
+    }
+
+    .product-name {
+        font-size: 0.7rem;
+    }
+
+    .product-price {
+        font-size: 0.8rem;
+    }
+
+    .seller-name {
+        font-size: 0.55rem;
+    }
+
+    .product-campus {
+        font-size: 0.5rem;
+    }
+
+    .seller-icon-img,
+    .seller-icon-placeholder {
+        width: 12px;
+        height: 12px;
+        font-size: 0.4rem;
+    }
 }
