@@ -762,6 +762,14 @@
     color: white;
 }
 
+/* Desktop: 4 columns */
+@media (min-width: 769px) {
+    .location-btn {
+        flex: 0 0 calc(25% - 15px) !important;
+        max-width: calc(25% - 15px) !important;
+    }
+}
+
 /* ============================================================
    PRODUCT PAGE - MOBILE RESPONSIVE
    ============================================================ */
