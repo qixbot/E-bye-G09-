@@ -16,6 +16,7 @@ from flask import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+from cloudinary_helper import upload_avatar, upload_cover, upload_product_image, upload_chat_image
 
 # Load environment variables from .env file
 load_dotenv()
@@ -879,30 +880,35 @@ def update_profile_avatar():
     if file.filename == '':
         return jsonify({'success': False, 'error': 'Empty filename'}), 400
 
-    image_data = file.read()
-
-    if len(image_data) > 2 * 1024 * 1024:
-        return jsonify({'success': False, 'error': 'Image too large (max 2MB)'}), 400
+    # 上传到 Cloudinary
+    avatar_url = upload_avatar(file)
+    if not avatar_url:
+        return jsonify({'success': False, 'error': 'Upload failed'}), 500
 
     db = get_db()
     cur = db.cursor()
-    cur.execute('UPDATE users SET avatar_blob = %s WHERE id = %s', (image_data, session['user_id']))
+    cur.execute('UPDATE users SET avatar_url = %s WHERE id = %s', (avatar_url, session['user_id']))
     db.commit()
     cur.close()
     db.close()
 
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'avatar_url': avatar_url})
 
 @app.route('/user-avatar/<int:user_id>')
 def user_avatar(user_id):
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT avatar_blob FROM users WHERE id = %s', (user_id,))
+    cur.execute('SELECT avatar_url, avatar_blob FROM users WHERE id = %s', (user_id,))
     user = cur.fetchone()
     cur.close()
     db.close()
-    
-    if user and user['avatar_blob']:
+
+    # 优先使用 Cloudinary URL
+    if user and user.get('avatar_url'):
+        return redirect(user['avatar_url'])
+
+    # 兼容旧数据：从 blob 读取
+    if user and user.get('avatar_blob'):
         avatar_data = bytes(user['avatar_blob']) if hasattr(user['avatar_blob'], 'tobytes') else user['avatar_blob']
         response = make_response(avatar_data)
         response.headers.set('Content-Type', 'image/jpeg')

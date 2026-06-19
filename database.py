@@ -321,6 +321,7 @@ def add_missing_columns():
             ('avg_overall_rating', 'DECIMAL(3,2) DEFAULT 0'),
             ('total_reviews', 'INTEGER DEFAULT 0'),
             ('campus', 'TEXT'),
+            ('avatar_url', 'TEXT'),  # ← 新增这一行
         ]
         for col_name, col_def in user_columns:
             try:
