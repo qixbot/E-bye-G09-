@@ -16,7 +16,7 @@ from flask import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-from cloudinary_helper import upload_avatar, upload_cover, upload_product_image, upload_chat_image
+
 
 # Load environment variables from .env file
 load_dotenv()
