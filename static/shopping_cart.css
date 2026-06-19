@@ -78,7 +78,7 @@
     width: 200px;
     flex-shrink: 0;
     position: sticky;
-    top: 180px;
+    top: 170px;
     align-self: flex-start;
 }
 
@@ -161,7 +161,7 @@
     width: 180px;
     flex-shrink: 0;
     position: sticky;
-    top: 180px;
+    top: 170px;
     align-self: flex-start;
     display: flex;
     flex-direction: column;
