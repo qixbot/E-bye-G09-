@@ -1234,31 +1234,55 @@ function goToPurchaseStep2() {
         showToastMessage('Please select at least one date and time', 'error');
         return;
     }
-    // Validate that all dates are in the future
+    
+    // 修复：更严格的日期验证
     var now = new Date();
+    // 清除时、分、秒、毫秒，只比较日期
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
     for (var i = 0; i < dates.length; i++) {
-        if (new Date(dates[i]) <= now) {
-            showToastMessage('All dates must be in the future', 'error');
+        var selectedDate = new Date(dates[i]);
+        if (isNaN(selectedDate.getTime())) {
+            showToastMessage('Invalid date format: ' + dates[i], 'error');
             return;
+        }
+        // 比较日期（忽略时间部分）
+        var selectedDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+        if (selectedDay.getTime() < today.getTime()) {
+            showToastMessage('All dates must be today or in the future', 'error');
+            return;
+        }
+        // 如果是今天，检查时间是否已过
+        if (selectedDay.getTime() === today.getTime()) {
+            var nowTime = now.getHours() * 60 + now.getMinutes();
+            var selTime = selectedDate.getHours() * 60 + selectedDate.getMinutes();
+            if (selTime <= nowTime + 15) { // 至少提前15分钟
+                showToastMessage('Time must be at least 15 minutes from now', 'error');
+                return;
+            }
         }
     }
 
-    // Build location grid with images
-selectedLocations = [];
-var grid = document.getElementById('purchaseLocationGrid');
-grid.innerHTML = '';
-_purchaseMeetupLocations.forEach(function(loc) {
-    var btn = document.createElement('button');
-    btn.className = 'location-btn';
-    btn.setAttribute('data-location', loc.name);
-    btn.innerHTML = `
-        <img src="${loc.image}" alt="${loc.name}" style="width:100%;height:60px;object-fit:cover;border-radius:8px;margin-bottom:4px;" onerror="this.style.display='none'">
-        <span style="font-size:11px;font-weight:500;color:#2c3e2c;text-align:center;">${loc.name}</span>
-    `;
-    btn.onclick = function() { toggleLocation(loc.name); };
-    grid.appendChild(btn);
-});
-updateLocationUI();
+    // 构建地点网格
+    selectedLocations = [];
+    var grid = document.getElementById('purchaseLocationGrid');
+    grid.innerHTML = '';
+    _purchaseMeetupLocations.forEach(function(loc) {
+        var btn = document.createElement('button');
+        btn.className = 'location-btn';
+        btn.setAttribute('data-location', loc.name);
+        btn.innerHTML = `
+            <img src="${loc.image}" alt="${loc.name}" style="width:100%;height:60px;object-fit:cover;border-radius:8px;margin-bottom:4px;" onerror="this.style.display='none'">
+            <span style="font-size:11px;font-weight:500;color:#2c3e2c;text-align:center;">${loc.name}</span>
+        `;
+        btn.onclick = function() { toggleLocation(loc.name); };
+        grid.appendChild(btn);
+    });
+    updateLocationUI();
+    
+    // 切换到第二步
+    document.getElementById('purchaseStep1').style.display = 'none';
+    document.getElementById('purchaseStep2').style.display = '';
 }
 
 // Allow going back to step 1 to change dates
