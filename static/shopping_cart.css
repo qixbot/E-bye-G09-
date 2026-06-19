@@ -776,7 +776,7 @@
 /* --- Extra small phones (under 420px) --- */
 @media (max-width: 420px) {
     .cart-page {
-        padding: 8px 8px 90px 8px;
+        padding: 8px 8px 130px 8px;
     }
 
     .cart-header-sticky {
@@ -786,6 +786,21 @@
 
     .cart-title {
         font-size: 1rem;
+    }
+
+    .cart-sidebar-right {
+        bottom: 54px;
+        padding: 10px 12px;
+    }
+
+    .edit-mode-btn {
+        padding: 8px 14px;
+        font-size: 0.75rem;
+    }
+
+    .action-buttons .action-btn {
+        padding: 8px 6px;
+        font-size: 0.65rem;
     }
 
     .cart-item-card {
@@ -812,16 +827,6 @@
     .buy-from-cart-btn {
         font-size: 0.6rem;
         padding: 5px 8px;
-    }
-
-    .cart-sidebar-right {
-        padding: 10px 12px;
-        bottom: 54px;
-    }
-
-    .action-buttons .action-btn {
-        font-size: 0.6rem;
-        padding: 6px 6px;
     }
 
     .category-filter {
