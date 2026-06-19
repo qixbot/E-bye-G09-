@@ -121,7 +121,7 @@
     left: 0;
     right: 0;
     height: 20px;
-    background: #f7f6f2;  /* same as header background */
+    background: #d4d6d5;  /* same as header background */
     z-index: -1;       /* stays behind the content but covers the gap */
     pointer-events: none;
 }
@@ -130,7 +130,7 @@
 .cart-header-sticky {
     position: sticky;
     top: 110px; /* below navbar */
-    background: #f7f6f2;
+    background: #d4d6d5;
     display: flex;
     align-items: center;
     gap: 20px;
