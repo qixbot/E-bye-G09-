@@ -116,7 +116,7 @@
 /* Sticky "Shopping Cart" title – no background */
 .cart-header-sticky {
     position: sticky;
-    top: 0;
+    top: 90px; /* below navbar */
     background: transparent;  /* no background – matches page */
     display: flex;
     align-items: center;
@@ -498,7 +498,7 @@
         gap: 10px;
         padding: 8px 0 12px 0;
         position: sticky;
-        top: 78px;  /* below navbar */
+        top: 88px;  /* below navbar */
         background: #f7f6f2;
         z-index: 50;
     }
