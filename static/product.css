@@ -251,12 +251,20 @@
     margin: -8px -10px;            /* negative margin to keep layout intact (or adjust parent padding) */
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
     background: transparent;
+    color: inherit;
+}
+
+/* Override any default link colors */
+.seller-profile-btn:link,
+.seller-profile-btn:visited {
+    color: inherit;  /* ← add this line */
 }
 
 /* Alternative: if you want to keep original spacing, remove negative margin and instead add padding to parent .seller-info */
 .seller-profile-btn:hover {
     background-color: rgba(0, 0, 0, 0.05);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    color: inherit;
 }
 
 /* Ensure seller-details still uses flex gap as before */
@@ -301,6 +309,7 @@
 .seller-fullname {
     font-weight: 700;
     font-size: 1rem;
+    color: #333;
 }
 
 .seller-username {
