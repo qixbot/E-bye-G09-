@@ -191,11 +191,16 @@
 
 .pf-name {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
-    line-height: 1.2;
-    color: var(--ink);
-    margin-bottom: 4px;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #1a1a1a, #2d5a3b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+    margin-bottom: 3px;
 }
 
 .pf-handle {
