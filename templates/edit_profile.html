@@ -744,7 +744,7 @@ function checkAdminStatus() {
 }
 
 // ============================================================
-// "HOW IS THIS % CALCULATED" INFO MODAL - UPDATED VERSION
+// "HOW IS THIS % CALCULATED" INFO MODAL - 诚实版 (匹配实际代码)
 // ============================================================
 window.openScoreInfoModal = function() {
     var modalHtml = `
@@ -757,40 +757,42 @@ window.openScoreInfoModal = function() {
                     <div class="score-info-section">
                         <div><span class="label">⭐ Trust Score</span> <span class="sub-label">(0–100)</span></div>
                         <ul>
-                            <li><b>Identity Verification</b> — Student ID, MMU email, profile photo, full name</li>
-                            <li><b>Profile Completion</b> — Bio, contact, gender, active hours, campus</li>
-                            <li><b>Transaction History</b> — Completed sales &amp; purchases <span style="color:#2d6a4f;">(most important!)</span></li>
-                            <li><b>Ratings &amp; Reviews</b> — Average rating from buyers &amp; sellers</li>
-                            <li><b>Account Age</b> — Longer membership = higher trust</li>
-                            <li><b>Chat Responsiveness</b> — Quick replies to messages</li>
-                            <li><b>Listing Activity</b> — Active and sold listings</li>
+                            <li><b>Profile Photo</b> — +8</li>
+                            <li><b>Bio</b> — +8</li>
+                            <li><b>Contact Number</b> — +7</li>
+                            <li><b>Full Name</b> — +7</li>
+                            <li><b>Account Age</b> — +5 to +20 (longer = higher)</li>
+                            <li><b>Active Listings</b> — up to +25 (more = higher trust)</li>
+                            <li><b>Active Hours</b> — +10</li>
+                            <li><b>Gender</b> — +5</li>
                         </ul>
-                        <div class="score-info-penalty">🔴 Penalties: Account freezes, high cancellation rate (&gt;30%)</div>
+                        <div class="score-info-tip">💡 Base score starts at 60, then bonuses are added above.</div>
                     </div>
 
                     <div class="score-info-section dark">
                         <div><span class="label">💬 Response Rate</span> <span class="sub-label">(0–100)</span></div>
                         <ul>
-                            <li><b>Chat Response Time</b> — How quickly you reply to messages</li>
-                            <li><b>Order Response Rate</b> — How often you respond to purchase requests</li>
-                            <li><b>Active Engagement</b> — Recent messages and order activity</li>
+                            <li><b>Active Listing</b> — +15</li>
+                            <li><b>Bio &amp; Contact filled</b> — +10</li>
+                            <li><b>Active Hours set</b> — +10</li>
+                            <li><b>Profile Photo</b> — +5</li>
                         </ul>
+                        <div class="score-info-tip">💡 Base score starts at 50, then bonuses are added above.</div>
                     </div>
 
                     <div class="score-info-section blue">
                         <div><span class="label">💡 Quick Tips to Improve Your Scores</span></div>
                         <ul>
-                            <li>✅ Complete all profile fields</li>
                             <li>✅ Upload a profile photo</li>
+                            <li>✅ Fill in your bio &amp; contact number</li>
                             <li>✅ Set your campus (Melaka/Cyberjaya)</li>
-                            <li>✅ Reply to messages within 30 minutes</li>
-                            <li>✅ Complete orders successfully</li>
-                            <li>✅ Maintain a 4.5+ star rating</li>
+                            <li>✅ Set your active hours</li>
+                            <li>✅ List more items for sale</li>
                         </ul>
                     </div>
                     
                     <div style="font-size:11px; color:#999; text-align:center; margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
-                        Scores update automatically as you use E-bye
+                        Scores update automatically as you complete your profile
                     </div>
                 </div>
                 <div class="modal-buttons">
