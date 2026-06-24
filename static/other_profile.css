@@ -249,12 +249,12 @@
 }
 
 .pf-bio {
-    padding: 8px 28px 0;
     font-size: 13px;
-    font-weight: 500;
-    color: var(--ink2);
-    line-height: 1.5;
+    font-weight: 400;
+    color: #6b6760;
+    line-height: 1.6;
     max-width: 500px;
+    padding: 8px 28px 0;
 }
 
 .pf-stats-row {
