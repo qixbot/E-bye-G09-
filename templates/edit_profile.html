@@ -156,6 +156,9 @@
                             <div class="ep-status-progress">
                                 <div class="ep-progress-bar" style="width: {{ trust_score|default(0)|int }}%;"></div>
                             </div>
+                            <div style="text-align:center; margin-top:6px;">
+                                <a href="#" id="howScoreLink" onclick="openScoreInfoModal(); return false;" style="font-size:12px; color:#2d6a4f; text-decoration:underline;">How is this % calculated?</a>
+                            </div>
                         </div>
 
                         <div class="ep-stats">
@@ -640,6 +643,55 @@ function checkAdminStatus() {
             console.log('Admin check failed:', err);
         });
 }
+
+// ============================================================
+// "HOW IS THIS % CALCULATED" INFO MODAL
+// ============================================================
+window.openScoreInfoModal = function() {
+    var modalHtml = `
+        <div id="scoreInfoModal" class="custom-modal">
+            <div class="modal-card" style="max-width: 420px; text-align:left;">
+                <div class="modal-icon" style="font-size: 40px; text-align:center;">📊</div>
+                <div class="modal-title" style="text-align:center;">How are Trust &amp; Response calculated?</div>
+                <div class="modal-message" style="text-align:left;">
+                    <b>⭐ Trust Score</b> starts at a base value and goes up when you:
+                    <ul style="margin:6px 0 12px 18px; padding:0;">
+                        <li>Add a profile photo</li>
+                        <li>Fill in your bio &amp; contact number</li>
+                        <li>Set your gender &amp; active hours</li>
+                        <li>Have been a member for longer</li>
+                        <li>List more items for sale</li>
+                    </ul>
+                    <b>💬 Response Rate</b> is an estimate based on:
+                    <ul style="margin:6px 0 0 18px; padding:0;">
+                        <li>Whether you have an active listing</li>
+                        <li>Whether your bio &amp; contact are filled in</li>
+                        <li>Whether your active hours are set</li>
+                        <li>Whether you have a profile photo</li>
+                    </ul>
+                    <div style="font-size:12px; color:#666; margin-top:10px;">
+                        💡 Tip: completing your profile below is the fastest way to raise both scores.
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-confirm" id="scoreInfoCloseBtn" style="background: linear-gradient(135deg, #2d6a4f, #1b4332);">Got it</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    var existing = document.getElementById('scoreInfoModal');
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    var modal = document.getElementById('scoreInfoModal');
+    document.getElementById('scoreInfoCloseBtn').onclick = function() {
+        modal.remove();
+    };
+    modal.onclick = function(e) {
+        if (e.target === modal) modal.remove();
+    };
+};
 
 window.switchToAdmin = function() {
     // Create beautiful modal for admin switch
