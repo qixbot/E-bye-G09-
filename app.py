@@ -2987,120 +2987,106 @@ def change_password():
 @app.route('/delete-account', methods=['POST'])
 def delete_account():
     if 'user_id' not in session:
+        flash('Please login first', 'error')
         return redirect(url_for('login'))
 
-    password = request.form.get('password')
-    confirm_text = request.form.get('confirm_text')
+    password = request.form.get('password', '')
+    confirm_text = request.form.get('confirm_text', '')
     user_id = session['user_id']
 
+    # 验证确认文本
     if confirm_text != 'DELETE':
         flash('Please type DELETE to confirm', 'error')
         return redirect(url_for('edit_profile'))
 
-    db = get_db()
-    cur = db.cursor()
-    cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
-    user = cur.fetchone()
-
-    # 防御性检查：避免 user 为 None 时 user['password'] 直接抛异常
-    if not user:
-        cur.close()
-        db.close()
-        session.clear()
-        flash('User not found', 'error')
-        return redirect(url_for('login'))
-
-    if not check_password_hash(user['password'], password):
-        cur.close()
-        db.close()
-        flash('Password is incorrect', 'error')
+    # 验证密码不能为空
+    if not password:
+        flash('Password is required', 'error')
         return redirect(url_for('edit_profile'))
 
+    db = get_db()
+    cur = db.cursor()
+    
     try:
-        # 清理所有引用该用户 / 该用户商品的关联数据，顺序：
-        # 先删"引用别人 id 的"子表，再删 orders/products，最后删 users，避免外键约束报错
-        # （参考 api_delete_product() 里同样的清理思路）
+        # 获取用户信息
+        cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            cur.close()
+            db.close()
+            session.clear()
+            flash('User not found', 'error')
+            return redirect(url_for('login'))
 
-        # 1) 该用户名下商品收到的报价相关通知（related_id 指向 offers.id）
-        cur.execute('''
-            DELETE FROM notifications WHERE related_id IN (
-                SELECT id FROM offers WHERE product_id IN (
-                    SELECT id FROM products WHERE seller_id = %s
-                )
-            )
-        ''', (user_id,))
-        # 该用户自己作为买家发出的报价相关通知
-        cur.execute('''
-            DELETE FROM notifications WHERE related_id IN (
-                SELECT id FROM offers WHERE buyer_id = %s
-            )
-        ''', (user_id,))
+        # 验证密码
+        if not check_password_hash(user['password'], password):
+            cur.close()
+            db.close()
+            flash('Password is incorrect', 'error')
+            return redirect(url_for('edit_profile'))
 
-        # 2) 购物车：自己的购物车 + 别人车里有该用户商品的记录
-        cur.execute('''
-            DELETE FROM cart_items WHERE user_id = %s OR product_id IN (
-                SELECT id FROM products WHERE seller_id = %s
-            )
-        ''', (user_id, user_id))
-
-        # 3) 报价记录：自己发出的 + 自己商品收到的
-        cur.execute('''
-            DELETE FROM offers WHERE buyer_id = %s OR product_id IN (
-                SELECT id FROM products WHERE seller_id = %s
-            )
-        ''', (user_id, user_id))
-
-        # 4) 评价：作为评价人 / 被评价人 / 涉及自己商品 / 涉及自己的订单
-        cur.execute('''
-            DELETE FROM reviews WHERE reviewer_id = %s OR reviewee_id = %s
-                OR product_id IN (SELECT id FROM products WHERE seller_id = %s)
-                OR order_id IN (SELECT id FROM orders WHERE buyer_id = %s OR seller_id = %s)
-        ''', (user_id, user_id, user_id, user_id, user_id))
-
-        # 5) 举报记录：自己举报别人 / 被别人举报 / 涉及自己商品
-        cur.execute('''
-            DELETE FROM reports WHERE reporter_id = %s OR reported_user_id = %s
-                OR product_id IN (SELECT id FROM products WHERE seller_id = %s)
-        ''', (user_id, user_id, user_id))
-
-        # 6) 聊天消息：自己发的 / 收到的 / 涉及自己商品的对话
-        cur.execute('''
-            DELETE FROM messages WHERE sender_id = %s OR receiver_id = %s
-                OR product_id IN (SELECT id FROM products WHERE seller_id = %s)
-        ''', (user_id, user_id, user_id))
-
-        # 7) 该用户自己的通知 + 涉及自己商品的其它通知
-        cur.execute('''
-            DELETE FROM notifications WHERE user_id = %s
-                OR product_id IN (SELECT id FROM products WHERE seller_id = %s)
-        ''', (user_id, user_id))
-
-        # 8) 订单（买家或卖家身份）
+        # ===== 按正确顺序删除（从子表到父表） =====
+        
+        # 1. 删除通知（直接关联用户）
+        cur.execute('DELETE FROM notifications WHERE user_id = %s', (user_id,))
+        
+        # 2. 删除购物车
+        cur.execute('DELETE FROM cart_items WHERE user_id = %s', (user_id,))
+        
+        # 3. 删除消息
+        cur.execute('DELETE FROM messages WHERE sender_id = %s OR receiver_id = %s', (user_id, user_id))
+        
+        # 4. 删除评价
+        cur.execute('DELETE FROM reviews WHERE reviewer_id = %s OR reviewee_id = %s', (user_id, user_id))
+        
+        # 5. 删除举报
+        cur.execute('DELETE FROM reports WHERE reporter_id = %s OR reported_user_id = %s', (user_id, user_id))
+        
+        # 6. 获取用户的所有产品 ID
+        cur.execute('SELECT id FROM products WHERE seller_id = %s', (user_id,))
+        product_ids = [row['id'] for row in cur.fetchall()]
+        
+        # 7. 删除产品相关的通知（使用 product_id）
+        if product_ids:
+            placeholders = ','.join(['%s'] * len(product_ids))
+            cur.execute(f'DELETE FROM notifications WHERE product_id IN ({placeholders})', product_ids)
+        
+        # 8. 删除报价（先用 product_ids）
+        if product_ids:
+            cur.execute(f'DELETE FROM offers WHERE product_id IN ({placeholders})', product_ids)
+        cur.execute('DELETE FROM offers WHERE buyer_id = %s', (user_id,))
+        
+        # 9. 删除订单
         cur.execute('DELETE FROM orders WHERE buyer_id = %s OR seller_id = %s', (user_id, user_id))
-
-        # 9) 商品本身
+        
+        # 10. 删除产品
         cur.execute('DELETE FROM products WHERE seller_id = %s', (user_id,))
-
-        # 10) 最后删用户记录
+        
+        # 11. 最后删除用户
         cur.execute('DELETE FROM users WHERE id = %s', (user_id,))
-
+        
         db.commit()
+        
     except Exception as e:
         db.rollback()
         cur.close()
         db.close()
-        print(f"delete_account error: {e}")
+        print(f"Delete account error: {e}")
+        import traceback
+        traceback.print_exc()
         flash('Something went wrong while deleting your account. Please try again or contact support.', 'error')
         return redirect(url_for('edit_profile'))
 
     cur.close()
     db.close()
 
+    # 清除 session
     session.clear()
-
     response = redirect(url_for('login'))
     response.set_cookie('remember_token', '', expires=0)
-
+    response.set_cookie('admin_remember_token', '', expires=0)
+    
     flash('Your account has been permanently deleted', 'info')
     return response
 
