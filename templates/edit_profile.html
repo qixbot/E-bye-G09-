@@ -46,6 +46,82 @@
         background: linear-gradient(135deg, #6c3483, #4a235a) !important;
         transform: translateY(-2px);
     }
+    
+    /* ===== STATUS BADGE STYLES ===== */
+    .ep-status-badge.verified {
+        background: #2d6a4f;
+        color: white;
+    }
+    .ep-status-badge.admin {
+        background: #8e44ad;
+        color: white;
+    }
+    .ep-status-badge.pending {
+        background: #f39c12;
+        color: white;
+    }
+    .ep-status-badge.frozen {
+        background: #e67e22;
+        color: white;
+    }
+    .ep-status-badge.blocked {
+        background: #e74c3c;
+        color: white;
+    }
+    
+    .ep-verified.verified {
+        color: #2d6a4f;
+        background: #e8f5e9;
+    }
+    .ep-verified.pending {
+        color: #e67e22;
+        background: #fdf6e8;
+    }
+    .ep-verified.frozen {
+        color: #c0392b;
+        background: #fde8e8;
+    }
+    .ep-verified.blocked {
+        color: #c0392b;
+        background: #fde8e8;
+    }
+    
+    /* ===== SCORE INFO MODAL STYLES ===== */
+    .score-info-section {
+        background: #f0f7f4;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+    .score-info-section.dark {
+        background: #fdf6f0;
+    }
+    .score-info-section.blue {
+        background: #e8f4fd;
+    }
+    .score-info-section ul {
+        margin: 6px 0 0 18px;
+        padding: 0;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+    .score-info-section .label {
+        font-weight: 600;
+    }
+    .score-info-section .sub-label {
+        font-size: 12px;
+        color: #555;
+    }
+    .score-info-tip {
+        font-size: 12px;
+        color: #555;
+        margin-top: 4px;
+    }
+    .score-info-penalty {
+        font-size: 12px;
+        color: #c0392b;
+        margin-top: 4px;
+    }
 </style>
 
 <div class="ep-page" id="epPage">
@@ -137,7 +213,20 @@
                         <div class="ep-account-status">
                             <div class="ep-status-header">
                                 <span>⭐ Account Status</span>
-                                <span class="ep-status-badge verified">✓ Verified</span>
+                                <span class="ep-status-badge 
+                                    {% if user.is_blocked %}blocked
+                                    {% elif user.is_frozen %}frozen
+                                    {% elif user.is_admin %}admin
+                                    {% elif user.student_id %}verified
+                                    {% else %}pending
+                                    {% endif %}">
+                                    {% if user.is_blocked %}🚫 Blocked
+                                    {% elif user.is_frozen %}❄️ Frozen
+                                    {% elif user.is_admin %}👑 Admin
+                                    {% elif user.student_id %}✓ Verified
+                                    {% else %}⏳ Pending
+                                    {% endif %}
+                                </span>
                             </div>
                             <div class="ep-status-metrics">
                                 <div>
@@ -176,7 +265,18 @@
                             </a>
                         </div>
 
-                        <div class="ep-verified">✓ MMU Verified</div>
+                        <div class="ep-verified 
+                            {% if user.is_blocked %}blocked
+                            {% elif user.is_frozen %}frozen
+                            {% elif user.student_id %}verified
+                            {% else %}pending
+                            {% endif %}">
+                            {% if user.is_blocked %}🚫 Account Blocked
+                            {% elif user.is_frozen %}❄️ Account Frozen ({{ user.freeze_count|default(0) }}/3)
+                            {% elif user.student_id %}✓ MMU Student Verified
+                            {% else %}⏳ Student ID Verification Pending
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -238,8 +338,8 @@
                                     <label>Campus <span style="color: #d63c2c;">*</span></label>
                                     <select name="campus" required style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e8ece8; background: white;">
                                         <option value="" disabled {% if not user.campus %}selected{% endif %}>-- Select your campus --</option>
-                                        <option value="Melaka" {% if user.campus == 'Melaka' %}selected{% endif %}> Melaka Campus</option>
-                                        <option value="Cyberjaya" {% if user.campus == 'Cyberjaya' %}selected{% endif %}> Cyberjaya Campus</option>
+                                        <option value="Melaka" {% if user.campus == 'Melaka' %}selected{% endif %}>📍 Melaka Campus</option>
+                                        <option value="Cyberjaya" {% if user.campus == 'Cyberjaya' %}selected{% endif %}>📍 Cyberjaya Campus</option>
                                     </select>
                                     <div class="ep-hint">📍 Required for meetup coordination</div>
                                 </div>
@@ -629,7 +729,6 @@ function showToastMessage(message, type) {
 // CHECK ADMIN STATUS & SWITCH TO ADMIN
 // ============================================================
 
-//  check admin status to decide whether to show Admin button
 function checkAdminStatus() {
     fetch('/api/user/is-admin', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
@@ -645,32 +744,53 @@ function checkAdminStatus() {
 }
 
 // ============================================================
-// "HOW IS THIS % CALCULATED" INFO MODAL
+// "HOW IS THIS % CALCULATED" INFO MODAL - UPDATED VERSION
 // ============================================================
 window.openScoreInfoModal = function() {
     var modalHtml = `
         <div id="scoreInfoModal" class="custom-modal">
-            <div class="modal-card" style="max-width: 420px; text-align:left;">
+            <div class="modal-card" style="max-width: 500px; text-align:left;">
                 <div class="modal-icon" style="font-size: 40px; text-align:center;">📊</div>
-                <div class="modal-title" style="text-align:center;">How are Trust &amp; Response calculated?</div>
-                <div class="modal-message" style="text-align:left;">
-                    <b>⭐ Trust Score</b> starts at a base value and goes up when you:
-                    <ul style="margin:6px 0 12px 18px; padding:0;">
-                        <li>Add a profile photo</li>
-                        <li>Fill in your bio &amp; contact number</li>
-                        <li>Set your gender &amp; active hours</li>
-                        <li>Have been a member for longer</li>
-                        <li>List more items for sale</li>
-                    </ul>
-                    <b>💬 Response Rate</b> is an estimate based on:
-                    <ul style="margin:6px 0 0 18px; padding:0;">
-                        <li>Whether you have an active listing</li>
-                        <li>Whether your bio &amp; contact are filled in</li>
-                        <li>Whether your active hours are set</li>
-                        <li>Whether you have a profile photo</li>
-                    </ul>
-                    <div style="font-size:12px; color:#666; margin-top:10px;">
-                        💡 Tip: completing your profile below is the fastest way to raise both scores.
+                <div class="modal-title" style="text-align:center;">How Are Trust &amp; Response Rate Calculated?</div>
+                <div class="modal-message" style="text-align:left; max-height: 440px; overflow-y: auto; padding-right: 8px;">
+                    
+                    <div class="score-info-section">
+                        <div><span class="label">⭐ Trust Score</span> <span class="sub-label">(0–100)</span></div>
+                        <ul>
+                            <li><b>Identity Verification</b> — Student ID, MMU email, profile photo, full name</li>
+                            <li><b>Profile Completion</b> — Bio, contact, gender, active hours, campus</li>
+                            <li><b>Transaction History</b> — Completed sales &amp; purchases <span style="color:#2d6a4f;">(most important!)</span></li>
+                            <li><b>Ratings &amp; Reviews</b> — Average rating from buyers &amp; sellers</li>
+                            <li><b>Account Age</b> — Longer membership = higher trust</li>
+                            <li><b>Chat Responsiveness</b> — Quick replies to messages</li>
+                            <li><b>Listing Activity</b> — Active and sold listings</li>
+                        </ul>
+                        <div class="score-info-penalty">🔴 Penalties: Account freezes, high cancellation rate (&gt;30%)</div>
+                    </div>
+
+                    <div class="score-info-section dark">
+                        <div><span class="label">💬 Response Rate</span> <span class="sub-label">(0–100)</span></div>
+                        <ul>
+                            <li><b>Chat Response Time</b> — How quickly you reply to messages</li>
+                            <li><b>Order Response Rate</b> — How often you respond to purchase requests</li>
+                            <li><b>Active Engagement</b> — Recent messages and order activity</li>
+                        </ul>
+                    </div>
+
+                    <div class="score-info-section blue">
+                        <div><span class="label">💡 Quick Tips to Improve Your Scores</span></div>
+                        <ul>
+                            <li>✅ Complete all profile fields</li>
+                            <li>✅ Upload a profile photo</li>
+                            <li>✅ Set your campus (Melaka/Cyberjaya)</li>
+                            <li>✅ Reply to messages within 30 minutes</li>
+                            <li>✅ Complete orders successfully</li>
+                            <li>✅ Maintain a 4.5+ star rating</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="font-size:11px; color:#999; text-align:center; margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                        Scores update automatically as you use E-bye
                     </div>
                 </div>
                 <div class="modal-buttons">
@@ -694,7 +814,6 @@ window.openScoreInfoModal = function() {
 };
 
 window.switchToAdmin = function() {
-    // Create beautiful modal for admin switch
     var modalHtml = `
         <div id="adminSwitchModal" class="custom-modal">
             <div class="modal-card" style="max-width: 380px;">
@@ -726,7 +845,6 @@ window.switchToAdmin = function() {
     confirmBtn.onclick = function() {
         modal.remove();
         
-        // Show loading toast
         var container = document.createElement('div');
         container.className = 'toast-container';
         var toastDiv = document.createElement('div');
@@ -745,19 +863,6 @@ window.switchToAdmin = function() {
     };
 };
 
-function showToastMessage(message, type) {
-    var existing = document.querySelector('.toast-container');
-    if (existing) existing.remove();
-    var container = document.createElement('div');
-    container.className = 'toast-container';
-    var toastDiv = document.createElement('div');
-    toastDiv.className = 'toast toast-' + type;
-    toastDiv.innerHTML = '<span>' + message + '</span>';
-    container.appendChild(toastDiv);
-    document.body.appendChild(container);
-    setTimeout(function() { container.remove(); }, 3000);
-}
-
 // ============================================================
 // PAGE INITIALIZATION - SINGLE DOMContentLoaded
 // ============================================================
@@ -773,8 +878,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize cover and avatar
     loadCoverFromServer();
     loadAvatarFromServer();
-    
-    // Color grid click handlers are already set in buildGrid
     
     // Background panel buttons
     var bgSaveBtn = document.getElementById('bgSaveBtn');
