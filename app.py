@@ -102,9 +102,12 @@ def unread_count():
 # ============================================================
 # Helper functions
 # ============================================================
+
+# Xingru'part
+# Emoji mapping based on product name
 def get_emoji_by_category(name):
     """Return an emoji based on product name (fallback for purchases)"""
-    name_lower = str(name).lower()
+    name_lower = str(name).lower()          #convert to string and lowercase for safety
     if 'book' in name_lower:
         return '📚'
     if 'gadget' in name_lower or 'phone' in name_lower or 'laptop' in name_lower:
@@ -186,7 +189,12 @@ def calculate_trust_score(user, listing_count):
     return trust_score
 
 # ============================================================
+<<<<<<< HEAD
 # TEMPLATE FILTER - Format time since user joined
+=======
+#                       Xingru's part
+#                    Time Since Filter
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.template_filter('time_since')
 def time_since(date):
@@ -199,26 +207,41 @@ def time_since(date):
     """
     # Return default if no date provided
     if not date:
+<<<<<<< HEAD
         return 'Just joined'
     
     now = datetime.now()
     
     # Convert string date to datetime if needed
     if isinstance(date, str):
+=======
+        return 'Just joined'          # If date is None or empty, return 'Just joined'
+    now = datetime.now()
+    if isinstance(date, str):          # If date is a string, parse it
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
         try:
-            date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')          # converts it into a structured Python datetime object via format configurations
         except:
-            return 'Just joined'
+            return 'Just joined'          # If parsing fails, return 'Just joined'
     
+<<<<<<< HEAD
     # Remove timezone info for clean comparison
     if hasattr(date, 'tzinfo') and date.tzinfo is not None:
         date = date.replace(tzinfo=None)
     
     # Calculate time difference
+=======
+    # Remove timezone info if present
+    if hasattr(date, 'tzinfo') and date.tzinfo is not None:          # If the date has timezone info, remove it to avoid comparison issues
+        date = date.replace(tzinfo=None)
+    
+    # Calculate the difference between now and the given date
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
     diff = now - date
     
     # Format based on time elapsed
     if diff.days > 365:
+<<<<<<< HEAD
         years = diff.days // 365
         return f"{years} year{'s' if years > 1 else ''}"
     elif diff.days > 30:
@@ -226,28 +249,45 @@ def time_since(date):
         return f"{months} month{'s' if months > 1 else ''}"
     elif diff.days > 0:
         return f"{diff.days} day{'s' if diff.days > 1 else ''}"
+=======
+        return f"{diff.days//365} year{'s' if diff.days//365 > 1 else ''}"          # If the difference is more than a year, return the number of years
+    elif diff.days > 30:
+        return f"{diff.days//30} month{'s' if diff.days//30 > 1 else ''}"          # If the difference is more than a month, return the number of months
+    elif diff.days > 0:
+        return f"{diff.days} day{'s' if diff.days > 1 else ''}"          # If the difference is more than a day, return the number of days
+    elif diff.days == 0:
+        return 'Just joined'
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
     else:
         return 'Just joined'
 
 # ============================================================
+<<<<<<< HEAD
 # ?'s Routes
+=======
+#                       Xingru's part
+#                 Video Thumbnail Generation
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
     """Extract a frame from video at given time offset and save as JPEG."""
     cmd = [
         'ffmpeg',
-        '-i', video_path,
-        '-ss', str(time_offset),
-        '-vframes', '1',
-        '-q:v', '2',
-        '-y',
-        thumbnail_path
+        '-i', video_path,          # Input video file
+        '-ss', str(time_offset),          # Seek to the specified time offset (in seconds)
+        '-vframes', '1',          # Extract only one frame
+        '-q:v', '2',          # Set quality for JPEG (lower is better, 2 is high quality)
+        '-y',          # Overwrite output file if it exists
+        thumbnail_path          # Output thumbnail file path
     ]
+    # Run the command and handle errors
     try:
+        # uses "subprocess" engine module to execute the ffmpeg command list in the system background environment
+        # It blocks execution until it returns, ensuring code reliability by asserting validation checks (check=True) and capturing status log strings.
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         print(f"Thumbnail generated for {video_path}")
         return True
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError as e:           # If ffmpeg fails, print the error message and return False
         print(f"FFmpeg error for {video_path}: {e.stderr}")
         return False
 
@@ -272,9 +312,15 @@ def create_notification(user_id, message, notif_type='general', related_id=None,
         return False
 
 # ============================================================
+<<<<<<< HEAD
 # Eileen's Routes
 # ============================================================
 # Template filter - abbreviate campus name (Cyberjaya → CYBER, Melaka → MLK)
+=======
+#                       Xingru's part
+#                 Campus Abbreviation Filter
+# ============================================================
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 @app.template_filter('campus_abbr')
 def campus_abbr(campus):
     if not campus:
@@ -738,54 +784,63 @@ def register():
     return render_template('register.html')
 
 # ============================================================
+<<<<<<< HEAD
 # ？'s Routes
+=======
+#                       Xingru's route
+#                        Home Page
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/home')
 def home():
-    if 'user_id' not in session:
+    if 'user_id' not in session:          # If the user is not logged in, redirect to login page
         return redirect(url_for('login'))
 
-    db = get_db()
-    cur = db.cursor()
+    db = get_db()          # Get a database connection
+    cur = db.cursor()          # Create a cursor to execute SQL queries
     cur.execute('''
         SELECT p.*, u.username as seller_name, u.full_name as seller_full_name, u.id as seller_id, u.campus as seller_campus
         FROM products p
         JOIN users u ON p.seller_id = u.id
         WHERE p.status IN ('approved') AND u.is_blocked = 0
         ORDER BY p.created_at DESC
-    ''')
-    products_data = cur.fetchall()
+    ''')          # Select the latest approved products and their sellers, ordered by creation date
+    products_data = cur.fetchall()          # Fetch all the results from the executed query
     cur.close()
     db.close()
 
     products = []
-    for row in products_data:
-        product = dict(row)
+    for row in products_data:          # Iterate through each product row and process its images
+        product = dict(row)          # Convert the row to a dictionary for easier access to its fields
+
+        # retrieves disk image location strings (images) and base64 string storage arrays (images_blob)
         images_str = product.get('images', '')
         images_blob_str = product.get('images_blob', '[]')
         
+        # Process base64 images
         base64_list = []
-        if images_blob_str and images_blob_str != '[]':
+        if images_blob_str and images_blob_str != '[]':          # checks whether the inline image field contains data beyond empty JSON array brackets
             try:
-                base64_list = json.loads(images_blob_str)
-                base64_list = [img for img in base64_list if img.startswith('data:')]
+                base64_list = json.loads(images_blob_str)          # Attempts to parse the JSON array string into a live list object
+                base64_list = [img for img in base64_list if img.startswith('data:')]          # Filter out any non-base64 strings (e.g., empty strings or invalid data)
             except:
-                base64_list = []
+                base64_list = []          # If parsing fails, default to an empty list
         
         if images_str:
             img_list = images_str.split(',')
-            image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}
+            image_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif', 'bmp'}          # Define a set of valid image file extensions for filtering
             image_only = []
             for f in img_list:
-                f = f.strip()
-                ext = f.split('.')[-1].lower()
-                if ext in image_extensions:
+                f = f.strip()        # Remove any leading/trailing whitespace from the filename
+                ext = f.split('.')[-1].lower()           # extracts the file extension after the dot and convert it to lowercase for case-insensitive comparison
+                if ext in image_extensions:          # Check if the file extension is in the set of valid image extensions
                     image_only.append(f)
-            product['images_list'] = image_only[:3]
-            product['actual_total'] = len(img_list)
-            product['image_1'] = image_only[0] if len(image_only) > 0 else None
+            product['images_list'] = image_only[:3]          # Restricts the inline image preview container array to the first 3 items
+            product['actual_total'] = len(img_list)          # Store the total number of images (including non-image files) for display purposes
+            product['image_1'] = image_only[0] if len(image_only) > 0 else None          # Store the first valid image for display; if none, set to None
             product['image_2'] = image_only[1] if len(image_only) > 1 else None
         else:
+            # Clean fallback fields for items with no uploaded images, preventing frontend rendering errors
             product['images_list'] = []
             product['actual_total'] = 0
             product['image_1'] = None
@@ -800,18 +855,23 @@ def home():
         username=session.get('username'), latest_products=products)
 
 # ============================================================
+<<<<<<< HEAD
 # ？'s Routes
+=======
+#                       Xingru's route
+#                        Search Page
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/search')
 def search():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    keyword = request.args.get('q', '').strip()
+    keyword = request.args.get('q', '').strip()          # Retrieve the search keyword from the query parameters and remove leading/trailing whitespace
     
-    campus_raw = request.args.get('campus', '')
+    campus_raw = request.args.get('campus', '')          # Retrieve the raw campus filter string from the query parameters
     if campus_raw:
-        campuses = [c.strip() for c in campus_raw.split(',') if c.strip() and c != 'all']
+        campuses = [c.strip() for c in campus_raw.split(',') if c.strip() and c != 'all']          # Split the raw string by commas, remove whitespace, and filter out empty strings and 'all'
     else:
         campuses = []
 
@@ -845,7 +905,7 @@ def search():
         JOIN users u ON p.seller_id = u.id
         WHERE p.status IN ({})
           AND u.is_blocked = 0
-    """.format(','.join(['%s']*len(statuses)))
+    """.format(','.join(['%s']*len(statuses)))          # Prepare the SQL query with placeholders for the statuses
     
     params = []
     params.extend(statuses)
@@ -2536,7 +2596,12 @@ def api_buy_now():
     return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
 
 # ============================================================
+<<<<<<< HEAD
 # ?'s Routes
+=======
+#                       Xingru's route
+#                       Add to Cart
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/add-to-cart/<int:product_id>', methods=['POST'])
 def add_to_cart(product_id):
@@ -2575,7 +2640,12 @@ def add_to_cart(product_id):
         return jsonify({'success': False, 'error': 'Item already in cart'}), 400
 
 # ============================================================
+<<<<<<< HEAD
 # ?'s Routes
+=======
+#                       Xingru's route
+#                       Shopping Cart
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/cart')
 def shopping_cart():
@@ -2758,9 +2828,15 @@ def api_product_seller_campus(product_id):
     db.close()
     return jsonify({'campus': row['campus'] if row else 'Cyberjaya'})
 
+<<<<<<< HEAD
 # ============================================================
 # ?'s Routes
 # ============================================================
+=======
+
+
+
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 @app.route('/notifications')
 def notifications_page():
     if 'user_id' not in session:
@@ -2883,11 +2959,16 @@ def mark_chat_read(other_user_id):
     return jsonify({'success': True})
 
 # ============================================================
+<<<<<<< HEAD
 # EILEEN'S ROUTES - Product Management, Profile, Account Settings
 # ============================================================
 
 # ============================================================
 # API - GET PRODUCT - Get single product by ID (for editing)
+=======
+#                       Xingru's route
+#                         Product API
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/api/product/<int:product_id>')
 def api_get_product(product_id):
@@ -5029,7 +5110,12 @@ def ship_order(order_id):
     return jsonify({'success': True})
 
 # ============================================================
+<<<<<<< HEAD
 # ?'s Routes
+=======
+#                       Xingru's route
+#                        Search Users
+>>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/api/search-users')
 def search_users():
@@ -5145,6 +5231,11 @@ def delete_announcement(ann_id):
         print(f"Delete announcement error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+# ============================================================
+#                       Xingru's route
+#                       Upload Product
+# ============================================================
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_product():
     if 'user_id' not in session:
@@ -5859,9 +5950,9 @@ def meetup_locations():
     return render_template('meetup.html')
 
 # ============================================================
-# Other User Profile - Xingru
+#                       Xingru's route
+#                     Other User Profile
 # ============================================================
-
 @app.route('/user/<int:user_id>')
 def other_profile(user_id):
     if 'user_id' not in session:

@@ -1,3 +1,9 @@
+<!-- ------------------------------------
+               Xingru's route
+              Product Card HTML
+    ------------------------------------- -->
+
+
 <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-card">
     <div class="product-image-container" 
         data-images='{{ product.images_base64_list[:3] | tojson if product.images_base64_list else product.images_list[:3] | tojson }}'
