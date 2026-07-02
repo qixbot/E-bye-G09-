@@ -135,7 +135,7 @@
         word-break: break-word;
     }
     
-    /* 用户表格列宽 - 精确控制 */
+
     .admin-table th:nth-child(1),
     .admin-table td:nth-child(1) {
         width: 45px;
@@ -178,7 +178,7 @@
         width: 20%;
     }
     
-    /* 举报表格列宽 */
+    
     .report-table th:nth-child(1),
     .report-table td:nth-child(1) {
         width: 45px;
@@ -376,7 +376,7 @@
     }
 </style>
 
-<!-- 顶部导航 -->
+<!-- Top Navigation -->
 <div class="admin-header">
     <div class="admin-nav">
         <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-link">Dashboard</a>
@@ -389,7 +389,7 @@
     <h2>Manage All Users</h2>
     <p style="color:#555; margin-bottom: 20px;">7-day temporary freeze, auto unfreeze when expired</p>
 
-    <!-- 搜索 + 筛选 -->
+    <!-- Search + Filter -->
     <div class="search-filter-bar">
         <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search username / email / student ID...">
         <select id="statusFilter" class="filter-select" onchange="filterUsers()">
@@ -401,7 +401,7 @@
         </select>
     </div>
 
-    <!-- 🚨 被举报用户 -->
+    <!-- Reported User -->
     <div class="user-section" id="reportedSection">
         <div class="section-header">
             <h3>🚨 Reported Users</h3>
@@ -606,7 +606,7 @@
     </div>
 </div>
 
-<!-- 理由弹窗 -->
+<!-- Reason Pop-up Window -->
 <div id="actionModal" class="modal-overlay">
     <div class="modal-content">
         <h4 id="modalTitle">Action Reason</h4>
@@ -618,7 +618,7 @@
     </div>
 </div>
 
-<!-- 手动解冻弹窗 -->
+<!-- Manual Thaw Pop-up Window -->
 <div id="unfreezeModal" class="modal-overlay">
     <div class="modal-content">
         <h4>🔓 Unfreeze <span id="unfreezeUsername"></span></h4>
@@ -641,10 +641,10 @@
 let targetId = null;
 let actType = null;
 
-// 搜索过滤
+// Search Filter
 document.getElementById('searchInput').addEventListener('input', function(){
     const val = this.value.toLowerCase();
-    // 在所有表格中搜索
+    // Search in all tables
     const tables = ['#activeSection .user-table tbody tr', '#frozenSection .user-table tbody tr', '#blockedSection .user-table tbody tr', '#reportedSection .report-table tbody tr'];
     
     tables.forEach(selector => {
@@ -656,7 +656,7 @@ document.getElementById('searchInput').addEventListener('input', function(){
     });
 });
 
-// 状态筛选
+//Status Filter
 function filterUsers() {
     const status = document.getElementById('statusFilter').value;
     
@@ -665,13 +665,13 @@ function filterUsers() {
     const frozenSection = document.getElementById('frozenSection');
     const blockedSection = document.getElementById('blockedSection');
     
-    // 隐藏所有区块
+    // Hide all blocks
     reportedSection.style.display = 'none';
     activeSection.style.display = 'none';
     frozenSection.style.display = 'none';
     blockedSection.style.display = 'none';
     
-    // 根据选择显示对应区块
+    // Display the corresponding block based on the selection
     if (status === 'all') {
         reportedSection.style.display = 'block';
         activeSection.style.display = 'block';

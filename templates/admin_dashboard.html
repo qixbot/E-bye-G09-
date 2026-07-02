@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<!-- 顶部按钮栏 -->
+<!-- Top Button Bar -->
 <div style="background-color:#ffffff;padding:12px 30px;margin-bottom:40px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
     <div style="display:flex; gap:12px;">
         <a href="{{ url_for('admin_users') }}" style="background-color:#205c30;color:white;border:none;border-radius:22px;padding:8px 22px;text-decoration:none;">Manage Users</a>
@@ -16,10 +16,10 @@
     <p style="color:#555;margin-bottom:35px;">Platform overview — monitor users, products, and pending approvals at a glance.</p>
     <hr style="margin-bottom:40px;">
 
-    <!-- 5个卡片 -->
-    <!-- 5个卡片 - 添加点击跳转 -->
+    <!-- 5 cards -->
+    <!-- 5 cards - Add click jump redirect -->
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:30px;margin-bottom:40px;">
-    <!-- Total Products 卡片 - 点击跳转到已通过商品 -->
+    <!-- Total Products cards - Click to jump to approved products -->
     <div onclick="window.location.href='{{ url_for('admin_products') }}?status=approved'" 
          style="background-color:#205c30;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(32,92,48,0.2);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" 
          onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(32,92,48,0.3)';" 
@@ -30,7 +30,7 @@
         <small style="opacity:0.85;position:relative;z-index:1;">Approved & live</small>
     </div>
 
-    <!-- Pending Approval 卡片 - 点击跳转到待审核商品 -->
+    <!-- Pending Approval Card - Click to jump to pending review products -->
     <div onclick="window.location.href='{{ url_for('admin_products') }}?status=pending'" 
          style="background:linear-gradient(135deg,#f39c12,#e67e22);color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(243,156,18,0.25);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" 
          onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(243,156,18,0.35)';" 
@@ -41,7 +41,7 @@
         <small style="opacity:0.85;position:relative;z-index:1;">Needs review</small>
     </div>
 
-    <!-- Registered Users 卡片 - 点击跳转到用户管理 -->
+    <!-- Registered Users Card - Click to jump to user management -->
     <div onclick="window.location.href='{{ url_for('admin_users') }}'" 
          style="background-color:#2c3e50;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(44,62,80,0.25);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" 
          onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(44,62,80,0.35)';" 
@@ -52,7 +52,7 @@
         <small style="opacity:0.85;position:relative;z-index:1;">Platform members</small>
     </div>
 
-    <!-- Active Sellers 卡片 - 点击跳转到用户管理并筛选卖家 -->
+    <!-- Active Sellers Card - Click to jump to user management and filter sellers -->
     <div onclick="window.location.href='{{ url_for('admin_users') }}?filter=sellers'" 
          style="background-color:#8e44ad;color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(142,68,173,0.25);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" 
          onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(142,68,173,0.35)';" 
@@ -64,7 +64,7 @@
     </div>
 </div>
 
-<!-- Announcements 卡片 - 点击打开公告弹窗 -->
+<!-- Announcements Card - Click to open announcement pop-up window -->
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:30px;">
     <div onclick="openAnnModal()" 
          style="background:linear-gradient(135deg,#1a5276,#1abc9c);color:white;border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;cursor:pointer;box-shadow:0 4px 16px rgba(26,188,156,0.2);transition:transform 0.2s, box-shadow 0.2s;" 
@@ -77,7 +77,7 @@
     </div>
 </div>
 
-<!-- 公告弹窗 -->
+<!-- Announcement Pop-up Window -->
 <div id="annModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
     <div style="background:#fff;border-radius:20px;width:90%;max-width:600px;max-height:85vh;overflow-y:auto;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
@@ -85,7 +85,7 @@
             <button onclick="closeAnnModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;">✕</button>
         </div>
 
-        <!-- 新建公告 -->
+        <!-- Create Announcement -->
         <div style="background:#f9faf9;border-radius:14px;padding:18px;margin-bottom:24px;">
             <h4 style="margin:0 0 4px;font-size:14px;">+ New Announcement</h4>
             <p style="color:#888;font-size:12px;margin-bottom:12px;">Will notify all users</p>
@@ -94,7 +94,7 @@
             <button onclick="postAnnouncement()" style="margin-top:10px;background:#205c30;color:white;border:none;padding:8px 22px;border-radius:20px;font-weight:600;font-size:13px;cursor:pointer;">📨 Send</button>
         </div>
 
-        <!-- 历史公告 -->
+        <!-- Historical Announcements -->
         <h4 style="margin:0 0 12px;font-size:14px;color:#888;">Previous Announcements</h4>
         <div id="annList">
             <p style="color:#999;text-align:center;">Loading...</p>
@@ -169,7 +169,7 @@ function deleteAnnouncement(id) {
     .then(function(d) { 
         if (d.success) {
             alert('Announcement deleted!');
-            loadAnnouncements(); // 刷新列表
+            loadAnnouncements(); // Refresh the list
         } else {
             alert('Failed: ' + (d.error || 'Unknown error'));
         }
