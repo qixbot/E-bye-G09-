@@ -1,15 +1,29 @@
-import os
-import time
-import logging
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from werkzeug.security import generate_password_hash
+# ============================================================
+# STANDARD LIBRARY IMPORTS
+# ============================================================
+
+import os              # Operating system interface - file paths, env variables
+import time            # Time functions - timestamps, delays
+import logging         # Application logging - debug, error tracking
+
+# ============================================================
+# THIRD-PARTY LIBRARY IMPORTS
+# ============================================================
+
+import psycopg2        # PostgreSQL database adapter - database connections
+from psycopg2.extras import RealDictCursor  # Returns rows as dictionaries
+
+from werkzeug.security import generate_password_hash  # Password hashing
+# generate_password_hash - Werkzeug security function for password hashing
+# Used for: Securely hashing user passwords before storing in database
+# Uses bcrypt or PBKDF2 algorithms for strong password protection
+# Example: generate_password_hash('mypassword', method='pbkdf2:sha256:100000')
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ============================================================
-# Database Configuration
+# Database Configuration 3 of us work together
 # ============================================================
 
 DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
@@ -37,7 +51,7 @@ def get_db():
 
 
 def get_db_with_retry(retries=3, delay=2):
-    """带重试的连接函数"""
+    """Connection function with retry"""
     for i in range(retries):
         try:
             return get_db()
@@ -72,7 +86,7 @@ def execute_query(sql: str, params: tuple = None, fetch_one: bool = False, fetch
 
 
 def add_column_if_not_exists(table: str, column: str, column_def: str) -> bool:
-    """添加列（如果不存在）"""
+    """Add a column (if it does not exist)）"""
     try:
         execute_query(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {column_def}")
         logger.info(f"✅ Added column '{column}' to {table}")
@@ -83,7 +97,7 @@ def add_column_if_not_exists(table: str, column: str, column_def: str) -> bool:
 
 
 def init_db():
-    """初始化数据库（快速检查）"""
+    """Initialize the database (quick check)"""
     conn = None
     try:
         print("🔄 Checking database...")
@@ -306,7 +320,7 @@ def init_db():
 
 
 def add_missing_columns():
-    """添加所有缺失的列"""
+    """add all missing list"""
     conn = None
     cur = None
     try:
@@ -320,7 +334,7 @@ def add_missing_columns():
             ('avg_overall_rating', 'DECIMAL(3,2) DEFAULT 0'),
             ('total_reviews', 'INTEGER DEFAULT 0'),
             ('campus', 'TEXT'),
-            ('avatar_url', 'TEXT'),  # ← 新增这一行
+            ('avatar_url', 'TEXT'),
         ]
         for col_name, col_def in user_columns:
             try:
@@ -397,7 +411,7 @@ def get_cart_count(user_id):
     conn.close()
     return count
 
-# 兼容性函数
+# compatible def
 def init_products(): pass
 def init_messages(): pass
 def init_announcements(): pass
