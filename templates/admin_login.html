@@ -95,7 +95,7 @@
     </div>
 </div>
 
-<!-- Client-side validation and credential management for admin portal -->
+<!-- Validation and credential management for admin portal -->
 <script>
     /**
      * Toggles visibility of admin password field between text and password types.
@@ -115,11 +115,12 @@
 
     /**
      * Displays an inline error message for admin form fields.
+     * Find the error message container element by ID and set its text content.
      * @param {string} field - The field identifier ('email' or 'password').
      * @param {string} message - The error message to display.
      */
     function showAdminError(field, message) {
-        const errorDiv = document.getElementById(`admin-${field}-error`);
+        const errorDiv = document.getElementById(`admin-${field}-error`);    
         if (errorDiv) {
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
