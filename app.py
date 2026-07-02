@@ -97,8 +97,6 @@ def unread_count():
         print(f"Unread count error: {e}")
         return jsonify({'chat': 0, 'notifications': 0})
 
-
-
 # ============================================================
 # Helper functions
 # ============================================================
@@ -189,12 +187,9 @@ def calculate_trust_score(user, listing_count):
     return trust_score
 
 # ============================================================
-<<<<<<< HEAD
 # TEMPLATE FILTER - Format time since user joined
-=======
 #                       Xingru's part
 #                    Time Since Filter
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.template_filter('time_since')
 def time_since(date):
@@ -207,49 +202,26 @@ def time_since(date):
     """
     # Return default if no date provided
     if not date:
-<<<<<<< HEAD
-        return 'Just joined'
+        return 'Just joined'       # If date is None or empty, return 'Just joined'
     
     now = datetime.now()
     
     # Convert string date to datetime if needed
-    if isinstance(date, str):
-=======
-        return 'Just joined'          # If date is None or empty, return 'Just joined'
-    now = datetime.now()
-    if isinstance(date, str):          # If date is a string, parse it
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
+    if isinstance(date, str):      # If date is a string, parse it
         try:
             date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')          # converts it into a structured Python datetime object via format configurations
         except:
-            return 'Just joined'          # If parsing fails, return 'Just joined'
+            return 'Just joined'                                         # If parsing fails, return 'Just joined'
     
-<<<<<<< HEAD
-    # Remove timezone info for clean comparison
-    if hasattr(date, 'tzinfo') and date.tzinfo is not None:
-        date = date.replace(tzinfo=None)
-    
-    # Calculate time difference
-=======
     # Remove timezone info if present
-    if hasattr(date, 'tzinfo') and date.tzinfo is not None:          # If the date has timezone info, remove it to avoid comparison issues
+    if hasattr(date, 'tzinfo') and date.tzinfo is not None:    # If the date has timezone info, remove it to avoid comparison issues
         date = date.replace(tzinfo=None)
     
     # Calculate the difference between now and the given date
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
     diff = now - date
     
     # Format based on time elapsed
     if diff.days > 365:
-<<<<<<< HEAD
-        years = diff.days // 365
-        return f"{years} year{'s' if years > 1 else ''}"
-    elif diff.days > 30:
-        months = diff.days // 30
-        return f"{months} month{'s' if months > 1 else ''}"
-    elif diff.days > 0:
-        return f"{diff.days} day{'s' if diff.days > 1 else ''}"
-=======
         return f"{diff.days//365} year{'s' if diff.days//365 > 1 else ''}"          # If the difference is more than a year, return the number of years
     elif diff.days > 30:
         return f"{diff.days//30} month{'s' if diff.days//30 > 1 else ''}"          # If the difference is more than a month, return the number of months
@@ -257,17 +229,12 @@ def time_since(date):
         return f"{diff.days} day{'s' if diff.days > 1 else ''}"          # If the difference is more than a day, return the number of days
     elif diff.days == 0:
         return 'Just joined'
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
     else:
         return 'Just joined'
 
 # ============================================================
-<<<<<<< HEAD
-# ?'s Routes
-=======
 #                       Xingru's part
 #                 Video Thumbnail Generation
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
     """Extract a frame from video at given time offset and save as JPEG."""
@@ -312,15 +279,9 @@ def create_notification(user_id, message, notif_type='general', related_id=None,
         return False
 
 # ============================================================
-<<<<<<< HEAD
-# Eileen's Routes
-# ============================================================
-# Template filter - abbreviate campus name (Cyberjaya → CYBER, Melaka → MLK)
-=======
 #                       Xingru's part
 #                 Campus Abbreviation Filter
 # ============================================================
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 @app.template_filter('campus_abbr')
 def campus_abbr(campus):
     if not campus:
@@ -344,22 +305,19 @@ init_reviews()       # Seller reviews/ratings
 
 # ============================================================
 # Eileen's Routes
-# ============================================================
 # WELCOME PAGE ROUTE
 # ============================================================
 @app.route('/')
 def index():
     return render_template('welcome.html')  
-@app.route('/login', methods=['GET', 'POST'])
 
 # ============================================================
-# LOGIN ROUTE - Handles both GET and POST requests
-# ============================================================
-# Eileen and Keting 
-# ============================================================
+# LOGIN ROUTE - Handles both GET and POST requests (EILEEN & KETING)
+# ===========================================================
 
 # Eileen's part
 # ============================================================
+@app.route('/login', methods=['GET', 'POST']) 
 def login():
      # Handle POST request - user submitting login form
     if request.method == 'POST':
@@ -784,12 +742,8 @@ def register():
     return render_template('register.html')
 
 # ============================================================
-<<<<<<< HEAD
-# ？'s Routes
-=======
 #                       Xingru's route
 #                        Home Page
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/home')
 def home():
@@ -855,12 +809,8 @@ def home():
         username=session.get('username'), latest_products=products)
 
 # ============================================================
-<<<<<<< HEAD
-# ？'s Routes
-=======
 #                       Xingru's route
 #                        Search Page
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/search')
 def search():
@@ -2596,12 +2546,8 @@ def api_buy_now():
     return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
 
 # ============================================================
-<<<<<<< HEAD
-# ?'s Routes
-=======
 #                       Xingru's route
 #                       Add to Cart
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/add-to-cart/<int:product_id>', methods=['POST'])
 def add_to_cart(product_id):
@@ -2640,12 +2586,8 @@ def add_to_cart(product_id):
         return jsonify({'success': False, 'error': 'Item already in cart'}), 400
 
 # ============================================================
-<<<<<<< HEAD
-# ?'s Routes
-=======
 #                       Xingru's route
 #                       Shopping Cart
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/cart')
 def shopping_cart():
@@ -2828,15 +2770,9 @@ def api_product_seller_campus(product_id):
     db.close()
     return jsonify({'campus': row['campus'] if row else 'Cyberjaya'})
 
-<<<<<<< HEAD
 # ============================================================
 # ?'s Routes
 # ============================================================
-=======
-
-
-
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 @app.route('/notifications')
 def notifications_page():
     if 'user_id' not in session:
@@ -2959,16 +2895,9 @@ def mark_chat_read(other_user_id):
     return jsonify({'success': True})
 
 # ============================================================
-<<<<<<< HEAD
-# EILEEN'S ROUTES - Product Management, Profile, Account Settings
-# ============================================================
-
-# ============================================================
 # API - GET PRODUCT - Get single product by ID (for editing)
-=======
 #                       Xingru's route
 #                         Product API
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/api/product/<int:product_id>')
 def api_get_product(product_id):
@@ -5021,7 +4950,7 @@ def get_user_status(user_id):
 # API - UPDATE ORDER MEETING - Seller updates meetup location/time
 # ============================================================
 @app.route('/api/order/<int:order_id>/update-meeting', methods=['POST'])
-def update_order_meeting(order_id)
+def update_order_meeting(order_id): 
 
     # STEP 1: Authentication - Check if user is logged in
     if 'user_id' not in session:
@@ -5110,12 +5039,8 @@ def ship_order(order_id):
     return jsonify({'success': True})
 
 # ============================================================
-<<<<<<< HEAD
-# ?'s Routes
-=======
 #                       Xingru's route
 #                        Search Users
->>>>>>> 5a120bd8a626aa490e81b47ace2b95ecb9ba67bc
 # ============================================================
 @app.route('/api/search-users')
 def search_users():
