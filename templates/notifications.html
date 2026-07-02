@@ -4,7 +4,7 @@
 {% block content %}
 <style>
     /* ============================================================
-       通知页面样式 - 完整美化版
+       Notification Page Style
        ============================================================ */
     .notif-page { 
         max-width: 700px; 
@@ -19,7 +19,7 @@
     }
     
     /* ============================================================
-       通知页面头部 - 带返回按钮
+       Notification page header - with back button
        ============================================================ */
     .notif-header { 
         display: flex; 
@@ -36,7 +36,6 @@
         color: #1a2e1a;
     }
 
-    /* 美化 Back 按钮 */
     .notif-back { 
         display: flex;
         align-items: center;
@@ -79,7 +78,7 @@
     }
 
     /* ============================================================
-       通知分类标签 - 高级美化版
+       Notification Category Tags 
        ============================================================ */
     .notif-tabs {
         display: flex;
@@ -162,7 +161,7 @@
     }
 
     /* ============================================================
-       通知列表样式
+       Notification list style
        ============================================================ */
     .notif-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px; }
     
@@ -265,7 +264,7 @@
     .notif-empty { text-align: center; padding: 60px 0; color: #bbb; }
 
     /* ============================================================
-       日期分割线
+       Date separator
        ============================================================ */
     .date-divider {
         text-align: center;
@@ -282,7 +281,7 @@
     }
 
     /* ============================================================
-       产品图片（通知卡片右侧）
+       Product image (right side of the notification card)
        ============================================================ */
     .notif-product-img {
         width: 50px;
@@ -306,7 +305,7 @@
     }
 
     /* ============================================================
-       弹窗样式
+       pop-up style
        ============================================================ */
     .modal-overlay { 
         display: none; 
@@ -355,7 +354,7 @@
     }
 
     /* ============================================================
-       地点选择网格
+       Location selection grid
        ============================================================ */
     .location-grid { 
         display: grid; 
@@ -407,7 +406,7 @@
     }
 
     /* ============================================================
-       时间选择行
+       Time selection row
        ============================================================ */
     .date-time-row {
         display: flex;
@@ -466,7 +465,7 @@
     }
 
     /* ============================================================
-       优惠详情
+       Promotional details
        ============================================================ */
     .offer-detail { 
         background: #f9faf9; 
@@ -478,7 +477,7 @@
     }
     
     /* ============================================================
-       自定义确认弹窗
+       Custom confirmation pop-up
        ============================================================ */
     .custom-confirm-modal {
         position: fixed;
@@ -532,7 +531,7 @@
     .custom-confirm-danger:hover { background: linear-gradient(135deg, #c0392b, #a93226); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(214, 60, 44, 0.3); }
 
     /* ============================================================
-       自定义弹窗
+       Custom pop-up window
        ============================================================ */
     .custom-modal {
         position: fixed;
@@ -586,7 +585,7 @@
     .modal-confirm:hover { background: #0e3a1a; transform: translateY(-1px); }
 
     /* ============================================================
-       Toast 通知
+       Toast notification style
        ============================================================ */
     .toast-container {
         position: fixed;
@@ -629,7 +628,7 @@
     .bottom-nav-spacer { display: block; height: 70px; }
 
     /* ============================================================
-       响应式适配
+       Responsive Design
        ============================================================ */
     @media (max-width: 480px) {
         .notif-tabs {
@@ -782,31 +781,35 @@
 // ============================================================
 // Eileen's part - Global variables
 // ============================================================
-var allNotifications = [];
-var currentFilter = 'all';
-var purchaseOfferId = null;
-var selectedLocations = [];
-var selectedDates = [];
-var manageOfferId = null;
-var pendingCounterOfferId = null;
+var allNotifications = []; // Store all notifications fetched from the server
+var currentFilter = 'all'; // Current filter category (all, offer, order, system, review)
+var purchaseOfferId = null; // Store the offer ID for which the purchase modal is opened
+var selectedLocations = []; // Store selected location IDs for purchase
+var selectedDates = []; // Store selected date/time values for purchase
+var manageOfferId = null; // Store the offer ID for which the manage offer modal is opened
+var pendingCounterOfferId = null; // Store the offer ID for which the counter offer modal is opened
 
 // ============================================================
 // Eileen's part - Custom confirmation modal (week11 feature)
 // ============================================================
 // options: { title, message, confirmText, cancelText, isAccept, isReject, type }
+// Returns a Promise that resolves to true (confirmed) or false (cancelled)
 function showConfirm(options) {
     return new Promise((resolve) => {
         const existing = document.querySelector('.custom-confirm-modal');
         if (existing) existing.remove();
-        
+
+        // Create modal elements
         const modal = document.createElement('div');
         modal.className = 'custom-confirm-modal';
-        
+
+        // Determine icon based on options
         let icon = options.icon || '💬';
         if (options.isAccept) icon = '💰';
         if (options.isReject) icon = '❌';
         if (options.type === 'cancel') icon = '🗑️';
-        
+
+        // Determine confirm button class based on options
         const confirmBtnClass = options.isReject ? 'custom-confirm-danger' : 'custom-confirm-confirm';
         // Build modal content
         modal.innerHTML = `
@@ -818,30 +821,35 @@ function showConfirm(options) {
                     <button class="custom-confirm-btn custom-confirm-cancel" id="confirmCancelBtn">${options.cancelText || 'Cancel'}</button>
                     <button class="custom-confirm-btn ${confirmBtnClass}" id="confirmOkBtn">${options.confirmText || 'Confirm'}</button>
                 </div>
-            </div>
+            </div> 
         `;
-        
+        // Append modal to body
         document.body.appendChild(modal);
-        
+
+        // Add event listeners for buttons
         const cancelBtn = document.getElementById('confirmCancelBtn');
         const okBtn = document.getElementById('confirmOkBtn');
-        
+
+        // Cleanup function to remove modal
         const cleanup = () => modal.remove();
         
+        // // 1. Clicking cancel button
         cancelBtn.onclick = () => {
-            cleanup();
-            resolve(false);
+            cleanup(); // Remove the modal from the DOM
+            resolve(false); // Resolve the promise with false (cancelled)
         };
         
+        // 2. Clicking confirm button
         okBtn.onclick = () => {
-            cleanup();
-            resolve(true);
+            cleanup(); // Remove the modal from the DOM
+            resolve(true); // Resolve the promise with true (confirmed)
         };
         
+        // 3. Clicking outside the modal card (on the overlay)
         modal.onclick = (e) => {
-            if (e.target === modal) {
-                cleanup();
-                resolve(false);
+            if (e.target === modal) { // Clicked on the overlay, not the modal card
+                cleanup(); // Remove the modal from the DOM
+                resolve(false); // Resolve the promise with false (cancelled)
             }
         };
     });
@@ -867,29 +875,39 @@ function showToastMessage(message, type) {
 
 // ============================================================
 // Eileen's part - Date/Time selection functions 
+// 1.Add multiple dates and times (maximum 3)
+// 2.Delete added dates and times
+// 3.Get all selected dates and times
 // ============================================================
 // Add a new date/time input row (max 3)
+// 1. Check if the number of existing rows is less than 3
+// 2. If yes, create a new row with a datetime-local input and a remove button
 function addDateTimeRow() {
     var rows = document.querySelectorAll('#purchaseDateInputs .date-time-row');
     if (rows.length >= 3) {
-        showToastMessage('You can only select up to 3 dates.', 'error');
+        showToastMessage('You can only select up to 3 dates.', 'error'); // Show a toast message if the limit is reached
         return;
     }
+
+    // 3. Create a new row and append it to the container
     var container = document.getElementById('purchaseDateInputs');
     var newRow = document.createElement('div');
     newRow.className = 'date-time-row';
+
+    // 4. Set the inner HTML of the new row with a datetime-local input and a remove button
     newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60">' +
         '<button type="button" class="remove-date-btn" onclick="removeDateTimeRow(this)">✕</button>';
-    container.appendChild(newRow);
+    container.appendChild(newRow); //5. Append the new row to the container
     updateRemoveButtons();
 }
+
 // Remove a date/time input row
 function removeDateTimeRow(btn) {
     var row = btn.closest('.date-time-row');
     row.remove();
     updateRemoveButtons();
 }
-// Show/hide remove buttons based on number of rows
+//6. Update the visibility of remove buttons based on the number of rows
 function updateRemoveButtons() {
     var rows = document.querySelectorAll('#purchaseDateInputs .date-time-row');
     rows.forEach(function(row) {
@@ -1134,22 +1152,24 @@ function escapeHtml(s) {
 var _purchaseMeetupLocations = [];
 
 function openPurchaseModal(offerId) {
+    // 1.Reset global variables for the purchase process
     purchaseOfferId = offerId;
     selectedLocations = [];
     selectedDates = [];
     _purchaseMeetupLocations = [];
     
-    // Reset to step 1, hide step 2
+    // 2.Reset to step 1, hide step 2
     document.getElementById('purchaseStep1').style.display = '';
     document.getElementById('purchaseStep2').style.display = 'none';
     document.getElementById('purchaseModal').classList.add('show');
     document.getElementById('purchaseProductInfo').innerHTML = '<div style="padding:8px;color:#888;">Loading...</div>';
     
-    // Reset date picker
+    // 3.Reset date picker modal and load offer details from server
     var dateContainer = document.getElementById('purchaseDateInputs');
     dateContainer.innerHTML = '<div class="date-time-row"><input type="datetime-local" class="datetime-picker" step="60" style="flex:1;"><button type="button" class="remove-date-btn" style="display:none;" onclick="removeDateTimeRow(this)">✕</button></div>';
-    updateRemoveButtons();
+    updateRemoveButtons(); //4. Update remove button visibility for the initial row
 
+    // 5. Fetch offer details from the server
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -1173,7 +1193,7 @@ function openPurchaseModal(offerId) {
 
         var sellerCampus = data.seller_campus || '';
 
-        // Product info display
+        // Product info display (image, name, price, seller campus)
         var imgHtml = '';
         if (data.product_image) {
             imgHtml = '<img src="' + data.product_image + '" style="width:100%;height:160px;object-fit:cover;border-radius:12px;margin-bottom:12px;" onerror="this.style.display=\'none\'">';
@@ -1229,15 +1249,17 @@ if (sellerCampus.includes('Cyberjaya') || sellerCampus.includes('Cyber')) {
 }
 
 function goToPurchaseStep2() {
+    // 1. Validate selected dates and times
     var dates = getSelectedDates();
     if (dates.length === 0) {
         showToastMessage('Please select at least one date and time', 'error');
         return;
     }
     
-    // 修复：更严格的日期验证
+    // 2. Validate that all selected dates are in the future
+    // Get the current date and time
     var now = new Date();
-    // 清除时、分、秒、毫秒，只比较日期
+    // Create a date object for today at 00:00 to compare only the date part
     var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     for (var i = 0; i < dates.length; i++) {
@@ -1246,28 +1268,28 @@ function goToPurchaseStep2() {
             showToastMessage('Invalid date format: ' + dates[i], 'error');
             return;
         }
-        // 比较日期（忽略时间部分）
+        // Compare only the date part (year, month, day) to ignore time differences
         var selectedDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
         if (selectedDay.getTime() < today.getTime()) {
             showToastMessage('All dates must be today or in the future', 'error');
             return;
         }
-        // 如果是今天，检查时间是否已过
+        // If the selected date is today, ensure the time is at least 15 minutes from now
         if (selectedDay.getTime() === today.getTime()) {
             var nowTime = now.getHours() * 60 + now.getMinutes();
             var selTime = selectedDate.getHours() * 60 + selectedDate.getMinutes();
-            if (selTime <= nowTime + 15) { // 至少提前15分钟
+            if (selTime <= nowTime + 15) { // Ensure at least 15 minutes from now
                 showToastMessage('Time must be at least 15 minutes from now', 'error');
                 return;
             }
         }
     }
 
-    // 构建地点网格
+    // 3. Reset selected locations and render location buttons
     selectedLocations = [];
     var grid = document.getElementById('purchaseLocationGrid');
     grid.innerHTML = '';
-    _purchaseMeetupLocations.forEach(function(loc) {
+    _purchaseMeetupLocations.forEach(function(loc) { // Loop through each location and create a button for it
         var btn = document.createElement('button');
         btn.className = 'location-btn';
         btn.setAttribute('data-location', loc.name);
@@ -1280,15 +1302,15 @@ function goToPurchaseStep2() {
     });
     updateLocationUI();
     
-    // 切换到第二步
-    document.getElementById('purchaseStep1').style.display = 'none';
-    document.getElementById('purchaseStep2').style.display = '';
+    // 4. Switch to step 2
+    document.getElementById('purchaseStep1').style.display = 'none'; // Hide step 1
+    document.getElementById('purchaseStep2').style.display = ''; // Show step 2
 }
 
 // Allow going back to step 1 to change dates
 function goToPurchaseStep1() {
-    document.getElementById('purchaseStep2').style.display = 'none';
-    document.getElementById('purchaseStep1').style.display = '';
+    document.getElementById('purchaseStep2').style.display = 'none'; // Hide step 2
+    document.getElementById('purchaseStep1').style.display = ''; // Show step 1
 }
 // Close modal and reset all selections
 function closePurchaseModal() {
@@ -1301,9 +1323,9 @@ function closePurchaseModal() {
 // Toggle location selection (max 3)
 function toggleLocation(name) {
     var idx = selectedLocations.indexOf(name);
-    if (idx !== -1) {
+    if (idx !== -1) { // If already selected, remove it
         selectedLocations.splice(idx, 1);
-    } else {
+    } else { // If not selected, add it (max 3)
         if (selectedLocations.length >= 3) {
             showToastMessage('Max 3 locations', 'warning');
             return;
@@ -1336,45 +1358,75 @@ function updateLocationUI() {
 
 // ============================================================
 // Eileen's part - Confirm purchase button handler
+// First, check if the user has selected a location and time. 
+// If not, report an error. If they have, 
+// transmit the data to the server via the network to create an order, 
+// and then refresh the page data after completion.
 // ============================================================
 document.getElementById('confirmPurchaseBtn')?.addEventListener('click', function() {
+    
+    //【Step 1: Verify Location】 
+    // Check if the user has selected at least one meeting location.
     if (selectedLocations.length === 0) {
         showToastMessage('Please select at least one location', 'error');
         return;
     }
-    // Dates are already validated in step 1, just get the values
+
+    // 【Step 2: Verify Time】
+    // The date has already been verified in Step 1, 
+    // so we directly retrieve the selected value here.
     var selectedDatesList = getSelectedDates();
     if (selectedDatesList.length === 0) {
         showToastMessage('Please select at least one date and time', 'error');
         return;
     }
-    // Disable button to prevent multiple clicks
+
+    // 【Step 3: Debouncing】
+    // Disable the button and modify the text 
+    // to prevent users from repeatedly clicking and 
+    // generating multiple orders due to network latency.
     var confirmBtn = document.getElementById('confirmPurchaseBtn');
     confirmBtn.disabled = true;
     confirmBtn.textContent = 'Processing...';
     
+    //【Step 4: Send Data to Server】
+    // Send an asynchronous POST request about the selected locations and dates 
+    // to the backend API to create an order
     fetch('/api/offer/' + purchaseOfferId + '/create-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' }, // Specify that the request body is JSON
         body: JSON.stringify({ 
-            meetup_locations: selectedLocations,
-            meeting_dates: selectedDatesList
+            meetup_locations: selectedLocations, // Send the selected locations to the server
+            meeting_dates: selectedDatesList // Send the selected dates to the server
         }),
         credentials: 'same-origin'
     }) 
+
+    //【Step 5: Handle Server Response】
+    // Convert the response to JSON and handle success or failure
     .then(function(r) { return r.json(); })
+
+    //【Step 6: Handle Success or Failure】
+    // If the order creation is successful, 
+    // show a success message and refresh the notifications and orders.
     .then(function(d) {
         if (d.success) {
             showToastMessage('Order created successfully!', 'success');
             closePurchaseModal();
             loadNotifications();
-            if (typeof loadPurchases === 'function') loadPurchases();
-            if (typeof loadOrders === 'function') loadOrders();
+            if (typeof loadPurchases === 'function') loadPurchases(); // Refresh the purchase list if the function exists
+            if (typeof loadOrders === 'function') loadOrders(); // Refresh the order list if the function exists
         } else {
-            showToastMessage(d.error || 'Failed', 'error');
+            showToastMessage(d.error || 'Failed', 'error'); // Show an error message if the order creation failed
         }
-    })
+    }) 
+
+    //【Step 7: Handle Network Errors】
+    // If there is a network error or other issues, show an error message
     .catch(function(err) { showToastMessage('Error: ' + err.message, 'error'); })
+
+    //【Step 8: Re-enable Button】
+    // Regardless of success or failure, re-enable the button and reset its text
     .finally(function() { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Purchase'; });
 });
 
@@ -1383,19 +1435,20 @@ document.getElementById('confirmPurchaseBtn')?.addEventListener('click', functio
 // ============================================================
 // Open offer management modal and load offer details
 function openOfferManageModal(offerId) {
+    // Save the active offer ID globally and display the modal container
     manageOfferId = offerId;
-    document.getElementById('offerManageModal').classList.add('show');
-    document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail">Loading...</div>';
+    document.getElementById('offerManageModal').classList.add('show'); // Show the modal 
+    document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail">Loading...</div>'; // Show loading message
 
-    // Fetch offer details to determine what actions to show
+    // 1. Fetch offer details to determine what actions to show
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (!data.success) {
                 document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ ' + (data.error || 'Failed to load') + '</div>';
-                return;
+                return; // If the request fails, show an error message
             }
-            // Get current user ID to determine if they are buyer or seller
+            // 2. Get current user ID to determine if they are buyer or seller
             return fetch('/api/current-user-id', { credentials: 'same-origin' })
                 .then(function(r) { return r.json(); })
                 .then(function(userData) {
@@ -1403,16 +1456,17 @@ function openOfferManageModal(offerId) {
                     var isSeller = (data.seller_id === currentUserId);
                     var isBuyer = (data.buyer_id === currentUserId);
                     
+                    // 3. Render offer details and actions based on role and offer status
                     var html = '<div class="offer-detail">' +
                         '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
                         '💰 Offer Price: RM ' + parseFloat(data.offer_price).toFixed(2);
-                    
+                    // If there is a counter offer price, display it
                     if (data.counter_price) {
                         html += '<br>🔄 Counter Offer: RM ' + parseFloat(data.counter_price).toFixed(2);
                     }
                     
                     html += '</div>';
-                    // Show different actions based on role and offer status
+                    // 4. Show different actions based on role and offer status
                     // Seller actions
                     if (isSeller) {
                         if (data.status === 'pending') {
@@ -1463,12 +1517,14 @@ function openOfferManageModal(offerId) {
                         // No countered status for buyer 
                         // if they are not the one who made the counter offer, so we don't need to check that here
                     } else {
+                        // Unauthorized/Uninvolved access catch: Render permission boundary message
                         html += '<div class="offer-detail error">You are not involved in this offer</div>';
-                    }// Common info for both roles
-                    
+                    }
+                    // 【Step 5: Inject Generated DOM Elements】Update UI container to present target controls
                     document.getElementById('offerManageContent').innerHTML = html;
                 });
         })
+        // 【Step 6: Global Exception Handling】Catch fatal network breaks or catastrophic application crashes
         .catch(function(err) {
             console.error('Error:', err);
             document.getElementById('offerManageContent').innerHTML = '<div class="offer-detail error">⚠️ Failed to load offer details</div>';
@@ -1485,6 +1541,8 @@ function closeOfferManageModal() {
 // ============================================================
 // Accept offer (seller action)
 async function acceptOffer(offerId) {
+    // 1. Show a confirmation dialog before proceeding 
+    // with accepting the offer
     const confirmed = await showConfirm({
         title: 'Accept Offer',
         message: 'Are you sure you want to accept this offer?',
@@ -1493,8 +1551,9 @@ async function acceptOffer(offerId) {
         confirmText: 'Accept',
         cancelText: 'Cancel'
     });
-    if (!confirmed) return;
-    // Proceed with accepting the offer
+    if (!confirmed) return;// Exit if action cancelled
+
+    // 2. Proceed with accepting the offer, provide feedback toast and trigger API invocation
     showToastMessage('Accepting offer...', 'info');
     fetch('/api/offer/' + offerId + '/accept', { 
         method: 'POST', 
@@ -1503,6 +1562,7 @@ async function acceptOffer(offerId) {
     }) 
     .then(function(r) { return r.json(); })
     .then(function(data) {
+        // 3. Handle server response: success or failure
         if (data.success) {
             showToastMessage('Offer accepted! Opening checkout...', 'success');
             closeOfferManageModal();
@@ -1521,8 +1581,9 @@ async function acceptOffer(offerId) {
     // The seller can click "Proceed to Checkout" when they are ready.
 }
 
-// Reject offer (seller action)
+// Reject offer (seller action) @param {number|string} offerId - Unique ID of the offer
 async function rejectOffer(offerId) {
+    //【Step 1: Confirmation】Prompt seller for explicit cancellation intent
     const confirmed = await showConfirm({
         title: 'Reject Offer',
         message: 'Are you sure you want to reject this offer?',
@@ -1532,7 +1593,8 @@ async function rejectOffer(offerId) {
         cancelText: 'Cancel'
     });
     if (!confirmed) return;
-    // Proceed with rejecting the offer
+
+    // 【Step 2: Post State to API】
     showToastMessage('Rejecting offer...', 'info');
     fetch('/api/offer/' + offerId + '/reject', {
         method: 'POST',
@@ -1541,6 +1603,9 @@ async function rejectOffer(offerId) {
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
+
+        // 【Step 3: Update Client UI State】
+        // If successful, show success toast and refresh notifications; otherwise, show error
         if (data.success) {
             showToastMessage('Offer rejected.', 'success');
             closeOfferManageModal();
@@ -1554,8 +1619,11 @@ async function rejectOffer(offerId) {
         showToastMessage('Error: ' + err.message, 'error');
     });
 }
+
 // Cancel offer (buyer action)
 async function cancelMyOffer(offerId) {
+    //【Step 1: Confirmation】
+    // Prompt buyer for explicit cancellation intent
     const confirmed = await showConfirm({
         title: 'Cancel Offer',
         message: 'Are you sure you want to cancel your offer? This cannot be undone.',
@@ -1567,7 +1635,8 @@ async function cancelMyOffer(offerId) {
     });
     if (!confirmed) return;
 
-    // Proceed with cancelling the offer
+    // 【Step 2: Post State to API】
+    // Send a POST request to the server to cancel the offer
     showToastMessage('Cancelling offer...', 'info');
     fetch('/api/offer/' + offerId + '/cancel', {
         method: 'POST',
@@ -1576,6 +1645,8 @@ async function cancelMyOffer(offerId) {
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
+        // 【Step 3: Update Client UI State】
+        // If successful, show success toast and refresh notifications; otherwise, show error
         if (data.success) {
             showToastMessage('Your offer has been cancelled.', 'success');
             closeOfferManageModal();
@@ -1595,14 +1666,17 @@ async function cancelMyOffer(offerId) {
 // ============================================================
 // Open counter offer modal with offer details
 function openCounterOfferModal(offerId) {
+    // Save the offer ID globally and show the modal
     pendingCounterOfferId = offerId;
     document.getElementById('counterOfferModal').classList.add('show');
     document.getElementById('counterPriceInput').value = '';
-    // Load offer details to show current offer price and product name
+
+    // 1. Load offer details to show current offer price and product name
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
+            // Display product name and current offer price in the modal
             document.getElementById('counterOfferContent').innerHTML = 
                 '<div class="offer-detail">' +
                 '<strong>' + escapeHtml(data.product_name) + '</strong><br>' +
@@ -1619,6 +1693,7 @@ function openCounterOfferModal(offerId) {
             '<div class="offer-detail error">Error loading details</div>';
     });
 }
+
 // Close counter offer modal and reset state
 function closeCounterOfferModal() {
     document.getElementById('counterOfferModal').classList.remove('show');
@@ -1627,11 +1702,12 @@ function closeCounterOfferModal() {
 // Send counter offer with new price
 document.getElementById('sendCounterOfferBtn')?.addEventListener('click', function() {
     var newPrice = document.getElementById('counterPriceInput').value;
+    // 1.Validate that the new price is a positive number
     if (!newPrice || parseFloat(newPrice) <= 0) {
         showToastMessage('Please enter a valid price', 'error');
         return;
     }
-    // Disable button to prevent multiple clicks
+    // 2.Disable button to prevent multiple clicks
     showToastMessage('Sending counter offer...', 'info');
     fetch('/api/offer/' + pendingCounterOfferId + '/counter', {
         method: 'POST',
@@ -1641,6 +1717,7 @@ document.getElementById('sendCounterOfferBtn')?.addEventListener('click', functi
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
+        // 3.Handle server response: success or failure
         if (data.success) {
             showToastMessage('Counter offer sent!', 'success');
             closeCounterOfferModal();
@@ -1660,15 +1737,18 @@ document.getElementById('sendCounterOfferBtn')?.addEventListener('click', functi
 // ============================================================
 // Open checkout modal for seller after accepting an offer
 function openCheckoutForOffer(offerId) {
+    //1. Fetch offer details to display product info and agreed price
     fetch('/api/offer/' + offerId + '/details', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (!data.success) throw new Error(data.error);
             // Initialize selected locations array for this modal
             window.checkoutSelectedLocations = [];
-            // Determine meetup locations based on seller's campus
+            
+            // 2. Determine meetup locations based on seller's campus
             var locations = [];
             var sellerCampus = data.seller_campus || '';
+
             // For simplicity, we check if campus contains "Cyberjaya" or "Cyber" to determine the location list.
             if (sellerCampus.includes('Cyberjaya') || sellerCampus.includes('Cyber')) {
                 locations = [
@@ -1682,7 +1762,7 @@ function openCheckoutForOffer(offerId) {
                     "Hostel 3", "Hostel 4", "Surau", "Mini Mart", "Admin Building"
                 ];
             }
-            // Build the meetup location selection grid and date/time inputs in the modal
+            // 3. Build the meetup location selection grid and date/time inputs in the modal
             var meetupHtml = `
                 <div id="checkoutForOfferModal" class="custom-modal">
                     <div class="modal-card" style="max-width: 500px;"> // We can reuse some styles from the purchase modal for consistency
@@ -1712,31 +1792,38 @@ function openCheckoutForOffer(offerId) {
             var existing = document.getElementById('checkoutForOfferModal');
             if (existing) existing.remove();
             document.body.insertAdjacentHTML('beforeend', meetupHtml);
-            // Add event listeners for location buttons and date/time inputs
+
+            // 4. Add event listeners for location buttons and date/time inputs
             var grid = document.getElementById('checkoutLocationGridForOffer');
-            for (var i = 0; i < locations.length; i++) {
+            for (var i = 0; i < locations.length; i++) { // Loop through each location and create a button for it
                 var loc = locations[i];
                 var btn = document.createElement('button');
                 btn.textContent = loc;
                 btn.style.cssText = 'padding:8px 12px; margin:4px; border:1px solid #ddd; border-radius:20px; background:#f5f5f5; cursor:pointer;';
+                
+                // Close over the location name and button reference for the click handler
                 btn.onclick = (function(locationName, button) {
                     return function() {
                         var idx = window.checkoutSelectedLocations.indexOf(locationName);
                         if (idx !== -1) {
+                            // If already selected, remove it from the array and reset button style
                             window.checkoutSelectedLocations.splice(idx, 1);
                             button.style.background = '#f5f5f5';
                             button.style.borderColor = '#ddd';
                             button.style.color = '#333';
                         } else {
+                            // If not selected, check if we can add it (max 3)
                             if (window.checkoutSelectedLocations.length >= 3) {
                                 showToastMessage('Maximum 3 locations allowed', 'error');
                                 return;
                             }
+                            // Add to selected locations and update button style
                             window.checkoutSelectedLocations.push(locationName);
                             button.style.background = '#205c30';
                             button.style.borderColor = '#205c30';
                             button.style.color = 'white';
                         }
+                        // Update the info div to show selected locations or warning if none selected
                         var infoDiv = document.getElementById('checkoutLocationInfoForOffer');
                         if (infoDiv) {
                             if (window.checkoutSelectedLocations.length === 0) {
@@ -1749,9 +1836,11 @@ function openCheckoutForOffer(offerId) {
                         }
                     };
                 })(loc, btn);
-                grid.appendChild(btn);
+                grid.appendChild(btn); // Add the button to the grid
             }
+
             // Add event listener for adding more date/time inputs
+            // Limit to a maximum of 3 date/time inputs
             document.getElementById('addDateBtnForOffer').addEventListener('click', function() {
                 var container = document.getElementById('dateTimeInputsForOffer');
                 var rows = container.querySelectorAll('.date-time-row');
@@ -1759,27 +1848,31 @@ function openCheckoutForOffer(offerId) {
                     showToastMessage('Maximum 3 dates allowed', 'error');
                     return;
                 }
+                // Create a new row with a datetime-local input and a remove button
                 var newRow = document.createElement('div');
                 newRow.className = 'date-time-row';
                 newRow.innerHTML = '<input type="datetime-local" class="datetime-picker" step="60"><button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="margin-left:8px;">✕</button>';
                 container.appendChild(newRow);
             });
-        })
+        }) // Handle errors in fetching offer details
         .catch(function(err) {
             showToastMessage('Error: ' + err.message, 'error');
         });
 }
+
 // Close checkout modal and reset any temporary state
 function closeCheckoutForOfferModal() {
     var modal = document.getElementById('checkoutForOfferModal');
     if (modal) modal.remove();
 }
+
 // Get selected dates from the date/time inputs in the modal
 function submitOrderFromOfferAccept(offerId) {
     if (!window.checkoutSelectedLocations || window.checkoutSelectedLocations.length === 0) {
         showToastMessage('Please select at least one meetup location', 'error');
         return;
     }
+
     // Get selected dates from the date/time inputs
     var dateInputs = document.querySelectorAll('#dateTimeInputsForOffer .datetime-picker');
     var selectedDates = [];
@@ -1787,6 +1880,7 @@ function submitOrderFromOfferAccept(offerId) {
         var val = dateInputs[i].value;
         if (val) selectedDates.push(val);
     }
+
     // Validate that at least one date is selected and all are in the future
     if (selectedDates.length === 0) {
         showToastMessage('Please select at least one preferred date and time', 'error');
@@ -1837,11 +1931,11 @@ function openSellerCounterOfferModal(offerId, currentOfferPrice) {
     showToastMessage('Sending counter offer...', 'info');
     fetch('/api/offer/' + offerId + '/counter', {
         method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ counter_price: parseFloat(counterPrice) })
+        credentials: 'same-origin', // Include cookies for session authentication
+        headers: { 'Content-Type': 'application/json' }, // Specify that the request body is JSON
+        body: JSON.stringify({ counter_price: parseFloat(counterPrice) }) // Send the counter price to the server in JSON format
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { return r.json(); }) 
     .then(function(data) {
         if (data.success) {
             showToastMessage('Counter offer sent!', 'success');
@@ -1862,6 +1956,7 @@ function openSellerCounterOfferModal(offerId, currentOfferPrice) {
 // ============================================================
 // Accept counter offer (buyer action)
 async function acceptCounterOfferFromModal(offerId) {
+    // Show a confirmation dialog before proceeding with accepting the counter offer
     const confirmed = await showConfirm({
         title: 'Accept Counter Offer',
         message: 'Are you sure you want to accept this counter offer?',
@@ -1872,18 +1967,18 @@ async function acceptCounterOfferFromModal(offerId) {
     });
     if (!confirmed) return;
     // Proceed with accepting the counter offer
-    showToastMessage('Accepting counter offer...', 'info');
+    showToastMessage('Accepting counter offer...', 'info'); // Show info toast to indicate action in progress
     fetch('/api/offer/' + offerId + '/accept-counter', {
         method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
+        credentials: 'same-origin', // Include cookies for session authentication
+        headers: { 'Content-Type': 'application/json' } // Specify that the request body is JSON
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
             showToastMessage('Counter offer accepted! Opening checkout...', 'success');
             closeOfferManageModal();
-            openPurchaseModal(offerId);
+            openPurchaseModal(offerId); // Open the purchase modal for the accepted counter offer
             loadNotifications();
         } else {
             showToastMessage('Error: ' + (data.error || 'Failed to accept'), 'error');
@@ -1905,14 +2000,14 @@ async function rejectCounterOfferFromModal(offerId) {
     });
     if (!confirmed) return;
     // Proceed with rejecting the counter offer
-    showToastMessage('Declining counter offer...', 'info');
+    showToastMessage('Declining counter offer...', 'info'); // Show info toast to indicate action in progress
     fetch('/api/offer/' + offerId + '/reject-counter', {
         method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
+        credentials: 'same-origin', // Include cookies for session authentication
+        headers: { 'Content-Type': 'application/json' } // Specify that the request body is JSON
     })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+    .then(function(r) { return r.json(); }) 
+    .then(function(data) { // Handle server response: success or failure
         if (data.success) {
             showToastMessage('Counter offer declined. Offer is now pending again.', 'success');
             closeOfferManageModal();

@@ -159,7 +159,7 @@
     </div>
 </div>
 
-<!-- Client-side validation and UI enhancement scripts -->
+<!-- Validation and UI enhancement scripts -->
 <script>
     //Toggles visibility of a password input field.
     // @param {string} inputID - The id attribute of the input element.
@@ -279,6 +279,10 @@
         checkPasswordMatch();
         clearError('confirm_password');
     });
+
+//1=Real-time error clearing (error messages disappear while the user is typing)
+//2=Comprehensive validation before submission (all fields are checked)
+//3=Prevent invalid submissions (errors are not sent to the server)
 
     // Clear errors when user starts typing in other fields
     document.getElementById('student_id').addEventListener('input', function() { clearError('student_id'); });
