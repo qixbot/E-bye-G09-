@@ -5,23 +5,22 @@
 # Usage: python set_admin.py [email@student.mmu.edu.my]
 # ============================================================
 #Eileen's part - Admin setup script for E-Bye system
-import os
-import sys
+import os    #Operating system interface, used to read environment variables, file paths, etc.
+import sys   #System-related functions, such as command-line arguments and exiting the program.
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables from .env file，
+# Read the .env file and load the configuration into 
+# the environment variables.
 load_dotenv()
 
 # Import database modules for database operations
 from database import get_db, get_db_with_retry
 
-
-# ============================================================
 # Function: set_admin
 # Description: Set a user as administrator by their email address
 # @param {string} email - The email address of the user to promote to admin
 # @returns {boolean} True if operation successful, False otherwise
-# ============================================================
 def set_admin(email):
     """Set the user with the specified email as an administrator"""
     try:
@@ -63,12 +62,9 @@ def set_admin(email):
             db.close()
         return False
 
-
-# ============================================================
 # Function: list_admins
 # Description: Retrieve and display all current administrators
 # @returns {list} List of admin user records, empty list on error
-# ============================================================
 def list_admins():
     """List all current administrators in the system"""
     try:
@@ -95,10 +91,8 @@ def list_admins():
         return []
 
 
-# ============================================================
 # Main execution block
 # Handles command-line arguments and executes admin setup
-# ============================================================
 if __name__ == "__main__":
     # Check if email was provided as command-line argument
     if len(sys.argv) > 1:
@@ -113,3 +107,12 @@ if __name__ == "__main__":
     
     # Display the updated list of administrators
     list_admins()
+
+# If want to set a user as admin, run the following command in terminal:
+    # python -c "from database import get_db_with_retry; 
+    # db = get_db_with_retry(); cur = db.cursor(); 
+    # cur.execute(\"UPDATE users SET is_admin = 1 
+    # WHERE email = 'EILEEN.KERK.HUI@student.mmu.edu.my'\"); 
+    # db.commit(); 
+    # print('✅ Admin set successfully') if cur.rowcount > 0 
+    # else print('❌ User not found'); cur.close(); db.close()"

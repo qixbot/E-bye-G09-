@@ -373,9 +373,9 @@ function switchTab(name) {
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
+        if (m === '&') return '&amp;'; // Escape ampersand first to avoid double escaping
+        if (m === '<') return '&lt;'; // Escape less-than sign
+        if (m === '>') return '&gt;'; // Escape greater-than sign
         return m;
     });
 }
@@ -386,73 +386,73 @@ function escapeHtml(str) {
 // @param {string} type - Type ('success', 'error', or 'info')
 // ============================================================
 function showToastMessage(message, type) {
-    var existing = document.querySelector('.toast-container');
+    var existing = document.querySelector('.toast-container');      // Remove existing toast if present
     if (existing) existing.remove();
     
-    var container = document.createElement('div');
-    container.className = 'toast-container';
-    var toastDiv = document.createElement('div');
+    var container = document.createElement('div');                  // Create a new toast container
+    container.className = 'toast-container';                        // Container for toast messages
+    var toastDiv = document.createElement('div');                   // Create the toast message div
     toastDiv.className = 'toast toast-' + type;
-    toastDiv.innerHTML = '<span>' + message + '</span>';
-    container.appendChild(toastDiv);
-    document.body.appendChild(container);
+    toastDiv.innerHTML = '<span>' + message + '</span>';            // Set the message text
+    container.appendChild(toastDiv);                                // Append the toast to the container
+    document.body.appendChild(container);                           // Add the container to the body of the document
     
-    setTimeout(function() { container.remove(); }, 3000);
+    setTimeout(function() { container.remove(); }, 3000);           // Automatically remove the toast after 3 seconds
 }
 
 // ============================================================
 // LOAD MY LISTINGS - Fetches and displays user's product listings
 // ============================================================
 function loadListings() {
-    var container = document.getElementById('listings-grid');
-    var countSpan = document.getElementById('cnt-listings');
+    var container = document.getElementById('listings-grid');   // Container for listings grid
+    var countSpan = document.getElementById('cnt-listings');    // Span to display the count of listings
     if (!container) {
-        console.error('listings-grid element not found');
+        console.error('listings-grid element not found');        // Log error if container is missing
         return;
     }
     
-    var uploadUrl = "{{ url_for('upload_product') }}";
+    var uploadUrl = "{{ url_for('upload_product') }}"; // URL for uploading a new product
     
-    container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';
+    container.innerHTML = '<div class="loading-state">📦 Loading your listings...</div>';        // Show loading state while fetching data
 
-    fetch('/api/user/listings', { credentials: 'same-origin' })
+    fetch('/api/user/listings', { credentials: 'same-origin' })  // Fetch user's listings from the server with credentials for authentication
         .then(function(r) { 
-            if (!r.ok) {
-                throw new Error('HTTP ' + r.status);
+            if (!r.ok) {                                         // Check if the response is not OK (status code not in 200-299 range)
+                throw new Error('HTTP ' + r.status);             // Throw an error with the HTTP status code for debugging
             }
-            return r.json(); 
+            return r.json();  
         })
         .then(function(data) {
-            console.log('Listings data received:', data);
-            console.log('Data type:', typeof data, 'Is array:', Array.isArray(data));
+            console.log('Listings data received:', data);                             // Log the received data for debugging purposes
+            console.log('Data type:', typeof data, 'Is array:', Array.isArray(data)); // Log the type of data and whether it's an array for debugging
             
             if (!data || !Array.isArray(data)) {
-                console.error('Invalid data format:', data);
-                container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings: Invalid data format</div>';
+                console.error('Invalid data format:', data);                           // Log an error if the data format is invalid
+                container.innerHTML = '<div class="empty-state">⚠️ Failed to load listings: Invalid data format</div>';// Show an error message in the container
                 return;
             }
             
             if (data.length === 0) {
                 container.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span><p>You haven\'t listed any items yet</p><small><a href="' + uploadUrl + '">Click here to post your first item!</a></small></div>';
-                if (countSpan) countSpan.textContent = '0';
+                if (countSpan) countSpan.textContent = '0'; // Update the listings count to 0 if there are no listings
                 return;
             }
 
             if (countSpan) countSpan.textContent = data.length;
 
             var html = '<div class="products-grid">';
-            for (var i = 0; i < data.length; i++) {
-                var item = data[i];
-                var firstImage = item.first_image || null;
-                var isVideo = item.first_image_is_video || false;
+            for (var i = 0; i < data.length; i++) { // Loop through each listing item in the data array
+                var item = data[i]; // Get the current listing item
+                var firstImage = item.first_image || null; // Get the first image URL for the product, or null if not available
+                var isVideo = item.first_image_is_video || false; // Check if the first media is a video
 
-                var statusClass = (item.status || 'pending').toLowerCase();
-                var statusText = item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Pending';
-                var condLabel = (item.condition || 'good').replace('_', ' ');
-                condLabel = condLabel.charAt(0).toUpperCase() + condLabel.slice(1);
+                var statusClass = (item.status || 'pending').toLowerCase(); 
+                var statusText = item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Pending'; // Capitalize the first letter of the status text for display
+                var condLabel = (item.condition || 'good').replace('_', ' '); // Replace underscores with spaces in the condition label for better readability
+                condLabel = condLabel.charAt(0).toUpperCase() + condLabel.slice(1); // Capitalize the first letter of the condition label for display
 
-                var offerBtn = '';
-                var editDeleteBtns = '';
+                var offerBtn = ''; // Initialize variable for the offer button
+                var editDeleteBtns = ''; // Initialize variables for the offer button and edit/delete buttons
                 
                 // Only show Offers button for approved products
                 if (item.status === 'approved') {
@@ -469,16 +469,20 @@ function loadListings() {
                     editDeleteBtns = '<span class="sold-label">✅ Sold</span>';
                 }
 
-                html += '<div class="product-card">';
+                html += '<div class="product-card">'; // Start of product card container
                 html += '<a href="/product/' + item.id + '" class="product-card-link">';
                 html += '<div class="product-image-container">';
                 html += '<span class="condition-badge">' + escapeHtml(condLabel) + '</span>';
 
                 if (firstImage) {
-                    if (isVideo) {
+                    if (isVideo) {  
+                        // If the first media is a video, display a video element with a muted preview
                         html += '<video class="product-thumb-img" src="' + escapeHtml(firstImage) + '" muted preload="metadata"></video>';
-                        html += '<span class="video-overlay-badge">🎬</span>';
-                    } else {
+                        html += '<span class="video-overlay-badge">🎬</span>'; 
+
+                    } else { 
+                        // If the first media is an image, display an image element 
+                        // with error handling to hide it if it fails to load
                         html += '<img src="' + escapeHtml(firstImage) + '" class="product-thumb-img" alt="' + escapeHtml(item.name) + '" ' +
                             'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
                             '<div class="carousel-placeholder" style="display:none">📦</div>';
@@ -515,31 +519,31 @@ function loadListings() {
 // Includes product image clickable and auto-checkout after accept
 // ============================================================
 function loadPurchases() {
-    var container = document.getElementById('purchases-list');
-    var countSpan = document.getElementById('cnt-purchases');
+    var container = document.getElementById('purchases-list'); // Container for purchases list
+    var countSpan = document.getElementById('cnt-purchases'); // Span to display the count of purchases
     container.innerHTML = '<div class="loading-state">🛍️ Loading your purchases...</div>';
     
     fetch('/api/user/offers', { credentials: 'same-origin' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
+        .then(function(r) { return r.json(); }) // Fetch user's offers from the server with credentials for authentication
+        .then(function(data) { // Process the received data
             if (!data || data.length === 0) {
                 container.innerHTML = '<div class="empty-state"><span class="empty-icon">🛍️</span><div class="empty-title">No purchases yet</div><div class="empty-sub">Explore the marketplace!</div></div>';
                 if (countSpan) countSpan.textContent = '0';
                 return;
             }
-            if (countSpan) countSpan.textContent = data.length;
+            if (countSpan) countSpan.textContent = data.length; // Update the purchases count span with the number of offers received
             
             var html = '';
-            for (var i = 0; i < data.length; i++) {
+            for (var i = 0; i < data.length; i++) { // Loop through each offer item in the data array
                 var item = data[i];
                 
                 var statusBadge = '';
-                var actionButtons = '';
-                var isCountered = (item.status === 'countered');
-                var isAccepted = (item.status === 'accepted');
-                var isPending = (item.status === 'pending');
-                var isRejected = (item.status === 'rejected');
-                var isOrdered = (item.status === 'ordered');
+                var actionButtons = ''; 
+                var isCountered = (item.status === 'countered');   // Check if the offer has been countered by the seller
+                var isAccepted = (item.status === 'accepted');     // Check if the offer has been accepted by the seller
+                var isPending = (item.status === 'pending');       // Check if the offer is still pending
+                var isRejected = (item.status === 'rejected');     // Check if the offer has been rejected by the seller
+                var isOrdered = (item.status === 'ordered');       // Check if the offer has been converted into an order
                 
                 // Handle different offer statuses
                 if (isCountered) {
@@ -566,15 +570,20 @@ function loadPurchases() {
                     actionButtons = `<button class="offer-action-btn view-order-btn" onclick="switchTab('orders')">📋 View Order</button>`;
                 }
                 
-                var productImage = item.product_image || null;
+                var productImage = item.product_image || null; // Get the product image URL or null if not available
                 var imageHtml = '';
-                if (productImage) {
+                if (productImage) { 
+                    // If the product image is a base64 data URL, 
+                    // display it directly; otherwise, use a placeholder if it fails to load
                     if (productImage.startsWith('data:')) {
+                        // If it's a base64 data URL, display it directly
                         imageHtml = `<a href="/product/${item.product_id}" target="_blank"><img src="${escapeHtml(productImage)}" class="purchase-product-img" alt="${escapeHtml(item.product_name)}"></a>`;
-                    } else {
+                    } else { 
+                        // If it's a regular URL, display it with error handling to hide the image if it fails to load
                         imageHtml = `<div class="purchase-image-wrapper"><a href="/product/${item.product_id}" target="_blank"><img src="${escapeHtml(productImage)}" class="purchase-product-img" alt="${escapeHtml(item.product_name)}" onerror="this.style.display='none';this.parentElement.parentElement.innerHTML='<div class=\\\'purchase-img-placeholder\\\'>📦</div>'"></a><div class="purchase-img-placeholder" style="display:none">📦</div></div>`;
                     }
                 } else {
+                    // If no product image is available, display a placeholder icon
                     imageHtml = `<a href="/product/${item.product_id}" target="_blank"><div class="purchase-img-placeholder">📦</div></a>`;
                 }
                 
@@ -626,25 +635,25 @@ function loadPurchases() {
 // @param {number} offerId - The ID of the offer being accepted
 // ============================================================
 function acceptCounterOffer(offerId) {
-    showToastMessage('Accepting counter offer...', 'info');
+    showToastMessage('Accepting counter offer...', 'info'); // Show info toast while processing
     fetch('/api/offer/' + offerId + '/accept-counter', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
+        method: 'POST', // Send POST request to accept counter offer
+        credentials: 'same-origin', // Include cookies for authentication
+        headers: { 'Content-Type': 'application/json' } // Set content type to JSON
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
             showToastMessage('Counter offer accepted! Opening checkout...', 'success');
             // Directly open checkout modal (select location and date/time)
-            createOrderFromOffer(offerId);
+            createOrderFromOffer(offerId); // Proceed to checkout after acceptance
             loadPurchases(); // Refresh the list
         } else {
-            throw new Error(data.error || 'Failed to accept');
+            throw new Error(data.error || 'Failed to accept'); // Throw error if acceptance failed
         }
     })
     .catch(function(err) {
-        showToastMessage('Error: ' + err.message, 'error');
+        showToastMessage('Error: ' + err.message, 'error'); // Show error toast if any issues occur
     });
 }
 
@@ -667,37 +676,37 @@ function rejectCounterOffer(offerId) {
         </div>
     `;
     
-    var existing = document.getElementById('rejectCounterConfirm');
-    if (existing) existing.remove();
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    var existing = document.getElementById('rejectCounterConfirm'); // Remove any existing modal to avoid duplicates
+    if (existing) existing.remove(); // Remove existing modal if present
+    document.body.insertAdjacentHTML('beforeend', modalHtml); // Insert new modal into the DOM
     
-    var modal = document.getElementById('rejectCounterConfirm');
-    var cancelBtn = document.getElementById('rejectCancelBtn');
-    var confirmBtn = document.getElementById('rejectConfirmBtn');
+    var modal = document.getElementById('rejectCounterConfirm'); // Get the newly created modal element
+    var cancelBtn = document.getElementById('rejectCancelBtn'); // Get the cancel button element
+    var confirmBtn = document.getElementById('rejectConfirmBtn'); // Get the confirm button element
     
-    cancelBtn.onclick = function() { modal.remove(); };
-    confirmBtn.onclick = function() {
-        modal.remove();
-        showToastMessage('Declining counter offer...', 'info');
+    cancelBtn.onclick = function() { modal.remove(); }; // Close modal on cancel
+    confirmBtn.onclick = function() { // Handle confirm button click
+        modal.remove(); // Close modal
+        showToastMessage('Declining counter offer...', 'info'); // Show info toast while processing
         
-        fetch('/api/offer/' + offerId + '/reject-counter', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' }
+        fetch('/api/offer/' + offerId + '/reject-counter', { // Send POST request to reject counter offer
+            method: 'POST', 
+            credentials: 'same-origin', // Include cookies for authentication
+            headers: { 'Content-Type': 'application/json' } // Set content type to JSON
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { return r.json(); }) // Parse response as JSON
         .then(function(data) {
-            if (data.success) {
+            if (data.success) { // If rejection successful
                 showToastMessage('Counter offer declined. Offer is now pending again.', 'success');
                 loadPurchases();
                 // Refresh seller's listings so they see the pending offer
-                if (typeof loadListings === 'function') loadListings();
-            } else {
-                throw new Error(data.error || 'Failed to decline');
+                if (typeof loadListings === 'function') loadListings(); // Refresh listings if function exists
+            } else { // If rejection failed
+                throw new Error(data.error || 'Failed to decline'); // Throw error to be caught in catch block
             }
         })
-        .catch(function(err) {
-            showToastMessage('Error: ' + err.message, 'error');
+        .catch(function(err) { 
+            showToastMessage('Error: ' + err.message, 'error'); // Show error toast if any issues occur
         });
     };
 }
@@ -721,22 +730,22 @@ function cancelCounterOffer(offerId) {
         </div>
     `;
     
-    var existing = document.getElementById('cancelCounterModal');
-    if (existing) existing.remove();
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    var existing = document.getElementById('cancelCounterModal'); // Remove any existing modal to avoid duplicates
+    if (existing) existing.remove(); // Remove existing modal if present
+    document.body.insertAdjacentHTML('beforeend', modalHtml); // Insert new modal into the DOM
     
-    var modal = document.getElementById('cancelCounterModal');
-    var cancelBtn = document.getElementById('cancelCounterCancelBtn');
-    var confirmBtn = document.getElementById('cancelCounterConfirmBtn');
+    var modal = document.getElementById('cancelCounterModal'); // Get the newly created modal element
+    var cancelBtn = document.getElementById('cancelCounterCancelBtn'); // Get the cancel button element
+    var confirmBtn = document.getElementById('cancelCounterConfirmBtn'); // Get the confirm button element
     
-    cancelBtn.onclick = function() { modal.remove(); };
-    confirmBtn.onclick = function() {
+    cancelBtn.onclick = function() { modal.remove(); }; // Close modal on cancel
+    confirmBtn.onclick = function() { // Handle confirm button click
         modal.remove();
-        showToastMessage('Cancelling counter offer...', 'info');
+        showToastMessage('Cancelling counter offer...', 'info'); // Show info toast while processing
         
-        fetch('/api/offer/' + offerId + '/cancel-counter', {
+        fetch('/api/offer/' + offerId + '/cancel-counter', { // Send POST request to cancel counter offer
             method: 'POST',
-            credentials: 'same-origin',
+            credentials: 'same-origin', //
             headers: { 'Content-Type': 'application/json' }
         })
         .then(function(r) { return r.json(); })
@@ -799,7 +808,9 @@ function createOrderFromOffer(offerId) {
             ];
             
             var locations = [];
-            var sellerCampus = data.seller_campus || '';
+            var sellerCampus = data.seller_campus || ''; 
+            // Get the seller's campus from the offer details, 
+            // defaulting to an empty string if not provided
             
             if (sellerCampus.includes('Cyberjaya') || sellerCampus.includes('Cyber')) {
                 locations = cyberjayaLocations;
@@ -807,21 +818,21 @@ function createOrderFromOffer(offerId) {
                 locations = melakaLocations;
             }
             
-            // ========== 新的 HTML - 左右横向布局 + 卡片网格 ==========
+            // Build the checkout modal HTML
             var meetupHtml = `
             <div id="checkoutMeetupModal" class="custom-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;">
                 <div style="background:#ffffff;border-radius:24px;max-width:820px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
                     
-                    <!-- 头部 -->
+                    <!-- Header section -->
                     <div style="padding:20px 24px 14px;border-bottom:1px solid #eef0ee;">
                         <div style="font-size:18px;font-weight:700;color:#1a2e1a;">Checkout: ${escapeHtml(data.product_name)}</div>
                         <div style="font-size:13px;color:#666;margin-top:4px;">Agreed Price: RM ${data.offer_price.toFixed(2)} &nbsp;·&nbsp; 📍 ${escapeHtml(sellerCampus || 'Not specified')}</div>
                     </div>
                     
-                    <!-- 左右两栏：强制横向布局 -->
+                    <!-- Main content section -->
                     <div style="display:flex;flex-direction:row;padding:20px 24px;gap:30px;flex-wrap:nowrap;">
                         
-                        <!-- ===== 左栏：日期选择 ===== -->
+                        <!-- ===== Left column: Date and time selection ===== -->
                         <div style="flex:0 0 45%;min-width:0;">
                             <div style="font-weight:700;font-size:13px;color:#1a2e1a;margin-bottom:10px;">📅 Select up to 3 preferred dates &amp; times</div>
                             <div id="dateTimeInputsCheckout" style="display:flex;flex-direction:column;gap:10px;">
@@ -833,7 +844,7 @@ function createOrderFromOffer(offerId) {
                             <button type="button" id="addDateBtnCheckout" style="margin-top:10px;background:#205c30;color:white;border:none;padding:8px 20px;border-radius:30px;cursor:pointer;font-size:12px;font-weight:600;">+ Add another date</button>
                         </div>
                         
-                        <!-- ===== 右栏：地点选择（卡片网格） ===== -->
+                        <!-- ===== Right column: Location selection (card grid) ===== -->
                         <div style="flex:0 0 50%;min-width:0;">
                             <div style="font-weight:700;font-size:13px;color:#1a2e1a;margin-bottom:10px;">📍 Select Meetup Location(s) (max 3)</div>
                             <div id="checkoutLocationGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;"></div>
@@ -841,7 +852,7 @@ function createOrderFromOffer(offerId) {
                         </div>
                     </div>
                     
-                    <!-- 底部按钮 -->
+                    <!-- Bottom section -->
                     <div style="padding:14px 24px 20px;border-top:1px solid #eef0ee;display:flex;gap:12px;justify-content:flex-end;background:#fafbfa;border-radius:0 0 24px 24px;">
                         <button onclick="closeCheckoutModal()" style="padding:10px 28px;border-radius:40px;background:#f0f2f0;border:none;font-weight:600;font-size:13px;cursor:pointer;">Cancel</button>
                         <button onclick="submitOrderFromOffer(${offerId})" style="padding:10px 32px;border-radius:40px;background:linear-gradient(135deg,#00381f,#1a6b3c);color:white;border:none;font-weight:600;font-size:13px;cursor:pointer;box-shadow:0 2px 10px rgba(0,56,31,0.25);">Confirm Order</button>
@@ -854,7 +865,7 @@ function createOrderFromOffer(offerId) {
             if (existing) existing.remove();
             document.body.insertAdjacentHTML('beforeend', meetupHtml);
             
-            // ===== 构建地点卡片 =====
+            // ===== Build location cards =====
             var grid = document.getElementById('checkoutLocationGrid');
             grid.innerHTML = '';
             
@@ -865,14 +876,14 @@ function createOrderFromOffer(offerId) {
                 card.style.cssText = 'border:2px solid #e8ece8;border-radius:14px;padding:10px 6px;cursor:pointer;background:white;transition:all 0.2s ease;display:flex;flex-direction:column;align-items:center;text-align:center;';
                 card.dataset.location = loc.name;
                 
-                // 图片
+                // Create image element for the location
                 var img = document.createElement('img');
                 img.src = loc.image;
                 img.alt = loc.name;
                 img.style.cssText = 'width:100%;height:70px;object-fit:cover;border-radius:10px;margin-bottom:6px;background:#f0f0f0;';
                 img.onerror = function() { this.style.display = 'none'; };
                 
-                // 地点名称
+                // Create span element for the location name
                 var nameSpan = document.createElement('span');
                 nameSpan.textContent = loc.name;
                 nameSpan.style.cssText = 'font-size:12px;font-weight:600;color:#2c3e2c;';
@@ -880,65 +891,71 @@ function createOrderFromOffer(offerId) {
                 card.appendChild(img);
                 card.appendChild(nameSpan);
                 
-                // 点击切换选中状态
+                // Add click event listener to toggle selection of the location
                 card.onclick = (function(locationName, element) {
                     return function() {
                         var idx = window.checkoutSelectedLocations.indexOf(locationName);
-                        if (idx !== -1) {
+                        if (idx !== -1) { 
+                            // If the location is already selected, remove it from the selection
                             window.checkoutSelectedLocations.splice(idx, 1);
                             element.style.borderColor = '#e8ece8';
                             element.style.background = 'white';
                             element.style.transform = 'scale(1)';
                             element.style.boxShadow = 'none';
                         } else {
-                            if (window.checkoutSelectedLocations.length >= 3) {
+                            // If the location is not selected, check if the maximum limit of 3 locations has been reached
+                            if (window.checkoutSelectedLocations.length >= 3) { 
+                                // Limit to maximum 3 locations
                                 showToastMessage('Maximum 3 locations allowed', 'error');
                                 return;
                             }
-                            window.checkoutSelectedLocations.push(locationName);
+                            window.checkoutSelectedLocations.push(locationName); 
+                            // Add the location to the selection
                             element.style.borderColor = '#205c30';
                             element.style.background = '#eaf4ed';
                             element.style.transform = 'scale(1.02)';
                             element.style.boxShadow = '0 4px 16px rgba(32,92,48,0.15)';
                         }
                         
-                        var infoDiv = document.getElementById('checkoutLocationInfo');
+                        var infoDiv = document.getElementById('checkoutLocationInfo'); // Update the info text based on the current selection
                         if (infoDiv) {
-                            if (window.checkoutSelectedLocations.length === 0) {
+                            if (window.checkoutSelectedLocations.length === 0) { 
+                                // If no locations are selected, show a warning message
                                 infoDiv.innerHTML = '⚠️ Please select 1-3 locations';
                                 infoDiv.style.color = '#e74c3c';
-                            } else {
+                            } else { 
+                                // If locations are selected, show the list of selected locations
                                 infoDiv.innerHTML = '✅ Selected: ' + window.checkoutSelectedLocations.join(', ');
                                 infoDiv.style.color = '#205c30';
                             }
                         }
                     };
-                })(loc.name, card);
+                })(loc.name, card);      // Immediately invoked function expression (IIFE) to capture the current location name and card element for the click event
                 
-                grid.appendChild(card);
+                grid.appendChild(card); // Append the location card to the grid
             }
             
-            // ===== 添加日期行 =====
-            document.getElementById('addDateBtnCheckout').addEventListener('click', function() {
-                var container = document.getElementById('dateTimeInputsCheckout');
-                var rows = container.querySelectorAll('.date-row');
-                if (rows.length >= 3) {
-                    showToastMessage('Maximum 3 dates allowed', 'error');
+            // ===== Add event listener for adding more date/time inputs =====
+            document.getElementById('addDateBtnCheckout').addEventListener('click', function() { // Add another date/time input row
+                var container = document.getElementById('dateTimeInputsCheckout');               // Get the container for date/time inputs
+                var rows = container.querySelectorAll('.date-row');                             // Get current date rows
+                if (rows.length >= 3) {                                                         // Limit to maximum 3 date/time inputs
+                    showToastMessage('Maximum 3 dates allowed', 'error');                       // Show error toast if user tries to add more than 3
                     return;
                 }
-                var newRow = document.createElement('div');
-                newRow.className = 'date-row';
+                var newRow = document.createElement('div'); // Create a new row for date/time input
+                newRow.className = 'date-row'; // Assign class for styling
                 newRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
                 newRow.innerHTML = `
                     <input type="datetime-local" class="datetime-picker" step="60" style="flex:1;padding:10px 14px;border-radius:12px;border:1.5px solid #dce0dc;font-size:13px;min-width:0;width:100%;background:#fafbfa;outline:none;">
                     <button type="button" class="remove-date-btn" onclick="this.parentElement.remove()" style="background:#e74c3c;color:white;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;flex-shrink:0;">✕</button>
                 `;
-                container.appendChild(newRow);
+                container.appendChild(newRow); // Append the new date/time input row to the container
             });
             
         })
         .catch(function(err) {
-            showToastMessage('Error: ' + err.message, 'error');
+            showToastMessage('Error: ' + err.message, 'error'); // Show error toast if any issues occur while fetching offer details
         });
 }
 
@@ -959,9 +976,9 @@ function submitOrderFromOffer(offerId) {
     
     var dateInputs = document.querySelectorAll('#dateTimeInputsCheckout .datetime-picker');
     var selectedDates = [];
-    for (var i = 0; i < dateInputs.length; i++) {
-        var val = dateInputs[i].value;
-        if (val) selectedDates.push(val);
+    for (var i = 0; i < dateInputs.length; i++) { // Loop through each date/time input to collect selected values
+        var val = dateInputs[i].value;            // Get the value of the current date/time input
+        if (val) selectedDates.push(val);         // If a value is selected, add it to the selectedDates array
     }
     
     if (selectedDates.length === 0) {
@@ -972,7 +989,7 @@ function submitOrderFromOffer(offerId) {
     showToastMessage('Creating order...', 'info');
     fetch('/api/offer/' + offerId + '/create-order', {
         method: 'POST',
-        credentials: 'same-origin',
+        credentials: 'same-origin', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             meetup_locations: window.checkoutSelectedLocations,
@@ -1000,22 +1017,22 @@ function submitOrderFromOffer(offerId) {
 // Product images are clickable to view product details
 // ============================================================
 function loadOrders() {
-    var container = document.getElementById('orders-list');
-    var countSpan = document.getElementById('cnt-orders');
-    container.innerHTML = '<div class="loading-state">📋 Loading your orders...</div>';
+    var container = document.getElementById('orders-list'); // Get the container element where orders will be displayed
+    var countSpan = document.getElementById('cnt-orders'); // Get the span element to display the total order count
+    container.innerHTML = '<div class="loading-state">📋 Loading your orders...</div>'; 
     
     fetch('/api/orders/my', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            var asBuyer = data.as_buyer || [];
-            var asSeller = data.as_seller || [];
-            var totalOrders = asBuyer.length + asSeller.length;
+            var asBuyer = data.as_buyer || [];  // Orders where the user is the buyer
+            var asSeller = data.as_seller || []; // Orders where the user is the seller
+            var totalOrders = asBuyer.length + asSeller.length; // Total number of orders
 
-            if(countSpan) countSpan.textContent = totalOrders;
+            if(countSpan) countSpan.textContent = totalOrders; // Update the order count in the UI
 
             if(totalOrders === 0) {
                 container.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><div class="empty-title">No orders yet</div><div class="empty-sub">Your orders will appear here</div></div>';
-                return;
+                return; // Exit early if there are no orders to display
             }
 
             var html = '';
@@ -1051,9 +1068,9 @@ function loadOrders() {
 // @param {string} role - Either 'buyer' or 'seller'
 // @returns {string} HTML for the order card
 function renderOrderCard(order, role) {
-    var status = order.status;
-    var statusText = getStatusText(status);
-    var statusClass = getStatusClass(status);
+    var status = order.status; // Get the current status of the order
+    var statusText = getStatusText(status); // Get user-friendly status text based on order status
+    var statusClass = getStatusClass(status); // Get CSS class for styling based on order status
     
     var actionButtons = '';
     var meetupInfo = '';
@@ -1164,22 +1181,23 @@ function getStatusClass(status) {
 function updateOrderStatus(orderId, newStatus, callback) {
     showToastMessage('Updating order status...', 'info');
     fetch('/api/order/' + orderId + '/status', {
-        method: 'PUT',
+        method: 'PUT', 
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        if (data.success) {
+        if (data.success) { // If status update successful
             showToastMessage('Order status updated to ' + newStatus + '!', 'success');
             loadOrders();
             loadListings();
-            if (callback && typeof callback === 'function') {
+            if (callback && typeof callback === 'function') { 
+                // If a callback is provided, call it after successful update
                 callback();
             }
         } else {
-            throw new Error(data.error || 'Failed to update status');
+            throw new Error(data.error || 'Failed to update status'); // Throw error to be caught in catch block
         }
     })
     .catch(function(err) { 
@@ -1314,7 +1332,7 @@ function openConfirmOrderModal(orderId, orderNumber, productName, meetupLocation
         times = meetingTimes.split(',');
     }
     
-    // 定义地点图片映射
+    // Define a mapping of location names to their corresponding image URLs
     var locationImages = {
         "DTC": "/static/meetup-img/Cyber-dtc1.jpg",
         "Library": "/static/meetup-img/Cyber-Lib1.png",
@@ -1629,12 +1647,12 @@ var mediaToDelete = [];       // Indices of media to delete
 function editListing(productId) {
     fetch('/api/product/' + productId, { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
-        .then(function(product) {
-            console.log('Product data received:', product);
+        .then(function(product) { // Product data received
+            console.log('Product data received:', product); // Debugging output
             
-            currentMediaFiles = [];
-            newMediaFiles = [];
-            mediaToDelete = [];
+            currentMediaFiles = []; // Reset current media files
+            newMediaFiles = []; // Reset new media files
+            mediaToDelete = []; // Reset media to delete
             
             // Populate form fields with product data
             document.getElementById('edit_product_id').value = product.id;
@@ -1645,21 +1663,23 @@ function editListing(productId) {
             document.getElementById('edit_category').value = product.category || 'others';
             
             // Load existing media from images_blob
+            // Attempt to parse images_blob, which may be a JSON string or an array
+            // Handle different formats of images_blob
             if (product.images_blob) {
                 try {
                     if (typeof product.images_blob === 'string') {
-                        var parsed = JSON.parse(product.images_blob);
+                        var parsed = JSON.parse(product.images_blob); 
                         if (Array.isArray(parsed)) {
-                            currentMediaFiles = parsed;
+                            currentMediaFiles = parsed; 
                         } else {
                             currentMediaFiles = [parsed];
                         }
-                    } else if (Array.isArray(product.images_blob)) {
-                        currentMediaFiles = product.images_blob;
+                    } else if (Array.isArray(product.images_blob)) { 
+                        currentMediaFiles = product.images_blob; 
                     } else {
                         currentMediaFiles = [];
                     }
-                    console.log('Loaded from images_blob:', currentMediaFiles.length);
+                    console.log('Loaded from images_blob:', currentMediaFiles.length); 
                 } catch(e) {
                     console.error('Parse images_blob error:', e);
                     if (product.images_blob && typeof product.images_blob === 'string' && product.images_blob.startsWith('data:')) {
@@ -1724,19 +1744,19 @@ function updateUploadButtonState() {
 
 // Renders existing media files in the edit modal
 function renderExistingMedia() {
-    var container = document.getElementById('existing_media_container');
+    var container = document.getElementById('existing_media_container'); // Container for existing media previews
     if (!container) {
-        console.error('existing_media_container not found');
+        console.error('existing_media_container not found'); 
         return;
     }
     
     if (!currentMediaFiles || currentMediaFiles.length === 0) {
-        container.innerHTML = '<p class="no-media">No media uploaded</p>';
+        container.innerHTML = '<p class="no-media">No media uploaded</p>'; // Show message if no media files
         return;
     }
     
     var html = '';
-    for (var i = 0; i < currentMediaFiles.length; i++) {
+    for (var i = 0; i < currentMediaFiles.length; i++) { 
         var media = currentMediaFiles[i];
         
         // Detect if media is a video
@@ -1839,30 +1859,34 @@ function previewNewMedia(input) {
         var reader = new FileReader();
         reader.onload = (function(f, filename) {
             return function(e) {
-                var div = document.createElement('div');
-                div.className = 'media-preview new';
-                var isVideo = f.type.startsWith('video/');
+                var div = document.createElement('div'); // Create a container for the preview
+                div.className = 'media-preview new';     // Mark as new media for styling
+                var isVideo = f.type.startsWith('video/'); // Check if the file is a video
 
-                if (isVideo) {
+                if (isVideo) { 
+                    // If the file is a video, create a video element for preview
                     div.innerHTML = '<video src="' + e.target.result + '" controls preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>' +
                         '<button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, \'' + filename + '\')">✕</button>' +
-                        '<span class="video-badge">🎬</span>';
+                        '<span class="video-badge">🎬</span>'; 
                 } else {
+                    // If the file is an image, create an img element for preview
                     div.innerHTML = '<img src="' + e.target.result + '" alt="Preview">' +
                         '<button type="button" class="remove-new-media" onclick="removeNewMediaItem(this, \'' + filename + '\')">✕</button>';
                 }
-                preview.appendChild(div);
+                preview.appendChild(div); // Append the preview to the container
             };
-        })(file, file.name);
-        reader.readAsDataURL(file);
+        })(file, file.name); // Immediately invoked function to capture the current file and filename
+        reader.readAsDataURL(file); // Read the file as a data URL for preview
     }
 
     input.value = '';
 
     if (skippedDuplicate > 0) {
+        // Notify user about skipped duplicate files
         showToastMessage(skippedDuplicate + ' duplicate file(s) skipped.', 'error');
     }
     if (skippedSlot > 0) {
+        // Notify user about skipped files due to reaching the maximum limit
         showToastMessage('Max ' + MAX_MEDIA_FILES + ' media files reached. ' + skippedSlot + ' file(s) not added.', 'error');
     }
 
@@ -1883,95 +1907,134 @@ function removeNewMediaItem(btn, filename) {
     }
     updateUploadButtonState();
 }
-
-// Saves product changes (updates product data)
-// @param {Event} event - Form submit event
+// ============================================================
+// SAVE PRODUCT CHANGES - Updates product data on the server
+// @param {Event} event - Form submit event to prevent default submission
+// @description: Validates media, converts new files to base64, and sends update request
+// @returns: void - Handles the entire product update flow asynchronously
+// ============================================================
 function saveProductChanges(event) {
+    // Prevent the browser's default form submission which would reload the page
     event.preventDefault();
+    
+    // Get the product ID from the hidden input field in the edit form
     var id = document.getElementById('edit_product_id').value;
     
+    // Validate that we have a product ID - if not, show error and exit
     if (!id) {
         showToastMessage('Product ID missing', 'error');
         return;
     }
     
-    // Filter out media marked for deletion
+    // Filter out media that the user marked for deletion
+    // We iterate through currentMediaFiles and only keep those not in mediaToDelete array
     var remainingMedia = [];
     for (var i = 0; i < currentMediaFiles.length; i++) {
+        // If this index is NOT in the deletion list, keep it
         if (mediaToDelete.indexOf(i) === -1) {
             remainingMedia.push(currentMediaFiles[i]);
         }
     }
     
+    // Calculate total media count after all changes (remaining + new)
     var totalAfterSave = remainingMedia.length + newMediaFiles.length;
     
+    // Check if total media exceeds the maximum limit (12 files)
     if (totalAfterSave > MAX_MEDIA_FILES) {
         showToastMessage('Maximum ' + MAX_MEDIA_FILES + ' media files allowed. Current: ' + totalAfterSave, 'error');
         return;
     }
     
+    // Ensure at least one media file exists (product must have a photo/video)
     if (totalAfterSave === 0) {
         showToastMessage('Please add at least one photo or video', 'error');
         return;
     }
     
+    // Show loading toast to inform user the update is in progress
     showToastMessage('Updating product...', 'info');
     
-    // Handle new media files (convert to base64)
+    // ============================================================
+    // CASE 1: There are new media files to upload
+    // ============================================================
     if (newMediaFiles.length > 0) {
+        // Create an array of promises to convert each new file to base64
         var uploadPromises = [];
         for (var i = 0; i < newMediaFiles.length; i++) {
             var file = newMediaFiles[i];
+            
+            // For each file, create a Promise that resolves with the base64 data
             var promise = new Promise(function(resolve) {
                 var reader = new FileReader();
-                reader.onload = function(e) { resolve(e.target.result); };
+                // When the file is loaded, resolve the promise with the base64 result
+                reader.onload = function(e) { 
+                    resolve(e.target.result); 
+                };
+                // Read the file as a data URL (base64 encoded)
                 reader.readAsDataURL(file);
             });
+            // Add the promise to our array
             uploadPromises.push(promise);
         }
         
+        // Wait for ALL file conversions to complete using Promise.all
+        // This ensures we have all base64 data before sending to server
         Promise.all(uploadPromises).then(function(newBase64Media) {
+            // Combine remaining existing media with new base64 media
             var allMedia = remainingMedia.concat(newBase64Media);
+            // Convert the media array to a JSON string for storage
             var imagesBlobJson = JSON.stringify(allMedia);
             
+            // Collect all form field values
             var name = document.getElementById('edit_name').value;
             var price = document.getElementById('edit_price').value;
             var description = document.getElementById('edit_description').value;
             var condition = document.getElementById('edit_condition').value;
             var category = document.getElementById('edit_category').value;
             
+            // Build FormData object for multipart/form-data POST request
             var fd = new FormData();
             fd.append('name', name);
             fd.append('price', price);
             fd.append('description', description);
             fd.append('condition', condition);
             fd.append('category', category);
-            fd.append('images_blob', imagesBlobJson);
+            fd.append('images_blob', imagesBlobJson); // JSON string of all media
             
+            // Send the update request to the server
             fetch('/api/product/' + id + '/update-full', {
-                method: 'POST',
-                body: fd,
-                credentials: 'same-origin'
+                method: 'POST',          // Using POST to handle file data
+                body: fd,                // FormData automatically sets multipart encoding
+                credentials: 'same-origin' // Include session cookies for authentication
             })
-            .then(function(r) { return r.json(); })
+            .then(function(r) { 
+                return r.json();         // Parse the JSON response
+            })
             .then(function(data) {
                 if (data.success) {
+                    // On success: show success message, close modal, refresh listings
                     showToastMessage('Product updated successfully!', 'success');
-                    closeEditModal();
-                    loadListings();
+                    closeEditModal();     // Close the edit modal
+                    loadListings();       // Refresh the listings grid to show changes
                 } else {
+                    // If server returned an error, throw it to be caught below
                     throw new Error(data.error || 'Update failed');
                 }
             })
-            .catch(function(err) {
+            .catch(function(err) { 
                 console.error('Save error:', err);
                 showToastMessage('Failed to update: ' + err.message, 'error');
             });
         });
-    } else {
-        // No new media, just update existing media
+    } 
+    // ============================================================
+    // CASE 2: No new media files, just update existing data
+    // ============================================================
+    else {
+        // Convert the remaining media to JSON string
         var imagesBlobJson = JSON.stringify(remainingMedia);
         
+        // Build FormData with all form values and the media JSON
         var fd = new FormData();
         fd.append('name', document.getElementById('edit_name').value);
         fd.append('price', document.getElementById('edit_price').value);
@@ -1980,12 +2043,15 @@ function saveProductChanges(event) {
         fd.append('category', document.getElementById('edit_category').value);
         fd.append('images_blob', imagesBlobJson);
         
+        // Send update request without new media files
         fetch('/api/product/' + id + '/update-full', {
             method: 'POST',
             body: fd,
             credentials: 'same-origin'
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { 
+            return r.json(); 
+        })
         .then(function(data) {
             if (data.success) {
                 showToastMessage('Product updated successfully!', 'success');
@@ -2002,19 +2068,33 @@ function saveProductChanges(event) {
     }
 }
 
-// Closes the edit product modal
+
+// ============================================================
+// CLOSE EDIT MODAL - Closes the edit product modal and resets state
+// @description: Hides the modal and clears all media tracking variables
+// @returns: void
+// ============================================================
 function closeEditModal() {
+    // Find the edit modal element and hide it
     var modal = document.getElementById('editProductModal');
     if (modal) modal.style.display = 'none';
-    currentMediaFiles = [];
-    newMediaFiles = [];
-    mediaToDelete = [];
+    
+    // Reset all media tracking arrays to prevent data leaks between edits
+    currentMediaFiles = [];  // Clear existing media references
+    newMediaFiles = [];      // Clear pending new media
+    mediaToDelete = [];      // Clear deletion markers
 }
 
-// Deletes a product listing after confirmation
-// @param {number} id - Product ID
-// @param {string} name - Product name for confirmation message
+
+// ============================================================
+// DELETE LISTING - Deletes a product listing after user confirmation
+// @param {number} id - Product ID to delete
+// @param {string} name - Product name displayed in confirmation dialog
+// @description: Shows a confirmation modal, then sends DELETE request if confirmed
+// @returns: void - Handles the entire deletion flow with user interaction
+// ============================================================
 function deleteListing(id, name) {
+    // Build the confirmation modal HTML with the product name
     var modalHtml = `
         <div id="deleteConfirmModal" class="custom-modal">
             <div class="modal-card">
@@ -2029,33 +2109,44 @@ function deleteListing(id, name) {
         </div>
     `;
     
+    // Remove any existing confirmation modal to prevent duplicates
     var existingModal = document.getElementById('deleteConfirmModal');
     if (existingModal) existingModal.remove();
     
+    // Insert the new modal HTML into the document
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     
+    // Get references to modal elements
     var modal = document.getElementById('deleteConfirmModal');
     var cancelBtn = document.getElementById('deleteCancelBtn');
     var confirmBtn = document.getElementById('deleteConfirmBtn');
     
+    // Set up cancel button: just close the modal
     cancelBtn.onclick = function() {
-        modal.remove();
+        modal.remove();  // Remove the modal from DOM
     };
     
+    // Set up confirm button: proceed with deletion
     confirmBtn.onclick = function() {
-        modal.remove();
+        modal.remove();  // Close the modal first
+        
         showToastMessage('Deleting "' + name + '"...', 'info');
         
+        // Send DELETE request to the server
         fetch('/api/product/' + id + '/delete', { 
-            method: 'DELETE', 
-            credentials: 'same-origin' 
+            method: 'DELETE',           // HTTP DELETE method for resource removal
+            credentials: 'same-origin'  // Include session for authentication
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { 
+            return r.json();            // Parse the JSON response
+        })
         .then(function(data) {
             if (data.success) {
+                // On success: show success toast and refresh listings
                 showToastMessage('"' + name + '" deleted', 'success');
-                loadListings();
+                loadListings();          // Refresh the listings grid
             } else {
+                // If server returned an error, throw it
                 throw new Error(data.error);
             }
         })
@@ -2064,53 +2155,81 @@ function deleteListing(id, name) {
         });
     };
     
+    // Allow clicking outside the modal to close it (backdrop click)
     modal.onclick = function(e) {
         if (e.target === modal) modal.remove();
     };
 }
 
+
 // ============================================================
-// SELLER RATING BUTTON - Loads and displays seller reviews
+// LOAD SELLER RATING - Loads and displays seller review count
+// @description: Fetches review data and updates the seller rating container
+// @returns: void - Updates UI with review count
 // ============================================================
 function loadSellerRating() {
+    // Get the current user's ID from the global variable
     var userId = CURRENT_USER_ID;
-    if (!userId || userId === 0) {
+    
+    // Validate that we have a valid user ID
+    if (!userId || userId === 0) { 
         console.log('No user ID available');
         return;
     }
+    
+    // Get the container element for seller ratings
     var container = document.getElementById('sellerRatingContainer');
     if (!container) return;
 
+    // Fetch reviews for the current user
     fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { 
+        return r.json(); 
+    })
     .then(function(data) {
+        // Show the rating container and update the review count
         container.style.display = 'block';  
         document.getElementById('reviewCount').textContent = data.total_reviews || 0;
+        
+        // Also check if user can write reviews (for future feature)
         return fetch('/api/user/' + userId + '/can-review', { credentials: 'same-origin' });
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { 
+        return r.json(); 
+    })
     .then(function(data) {
-        // no need to show write review button on simplified view
+        // This check is currently not used but kept for future functionality
+        // Could be used to show/hide "Write Review" button
     })
     .catch(function(err) {
+        // Non-critical feature, just log the error silently
         console.log('Load seller rating error:', err);
     });
 }
 
+
 // ============================================================
-// Open reviews modal - Shows all buyer reviews with comments
+// OPEN REVIEWS MODAL - Shows all buyer reviews with comments and ratings
+// @description: Fetches reviews from server and displays them in a modal
+// @returns: void - Renders reviews with detailed ratings and comments
 // ============================================================
 function openReviewsModal() {
+    // Get user ID from server-side template variable
     var userId = {{ user.id }}; 
 
+    // Fetch all reviews for the current user
     fetch('/api/user/' + userId + '/reviews', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { 
+        return r.json(); 
+    })
     .then(function(data) {
         console.log('Reviews data:', data);
         console.log('First review:', data.reviews ? data.reviews[0] : 'no reviews');
         
+        // Generate star HTML for the overall average rating
         var starsHtml = generateStarsHtml(data.avg_overall);
         
+        // Build statistics section with overall and category ratings
         var statsHtml = `
             <div class="overall-score">${data.avg_overall}</div>
             <div class="overall-stars">${starsHtml}</div>
@@ -2123,15 +2242,18 @@ function openReviewsModal() {
         `;
         document.getElementById('reviewsStats').innerHTML = statsHtml;
 
+        // Handle empty reviews case
         if (!data.reviews || data.reviews.length === 0) {
             document.getElementById('reviewsList').innerHTML = '<div class="empty-state">No reviews yet</div>';
         } else {
+            // Build the list of individual reviews
             var listHtml = '';
             for (var i = 0; i < data.reviews.length; i++) {
                 var review = data.reviews[i];
                 var reviewerId = review.reviewer_id;  
-                var profileLink = `/user/${reviewerId}`;
+                var profileLink = `/user/${reviewerId}`;  // Link to reviewer's profile
                 
+                // Display reviewer avatar (either image or initials placeholder)
                 var avatarHtml = review.reviewer_avatar_base64 ?
                     `<a href="${profileLink}" class="reviewer-avatar-link" target="_blank" rel="noopener noreferrer">
                         <img src="${review.reviewer_avatar_base64}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
@@ -2140,9 +2262,11 @@ function openReviewsModal() {
                         <div class="reviewer-avatar">${review.reviewer_name ? review.reviewer_name[0].toUpperCase() : 'U'}</div>
                     </a>`;
                 
+                // Generate stars for this review's overall rating
                 var reviewStars = generateStarsHtml(review.rating_overall);
                 var commentText = review.comment ? review.comment : 'No comment provided';
                 
+                // Build each review card
                 listHtml += `
                     <div class="review-card">
                         <div class="review-header">
@@ -2165,6 +2289,7 @@ function openReviewsModal() {
             }
             document.getElementById('reviewsList').innerHTML = listHtml;
         }
+        // Show the reviews modal
         document.getElementById('reviewsModal').style.display = 'flex';
     })
     .catch(function(err) {
@@ -2172,50 +2297,78 @@ function openReviewsModal() {
     });
 }
 
-// Closes the reviews modal
+
+// ============================================================
+// CLOSE REVIEWS MODAL - Closes the reviews modal
+// @description: Simply hides the reviews modal from view
+// @returns: void
+// ============================================================
 function closeReviewsModal() {
     document.getElementById('reviewsModal').style.display = 'none';
 }
 
-// Formats review date for display
-// @param {string} dateStr - Date string
-// @returns {string} Formatted date
+
+// ============================================================
+// FORMAT REVIEW DATE - Formats a date string for display in reviews
+// @param {string} dateStr - Date string to format
+// @returns {string} Formatted date in locale-specific format or 'Recently' if empty
+// ============================================================
 function formatReviewDate(dateStr) {
     if (!dateStr) return 'Recently';
     var d = new Date(dateStr);
-    return d.toLocaleDateString();
+    return d.toLocaleDateString();  // Returns date in user's locale format
 }
 
-// Close modal when clicking outside
+
+// ============================================================
+// CLOSE MODAL ON BACKDROP CLICK - Handles clicking outside modals
+// @description: Closes the reviews modal when clicking on the backdrop
+// @returns: void
+// ============================================================
 window.onclick = function(event) {
     var modal = document.getElementById('reviewsModal');
     if (event.target === modal) closeReviewsModal();
 };
 
-// Handle URL parameters for tab navigation
+
+// ============================================================
+// URL PARAMETER HANDLING - Auto-selects tabs based on URL parameters
+// @description: Checks URL for 'tab' parameter and switches to that tab
+// @returns: void
+// ============================================================
 var urlParams = new URLSearchParams(window.location.search);
 var tabParam = urlParams.get('tab');
 if (tabParam && (tabParam === 'orders' || tabParam === 'listings' || tabParam === 'purchases')) {
-    switchTab(tabParam);
+    switchTab(tabParam);  // Switch to the tab specified in URL
 }
 
+// Special case: open reviews modal if URL parameter indicates
 if (tabParam === 'received-reviews') {
     openReviewsModal();
 }
 
+
 // ============================================================
-// Open review writing modal - From orders tab after confirming receipt
+// OPEN REVIEW MODAL - Displays modal for writing a seller review
+// @param {number} orderId - The order ID to review
+// @param {string} productName - Name of the product being reviewed
+// @description: Creates a modal with star ratings and comment field for buyer review
+// @returns: void - Renders the review writing modal
 // ============================================================
 function openReviewModal(orderId, productName) {
+    // Store order details in global variables for later use
     window.pendingReviewOrderId = orderId;
     window.pendingReviewProductName = productName;
 
+    // Build the review modal HTML with three rating categories
     var modalHtml = `
         <div id="writeReviewModal" class="custom-modal">
             <div class="modal-card" style="max-width:500px;">
                  <div class="modal-icon">⭐</div>
                 <div class="modal-title">Review "${escapeHtml(productName)}"</div>
                 <div class="modal-message">How was your experience with this seller?</div>
+                
+                <!-- Service Rating -->
                 <div style="margin: 16px 0;">
                   <label style="font-weight:600; display:block; margin-bottom:8px;">😊 Service Rating</label>
                     <div class="rating-stars" data-rating-type="service">
@@ -2227,6 +2380,7 @@ function openReviewModal(orderId, productName) {
                     </div>
                 </div>
                 
+                <!-- Delivery Rating -->
                 <div style="margin: 16px 0;">
                   <label style="font-weight:600; display:block; margin-bottom:8px;">📦 Delivery Rating</label>
                     <div class="rating-stars" data-rating-type="shipping">
@@ -2238,6 +2392,7 @@ function openReviewModal(orderId, productName) {
                     </div>
                 </div>
             
+                <!-- Quality Rating -->
                 <div style="margin: 16px 0;">
                     <label style="font-weight:600; display:block; margin-bottom:8px;">✨ Quality Rating</label>
                     <div class="rating-stars" data-rating-type="quality">
@@ -2249,11 +2404,13 @@ function openReviewModal(orderId, productName) {
                     </div>
                 </div>
 
+                <!-- Comment Textarea -->
                 <div style="margin: 16px 0;">
                     <label style="font-weight:600; display:block; margin-bottom:8px;">Your Comment</label>
                     <textarea id="reviewCommentInput" rows="3" style="width:100%; padding:10px; border-radius:12px; border:1px solid #ddd;" placeholder="Share your experience with this seller..."></textarea>
                 </div>
                 
+                <!-- Action Buttons -->
                 <div class="modal-buttons">
                     <button class="modal-cancel" onclick="closeWriteReviewModal()">Cancel</button>
                     <button class="modal-confirm" onclick="submitSellerReview()">Submit Review</button>
@@ -2262,50 +2419,68 @@ function openReviewModal(orderId, productName) {
         </div>
     `;
 
-     var existingModal = document.getElementById('writeReviewModal');
+    // Remove any existing review modal to prevent duplicates
+    var existingModal = document.getElementById('writeReviewModal');
     if (existingModal) existingModal.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
     // Attach click handlers for star ratings
+    // Each star toggles between filled (★) and empty (☆) based on selection
     document.querySelectorAll('.rating-stars').forEach(function(container) {
         var stars = container.querySelectorAll('.rating-star');
         stars.forEach(function(star) {
             star.onclick = function() {
+                // Get the rating value from the clicked star's data attribute
                 var value = parseInt(this.dataset.value);
+                // Update all stars in this group: fill up to the selected value
                 stars.forEach(function(s, idx) {
                     if (idx < value) {
-                        s.innerHTML = '★';
+                        s.innerHTML = '★';        // Filled star
                         s.classList.add('filled');
                     } else {
-                        s.innerHTML = '☆';
+                        s.innerHTML = '☆';        // Empty star
                         s.classList.remove('filled');
                     }
                 });
+                // Store the rating value on the container
                 container.dataset.rating = value;
             };
         });
     });
 }
 
-// Closes the write review modal
+
+// ============================================================
+// CLOSE WRITE REVIEW MODAL - Removes the review writing modal
+// @description: Finds and removes the write review modal from the DOM
+// @returns: void
+// ============================================================
 function closeWriteReviewModal() {
     var modal = document.getElementById('writeReviewModal');
     if (modal) modal.remove();
 }
 
-// Submits seller review to the server
+
+// ============================================================
+// SUBMIT SELLER REVIEW - Sends the review data to the server
+// @description: Validates ratings, then POSTs review to the server
+// @returns: void - Handles the entire review submission flow
+// ============================================================
 function submitSellerReview() {
+    // Get the order ID from the global variable
     var orderId = window.pendingReviewOrderId;
     if (!orderId) {
         showToastMessage('Order not found', 'error');
         return;
     }
     
+    // Collect all three ratings from the star selectors
     var serviceRating = parseInt(document.querySelector('.rating-stars[data-rating-type="service"]')?.dataset.rating || 0);
     var shippingRating = parseInt(document.querySelector('.rating-stars[data-rating-type="shipping"]')?.dataset.rating || 0);
     var qualityRating = parseInt(document.querySelector('.rating-stars[data-rating-type="quality"]')?.dataset.rating || 0);
     var comment = document.getElementById('reviewCommentInput')?.value || '';
     
+    // Validate that all ratings are provided
     if (serviceRating === 0 || shippingRating === 0 || qualityRating === 0) {
         showToastMessage('Please provide all ratings', 'error');
         return;
@@ -2313,6 +2488,7 @@ function submitSellerReview() {
     
     showToastMessage('Submitting review...', 'info');
     
+    // Send review data to the server
     fetch('/api/order/' + orderId + '/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2324,13 +2500,17 @@ function submitSellerReview() {
         }),
         credentials: 'same-origin'
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { 
+        return r.json(); 
+    })
     .then(function(data) {
         if (data.success) {
+            // On success: show thanks, close modal, refresh UI
             showToastMessage('Review submitted! Thank you!', 'success');
-            closeWriteReviewModal();
-            loadSellerRating();
-            loadOrders();
+            closeWriteReviewModal();        // Close the review modal
+            loadSellerRating();             // Update the seller rating display
+            loadOrders();                   // Refresh orders to update status
+            // Clear pending review data
             window.pendingReviewOrderId = null;
             window.pendingReviewProductName = null;
         } else {
@@ -2342,80 +2522,113 @@ function submitSellerReview() {
     });
 }
 
-// Generates star HTML for rating display
+
+// ============================================================
+// GENERATE STARS HTML - Creates star HTML for rating display
 // @param {number} rating - Rating value (0-5)
-// @returns {string} HTML string of stars
+// @returns {string} HTML string of stars with full, half, and empty stars
+// @description: Converts a numeric rating to visual star representation
+// ============================================================
 function generateStarsHtml(rating) {
-    var fullStars = Math.floor(rating);
-    var halfStar = (rating - fullStars) >= 0.5;
-    var emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    var fullStars = Math.floor(rating);        // Number of full stars
+    var halfStar = (rating - fullStars) >= 0.5; // Check if half star is needed
+    var emptyStars = 5 - fullStars - (halfStar ? 1 : 0); // Remaining empty stars
     
     var html = '';
+    // Add full stars (★)
     for (var i = 0; i < fullStars; i++) {
         html += '<span class="star full">★</span>';
     }
+    // Add half star if needed
     if (halfStar) {
         html += '<span class="star half">½</span>';
     }
+    // Add empty stars (☆)
     for (var j = 0; j < emptyStars; j++) {
         html += '<span class="star empty">☆</span>';
     }
     return html;
 }
 
+
 // ============================================================
 // AVATAR MODAL - Displays profile picture in larger view
+// @description: Opens a modal showing the user's profile picture enlarged
+// @returns: void - Shows the avatar modal with the profile image or initials
 // ============================================================
 function openAvatarModal() {
     var modal = document.getElementById('avatarModal');
     var largeImg = document.getElementById('avatarLargeImg');
     var placeholder = document.getElementById('avatarLargePlaceholder');
     
+    // Get references to the small avatar elements
     var avatarImg = document.querySelector('.pf-avatar img');
     var avatarInit = document.querySelector('.pf-avatar-init');
     
+    // Check if an actual avatar image exists and is visible
     if (avatarImg && avatarImg.style.display !== 'none' && avatarImg.src) {
+        // Show the image in large size
         largeImg.src = avatarImg.src;
         largeImg.style.display = 'block';
         placeholder.style.display = 'none';
     } else {
+        // No image available - show initials placeholder
         largeImg.style.display = 'none';
         placeholder.textContent = avatarInit ? avatarInit.textContent : 'U';
         placeholder.style.display = 'flex';
     }
     
+    // Show the modal
     modal.style.display = 'flex';
 }
 
-// Closes the avatar modal
+// ============================================================
+// CLOSE AVATAR MODAL - Closes the avatar modal
+// @description: Hides the avatar modal from view
+// @returns: void
+// ============================================================
 function closeAvatarModal() {
     var modal = document.getElementById('avatarModal');
     modal.style.display = 'none';
 }
 
-// Close modals when clicking outside
+// ============================================================
+// CLOSE MODALS ON BACKDROP CLICK - Handles clicking outside modals
+// @description: Closes various modals when clicking on their backdrop
+// @returns: void
+// ============================================================
 window.onclick = function(event) {
+    // Close confirm received modal if backdrop clicked
     var confirmModal = document.getElementById('confirmReceivedModal');
     if (event.target === confirmModal) closeConfirmReceivedModal();
     
+    // Close avatar modal if backdrop clicked
     var avatarModal = document.getElementById('avatarModal');
     if (event.target === avatarModal) closeAvatarModal();
     
+    // Close reviews modal if backdrop clicked
     var reviewsModal = document.getElementById('reviewsModal');
     if (event.target === reviewsModal) closeReviewsModal();
 };
 
 // ============================================================
 // PAGE INITIALIZATION - Loads all data when page loads
+// @description: Initializes the profile page by loading all data
+// @returns: void - Triggers data loading and tab setup on page load
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
+    // Load user's custom background from server
     restoreBackgroundFromServer();
-    loadCoverFromServer();
-    loadListings();
-    loadPurchases();
-    loadSellerRating();
     
-    // Handle URL hash for direct tab navigation
+    // Load user's custom cover image from server
+    loadCoverFromServer();
+    
+    // Load all three data tabs
+    loadListings();   // Load products for sale
+    loadPurchases();  // Load purchase offers
+    loadSellerRating(); // Load seller rating data
+    
+    // Handle URL hash for direct tab navigation (#orders, #listings, #purchases)
     var hash = window.location.hash;
     if (hash === '#orders') {
         switchTab('orders');

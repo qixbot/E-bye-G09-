@@ -194,7 +194,7 @@
 
     <div class="ep-wrap">
         <div class="ep-grid">
-            <!-- 左侧：个人信息卡片 -->
+            <!-- Left panel -->
             <div class="ep-identity">
                 <div class="ep-avatar-card">
                     <div class="ep-avatar-wrap">
@@ -456,17 +456,30 @@ const COLOR_CONFIG = {
     gradient: ['linear-gradient(135deg,#FF6B6B,#FFE66D)','linear-gradient(135deg,#FBC2EB,#A6C1EE)','linear-gradient(135deg,#84FAB0,#8FD3F4)','linear-gradient(135deg,#FF9A9E,#FECFEF)','linear-gradient(135deg,#FFD26F,#FF6B6B)','linear-gradient(135deg,#A18CD1,#FBC2EB)','linear-gradient(135deg,#43C6AC,#191654)','linear-gradient(135deg,#FAD961,#F76B1C)','linear-gradient(135deg,#4CB8C4,#3CD3AD)','linear-gradient(135deg,#F53844,#42378F)','linear-gradient(135deg,#DD5E89,#F7BB97)','linear-gradient(135deg,#00B4DB,#0083B0)']
 };
 
-var $bgLayer = null;
-var $bgPreview = null;
-var $bgPanel = null;
-var selectedBgValue = null;
-var coverCropper = null;
-var avatarCropper = null;
+// ============================================================
+// GLOBAL VARIABLES & STATE MANAGEMENT
+// ============================================================
+//Purpose: Holds references to DOM elements and third-party cropping instances.
+
+var $bgLayer = null;       // Main background layer element
+var $bgPreview = null;     // Small background preview element
+var $bgPanel = null;       // Side panel container for theme colors
+var selectedBgValue = null;// Stores the currently selected color or gradient string
+var coverCropper = null;   // Cropper.js instance for the cover banner
+var avatarCropper = null;  // Cropper.js instance for the profile picture
+
+// ============================================================
+//BACKGROUND CONFIGURATION & THEME SYSTEM
+// ============================================================
+//  Purpose: Generates clickable color swatches in the UI for theme customization.
+//  @param {string} containerId - The ID of the parent element to inject color swatches.
+//  @param {Array} colors - List of hexadecimal or gradient strings.
+//  @param {boolean} isGradient - Flag to determine if background styling should support gradients.
 
 function buildGrid(containerId, colors, isGradient) {
     var c = document.getElementById(containerId);
     if (!c) return;
-    c.innerHTML = '';
+    c.innerHTML = ''; // Clear existing swatches before rendering
     for (var i = 0; i < colors.length; i++) {
         var col = colors[i];
         var s = document.createElement('div');
@@ -477,6 +490,7 @@ function buildGrid(containerId, colors, isGradient) {
         } else {
             s.style.backgroundColor = col;
         }
+        // Closure to capture the specific color value for individual click handlers
         s.onclick = (function(val) {
             return function() { selectedBgValue = val; previewBg(val); };
         })(col);
@@ -484,17 +498,23 @@ function buildGrid(containerId, colors, isGradient) {
     }
 }
 
+// Purpose: Provides a real-time preview of the chosen background color/gradient in the user interface.
+//@param {string} val - The color or gradient value to apply dynamically.
+
 function previewBg(val) {
     if ($bgLayer) $bgLayer.style.background = val;
     if ($bgPreview) $bgPreview.style.background = val;
     selectedBgValue = val;
 }
 
+//Purpose: Fetches the user's saved background settings from the database on page load.
+//Falls back to a default soft cream gradient if no custom preference exists or if the request fails.
+
 function restoreBackgroundFromServer() {
     fetch('/api/user/background', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            var restoredBg = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
+            var restoredBg = 'linear-gradient(135deg, #f5f3ee, #e6ded3)'; // Default fallback theme
             if (data.success && data.background_value) restoredBg = data.background_value;
             if ($bgLayer) $bgLayer.style.background = restoredBg;
             if ($bgPreview) $bgPreview.style.background = restoredBg;
@@ -504,6 +524,9 @@ function restoreBackgroundFromServer() {
             if ($bgLayer) $bgLayer.style.background = 'linear-gradient(135deg, #f5f3ee, #e6ded3)';
         });
 }
+
+//Purpose: Sends an asynchronous POST request to persist the newly selected theme background on the server.
+//@param {string} bgValue - The custom color or linear-gradient statement to be saved.
 
 function saveBackgroundToServer(bgValue) {
     return fetch('/save-background-preset', {
@@ -517,25 +540,34 @@ function saveBackgroundToServer(bgValue) {
     });
 }
 
+//Purpose: Toggles the visibility of the background customization side drawer.
 function toggleBgPanel() { 
     if ($bgPanel) $bgPanel.classList.toggle('open'); 
 }
+
+
+//IMAGE MANAGEMENT & CROPPING UTILITIES
+//Purpose: Reloads the profile cover banner from the server using a timestamp to bypass browser cache.
 
 function loadCoverFromServer() {
     var d = document.getElementById('coverImage');
     if (d) d.style.backgroundImage = 'url(/cover-image?t=' + Date.now() + ')';
 }
 
+//Purpose: Asynchronously fetches the updated user avatar image and handles display fallbacks gracefully.
 function loadAvatarFromServer() {
     var img = document.getElementById('side-av-img');
     var init = document.getElementById('side-av-init');
     if (img) {
         img.src = '/avatar-image?t=' + Date.now();
+        // Displays image and hides the text initial placeholder upon successful loading
         img.onload = function() { img.style.display = 'block'; if (init) init.style.display = 'none'; };
+        // Displays a text initial fallback if image loading fails
         img.onerror = function() { img.style.display = 'none'; if (init) init.style.display = 'flex'; };
     }
 }
 
+//Purpose: Closes the cover banner image cropping viewport modal and clears runtime cropper instances.
 function closeCoverCrop() {
     var $coverCropModal = document.getElementById('coverCropModal');
     var $coverFileInput = document.getElementById('coverFileInput');
@@ -544,6 +576,7 @@ function closeCoverCrop() {
     if ($coverFileInput) $coverFileInput.value = '';
 }
 
+//Purpose: Closes the avatar image cropping viewport modal and safely resets raw file selections.
 function closeAvatarCrop() {
     var $avatarCropModal = document.getElementById('avatarCropModal');
     var $avatarFileInput = document.getElementById('avatarFileInput');
@@ -555,14 +588,18 @@ function closeAvatarCrop() {
 // ============================================================
 // BUILD COLOR GRIDS
 // ============================================================
+// Purpose: Populates individual grid interfaces with color options derived from the app's structural configuration.
 buildGrid('rainbowGrid', COLOR_CONFIG.rainbow, false);
 buildGrid('lightGrid', COLOR_CONFIG.light, false);
 buildGrid('darkGrid', COLOR_CONFIG.dark, false);
 buildGrid('gradientGrid', COLOR_CONFIG.gradient, true);
 
-// ============================================================
-// TAB SWITCHING FUNCTIONS
-// ============================================================
+//============================================================
+//INTERFACE TAB NAVIGATION CONTROL
+//============================================================
+//Purpose: Coordinates primary sidebar/top tab switching for navigation between major user panes.
+//@param {string} tabName - Name identifier of the clicked major category pane.
+
 function switchMainTab(tabName) {
     document.querySelectorAll('.ep-main-tab').forEach(function(b) { b.classList.remove('active'); });
     var activeTab = document.querySelector('.ep-main-tab[data-main-tab="' + tabName + '"]');
@@ -570,8 +607,11 @@ function switchMainTab(tabName) {
     document.querySelectorAll('.ep-main-pane').forEach(function(p) { p.classList.remove('active'); });
     var activePane = document.getElementById('main-pane-' + tabName);
     if (activePane) activePane.classList.add('active');
-    if (tabName === 'edit') switchSubTab('edit-profile');
+    if (tabName === 'edit') switchSubTab('edit-profile'); // Redirect triggers nested internal options
 }
+
+//Purpose: Alternates viewing layers within secondary inner modules (e.g., account settings vs profile fields).
+//@param {string} subtabName - Name identifier of the target submenu layout.
 
 function switchSubTab(subtabName) {
     document.querySelectorAll('.ep-sub-tab').forEach(function(b) { b.classList.remove('active'); });
@@ -582,15 +622,23 @@ function switchSubTab(subtabName) {
     if (activeSubPane) activeSubPane.classList.add('active');
 }
 
-// ============================================================
-// PASSWORD FUNCTIONS
-// ============================================================
+//============================================================
+//CREDENTIALS & SECURITY VALIDATION
+//============================================================
+ //Purpose: Reveals or masks character visibility inside standard sensitive string entry blocks.
+//@param {string} id - Target password element identifier.
+//@param {HTMLElement} btn - The interactive eye toggle indicator.
+
 function togglePassword(id, btn) {
     var inp = document.getElementById(id);
     if (!inp) return;
     inp.type = inp.type === 'password' ? 'text' : 'password';
     btn.textContent = inp.type === 'password' ? '👀' : '🫣';
 }
+
+//Purpose: Evaluates character sets within the main input element to quantify strength against strict policies.
+//Displays structural feedback components to the end user based on matching conditions.
+//@returns {boolean} True if all safety checkpoints are completely satisfied.
 
 function checkPwStrength() {
     var pw = document.getElementById('new_password').value;
@@ -609,6 +657,8 @@ function checkPwStrength() {
     if (bar) { bar.style.width = widths[score]; bar.style.background = colors[score]; }
     var label = document.getElementById('ep-strength-label');
     if (label) label.textContent = pw ? 'Password strength: ' + labels[score] : '';
+    
+    // Updates UI requirement checklist with cross/check marks based on evaluation results
     var reqs = ['ep-req-len', 'ep-req-up', 'ep-req-lo', 'ep-req-num', 'ep-req-sp'];
     var valid = [checks.len, checks.upper, checks.lower, checks.number, checks.special];
     for (var i = 0; i < reqs.length; i++) {
@@ -618,9 +668,10 @@ function checkPwStrength() {
         el.className = valid[i] ? 'req-valid' : 'req-invalid';
         if (ic) ic.textContent = valid[i] ? '✓' : '✗';
     }
-    return score === 5;
+    return score === 5; // Validates if password fulfills all security requirements
 }
 
+//Purpose: Ensures the primary password field and matching confirmation text area match exactly.
 function checkPwMatch() {
     var pw = document.getElementById('new_password').value || '';
     var cpw = document.getElementById('confirm_password').value || '';
@@ -636,6 +687,9 @@ function checkPwMatch() {
     }
 }
 
+//Purpose: Intercepts form submission requests to enforce logical requirement checks before transmission.
+//@returns {boolean} Retains transmission if all blocks resolve to true.
+
 function validatePwForm() {
     var strong = checkPwStrength();
     var pw = document.getElementById('new_password').value || '';
@@ -648,10 +702,11 @@ function validatePwForm() {
 }
 
 // ============================================================
-// DELETE ACCOUNT FUNCTIONS
-// ============================================================
-var deletePasswordValid = false;
+//ACCOUNT DELETION WORKFLOW (SAFETY DESTRUCT)
+//============================================================
+var deletePasswordValid = false; // Internal flag tracking password confirmation for account deletion
 
+// Purpose: Authenticates current active session parameters via internal API mapping prior to executing permanent actions.
 function checkDeletePasswordMatch() {
     var pw = document.getElementById('delete_password').value;
     var msg = document.getElementById('deletePwMatch');
@@ -678,6 +733,7 @@ function checkDeletePasswordMatch() {
     });
 }
 
+//Purpose: Forces string input checking to avoid accidental self-sabotage or unintentional destruction commands.
 function checkDeleteConfirm() {
     var text = document.querySelector('#delete-form input[name="confirm_text"]').value;
     var msg = document.getElementById('deleteConfirmMatch');
@@ -690,6 +746,9 @@ function checkDeleteConfirm() {
     }
 }
 
+//Purpose: Final gateway interceptor to check full conditions criteria before destroying account entities completely.
+//@returns {boolean} Aborts trigger execution if any authorization rule fails.
+
 function confirmDelete() {
     var pw = document.getElementById('delete_password').value;
     var text = document.querySelector('#delete-form input[name="confirm_text"]').value;
@@ -699,9 +758,11 @@ function confirmDelete() {
     return confirm('⚠️ Permanent deletion. Are you sure?');
 }
 
-// ============================================================
-// UTILITY FUNCTIONS
-// ============================================================
+// GENERAL UTILITY FUNCTIONS
+//Purpose: Sanitizes input strings to neutralize Cross-Site Scripting (XSS) vectors.
+//@param {string} str - Raw text input requiring sanitization.
+//@returns {string} Safe, escape-encoded string block.
+
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, function(m) {
@@ -712,22 +773,24 @@ function escapeHtml(str) {
     });
 }
 
+// Purpose: Creates and injects an ephemeral notification bubble into the viewport.
+// @param {string} message - Text notification string content.
+// @param {string} type - Status layout descriptor ('success', 'error', 'info').
+
 function showToastMessage(message, type) {
     var existing = document.querySelector('.toast-container');
-    if (existing) existing.remove();
-    var container = document.createElement('div');
+    if (existing) existing.remove(); // Removes existing notifications to avoid display stack issues
+    var container = document.createElement('div'); 
     container.className = 'toast-container';
     var toastDiv = document.createElement('div');
     toastDiv.className = 'toast toast-' + type;
     toastDiv.innerHTML = '<span>' + message + '</span>';
     container.appendChild(toastDiv);
     document.body.appendChild(container);
-    setTimeout(function() { container.remove(); }, 3000);
+    setTimeout(function() { container.remove(); }, 3000); // Disposes element shell automatically after 3 seconds
 }
 
-// ============================================================
-// CHECK ADMIN STATUS & SWITCH TO ADMIN
-// ============================================================
+//Purpose: Determines system privileges to unlock restricted configuration pathways for privileged accounts.
 
 function checkAdminStatus() {
     fetch('/api/user/is-admin', { credentials: 'same-origin' })
@@ -735,7 +798,7 @@ function checkAdminStatus() {
         .then(function(data) {
             var adminBtn = document.getElementById('adminSwitchBtn');
             if (adminBtn && data.is_admin) {
-                adminBtn.style.display = 'inline-flex';
+                adminBtn.style.display = 'inline-flex'; // Exposes hidden workspace transition paths
             }
         })
         .catch(function(err) {
@@ -744,8 +807,11 @@ function checkAdminStatus() {
 }
 
 // ============================================================
-// "HOW IS THIS % CALCULATED" INFO MODAL - 诚实版 (匹配实际代码)
-// ============================================================
+//DYNAMIC INFRASTRUCTURE MODALS & WORKSPACES
+//============================================================
+
+//Purpose: Generates a descriptive overlay modal detailing the point system calculations for trust and response values.
+
 window.openScoreInfoModal = function() {
     var modalHtml = `
         <div id="scoreInfoModal" class="custom-modal">
@@ -753,7 +819,6 @@ window.openScoreInfoModal = function() {
                 <div class="modal-icon" style="font-size: 40px; text-align:center;">📊</div>
                 <div class="modal-title" style="text-align:center;">How Are Trust &amp; Response Rate Calculated?</div>
                 <div class="modal-message" style="text-align:left; max-height: 440px; overflow-y: auto; padding-right: 8px;">
-                    
                     <div class="score-info-section">
                         <div><span class="label">⭐ Trust Score</span> <span class="sub-label">(0–100)</span></div>
                         <ul>
@@ -768,7 +833,6 @@ window.openScoreInfoModal = function() {
                         </ul>
                         <div class="score-info-tip">💡 Base score starts at 60, then bonuses are added above.</div>
                     </div>
-
                     <div class="score-info-section dark">
                         <div><span class="label">💬 Response Rate</span> <span class="sub-label">(0–100)</span></div>
                         <ul>
@@ -779,7 +843,6 @@ window.openScoreInfoModal = function() {
                         </ul>
                         <div class="score-info-tip">💡 Base score starts at 50, then bonuses are added above.</div>
                     </div>
-
                     <div class="score-info-section blue">
                         <div><span class="label">💡 Quick Tips to Improve Your Scores</span></div>
                         <ul>
@@ -790,7 +853,6 @@ window.openScoreInfoModal = function() {
                             <li>✅ List more items for sale</li>
                         </ul>
                     </div>
-                    
                     <div style="font-size:11px; color:#999; text-align:center; margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
                         Scores update automatically as you complete your profile
                     </div>
@@ -802,18 +864,16 @@ window.openScoreInfoModal = function() {
         </div>
     `;
 
-    var existing = document.getElementById('scoreInfoModal');
+    var existing = document.getElementById('scoreInfoModal'); 
     if (existing) existing.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
     var modal = document.getElementById('scoreInfoModal');
-    document.getElementById('scoreInfoCloseBtn').onclick = function() {
-        modal.remove();
-    };
-    modal.onclick = function(e) {
-        if (e.target === modal) modal.remove();
-    };
+    document.getElementById('scoreInfoCloseBtn').onclick = function() { modal.remove(); };
+    modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
 };
+
+//Purpose: Renders a specialized dashboard confirmation terminal enabling platform route redirection into elevated administrative environments.
 
 window.switchToAdmin = function() {
     var modalHtml = `
@@ -840,13 +900,10 @@ window.switchToAdmin = function() {
     var cancelBtn = document.getElementById('adminSwitchCancelBtn');
     var confirmBtn = document.getElementById('adminSwitchConfirmBtn');
     
-    cancelBtn.onclick = function() {
-        modal.remove();
-    };
+    cancelBtn.onclick = function() { modal.remove(); };
     
     confirmBtn.onclick = function() {
         modal.remove();
-        
         var container = document.createElement('div');
         container.className = 'toast-container';
         var toastDiv = document.createElement('div');
@@ -855,36 +912,34 @@ window.switchToAdmin = function() {
         container.appendChild(toastDiv);
         document.body.appendChild(container);
         
-        setTimeout(function() {
-            window.location.href = '/switch-to-admin';
-        }, 400);
+        setTimeout(function() { window.location.href = '/switch-to-admin'; }, 400); // Redirects to system admin routes
     };
     
-    modal.onclick = function(e) {
-        if (e.target === modal) modal.remove();
-    };
+    modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
 };
 
 // ============================================================
-// PAGE INITIALIZATION - SINGLE DOMContentLoaded
-// ============================================================
+//MAIN INITIALIZATION LIFECYCLE
+//============================================================
+//Purpose: Binds critical DOM selectors, event listeners, and data-fetching behaviors after the DOM structure fully parses.
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize DOM references
+    // 1. Core DOM Element Variable Binding
     $bgLayer = document.getElementById('epBgLayer');
     $bgPreview = document.getElementById('currentBgPreview');
     $bgPanel = document.getElementById('epBgPanel');
     
-    // Initialize background
+    // 2. Fetch User Layout Assets From Backend Servers
     restoreBackgroundFromServer();
-    
-    // Initialize cover and avatar
+
     loadCoverFromServer();
+
     loadAvatarFromServer();
     
-    // Background panel buttons
+    // 3. Theme Settings Action Button Event Interceptors
     var bgSaveBtn = document.getElementById('bgSaveBtn');
     var bgCancelBtn = document.getElementById('bgCancelBtn');
-    var bgCloseBtn = document.querySelector('.ep-bg-close');
+    var bgCloseBtn = document.querySelector('.ep-bg-close'); 
     
     if (bgSaveBtn) {
         bgSaveBtn.addEventListener('click', function() {
@@ -921,13 +976,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Cover and Avatar event listeners
+    // 4. File Upload & Canvas Cropping Initializations
     var $coverFileInput = document.getElementById('coverFileInput');
     var $coverCropModal = document.getElementById('coverCropModal');
     var $avatarFileInput = document.getElementById('avatarFileInput');
     var $avatarCropModal = document.getElementById('avatarCropModal');
 
-    // Cover
+    // --- Profile Cover Banner Processing Workflow ---
     var coverChangeBtn = document.getElementById('coverChangeBtn');
     if (coverChangeBtn) {
         coverChangeBtn.addEventListener('click', function() { if ($coverFileInput) $coverFileInput.click(); });
@@ -944,6 +999,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(function() {
                     var cropImg = document.getElementById('coverCropImage');
                     if (cropImg && typeof Cropper !== 'undefined') {
+                        // Creates a 16:5 cropped grid structure for desktop marketplace layouts
                         coverCropper = new Cropper(cropImg, { aspectRatio: 16/5, viewMode: 1, autoCropArea: 1 });
                     }
                 }, 100);
@@ -1001,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Avatar
+    // --- Profile Avatar Picture Processing Workflow ---
     var avatarRing = document.getElementById('avatarRing');
     if (avatarRing) {
         avatarRing.addEventListener('click', function() { if ($avatarFileInput) $avatarFileInput.click(); });
@@ -1018,6 +1074,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(function() {
                     var cropImg = document.getElementById('avatarCropImage');
                     if (cropImg && typeof Cropper !== 'undefined') {
+                        // Creates a 1:1 square crop pattern matching avatar standards
                         avatarCropper = new Cropper(cropImg, { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
                     }
                 }, 100);
@@ -1078,19 +1135,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Password event listeners
+    // 5. Credentials Security Live Validation Event Binding
     var newPw = document.getElementById('new_password');
     var confPw = document.getElementById('confirm_password');
     if (newPw) newPw.addEventListener('input', function() { checkPwStrength(); checkPwMatch(); });
     if (confPw) confPw.addEventListener('input', checkPwMatch);
     
-    // Delete account event listeners
+    // 6. Account Deletion Validation Interceptors
     var deletePwInput = document.getElementById('delete_password');
     var deleteConfirmInput = document.querySelector('#delete-form input[name="confirm_text"]');
     if (deletePwInput) deletePwInput.addEventListener('input', checkDeletePasswordMatch);
     if (deleteConfirmInput) deleteConfirmInput.addEventListener('input', checkDeleteConfirm);
     
-    // Check admin status - show admin button if user is admin
+    // 7. Security Checks: Check authority and render dashboard gateways if authenticated
     checkAdminStatus();
 });
 
