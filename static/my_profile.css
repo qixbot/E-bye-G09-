@@ -32,7 +32,7 @@
     --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.09);
     --shadow-lg: 0 20px 56px rgba(0, 0, 0, 0.11);
     
-    /* 新增渐变色彩变量 */
+
     --gradient-green: linear-gradient(135deg, #00381f, #1a6b3c, #2e8b57);
     --gradient-dark: linear-gradient(135deg, #1a1a1a, #2d2d2d);
     --gradient-accent: linear-gradient(135deg, #00381f, #0a5a32);
@@ -41,7 +41,7 @@
 }
 
 /* ============================================================
-   BACKGROUND LAYER - 增强背景层次
+   BACKGROUND LAYER 
    ============================================================ */
 .pf-bg-layer {
     position: fixed;
@@ -109,7 +109,7 @@
 }
  
 /* ============================================================
-   PROFILE CARD - 增加轻微渐变边框和背景
+   PROFILE CARD 
    ============================================================ */
 .pf-card {
     background: linear-gradient(135deg, #ffffff 0%, #fdfdfc 100%);
@@ -136,7 +136,7 @@
 }
  
 /* ============================================================
-   AVATAR - 增加渐变边框效果
+   AVATAR
    ============================================================ */
 .pf-avatar {
     width: 88px;
@@ -226,7 +226,7 @@
     letter-spacing: 0.1px;
 }
  
-/* EDIT PROFILE BUTTON - 渐变色按钮 */
+/* EDIT PROFILE BUTTON*/
 .pf-edit-btn {
     display: inline-flex;
     align-items: center;
@@ -264,7 +264,7 @@
     max-width: 480px;
 }
  
-/* STATS ROW - 增加渐变分隔 */
+/* STATS ROW */
 .pf-stats-row {
     display: flex;
     gap: 0;
@@ -355,7 +355,7 @@
 }
  
 /* ============================================================
-   PANEL - 增加渐变边框
+   PANEL
    ============================================================ */
 .pf-panel {
     background: linear-gradient(135deg, #ffffff, #fefefd);
@@ -367,7 +367,7 @@
     animation: slideUp .4s .12s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
  
-/* TABS - 增加渐变下划线效果 */
+/* TABS */
 .pf-tabs {
     display: flex;
     border-bottom: 1px solid #ece9e4;
@@ -435,7 +435,7 @@
 }
  
 /* ============================================================
-   PRODUCTS LIST - 增强卡片效果
+   PRODUCTS LIST 
    ============================================================ */
 .products-grid {
     display: flex;
@@ -502,7 +502,7 @@
     letter-spacing: 0.3px;
 }
 
-/* Condition 渐变色 */
+/* Condition */
 .condition-badge[data-condition="like_new"] {
     background: linear-gradient(135deg, #2ecc71, #27ae60);
 }
@@ -611,7 +611,7 @@
     color: #8a8a8a;
 }
 
-/* 按钮区域 - 所有按钮都加渐变 */
+/* Button area - Add gradient to all buttons */
 .product-actions {
     display: flex;
     gap: 8px;
@@ -701,7 +701,7 @@
 }
 
 /* ============================================================
-   PURCHASE CARD STYLES - 增强渐变效果
+   PURCHASE CARD STYLES
    ============================================================ */
 .pf-list {
     display: flex;
@@ -808,7 +808,7 @@
 }
 
 /* ============================================================
-   OFFERS MODAL STYLES - 增强渐变
+   OFFERS MODAL STYLES 
    ============================================================ */
 .offers-list {
     padding: 20px;
@@ -900,7 +900,7 @@
     flex-wrap: wrap;
 }
 
-/* 渐变按钮统一风格 */
+/* Unify the style of gradient buttons */
 .accept-offer-btn {
     background: linear-gradient(135deg, var(--ok), #158f55);
     color: white;
@@ -974,7 +974,7 @@
 }
 
 /* ============================================================
-   MY PROFILE CUSTOM NAVBAR - 增强导航栏效果
+   MY PROFILE CUSTOM NAVBAR 
    ============================================================ */
 .my-profile-nav {
     justify-content: space-between;
@@ -1292,7 +1292,7 @@
     text-align: center;
 }
 
-/* Modal Buttons - 渐变按钮 */
+/* Modal Buttons */
 .modal-buttons {
     display: flex;
     gap: 12px;
@@ -1474,7 +1474,7 @@
     }
 }
 
-/* 自定义确认弹窗 - 增加渐变 */
+/* Custom confirmation pop-up */
 .custom-modal {
     position: fixed;
     top: 0;
@@ -1578,7 +1578,7 @@
 }
 
 /* ============================================================
-   ORDER SECTION - 增强渐变效果
+   ORDER SECTION 
    ============================================================ */
 .order-card {
     background: linear-gradient(135deg, var(--white), #fefefd);
@@ -2062,7 +2062,7 @@
     white-space: nowrap;
 }
 
-/* Simple Rating Button - Only View Comments - 增强渐变效果 */
+/* Simple Rating Button - Only View Comments */
 .pf-simple-rating {
     margin: 0 20px 20px 20px;
     text-align: right;
@@ -2098,7 +2098,7 @@
     box-shadow: 0 6px 16px rgba(44,94,58,0.2);
 }
 
-/* 写评论弹窗星星样式增强 */
+/* Enhanced star style for the comment pop-up */
 .rating-stars {
     display: flex;
     gap: 12px;
@@ -2234,7 +2234,7 @@
 }
 
 /* ============================================================
-   CONFIRM RECEIVED MODAL - 漂亮确认弹框
+   CONFIRM RECEIVED MODAL - 
    ============================================================ */
 
 .confirm-modal {
@@ -2389,7 +2389,7 @@
     text-decoration: underline;
 }
 
-/* 按钮容器 - 左对齐，增加左右内边距 */
+/*  Button container - left aligned, add left and right inner margins */
 .offer-actions-row,
 .product-actions,
 .order-actions {
@@ -2402,7 +2402,7 @@
     padding-right: 16px !important;
 }
 
-/* 所有操作按钮 - 适中大小 + 圆角 */
+/* All operation buttons - medium size + rounded corners */
 .accept-offer-btn,
 .offer-action-btn.accept-counter-btn,
 .order-action-btn.confirm-btn,
@@ -2419,7 +2419,7 @@
     transition: all 0.2s ease !important;
 }
 
-/* 绿色按钮 - 白色字体 */
+/* Green button - white text */
 .accept-offer-btn,
 .offer-action-btn.accept-counter-btn,
 .order-action-btn.confirm-btn,
@@ -2437,7 +2437,7 @@
     box-shadow: 0 6px 18px rgba(26, 122, 72, 0.4) !important;
 }
 
-/* 红色/取消按钮 */
+/* reject button */
 .reject-offer-btn,
 .offer-action-btn.reject-counter-btn,
 .offer-action-btn.cancel-counter-btn {
@@ -2453,7 +2453,7 @@
     transform: translateY(-2px) !important;
 }
 
-/* View Order 按钮 */
+/* View Order button*/
 .view-order-btn {
     background: #e8e4dd !important;
     color: #205c30 !important;
