@@ -1,14 +1,21 @@
 <!-- ------------------------------------
                Xingru's route
               Product Card HTML
-    ------------------------------------- -->
+     ------------------------------------ -->
 
-
+<!-- wraps the entire card inside an anchor (<a>) tag, making the whole card clickable -->
+<!-- Jinja2 function url_for('product_detail', product_id=product.id) dynamically builds the URL path pointing toward that specific item’s details page using its unique ID (product.id) -->
 <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-card">
+    <!-- data-images: -->
+        <!-- HTML5 data-* attribute that stores up to the first 3 images as a JSON string (| tojson) -->
+        <!-- If an array of base64 data URIs exists (product.images_base64_list), it uses that; otherwise, it falls back to standard file path strings (product.images_list) -->
+    <!-- data-total: -->
+        <!-- uses Jinja2 filter |length to dynamically calculate and pass down the exact integer count of images currently loaded into the preview track (capped at a maximum of 3) -->
     <div class="product-image-container" 
         data-images='{{ product.images_base64_list[:3] | tojson if product.images_base64_list else product.images_list[:3] | tojson }}'
         data-total="{{ (product.images_base64_list[:3]|length) if product.images_base64_list else (product.images_list[:3]|length) }}"
         data-actual-total="{{ product.actual_total }}">
+        <!-- Cleans up the text using filters: replace('_', ' ') substitutes underscores with human-readable spaces, and title capitalizes the first letter of each word (turning like_new into Like New) -->
         <span class="condition-badge">{{ product.condition | replace('_', ' ') | title }}</span>
         
         <!-- sold & reserved overlay -->
@@ -25,9 +32,12 @@
         <div class="carousel-window">
             <div class="carousel-track">
                 {% if product.images_base64_list %}
+                    <!-- Iterates through the first 3 base64 image data URIs -->
                     {% for img_b64 in product.images_base64_list[:3] %}
                         {% if img_b64.startswith('data:video/') %}
+                            <!-- If the base64 string starts with 'data:video/', it indicates a video file, and the div is given a data-videosrc attribute containing the base64 string -->
                             <div class="carousel-img carousel-video-thumb" data-videosrc="{{ img_b64 }}">
+                                <!-- A canvas element is included to render a thumbnail preview of the video -->
                                 <canvas class="card-thumb-canvas"></canvas>
                                 <span class="card-thumb-play">▶</span>
                             </div>
@@ -35,18 +45,24 @@
                             <img src="{{ img_b64 }}" class="carousel-img" alt="{{ product.name }}">
                         {% endif %}
                     {% endfor %}
+                <!-- If no base64 images are available, it falls back to using the first 3 standard file path strings -->
                 {% elif product.images_list[:3] %}
                     {% for img in product.images_list[:3] %}
+                        <!-- Extracts the file extension from the image filename and converts it to lowercase for comparison -->
                         {% set ext = img.split('.')[-1].lower() %}
                         {% if ext in ['mp4','webm','mov','avi','mkv'] %}
+                            <!-- Concatenates a string to map the target video filename into the application's local file uploads folder path, assigning the resulting path to a local variable named vsrc -->
                             {% set vsrc = url_for('static', filename='uploads/' ~ img) %}
                             <div class="carousel-img carousel-video-thumb" data-videosrc="{{ vsrc }}">
                                 <canvas class="card-thumb-canvas"></canvas>
                                 <span class="card-thumb-play">▶</span>
                             </div>
+                        <!-- Checks if the image string is a base64 data URI, an absolute path, or a URL -->
                         {% elif img.startswith('data:') or img.startswith('/') or img.startswith('http') %}
+                            <!-- If so, it embeds the string directly into the image tag, using loading="lazy" to improve page load speeds by only loading the image when it scrolls into view -->
                             <img src="{{ img }}" class="carousel-img" alt="{{ product.name }}" loading="lazy">
                         {% else %}
+                            <!-- Otherwise, it assumes the string is a relative filename and constructs the full path to the image in the uploads folder using url_for -->
                             <img src="{{ url_for('static', filename='uploads/' ~ img) }}" class="carousel-img" alt="{{ product.name }}" loading="lazy">
                         {% endif %}
                     {% endfor %}
