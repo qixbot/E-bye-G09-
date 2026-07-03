@@ -748,12 +748,12 @@ def search():
 
     if keyword:
         # Make the keyword space‑flexible for all fields
-        flexible_keyword = keyword.replace(' ', '%')
-        like_flex = f"%{flexible_keyword}%"
+        flexible_keyword = keyword.replace(' ', '%')        # Replace spaces with '%' to allow for flexible matching in the SQL LIKE clause
+        like_flex = f"%{flexible_keyword}%"          # Wrap the flexible keyword with '%' for partial matching
         query += """ AND (p.name ILIKE %s 
                         OR p.description ILIKE %s
                         OR u.username ILIKE %s
-                        OR u.full_name ILIKE %s)"""
+                        OR u.full_name ILIKE %s)"""          # Add conditions to search in product name, description, username, and full name using ILIKE for case-insensitive matching
         params.extend([like_flex, like_flex, like_flex, like_flex])
 
     if campuses:
@@ -761,22 +761,25 @@ def search():
         for c in campuses:
             campus_conditions.append("u.campus ILIKE %s")
             params.append(f"%{c}%")
-        query += " AND (" + " OR ".join(campus_conditions) + ")"
+        query += " AND (" + " OR ".join(campus_conditions) + ")"          # OR conditions for multiple campuses; AND with parentheses to group them together
 
     if categories:
         placeholders = ','.join(['%s'] * len(categories))
-        query += f" AND p.category IN ({placeholders})"
+        query += f" AND p.category IN ({placeholders})"          # Add conditions for multiple categories using IN clause; AND with parentheses to group them together
         params.extend(categories)
 
     if conditions:
         placeholders = ','.join(['%s'] * len(conditions))
-        query += f" AND p.condition IN ({placeholders})"
+        query += f" AND p.condition IN ({placeholders})"          # Add conditions for multiple conditions using IN clause; AND with parentheses to group them together
         params.extend(conditions)
 
+    # Handle date range filtering
     if date_range and date_range.isdigit():
-        days = int(date_range)
-        query += " AND p.created_at >= NOW() - (%s * INTERVAL '1 day')"
+        days = int(date_range)          # If date_range is provided and is a digit, convert it to an integer representing the number of days
+        query += " AND p.created_at >= NOW() - (%s * INTERVAL '1 day')"          # computes a historical date cut-off relative to the current timestamp (NOW())
         params.append(days)
+
+    # If date_range is not provided, check for specific date_from and date_to values
     else:
         if date_from:
             query += " AND p.created_at >= %s"
