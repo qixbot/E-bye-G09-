@@ -6292,5 +6292,9 @@ reminder_thread = threading.Thread(target=reminder_scheduler, daemon=True)
 reminder_thread.start()
 print("✅ Meeting reminder scheduler started")
 
+# ============================================================
+# Start the application
+# ============================================================
+
 if __name__ == '__main__':
     app.run(debug=True)
