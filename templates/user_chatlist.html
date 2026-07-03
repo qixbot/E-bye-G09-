@@ -3,7 +3,7 @@
 {% block content %}
 <style>
 /* ============================================================
-   Chatlist 页面样式 - 优化版，减少空白
+   Chatlist Page Style
    ============================================================ */
 .chatlist-container {
     max-width: 100%;
@@ -13,7 +13,7 @@
     min-height: 100vh;
 }
 
-/* 桌面端适当加宽 */
+/* Widen the desktop version appropriately */
 @media (min-width: 768px) {
     .chatlist-container {
         max-width: 900px;
@@ -22,7 +22,7 @@
     }
 }
 
-/* 顶部按钮栏 */
+/* Top button bar */
 .top-btns { 
     display: flex; 
     gap: 10px; 
@@ -58,7 +58,7 @@
     box-shadow: 0 4px 12px rgba(32,92,48,0.1);
 }
 
-/* 红点徽章 */
+/* unread */
 .top-btn .badge { 
     position: absolute; 
     top: -6px; 
@@ -77,7 +77,7 @@
     font-weight: bold;
 }
 
-/* 分区标题 */
+/* Section Title */
 .section-title { 
     font-size: 14px; 
     color: #888; 
@@ -85,7 +85,7 @@
     font-weight: 600; 
 }
 
-/* 聊天列表项 */
+/* Chat list item */
 .chat-item { 
     display: flex; 
     align-items: center; 
@@ -105,7 +105,7 @@
     transform: translateY(-1px); 
 }
 
-/* 头像 */
+/* avatar */
 .chat-avatar { 
     width: 50px; 
     height: 50px; 
@@ -131,7 +131,7 @@
     left: 0; 
 }
 
-/* 聊天信息区域 */
+/* Chat Information Area */
 .chat-info { 
     flex: 1; 
     min-width: 0; 
@@ -147,7 +147,7 @@
     flex-wrap: wrap;
 }
 
-/* 在线状态小点 */
+/* Online status dot */
 .online-dot {
     display: inline-block;
     width: 8px;
@@ -174,7 +174,7 @@
     text-overflow: ellipsis; 
 }
 
-/* 右侧时间和未读 */
+/* Time on the right and unread messages */
 .chat-meta { 
     text-align: right; 
     flex-shrink: 0; 
@@ -186,7 +186,7 @@
     margin-bottom: 6px;
 }
 
-/* 未读红点 - 带数字 */
+/* Unread red dot - with numbers */
 .unread-dot { 
     display: inline-flex;
     align-items: center;
@@ -201,7 +201,7 @@
     padding: 0 6px;
 }
 
-/* 通知面板 - 优化样式 */
+/* Notification Panel */
 .notification-panel { 
     display: none; 
     margin-top: 15px; 
@@ -212,7 +212,7 @@
     overflow: hidden;
 }
 
-/* 面板头部 */
+/* notification header */
 .notification-header {
     padding: 16px 18px;
     border-bottom: 1px solid #f0f0f0;
@@ -244,13 +244,13 @@
     background: #eaf4ed;
 }
 
-/* 通知列表容器 */
+/* Notification list container */
 .notification-list {
     max-height: 420px;
     overflow-y: auto;
 }
 
-/* 通知项 */
+/* notification item */
 .notification-item { 
     padding: 14px 18px; 
     border-bottom: 1px solid #f5f5f5; 
@@ -265,7 +265,7 @@
     background: #fafbfa; 
 }
 
-/* 未读通知绿色标记 */
+/* Green marker for unread notifications */
 .notification-unread-indicator {
     width: 10px;
     height: 10px;
@@ -297,7 +297,7 @@
     margin-top: 5px; 
 }
 
-/* 查看全部按钮 - 底部居中 */
+/* View All Button - Bottom Center */
 .view-all-footer {
     padding: 14px 18px;
     text-align: center;
@@ -325,7 +325,7 @@
     box-shadow: 0 4px 12px rgba(32,92,48,0.3);
 }
 
-/* 空状态样式 */
+/* Empty State Style */
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -350,14 +350,14 @@
     color: #999;
 }
 
-/* 加载状态 */
+/* Loading status */
 .loading-state {
     text-align: center;
     padding: 40px;
     color: #888;
 }
 
-/* 搜索框 */
+/* Search box */
 .search-container {
     margin: 12px 0;
 }
@@ -378,7 +378,7 @@
     box-shadow: 0 0 0 2px rgba(32,92,48,0.1);
 }
 
-/* 公告弹窗 */
+/* Announcement Pop-up */
 .announcement-modal {
     display: none;
     position: fixed;
@@ -404,7 +404,7 @@
     padding: 24px;
 }
 
-/* Toast 通知 */
+/* Toast notification */
 .toast-container {
     position: fixed;
     top: 80px;
@@ -436,13 +436,13 @@
 
 <div class="chatlist-container">
 
-    <!-- 搜索用户 -->
+    <!-- search user -->
     <div class="search-container">
         <input type="text" id="userSearch" class="search-input" placeholder="🔍 Search user by name or ID..." oninput="searchUsers()">
         <div id="searchResults" style="margin-top: 8px;"></div>
     </div>
 
-    <!-- 顶部按钮 -->
+    <!-- top buttons -->
     <div class="top-btns">
         <button id="btnNotifications" class="top-btn" onclick="handleNotificationClick(event)">
             🔔 Notifications
@@ -458,7 +458,7 @@
         </button>
     </div>
 
-    <!-- 通知预览面板 - 优化版 -->
+    <!-- Notification Preview Panel -->
     <div id="notificationsPanel" class="notification-panel">
         <div class="notification-header">
             <h4>🔔 Notifications</h4>
@@ -472,7 +472,7 @@
         </div>
     </div>
 
-    <!-- 消息列表 -->
+    <!-- Message List -->
     <div class="section-title">💬 Messages</div>
     
     <div id="chatListContainer">
@@ -512,7 +512,7 @@
 
 </div>
 
-<!-- 公告弹窗 -->
+<!-- Announcement Pop-up -->
 <div id="announcementModal" class="announcement-modal">
     <div class="announcement-modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -527,7 +527,7 @@
 
 <script>
 // ============================================================
-// 全局变量
+// Global variable
 // ============================================================
 let notificationClickTimer = null;
 let notificationClickCount = 0;
@@ -538,7 +538,7 @@ let userStatusCache = {};
 let notificationDataCache = [];
 
 // ============================================================
-// 通知按钮处理（支持单击预览/双击跳转）
+// Notification button handling (supports single-click preview / double-click jump)
 // ============================================================
 function handleNotificationClick(event) {
     event.stopPropagation();
@@ -552,10 +552,10 @@ function handleNotificationClick(event) {
     
     notificationClickTimer = setTimeout(function() {
         if (notificationClickCount === 1) {
-            // 单击：打开/关闭预览面板
+            // Click: Open/Close Preview Panel
             toggleNotificationsPreview();
         } else if (notificationClickCount >= 2) {
-            // 双击：直接跳转到通知中心页面
+            // Double-click: Jump directly to the notification center page
             goToNotificationsPage();
         }
         notificationClickCount = 0;
@@ -574,7 +574,7 @@ function toggleNotificationsPreview() {
         isNotificationPanelOpen = true;
         loadNotificationsPreview();
         
-        // 5秒后自动关闭面板
+        // The panel will close automatically after 5 seconds
         setTimeout(function() {
             if (panel.style.display === 'block') {
                 panel.style.display = 'none';
@@ -589,7 +589,7 @@ function goToNotificationsPage() {
 }
 
 // ============================================================
-// 时间格式化
+// Time formatting
 // ============================================================
 function formatChatListTime(dateStr) {
     if (!dateStr) return '';
@@ -649,7 +649,7 @@ function formatLastSeen(dateStr) {
 }
 
 // ============================================================
-// 更新所有未读徽章
+// Update all unread badges
 // ============================================================
 function updateAllBadges() {
     var notifBadge = document.getElementById('badgeNotif');
@@ -683,7 +683,7 @@ function updateAllBadges() {
 }
 
 // ============================================================
-// 加载通知预览
+// Load notification preview
 // ============================================================
 function loadNotificationsPreview() {
     var container = document.getElementById('notificationsList');
@@ -707,7 +707,7 @@ function loadNotificationsPreview() {
             var shortMsg = n.message.length > 100 ? n.message.substring(0, 100) + '...' : n.message;
             var isUnread = !n.is_read;
             
-            // 根据通知类型生成跳转链接
+            // Generate jump links based on notification types
             var targetUrl = getNotificationTargetUrl(n);
             
             html += '<div class="notification-item" data-notif-id="' + n.id + '" data-target-url="' + targetUrl + '" onclick="handleNotificationItemClick(this, ' + n.id + ')">' +
@@ -729,7 +729,7 @@ function loadNotificationsPreview() {
     });
 }
 
-// 根据通知类型生成跳转目标
+// Generate jump targets based on notification types
 function getNotificationTargetUrl(notification) {
     var type = notification.type || 'general';
     var relatedId = notification.related_id;
@@ -772,14 +772,14 @@ function getNotificationTargetUrl(notification) {
     return '/notifications';
 }
 
-// 处理通知项点击（先标记已读，然后跳转）
+// Handle clicks on notification items (mark as read first, then redirect)
 function handleNotificationItemClick(element, notificationId) {
-    // 阻止事件冒泡
+    // Prevent event bubbling
     if (event) event.stopPropagation();
     
     var targetUrl = element.dataset.targetUrl || '/notifications';
     
-    // 先发送已读请求（不等待结果直接跳转）
+    // Send the read receipt request first (jump directly without waiting for the result)
     fetch('/api/notifications/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -788,13 +788,13 @@ function handleNotificationItemClick(element, notificationId) {
     })
     .catch(function(err) { console.log('Mark read error:', err); });
     
-    // 延迟一点点跳转，确保请求发出
+    // Add a slight delay before redirecting to ensure the request is sent out
     setTimeout(function() {
         window.location.href = targetUrl;
     }, 50);
 }
 
-// 标记所有为已读
+// Mark all as read
 function markAllNotificationsReadFromPreview() {
     fetch('/api/notifications/mark-read', {
         method: 'POST',
@@ -814,7 +814,7 @@ function markAllNotificationsReadFromPreview() {
 }
 
 // ============================================================
-// 用户在线状态
+// User online status
 // ============================================================
 function fetchUserStatus(userId, element) {
     var cached = userStatusCache[userId];
@@ -864,7 +864,7 @@ function loadAllUserStatuses() {
 }
 
 // ============================================================
-// 格式化聊天列表中的所有时间
+// Format all times in the chat list
 // ============================================================
 function formatAllChatTimes() {
     var timeElements = document.querySelectorAll('.chat-time');
@@ -878,7 +878,7 @@ function formatAllChatTimes() {
 }
 
 // ============================================================
-// 公告功能
+// Announcement Function
 // ============================================================
 function openAnnouncements() {
     var modal = document.getElementById('announcementModal');
@@ -936,7 +936,7 @@ function viewMyReviews() {
 }
 
 // ============================================================
-// 搜索用户
+// Search for users
 // ============================================================
 function searchUsers() {
     var q = document.getElementById('userSearch').value.trim();
@@ -986,7 +986,7 @@ function showToastMessage(message, type) {
 }
 
 // ============================================================
-// 实时更新未读消息数量
+// Real-time update of unread message count
 // ============================================================
 function updateUnreadChatCount() {
     fetch('/api/unread-count', { credentials: 'same-origin' })
@@ -998,7 +998,7 @@ function updateUnreadChatCount() {
 }
 
 // ============================================================
-// 定期刷新用户状态
+// Refresh user status regularly
 // ============================================================
 function refreshAllUserStatuses() {
     var statusElements = document.querySelectorAll('.status-dot');
@@ -1012,7 +1012,7 @@ function refreshAllUserStatuses() {
 }
 
 // ============================================================
-// 点击页面其他地方关闭通知面板
+// Click elsewhere on the page to close the notification panel
 // ============================================================
 document.addEventListener('click', function(e) {
     var panel = document.getElementById('notificationsPanel');
@@ -1026,7 +1026,7 @@ document.addEventListener('click', function(e) {
 });
 
 // ============================================================
-// 聊天项点击后标记为已读
+// Mark chat items as read after clicking
 // ============================================================
 document.querySelectorAll('.chat-item').forEach(function(item) {
     item.addEventListener('click', function(e) {
@@ -1042,7 +1042,7 @@ document.querySelectorAll('.chat-item').forEach(function(item) {
 });
 
 // ============================================================
-// 页面加载时检查 URL 参数
+// Check URL parameters when the page loads
 // ============================================================
 (function() {
     var params = new URLSearchParams(window.location.search);
@@ -1054,7 +1054,7 @@ document.querySelectorAll('.chat-item').forEach(function(item) {
 })();
 
 // ============================================================
-// 初始化
+// Initialization
 // ============================================================
 function init() {
     formatAllChatTimes();
@@ -1065,22 +1065,22 @@ function init() {
 }
 
 // ============================================================
-// 页面初始化 - 自动显示通知预览
+// Page Initialization - Automatically Display Notification Preview
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    // 先执行主要初始化
+    // Perform primary initialization first
     init();
     
-    // 延迟500ms后自动打开通知面板（显示最新通知）
+    // Automatically open the notification panel after a 500ms delay (displaying the latest notifications)
     setTimeout(function() {
         var panel = document.getElementById('notificationsPanel');
         
-        // 检查是否有未读通知
+        // Check for unread notifications
         fetch('/api/notifications/unread', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(notifications) {
             if (notifications && notifications.length > 0) {
-                // 有未读通知，自动展开面板
+                // Unread notifications available, expand panel automatically
                 if (panel && panel.style.display !== 'block') {
                     toggleNotificationsPreview();
                 }
