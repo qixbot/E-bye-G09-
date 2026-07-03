@@ -69,7 +69,7 @@ def unread_count():
     user_id = session['user_id']
     now = time.time()
     
-    # 缓存5秒，避免频繁查数据库
+    # Cache for 5 seconds to avoid frequent database queries.
     if user_id in _unread_cache and (now - _unread_cache_time.get(user_id, 0)) < 5:
         return jsonify(_unread_cache[user_id])
     
@@ -88,7 +88,7 @@ def unread_count():
         
         result = {'chat': chat_unread, 'notifications': notif_unread}
         
-        # 更新缓存
+        # Update cache
         _unread_cache[user_id] = result
         _unread_cache_time[user_id] = now
         
@@ -142,6 +142,8 @@ def calculate_trust_score(user, listing_count):
         trust_score += 7
     if user['full_name']:
         trust_score += 7
+    if user['campus']:
+        trust_score += 5
 
     # Account age bonus (0-20 points)
     if user['created_at']:
