@@ -1178,7 +1178,7 @@ body {
     display: inline-block;
 }
 
-/* ========== 修复 Crop 按钮样式 ========== */
+/* crop buttom*/
 .crop-buttons {
     display: flex;
     gap: 12px;
@@ -1358,7 +1358,7 @@ body {
     background: none !important;
 }
 
-/* 自定义确认弹窗 */
+/* custom modal*/
 .custom-modal {
     position: fixed;
     top: 0;
