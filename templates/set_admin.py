@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # ============================================================
-# Script: set_admin.py
+# Script: set_admin.py  (Eileen's part)
 # Purpose: Set a specified user as administrator in the E-Bye system
 # Usage: python set_admin.py [email@student.mmu.edu.my]
 # ============================================================
