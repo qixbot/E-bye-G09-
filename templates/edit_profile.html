@@ -281,7 +281,7 @@
                 </div>
             </div>
 
-            <!-- 右侧：编辑面板 -->
+            <!-- right side：edit panel -->
             <div class="ep-panel">
                 <div class="ep-main-tabs">
                     <button class="ep-main-tab active" data-main-tab="edit" onclick="switchMainTab('edit')">✏️ Edit Profile</button>
@@ -485,7 +485,7 @@ function buildGrid(containerId, colors, isGradient) {
         var s = document.createElement('div');
         s.className = 'color-swatch';
         if (isGradient) {
-            s.style.background = col;
+            s.style.background = col; 
             s.classList.add('gradient-swatch');
         } else {
             s.style.backgroundColor = col;
@@ -625,7 +625,7 @@ function switchSubTab(subtabName) {
 //============================================================
 //CREDENTIALS & SECURITY VALIDATION
 //============================================================
- //Purpose: Reveals or masks character visibility inside standard sensitive string entry blocks.
+//Purpose: Reveals or masks character visibility inside standard sensitive string entry blocks.
 //@param {string} id - Target password element identifier.
 //@param {HTMLElement} btn - The interactive eye toggle indicator.
 
