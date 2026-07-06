@@ -261,10 +261,10 @@ def generate_video_thumbnail(video_path, thumbnail_path, time_offset=0.5):
         return False
 
 # ============================================================
-# ?'s Routes
+# Keting's Routes
 # ============================================================
 def create_notification(user_id, message, notif_type='general', related_id=None, product_id=None):
-    """统一的创建通知函数"""
+    """Unified notification creation function"""
     try:
         db = get_db()
         cur = db.cursor()
@@ -341,41 +341,42 @@ def login():
         cur.close()
         db.close()
         
-        #Keting's part
-        # ============================================================
-
+#Keting's part
+# ============================================================
+        # Verify password
         if user and check_password_hash(user['password'], password):
             #  BLOCKED ACCOUNT CHECK
             if user['is_blocked'] == 1:
                 flash('❌ This account is permanently blocked. Contact admin for appeal.', 'danger')
                 return redirect(url_for('login'))
 
-            # 检查冻结状态
+            # Check Freeze Status
             if user['is_frozen'] == 1:
                 frozen_until = user.get('frozen_until')
                 
                 if frozen_until:
                     now = datetime.now()
                     
-                    # 统一转换为 datetime 对象
+                    # Parse frozen until time
                     if isinstance(frozen_until, str):
                         try:
                             frozen_until = datetime.strptime(frozen_until, '%Y-%m-%d %H:%M:%S')
                         except:
                             frozen_until = None
                     
-                    # 移除时区信息
+                    # Remove Time Zone Information
                     if frozen_until and hasattr(frozen_until, 'tzinfo') and frozen_until.tzinfo:
                         frozen_until = frozen_until.replace(tzinfo=None)
                     
                     if frozen_until and now < frozen_until:
+                        # Account still frozen
                         days_left = (frozen_until - now).days
                         hours_left = (frozen_until - now).seconds // 3600
                         reason = user.get('freeze_reason') or 'No reason provided'
                         flash(f'⚠️ ACCOUNT FROZEN!\nReason: {reason}\nUnlocks in: {days_left}d {hours_left}h', 'warning')
                         return redirect(url_for('login'))
                     else:
-                        # 冻结已过期，自动解冻
+                        # Freeze period expired, automatically unfrozen
                         db_auto = get_db()
                         cur_auto = db_auto.cursor()
                         cur_auto.execute("""
@@ -388,7 +389,7 @@ def login():
                         db_auto.close()
                         flash('Your account has been automatically unfrozen. Welcome back!', 'success')
                 else:
-                    # 数据异常，修复
+                    # Data Abnormality, Repair
                     db_fix = get_db()
                     cur_fix = db_fix.cursor()
                     cur_fix.execute("UPDATE users SET is_frozen = 0 WHERE id = %s", (user['id'],))
@@ -441,7 +442,7 @@ def login():
     return render_template('login.html')
 
 # ============================================================
-# ?'s route
+# Keting's route
 # ============================================================
 @app.before_request
 def auto_unfreeze_expired():
@@ -451,21 +452,21 @@ def auto_unfreeze_expired():
             cur = db.cursor()
             now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
-            # 查找过期的冻结用户
+            # Find Expired Frozen Users
             cur.execute("""
                 SELECT id, username, frozen_until FROM users
                 WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
             """, (now,))
             expired = cur.fetchall()
             
-            # 解冻
+            # Unfreeze
             cur.execute("""
                 UPDATE users
                 SET is_frozen = 0, frozen_until = NULL, freeze_reason = NULL
                 WHERE is_frozen = 1 AND frozen_until IS NOT NULL AND frozen_until < %s
             """, (now,))
             
-            # 发送通知
+            # Send a notification
             for user in expired:
                 cur.execute("""
                     INSERT INTO notifications (user_id, message, created_at, type, is_read)
@@ -485,7 +486,7 @@ def auto_unfreeze_expired():
             print(f"auto_unfreeze_expired error: {e}")
 
 # ============================================================
-# ?'s route
+# Ketings's route
 # ============================================================
 @app.before_request
 def check_upcoming_meetings():
@@ -495,7 +496,7 @@ def check_upcoming_meetings():
     db = get_db()
     cur = db.cursor()
     
-    # 获取需要提醒的订单（在 Python 中处理时间比较）
+    # Get orders requiring reminders
     cur.execute('''
         SELECT id, order_number, meeting_point, meeting_time, last_reminder_sent
         FROM orders
@@ -556,9 +557,8 @@ def check_upcoming_meetings():
     db.close()
 
 # ============================================================
-# ?'s Routes
+# Keting's Routes
 # ============================================================
-# 在 check_upcoming_meetings 之后添加 update_last_seen
 @app.before_request
 def update_last_seen():
     if 'user_id' in session:
@@ -2602,7 +2602,7 @@ def shopping_cart():
     return render_template('shopping_cart.html')
 
 # ============================================================
-# ?'s Routes
+# Xingru's Routes
 # ============================================================
 @app.route('/api/cart')
 def api_get_cart():
@@ -2776,7 +2776,7 @@ def api_product_seller_campus(product_id):
     return jsonify({'campus': row['campus'] if row else 'Cyberjaya'})
 
 # ============================================================
-# ?'s Routes
+# Keting's Routes
 # ============================================================
 @app.route('/notifications')
 def notifications_page():
@@ -4067,6 +4067,7 @@ def logout():
 # ============================================================
 @app.route('/admin/dashboard')
 def admin_dashboard():
+    # Admin dashboard - platform overview
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
@@ -4096,6 +4097,7 @@ def admin_dashboard():
 
 @app.route('/admin/users')
 def admin_users():
+    # Admin - User management
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
@@ -4103,11 +4105,11 @@ def admin_users():
     db = get_db()
     cur = db.cursor()
     
-    # 获取所有用户
+    # Get all users
     cur.execute("SELECT * FROM users ORDER BY id")
     users = cur.fetchall()
     
-    # 获取待处理的举报（添加错误处理）
+    # Obtain pending reports
     try:
         cur.execute('''
             SELECT r.*, u.username as reported_username,
@@ -4130,6 +4132,7 @@ def admin_users():
 
 @app.route('/admin/products')
 def admin_products():
+    # Admin - Product management
     if not session.get('admin_logged_in'):
         flash('Please login as admin first', 'error')
         return redirect(url_for('admin_login'))
@@ -4137,7 +4140,7 @@ def admin_products():
     db = get_db()
     cur = db.cursor()
     
-    # 1. 待审核 (pending)
+    # 1. pending
     cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p 
@@ -4147,7 +4150,7 @@ def admin_products():
     ''')
     pending = cur.fetchall()
     
-    # 2. 已通过 (approved)
+    # 2. approved
     cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p 
@@ -4157,7 +4160,7 @@ def admin_products():
     ''')
     approved = cur.fetchall()
     
-    # 3. 已拒绝 (rejected)
+    # 3. rejected
     cur.execute('''
         SELECT p.*, u.username as seller_name
         FROM products p 
@@ -4167,7 +4170,7 @@ def admin_products():
     ''')
     rejected = cur.fetchall()
     
-    # 4. 已售出 (sold)
+    # 4. sold
     cur.execute('''
         SELECT p.*, u.username as seller_name,
                o.buyer_id, o.order_number, o.created_at as sold_at,
@@ -4181,7 +4184,7 @@ def admin_products():
     ''')
     sold = cur.fetchall()
     
-    # 5. 已预留 (reserved)
+    # 5. reserved
     cur.execute('''
         SELECT p.*, u.username as seller_name,
                o.buyer_id, o.order_number, o.created_at as reserved_at,
@@ -4195,7 +4198,7 @@ def admin_products():
     ''')
     reserved = cur.fetchall()
     
-    # 被举报的产品 (reported)
+    # reported
     cur.execute('''
         SELECT DISTINCT p.*, u.username as seller_name,
                COUNT(r.id) as report_count,
@@ -4231,6 +4234,7 @@ def admin_products():
 
 @app.route('/admin/product/approve/<int:pid>')
 def approve_product(pid):
+    # Admin - Approve product
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
         return redirect(url_for('admin_login'))
@@ -4263,11 +4267,12 @@ def approve_product(pid):
     db.close()
 
     flash("Product approved successfully, now visible on homepage", "success")
-    # 直接重定向到 /admin/products 页面
+    # Redirect directly to the /admin/products page
     return redirect('/admin/products')
 
 @app.route('/admin/product/reject/<int:pid>', methods=['POST'])
 def reject_product(pid):
+    # 拒绝产品 / Admin - Reject product
     if not session.get('admin_logged_in'):
         flash('Unauthorized', 'error')
         return redirect(url_for('admin_login'))
@@ -4308,7 +4313,7 @@ def reject_product(pid):
 
 @app.route('/api/product/<int:product_id>/reports')
 def api_product_reports(product_id):
-    """获取产品的所有举报"""
+    # Get all reports of the product
     if not session.get('admin_logged_in'):
         return jsonify([]), 403
     
@@ -4330,7 +4335,7 @@ def api_product_reports(product_id):
 
 @app.route('/admin/product/report/<int:report_id>/<action>', methods=['POST'])
 def handle_product_report(report_id, action):
-    """处理产品举报：下架或驳回"""
+    # Handling product reports: Remove from shelves or reject
     if not session.get('admin_logged_in'):
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
@@ -4353,7 +4358,7 @@ def handle_product_report(report_id, action):
         return jsonify({'success': False, 'error': 'Report not found'}), 404
     
     if action == 'reject':
-        # 驳回举报
+        # Reject the report
         cur.execute("UPDATE reports SET status = 'dismissed' WHERE id = %s", (report_id,))
         
         create_notification(
@@ -4369,7 +4374,7 @@ def handle_product_report(report_id, action):
         return jsonify({'success': True, 'message': 'Report dismissed'})
         
     elif action == 'remove':
-        # 下架产品
+        # Removed Products
         cur.execute("UPDATE products SET status = 'rejected', reject_reason = %s WHERE id = %s", 
                     ('Reported and removed by admin', report['product_id']))
         cur.execute("UPDATE reports SET status = 'resolved' WHERE id = %s", (report_id,))
@@ -4437,7 +4442,7 @@ def admin_get_product_info(pid):
 
 @app.route('/api/user/<int:user_id>')
 def api_get_user_info(user_id):
-    """获取用户基本信息（用于显示审批人）"""
+    # get basic user information (for displaying approvers）
     if not session.get('admin_logged_in'):
         return jsonify({'error': 'Unauthorized'}), 403
     
@@ -4454,6 +4459,7 @@ def api_get_user_info(user_id):
 
 @app.route("/admin/user/<int:user_id>/freeze", methods=["POST"])
 def freeze_7day(user_id):
+    #  Admin - Freeze user for 7 days
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
         return redirect(url_for("admin_login"))
@@ -4481,6 +4487,7 @@ def freeze_7day(user_id):
     
     freeze_count = user['freeze_count'] if user['freeze_count'] else 0
     
+    # If 3 freezes, permanently block
     if freeze_count >= 3:
         cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = %s", (user_id,))
         cur.execute("""
@@ -4505,6 +4512,7 @@ def freeze_7day(user_id):
         WHERE id = %s
     """, (time_str, reason, user_id))
 
+    # send notification to user
     cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
         VALUES (%s, %s, NOW())
@@ -4524,6 +4532,7 @@ def freeze_7day(user_id):
 
 @app.route('/admin/user/<int:user_id>/block', methods=['POST'])
 def block_user(user_id):
+    #  Admin - Permanently block user
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
 
@@ -4532,6 +4541,7 @@ def block_user(user_id):
     db = get_db()
     cur = db.cursor()
 
+    # send notification to user
     cur.execute("UPDATE users SET is_blocked = 1, is_frozen = 0 WHERE id = %s", (user_id,))
     cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
@@ -4550,6 +4560,7 @@ def block_user(user_id):
 
 @app.route("/admin/unfreeze/<int:user_id>", methods=["POST"])
 def unfreeze_user(user_id):
+    #  Admin - Unfreeze user
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
         return redirect(url_for("admin_login"))
@@ -4566,6 +4577,7 @@ def unfreeze_user(user_id):
         WHERE id = %s
     """, (user_id,))
     
+    # send notification to user
     cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
         VALUES (%s, %s, NOW())
@@ -4584,12 +4596,14 @@ def unfreeze_user(user_id):
 
 @app.route("/admin/unblock/<int:user_id>", methods=["POST"])
 def unblock_user(user_id):
+    #  Admin - Unblock user
     if not session.get("admin_logged_in"):
         flash("Unauthorized", "error")
         return redirect(url_for("admin_login"))
 
     db = get_db()
     cur = db.cursor()
+    # send notification to user
     cur.execute("UPDATE users SET is_blocked = 0, freeze_count = 0 WHERE id = %s", (user_id,))
     cur.execute("""
         INSERT INTO notifications (user_id, message, created_at)
@@ -4607,6 +4621,7 @@ def unblock_user(user_id):
 
 @app.route('/admin/report/<int:report_id>/<action>', methods=['POST'])
 def handle_report(report_id, action):
+    # Admin - Handle report
     if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 403
 
@@ -4621,6 +4636,7 @@ def handle_report(report_id, action):
         return jsonify({'success': False}), 404
 
     if action == 'dismiss':
+        # Dismiss report
         cur.execute("UPDATE reports SET status = 'dismissed' WHERE id = %s", (report_id,))
         
         create_notification(
@@ -4631,6 +4647,7 @@ def handle_report(report_id, action):
         )
               
     elif action == 'block':
+        # Block reported user
         cur.execute("UPDATE users SET is_blocked = 1 WHERE id = %s", (report['reported_user_id'],))
         cur.execute("UPDATE reports SET status = 'resolved' WHERE id = %s", (report_id,))
         
@@ -4654,10 +4671,12 @@ def handle_report(report_id, action):
     return jsonify({'success': True})
 
 # ============================================================
+# Keting's routes
 # Chat Routes
 # ============================================================
 @app.route('/chat/send', methods=['POST'])
 def chat_send():
+    #  Send chat message
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'})
 
@@ -4684,6 +4703,7 @@ def chat_send():
 
 @app.route('/chat/send-images', methods=['POST'])
 def chat_send_images():
+    #  Send chat images
     if 'user_id' not in session:
         return jsonify({'success': False}), 401
 
@@ -4718,6 +4738,7 @@ def chat_send_images():
 @app.route('/chat/<int:other_user_id>')
 @app.route('/chat/<int:other_user_id>/<int:product_id>')
 def chat_page(other_user_id, product_id=None):
+    #  main Chat page
     if 'user_id' not in session:
         flash("Please login first", "error")
         return redirect(url_for('login'))
@@ -4725,6 +4746,7 @@ def chat_page(other_user_id, product_id=None):
     db = get_db()
     cur = db.cursor()
     
+    #  Get other user info
     cur.execute('SELECT * FROM users WHERE id = %s', (other_user_id,))
     other_user = cur.fetchone()
     if not other_user:
@@ -4733,6 +4755,7 @@ def chat_page(other_user_id, product_id=None):
         flash("User not found", "error")
         return redirect(url_for('home'))
 
+    # Get product info (if any)
     product_info = None
     if product_id:
         cur.execute('''
@@ -4742,6 +4765,7 @@ def chat_page(other_user_id, product_id=None):
         ''', (product_id,))
         product_info = cur.fetchone()
 
+    # Get chat messages
     cur.execute('''
         SELECT * FROM messages
         WHERE (sender_id = %s AND receiver_id = %s)
@@ -4760,6 +4784,7 @@ def chat_page(other_user_id, product_id=None):
                 # 已经是字符串，保持原样但确保格式统一
                 pass
 
+    # Mark messages as read
     cur.execute('''
         UPDATE messages SET is_read = 1
         WHERE sender_id = %s AND receiver_id = %s AND is_read = 0
@@ -4797,11 +4822,11 @@ def chat_get_messages(other_user_id):
     for msg in messages:
         msg_dict = dict(msg)
         if msg_dict['created_at']:
-            # 直接输出 ISO 格式，不做时区转换
+            
             if isinstance(msg_dict['created_at'], datetime):
                 msg_dict['created_at'] = msg_dict['created_at'].isoformat()
             elif isinstance(msg_dict['created_at'], str):
-                # 如果已经是字符串，确保是标准格式
+                
                 pass
         result.append(msg_dict)
 
@@ -4809,6 +4834,7 @@ def chat_get_messages(other_user_id):
 
 @app.route('/report-user/<int:user_id>', methods=['POST'])
 def report_user(user_id):
+    # user can report user
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
@@ -4850,6 +4876,7 @@ def report_user(user_id):
 
 @app.route('/chatlist')
 def chat_list():
+    # main chat list page
     if 'user_id' not in session:
         flash("Please login first", "error")
         return redirect(url_for('login'))
@@ -4861,7 +4888,7 @@ def chat_list():
     user_id = session['user_id']
     cur = db.cursor()
 
-    # 获取聊天列表
+    # Get chat list
     cur.execute('''
         SELECT u.id, u.username, u.full_name, u.avatar_blob,
                m.content as last_message, m.image as last_image,
@@ -4897,18 +4924,17 @@ def chat_list():
             chat['last_time'] = lt.replace(tzinfo=timezone.utc).astimezone(malaysia_tz).strftime('%Y-%m-%d %H:%M:%S')
         chat_list_data.append(chat)
 
-    # 获取未读通知数量
+    # Get unread counts
     cur.execute("SELECT COUNT(*) AS count FROM notifications WHERE user_id = %s AND is_read = 0", (user_id,))
     unread_notifications = cur.fetchone()['count']
     unread_reviews = 0
     
-    # ========== 修复：正确计算未读公告数量 ==========
-    # 获取用户上次阅读公告的时间
+    # get the time when the user last read the announcement
     cur.execute("SELECT last_read_ann FROM users WHERE id = %s", (user_id,))
     user = cur.fetchone()
     last_read = user['last_read_ann'] if user and user['last_read_ann'] else None
     
-    # 统计未读公告数量
+    # Count the number of unread announcements
     if last_read:
         cur.execute("SELECT COUNT(*) AS count FROM announcements WHERE created_at > %s", (last_read,))
     else:
@@ -4926,6 +4952,7 @@ def chat_list():
 
 @app.route('/api/user/<int:user_id>/status')
 def get_user_status(user_id):
+    # get user status (user can see other user last login time)
     db = get_db()
     cur = db.cursor()
     
@@ -4939,7 +4966,6 @@ def get_user_status(user_id):
     db.close()
     
     if user:
-        # 确保输出 ISO 格式
         last_seen_str = user['last_seen'].isoformat() if user['last_seen'] else None
         return jsonify({
             'online': user['is_online'] if user['is_online'] else False,
@@ -5068,7 +5094,8 @@ def search_users():
     return jsonify([dict(u) for u in users])
 
 # ============================================================
-# ?'s Routes
+# Keting's Routes
+# Announcements page
 # ============================================================
 @app.route('/api/announcements')
 def api_announcements():
@@ -5082,6 +5109,7 @@ def api_announcements():
 
 @app.route('/admin/announcement/add', methods=['POST'])
 def add_announcement():
+    #  Admin - Add announcement
     if not session.get('admin_logged_in'):
         return jsonify({'success': False}), 403
     title = request.form.get('title', '').strip()
@@ -5091,6 +5119,8 @@ def add_announcement():
         cur = db.cursor()
         cur.execute("INSERT INTO announcements (title, content) VALUES (%s, %s) RETURNING id", (title, content))
         ann_id = cur.fetchone()['id']
+
+        #  Notify all users
         cur.execute("INSERT INTO notifications (user_id, message, created_at) SELECT id, %s, NOW() FROM users", 
                     (f"📢 New announcement: {title}",))
         db.commit()
@@ -5107,12 +5137,12 @@ def unread_announcements():
     db = get_db()
     cur = db.cursor()
     
-    # 获取用户上次阅读公告的时间
+    # get the time when the user last read the announcement
     cur.execute("SELECT last_read_ann FROM users WHERE id = %s", (session['user_id'],))
     user = cur.fetchone()
     last_read = user['last_read_ann'] if user and user['last_read_ann'] else None
     
-    # 统计未读公告数量
+    # Count the number of unread announcements
     if last_read:
         cur.execute("SELECT COUNT(*) as count FROM announcements WHERE created_at > %s", (last_read,))
     else:
@@ -5126,6 +5156,7 @@ def unread_announcements():
 
 @app.route('/api/mark-ann-read', methods=['POST'])
 def mark_ann_read():
+    # mark announcement read
     if 'user_id' not in session:
         return jsonify({'success': False}), 401
     
@@ -5138,10 +5169,9 @@ def mark_ann_read():
     
     return jsonify({'success': True})
 
-# ========== 添加这个删除公告的路由 ==========
 @app.route('/admin/announcement/delete/<int:ann_id>', methods=['POST'])
 def delete_announcement(ann_id):
-    """删除公告"""
+    # Admin - Delete announcement
     if not session.get('admin_logged_in'):
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
@@ -5149,7 +5179,7 @@ def delete_announcement(ann_id):
         db = get_db()
         cur = db.cursor()
         
-        # 删除公告
+        # Delete Announcement
         cur.execute("DELETE FROM announcements WHERE id = %s", (ann_id,))
         db.commit()
         
@@ -5218,13 +5248,13 @@ def upload_product():
         except ValueError:
             errors.append("Please enter a valid price.")
 
-        # 支持的文件类型
+        # Supported File Types
         MIME_MAP = {
-            # 图片格式
+            # Image Format
             'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
             'gif': 'image/gif', 'webp': 'image/webp', 'bmp': 'image/bmp',
             'jfif': 'image/jpeg',
-            # 视频格式
+            # Video Format
             'mp4': 'video/mp4',
             'webm': 'video/webm',
             'mov': 'video/quicktime',
@@ -5235,13 +5265,13 @@ def upload_product():
 
         files = request.files.getlist('product_images')
         
-        # 过滤掉空文件
+        # Filter out empty files
         files = [f for f in files if f and f.filename]
         
         if not files:
             errors.append("Please upload at least one photo or video.")
         
-        # 检查文件数量（最多 12 个）
+        # Check the number of files (maximum 12)
         if len(files) > 12:
             errors.append("Maximum 12 images/videos allowed.")
 
@@ -5257,18 +5287,18 @@ def upload_product():
             if not file or not file.filename:
                 continue
 
-            # 获取文件扩展名
+            # Get File Extension
             ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
             
-            # 检查文件类型是否支持
+            # Check if the file type is supported
             if ext not in MIME_MAP:
                 flash(f"Unsupported file type: .{ext}. Supported: jpg, jpeg, png, gif, webp, mp4, webm, mov", "error")
                 return render_template('upload.html')
             
-            # 读取文件数据
+            # Read File Data
             file_data = file.read()
             
-            # 检查文件大小
+            # Check File Size
             is_video = ext in ['mp4', 'webm', 'mov', 'avi', 'mkv', 'm4v']
             max_size = 200 * 1024 * 1024 if is_video else 50 * 1024 * 1024  # 视频200MB，图片50MB
             
@@ -5277,18 +5307,18 @@ def upload_product():
                 flash(f"{file.filename} is too large (max {max_mb}MB)", "error")
                 return render_template('upload.html')
             
-            # 获取 MIME 类型
+            # Get MIME Type
             mime_type = MIME_MAP.get(ext, 'application/octet-stream')
             
-            # 特殊处理 MOV 文件
+            # Special Handling of MOV Files
             if ext == 'mov':
                 mime_type = 'video/quicktime'
 
-            # 构建 base64 数据 URI
+            # Construct Base64 Data URI
             base64_str = base64.b64encode(file_data).decode('utf-8')
             images_base64.append(f"data:{mime_type};base64,{base64_str}")
 
-            # 保存到磁盘（备份）
+            # Save to Disk (Backup）
             filename = secure_filename(file.filename)
             if not filename or filename.strip() == '':
                 filename = f"media_{uuid.uuid4().hex}.{ext}"
@@ -5316,7 +5346,7 @@ def upload_product():
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s)
         ''', (seller_id, name, price_val, description, condition, category, images_string, images_json, 'pending'))
         
-        # 获取新商品 ID
+        # Get New Product ID
         cur.execute("SELECT LASTVAL() as id")
         new_product_id = cur.fetchone()['id']
         
@@ -5324,7 +5354,7 @@ def upload_product():
         cur.close()
         db.close()
 
-        # 发送通知
+        # Send Notifications
         create_notification(
             user_id=seller_id,
             message=f' Product "{name}" submitted. Awaiting admin approval.',
@@ -5404,7 +5434,7 @@ def api_report_product(product_id):
     db = get_db()
     cur = db.cursor()
     
-    # 获取产品信息（包括卖家ID）
+    # Retrieve Product Information (Including Seller ID)）
     cur.execute('SELECT id, name, seller_id FROM products WHERE id = %s', (product_id,))
     product = cur.fetchone()
     
@@ -5413,7 +5443,7 @@ def api_report_product(product_id):
         db.close()
         return jsonify({'success': False, 'error': 'Product not found'}), 404
     
-    # 检查是否已经举报过
+    # Check if a report has already been submitted
     cur.execute('''
         SELECT id FROM reports 
         WHERE reporter_id = %s AND product_id = %s AND status = 'pending'
@@ -5425,14 +5455,14 @@ def api_report_product(product_id):
         db.close()
         return jsonify({'success': False, 'error': 'You have already reported this product'}), 400
     
-    # ✅ 插入举报记录，reported_user_id 使用卖家的 ID
+    # ✅ Insert report record, use the seller's ID for reported_user_id
     cur.execute('''
         INSERT INTO reports (reporter_id, reported_user_id, product_id, reason, details)
         VALUES (%s, %s, %s, %s, %s)
     ''', (session['user_id'], product['seller_id'], product_id, reason, details))
     db.commit()
     
-    # 通知举报者
+    # Notify the Reporter
     create_notification(
         user_id=session['user_id'],
         message=f'📋 You reported product "{product["name"]}" for: {reason}. Admin will review within 1-3 business days.',
@@ -6033,12 +6063,12 @@ def api_user_other_listings(user_id):
     return jsonify(listings)
 
 # ============================================================
-# 启动应用
+# Keting's routes
+# App Startup & Background Tasks
 # ============================================================
 
-# 启动时检查并解冻过期账户
+# Check and unfreeze expired accounts on startup
 def check_and_unfreeze_expired():
-    """启动时检查并解冻所有过期账户"""
     try:
         db = get_db()
         cur = db.cursor()
@@ -6071,7 +6101,7 @@ def check_and_unfreeze_expired():
     except Exception as e:
         print(f"Unfreeze check error: {e}")
 
-# 在后台线程中执行解冻检查，避免阻塞启动
+# Run unfreeze check in background thread
 import threading
 def run_unfreeze_check():
     try:
@@ -6084,21 +6114,22 @@ unfreeze_thread.daemon = True
 unfreeze_thread.start()
 
 # ============================================================
-# 交易提醒功能 - 定时检查即将到来的交易
+# Keting's routes
+# Meeting Reminder Background Tasks 
 # ============================================================
 
 import time as time_module
 
-# 存储已发送的提醒，防止重复发送
+# Store sent reminders to avoid duplicate delivery
 _reminder_sent_cache = {}
 
+# Send meeting reminder notification
 def send_meeting_reminder(order_id, user_id, message, reminder_type):
-    """发送交易提醒通知"""
     try:
         db = get_db()
         cur = db.cursor()
         
-        # 获取订单和产品信息
+        # get Order and Product Information
         cur.execute('''
             SELECT o.*, p.name as product_name, p.images_blob, p.id as product_id
             FROM orders o
@@ -6112,7 +6143,7 @@ def send_meeting_reminder(order_id, user_id, message, reminder_type):
             db.close()
             return
         
-        # 获取产品图片
+        # Get Product Images
         product_image = None
         if order.get('images_blob'):
             try:
@@ -6122,13 +6153,13 @@ def send_meeting_reminder(order_id, user_id, message, reminder_type):
             except:
                 pass
         
-        # 构建通知消息，包含时间、地点和产品信息
+        # build notification messages including time, location and product information
         meeting_time = order.get('meeting_time', '')
         meeting_point = order.get('meeting_point', '')
         product_name = order.get('product_name', 'Item')
         order_number = order.get('order_number', '')
         
-        # 格式化时间
+        # Format Time
         try:
             if meeting_time and 'T' in meeting_time:
                 dt = datetime.fromisoformat(meeting_time.replace('Z', '+00:00'))
@@ -6138,7 +6169,7 @@ def send_meeting_reminder(order_id, user_id, message, reminder_type):
         except:
             formatted_time = meeting_time
         
-        # 不同时间点的提醒消息
+        # Reminder Messages for Different Time Points
         reminder_messages = {
             '1hour': f"⏰ [1 HOUR REMINDER] Your meetup for Order #{order_number} is in 1 hour!\n📍 Location: {meeting_point}\n⏱️ Time: {formatted_time}\n📦 Product: {product_name}",
             '30min': f"⏰ [30 MIN REMINDER] Your meetup for Order #{order_number} is in 30 minutes!\n📍 Location: {meeting_point}\n⏱️ Time: {formatted_time}\n📦 Product: {product_name}",
@@ -6147,7 +6178,7 @@ def send_meeting_reminder(order_id, user_id, message, reminder_type):
         
         notif_message = reminder_messages.get(reminder_type, message)
         
-        # 发送通知给用户
+        # Send Notifications to Users
         cur.execute('''
             INSERT INTO notifications (user_id, message, created_at, type, related_id, product_id, is_read)
             VALUES (%s, %s, NOW(), 'meeting_reminder', %s, %s, 0)
@@ -6161,13 +6192,13 @@ def send_meeting_reminder(order_id, user_id, message, reminder_type):
     except Exception as e:
         print(f"❌ Failed to send reminder: {e}")
 
+# Check upcoming meetings and send reminders
 def check_upcoming_meetings_reminder():
-    """检查即将到来的交易并发送提醒"""
     try:
         db = get_db()
         cur = db.cursor()
         
-        # 获取所有已确认或已交付的订单（有 meeting_time）
+        # get all confirmed or delivered orders with meeting_time
         cur.execute('''
             SELECT o.id, o.order_number, o.meeting_point, o.meeting_time, 
                    o.buyer_id, o.seller_id, o.product_id,
@@ -6192,12 +6223,12 @@ def check_upcoming_meetings_reminder():
                 continue
             
             try:
-                # 解析时间
+                # Analyze time
                 if isinstance(meeting_time_str, str):
                     if 'T' in meeting_time_str:
                         meeting_time = datetime.fromisoformat(meeting_time_str.replace('Z', '+00:00'))
                     else:
-                        # 尝试多种格式
+                        # Try Multiple Formats
                         try:
                             meeting_time = datetime.strptime(meeting_time_str, '%Y-%m-%d %H:%M:%S')
                         except:
@@ -6208,33 +6239,33 @@ def check_upcoming_meetings_reminder():
                 else:
                     meeting_time = meeting_time_str
                 
-                # 移除时区信息
+                # Remove time zone information
                 if hasattr(meeting_time, 'tzinfo') and meeting_time.tzinfo:
                     meeting_time = meeting_time.replace(tzinfo=None)
                 
-                # 计算时间差（秒）
+                # Calculate time difference (seconds)
                 time_diff = (meeting_time - now).total_seconds()
                 
-                # 检查是否需要发送提醒（1小时、30分钟、15分钟）
+                # Check whether reminders need to be sent (1 hour, 30 minutes, 15 minutes)）
                 reminder_checks = [
-                    ('1hour', 3600, 60),      # 1小时，允许60秒误差
-                    ('30min', 1800, 30),       # 30分钟，允许30秒误差
-                    ('15min', 900, 15)         # 15分钟，允许15秒误差
+                    ('1hour', 3600, 60),      #1 hour with a tolerance of 60 seconds
+                    ('30min', 1800, 30),       
+                    ('15min', 900, 15)         
                 ]
                 
                 for reminder_type, target_seconds, tolerance in reminder_checks:
                     if 0 <= time_diff - target_seconds <= tolerance:
-                        # 检查是否已经发送过这个提醒
+                        # Check if this reminder has been sent before
                         cache_key = f"{order_id}_{reminder_type}"
                         if cache_key in _reminder_sent_cache:
                             continue
                         
-                        # 发送给买家
+                        # Send to buyers
                         send_meeting_reminder(order_id, order['buyer_id'], '', reminder_type)
-                        # 发送给卖家
+                        # Send to the seller
                         send_meeting_reminder(order_id, order['seller_id'], '', reminder_type)
                         
-                        # 记录已发送
+                        # Record sent
                         _reminder_sent_cache[cache_key] = True
                         print(f"📨 Sent {reminder_type} reminder for order {order_id}")
                         
@@ -6245,20 +6276,25 @@ def check_upcoming_meetings_reminder():
     except Exception as e:
         print(f"Error in check_upcoming_meetings_reminder: {e}")
 
+# Background scheduler, runs every minute
 def reminder_scheduler():
-    """后台定时任务，每分钟执行一次"""
+   
     while True:
         try:
             check_upcoming_meetings_reminder()
         except Exception as e:
             print(f"Reminder scheduler error: {e}")
-        # 每分钟检查一次
+        # Check once every minute
         time_module.sleep(60)
 
-# 启动后台提醒线程
+# Start Background Reminder Thread
 reminder_thread = threading.Thread(target=reminder_scheduler, daemon=True)
 reminder_thread.start()
 print("✅ Meeting reminder scheduler started")
+
+# ============================================================
+# Start the application
+# ============================================================
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -16,7 +16,7 @@
             background: #fff;
         }
 
-        /* 导航栏 - 加大 */
+        /* Navigation Bar */
         .chat-header {
             display: flex;
             align-items: center;
@@ -43,7 +43,7 @@
         }
         .back-btn:hover { background: #d4e8d8; }
         
-        /* 头像 - 加大 */
+        /* Avatar */
         .avatar-circle {
             width: 52px;
             height: 52px;
@@ -103,7 +103,7 @@
             font-weight: 500;
         }
 
-        /* 消息气泡 - 字体加大 */
+        /* message bubble */
         .msg-bubble {
             max-width: 75%;
             padding: 12px 16px;
@@ -294,7 +294,7 @@
             color: #888;
         }
 
-        /* 产品选择器 */
+        /* Product Selector */
         .product-picker {
             display: none;
             padding: 12px 16px;
@@ -403,16 +403,16 @@ var selectedFiles = [];
 var lastMessageId = 0;
 
 // ============================================================
-// 时间格式化 - 显示本地时间（12小时制 AM/PM）
+// Time Formatting - Display Local Time (12-hour format AM/PM）
 // ============================================================
 function formatChatTime(dateStr) {
     if (!dateStr) return '';
     
-    // 将字符串转换为 Date，并加上时区偏移
+    // Convert the string to a Date and add the time zone offset
     var d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
     
-    // 加上 8 小时（马来西亚时区 UTC+8）
+    // Add 8 hours (Malaysia Time Zone UTC+8)
     var localTime = new Date(d.getTime() + 8 * 60 * 60 * 1000);
     
     var hours = localTime.getHours();
@@ -461,7 +461,7 @@ function formatDateDivider(dateStr) {
 }
 
 // ============================================================
-// 渲染消息
+// Render message
 // ============================================================
 function renderMessages(messages) {
     var container = document.getElementById('chatMessages');
@@ -533,7 +533,7 @@ function loadMessages() {
 }
 
 // ============================================================
-// 发送消息
+// Send message
 // ============================================================
 function sendMsg() {
     var input = document.getElementById('msgInput');
@@ -613,7 +613,7 @@ function removeImage(index) {
 }
 
 // ============================================================
-// 产品选择器
+// Product Selector
 // ============================================================
 function openProductPicker() {
     var picker = document.getElementById('productPicker');
@@ -674,7 +674,7 @@ function sendSelectedProduct() {
 }
 
 // ============================================================
-// 表情和Enter
+// Emojis and Enter
 // ============================================================
 function toggleEmoji() {
     document.getElementById('emojiPanel').classList.toggle('show');
@@ -699,7 +699,7 @@ function previewImage(src) {
 }
 
 // ============================================================
-// 举报
+// Report
 // ============================================================
 function openReportModal() {
     document.getElementById('reportModal').classList.add('show');
@@ -731,7 +731,7 @@ function submitReport() {
 }
 
 // ============================================================
-// 在线状态 - 显示准确的最后在线时间
+// Online Status - Display Accurate Last Seen Time
 // ============================================================
 function updateUserStatus() {
     fetch('/api/user/' + otherId + '/status', { credentials: 'same-origin' })
@@ -800,7 +800,7 @@ function escapeHtml(str) {
 }
 
 // ============================================================
-// 初始化
+// Initialization
 // ============================================================
 function init() {
     loadMessages();
